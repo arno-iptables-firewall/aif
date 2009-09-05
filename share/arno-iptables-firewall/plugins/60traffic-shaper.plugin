@@ -1,0 +1,454 @@
+# ------------------------------------------------------------------------------
+#      -= Arno's iptables firewall - HTB & HFSC traffic shaper plugin =-
+#
+PLUGIN_NAME="Traffic-Shaper plugin"
+PLUGIN_VERSION="1.2.01 (htb: well tested, hfsc: experimental)"
+PLUGIN_CONF_FILE="traffic-shaper.conf"
+#
+# Last changed          : August 23, 2009
+# Requirements          : kernel 2.6 + iproute
+# Comments              : This plugin will shape traffic. It borrows heavily on
+# 			  the logic of Maciej's original script (below), with
+# 			  some minor changes to the actual bins that traffic
+# 			  goes into (I made the catch-all [default] for traffic
+# 			  be a higher priority than browsing or bulk data
+# 			  transfer).
+#                  [LRA]: Added htb support from astshape in AstLinux
+#                  [LRA]: Classify UDP by DSCP class
+# Author                : (C) Copyright 2008-2009 by Philip Prindeville
+# Credits               : Maciej Blizinski
+# Credits               : Kristian Kielhofner
+# Credits               : Lonnie Abelbeck
+# Homepage              : http://www.voip-info.org/wiki/view/QoS+Linux+with+HFSC
+# 			  http://media.blizinski.pl/code/hfsc.gz
+# Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
+# Email                 : philipp AT redfish-solutions DOT com
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------
+
+# Traffic classes:
+# 1:20 Streaming Media (VoIP) (RTP, IAX2, etc.)
+# 1:30 Interactive (ssh, SIP-signaling, telnet, X, Vnc, ACK, etc.)
+# 1:40 Default
+# 1:50 Bulk data transfer (HTTP, HTTPS, POP3, SMTP, FTP, etc.)
+
+# Helper functions
+setclassbyport_hfsc()
+{
+  local class=$2
+
+  case $1 in
+    t*) proto=tcp; port="$(echo "$1" | cut -c2- )" ;;
+    u*) proto=udp; port="$(echo "$1" | cut -c2- )" ;;
+    *)  printf "\033[40m\033[1;31m  ERROR: Unknown protocol/port $port!\n\033[0m" >&2
+        return 1 ;;
+  esac
+
+  # we assume that on egress traffic, only the destination port is
+  # significant, i.e. that we're not running any servers locally.
+  iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --dport $port -j CLASSIFY \
+	--set-class $class
+
+  return 0
+}
+
+setclassbyport_htb()
+{
+  local class=$2
+
+  case $1 in
+    t*) proto=tcp; port="$(echo "$1" | cut -c2- )" ;;
+    u*) proto=udp; port="$(echo "$1" | cut -c2- )" ;;
+    *)  printf "\033[40m\033[1;31m  ERROR: Unknown protocol/port $port!\n\033[0m" >&2
+        return 1 ;;
+  esac
+
+  iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --dport $port -j CLASSIFY \
+	--set-class $class
+  iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --sport $port -j CLASSIFY \
+	--set-class $class
+
+  return 0
+}
+
+classify_special_packets()
+{
+  # To speed up downloads while an upload is going on, put short ACK
+  # packets in the interactive class:
+  iptables -t mangle -A SHAPER_CHAIN \
+	-p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK ACK \
+	-m length --length :64 \
+	-j CLASSIFY --set-class 1:30
+
+  # put large (512+) icmp packets in browsing category
+  iptables -t mangle -A SHAPER_CHAIN \
+	-p icmp \
+	-m length --length 512: \
+	-j CLASSIFY --set-class 1:50
+
+  # ICMP in the interactive class
+  iptables -t mangle -A SHAPER_CHAIN \
+	-p icmp \
+	-m length --length :512 \
+	-j CLASSIFY --set-class 1:30
+
+  return 0
+}
+
+classify_by_dscp_class()
+{
+  # Classify UDP by DSCP class, assume VoIP audio is marked as EF, and SIP as CS3
+  iptables -t mangle -A SHAPER_CHAIN -m udp -p udp -m dscp --dscp-class EF -j CLASSIFY --set-class 1:20
+  iptables -t mangle -A SHAPER_CHAIN -m udp -p udp -m dscp --dscp-class AF21 -j CLASSIFY --set-class 1:20
+  iptables -t mangle -A SHAPER_CHAIN -m udp -p udp -m dscp --dscp-class CS3 -j CLASSIFY --set-class 1:30
+  iptables -t mangle -A SHAPER_CHAIN -m udp -p udp -m dscp --dscp-class AF31 -j CLASSIFY --set-class 1:30
+
+  return 0
+}
+
+incoming_traffic_limit()
+{
+  # Try to control the incoming traffic as well.
+  # Set up ingress qdisc
+  tc qdisc add dev $1 handle ffff: ingress
+
+  # filter *everything* to it (0.0.0.0/0), drop everything that's
+  # coming in too fast:
+  tc filter add dev $1 parent ffff: protocol ip prio 100 u32 match ip src \
+     0.0.0.0/0 police rate ${DOWNLINK}kbit burst $((1*$DOWNLINK/10))k drop flowid :1
+
+  return 0
+} 
+
+# Plugin start function
+plugin_start()
+{
+  case $SHAPER_TYPE in
+  hfsc)
+    plugin_start_hfsc ;;
+
+  *)
+    plugin_start_htb ;;
+  esac
+}
+
+# HFSC start function
+plugin_start_hfsc()
+{
+  # Some required modules are already loaded by the main script:
+  modprobe ip_nat
+#   modprobe ip_table
+
+  if ! modprobe sch_hfsc; then
+    printf "\033[40m\033[1;31m  ERROR: Couldn't load kernel module sch_hfsc!\033[m\n" >&2
+    return 1
+  fi
+
+  printf " Shaping as %d/%dkb/s using %s\n" $UPLINK $DOWNLINK 'hfsc'
+
+  iptables -t mangle -N SHAPER_CHAIN
+
+  classify_special_packets
+
+  IFS=' ,'
+  for port in $SHAPER_BULKDATA_PORTS; do
+    setclassbyport_hfsc $port 1:50
+  done
+
+  IFS=' ,'
+  for port in $SHAPER_INTERACTIVE_PORTS; do
+    setclassbyport_hfsc $port 1:30
+  done
+
+  IFS=' ,'
+  for port in $SHAPER_STREAMINGMEDIA_PORTS; do
+    setclassbyport_hfsc $port 1:20
+  done
+
+  classify_by_dscp_class
+
+  IFS=' ,'
+  for eif in $EXT_IF; do
+
+    # tc doesn't take wildcards, so we need expansion done here
+    for eif1 in $(wildcard_ifs $eif); do
+
+      # add HFSC root qdisc
+      tc qdisc add dev $eif1 root handle 1: hfsc default 40
+
+      # add main rate limit class
+      tc class add dev $eif1 parent 1: classid 1:1 hfsc \
+    	sc rate ${UPLINK}kbit ul rate ${UPLINK}kbit
+
+      # Streaming Media: guarantee 1/2 uplink for 200ms, then 5/10
+      tc class add dev $eif1 parent 1:1 classid 1:20 hfsc \
+    	sc m1 $((5*$UPLINK/10))kbit d 200ms m2 $((5*$UPLINK/10))kbit \
+    	ul rate ${UPLINK}kbit
+
+      # Interactive traffic: guarantee 1/2 uplink for 50ms, then 3/10
+      tc class add dev $eif1 parent 1:1 classid 1:30 hfsc \
+    	sc m1 $((5*$UPLINK/10))kbit d 50ms m2 $((3*$UPLINK/10))kbit \
+    	ul rate ${UPLINK}kbit
+
+      # Default traffic: don't guarantee anything for the first two seconds,
+      # then guarantee 1/20
+      tc class add dev $eif1 parent 1:1  classid 1:40 hfsc \
+    	sc m1           0 d    2s m2 $((3*$UPLINK/20))kbit \
+    	ul rate ${UPLINK}kbit
+
+      # Bulk data traffic: don't guarantee anything for the first 2 seconds,
+      # then guarantee 1/20
+      tc class add dev $eif1 parent 1:1  classid 1:50 hfsc \
+    	sc m1           0 d    2s m2 $((1*$UPLINK/20))kbit \
+    	ul rate ${UPLINK}kbit
+
+      incoming_traffic_limit $eif1
+    done
+
+    # add SHAPER_CHAIN chain to mangle table in iptables
+    iptables -t mangle -A POSTROUTING -o $eif -j SHAPER_CHAIN
+  done
+
+  return 0
+}
+
+# HTB start function
+plugin_start_htb()
+{
+  # Some required modules are already loaded by the main script:
+  modprobe ip_nat
+
+  printf " Shaping as %d/%dkb/s using %s\n" $UPLINK $DOWNLINK 'hfsc'
+
+  iptables -t mangle -N SHAPER_CHAIN
+
+  classify_special_packets
+
+  IFS=' ,'
+  for port in $SHAPER_BULKDATA_PORTS; do
+    setclassbyport_htb $port 1:50
+  done
+
+  IFS=' ,'
+  for port in $SHAPER_INTERACTIVE_PORTS; do
+    setclassbyport_htb $port 1:30
+  done
+
+  IFS=' ,'
+  for port in $SHAPER_STREAMINGMEDIA_PORTS; do
+    setclassbyport_htb $port 1:20
+  done
+
+  classify_by_dscp_class
+
+  IFS=' ,'
+  for eif in $EXT_IF; do
+
+    # tc doesn't take wildcards, so we need expansion done here
+    for eif1 in $(wildcard_ifs $eif); do
+      #install root HTB, point default traffic to 1:40
+      tc qdisc add dev $eif1 root handle 1: htb default 40
+
+      #shape everything at $UPLINK speed to prevent queing
+      tc class add dev $eif1 parent 1: classid 1:1 htb rate ${UPLINK}kbit burst 6k
+
+      # streaming media class 1:20
+      tc class add dev $eif1 parent 1:1 classid 1:20 htb rate ${UPLINK}kbit burst 6k prio 1
+
+      # interactive class 1:30
+      tc class add dev $eif1 parent 1:1 classid 1:30 htb rate ${UPLINK}kbit burst 6k prio 2
+
+      # default class 1:40
+      tc class add dev $eif1 parent 1:1 classid 1:40 htb rate $((9*$UPLINK/10))kbit burst 6k prio 3
+
+      # bulk class 1:50
+      tc class add dev $eif1 parent 1:1 classid 1:50 htb rate $((8*$UPLINK/10))kbit burst 6k prio 4
+
+      # all get Stochastic Fairness
+      tc qdisc add dev $eif1 parent 1:20 handle 20: sfq perturb 10
+      tc qdisc add dev $eif1 parent 1:30 handle 30: sfq perturb 10
+      tc qdisc add dev $eif1 parent 1:40 handle 40: sfq perturb 10
+      tc qdisc add dev $eif1 parent 1:50 handle 50: sfq perturb 10
+
+      incoming_traffic_limit $eif1
+    done
+
+    # add SHAPER_CHAIN chain to mangle table in iptables
+    # Note: This strategy uses the OUTPUT chain, along with POSTROUTING, unlike the hfsc implimentation here.
+    #       The basis is from a proven technique in AstLinux (astshape).
+    iptables -t mangle -A POSTROUTING -o $eif -j SHAPER_CHAIN
+    iptables -t mangle -A OUTPUT -o $eif -j SHAPER_CHAIN
+  done
+
+  return 0
+}
+
+
+# Plugin stop function
+plugin_stop()
+{
+  case $SHAPER_TYPE in
+  hfsc)
+    plugin_stop_hfsc ;;
+
+  *)
+    plugin_stop_htb ;;
+  esac
+}
+
+# HFSC stop function
+plugin_stop_hfsc()
+{
+  IFS=' ,'
+  for eif in $EXT_IF; do
+
+    # tc doesn't take wildcards, so we need expansion done here
+    for eif1 in $(wildcard_ifs $eif); do
+      # Reset everything to a known state (cleared)
+      tc qdisc del dev $eif1 root 2>/dev/null
+      tc qdisc del dev $eif1 ingress 2>/dev/null
+    done
+
+    # Flush and delete tables
+    iptables -t mangle -D POSTROUTING -o $eif -j SHAPER_CHAIN 2>/dev/null
+  done
+
+  iptables -t mangle -F SHAPER_CHAIN
+  iptables -t mangle -X SHAPER_CHAIN 2>/dev/null
+
+  modprobe -r sch_hfsc 2>/dev/null
+  modprobe -r ip_nat 2>/dev/null
+
+  return 0
+}
+
+# HTB stop function
+plugin_stop_htb()
+{
+  IFS=' ,'
+  for eif in $EXT_IF; do
+
+    # tc doesn't take wildcards, so we need expansion done here
+    for eif1 in $(wildcard_ifs $eif); do
+      # Reset everything to a known state (cleared)
+      tc qdisc del dev $eif1 root 2>/dev/null
+      tc qdisc del dev $eif1 ingress 2>/dev/null
+    done
+
+    # Flush and delete tables
+    iptables -t mangle -D POSTROUTING -o $eif -j SHAPER_CHAIN 2>/dev/null
+    iptables -t mangle -D OUTPUT -o $eif -j SHAPER_CHAIN 2>/dev/null
+  done
+
+  iptables -t mangle -F SHAPER_CHAIN
+  iptables -t mangle -X SHAPER_CHAIN 2>/dev/null
+
+  modprobe -r ip_nat 2>/dev/null
+
+  return 0
+}
+
+
+# Plugin status function
+plugin_status()
+{
+  IFS=' ,'
+  # tc doesn't take wildcards, so we need expansion done here
+  for eif in $(wildcard_ifs $EXT_IF); do
+    echo "  [qdisc]"
+    tc -s qdisc show dev $eif
+
+    echo ""
+    echo "  [class]"
+    tc -s class show dev $eif
+
+    echo ""
+    echo "  [filter]"
+    tc -s filter show dev $eif
+  done
+
+  echo ""
+  echo "  [iptables]"
+  iptables -t mangle -L SHAPER_CHAIN -v -x 2>/dev/null
+
+  return 0
+}
+
+
+# Sanity check environment before actual start
+plugin_sanity_check()
+{
+  if [ -z "$UPLINK" -o -z "$DOWNLINK" ]; then
+    printf "\033[40m\033[1;31m ERROR: The plugin config file is not properly set!\n\033[0m" >&2
+    return 1
+  fi
+
+  count=0
+  IFS=' ,'
+  for eif in $EXT_IF; do
+    count=$((count+1))
+  done
+  if [ "$count" -ne 1 ]; then
+    printf "\033[40m\033[1;31m ERROR: Multiple external interfaces are not supported.\n\033[0m" >&2
+    return 1
+  fi
+
+  check_binary tc
+  check_binary ip
+
+  return 0
+}
+
+
+############
+# Mainline #
+############
+
+# Check where to find conf
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+else
+  CONF_FILE="$PLUGIN_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Check if the config file exists
+if [ ! -e "$CONF_FILE" ]; then
+  printf "\033[40m\033[1;31m ERROR: Config file \"$CONF_FILE\" not found!\n        Plugin \"$PLUGIN_NAME v$PLUGIN_VERSION\" not loaded!\033[0m\n" >&2
+  PLUGIN_RET_VAL=1
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  if [ "$ENABLED" = "1" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
+    # Show who we are:
+    echo " $PLUGIN_NAME v$PLUGIN_VERSION"
+
+    # Only proceed if environment ok
+    if plugin_sanity_check; then
+      case $PLUGIN_CMD in
+        start|'') plugin_start; PLUGIN_RET_VAL=$?;;
+        stop    ) plugin_stop; PLUGIN_RET_VAL=$?;;
+        status  ) plugin_status; PLUGIN_RET_VAL=$?;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m  ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2 ;;
+      esac
+    fi
+  else
+    PLUGIN_RET_VAL=0
+  fi
+fi

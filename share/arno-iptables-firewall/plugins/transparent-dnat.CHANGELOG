@@ -1,0 +1,27 @@
+Version 0.30BETA (March 17, 2009)
+---------------------------------
+* Cleanup
+* Misc. tweaks
+
+Version 0.23BETA (February 19, 2008)
+------------------------------------
+* Minor tweak for PLUGIN_RET_VAL
+
+Version 0.22BETA (February 13, 2008)
+------------------------------------
++ Updated according to the new plugin template
+
+Version 0.21BETA (January 30, 2008)
+-----------------------------------
+* Changed hardcoded iptables to iptables
+
+Version 0.2BETA (November 15, 2007)
+-----------------------------------
+* Plugin cleanup
+* Changed OUTPUT to PREROUTING chain (cleaner + faster)
+* Updated for new plugin model (with PLUGIN_CMD) + better layout
+
+Version 0.1BETA (May 26, 2006)
+------------------------------------
+* Initial version (courtesy of Rok Potocnik)
+

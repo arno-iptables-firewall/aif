@@ -1,0 +1,41 @@
+Version 0.29BETA (February 19, 2008)
+------------------------------------
+* Minor tweak for PLUGIN_RET_VAL
+
+Version 0.28BETA (February 18, 2008)
+------------------------------------
+* Added some extra del rules to purge the rule & route tables on start/stop
+
+Version 0.27BETA (February 18, 2008)
+------------------------------------
+! Fixed several typos/bugs
+
+Version 0.26BETA (February 17, 2008)
+------------------------------------
+! Fixed double || syntax error in sanity_check()
+
+Version 0.25BETA (February 16, 2008)
+------------------------------------
++ Implemented stop() section which will disable multirouting on stop
+
+Version 0.24BETA (February 14, 2008)
+------------------------------------
++ Added weight options for the external interfaces
+
+Version 0.23BETA (February 13, 2008)
+------------------------------------
++ Updated according to the new plugin template
+
+Version 0.22BETA (January 30, 2008)
+-----------------------------------
++ Updated for new config file location / detection
+
+Version 0.21BETA (May 25, 2007)
+------------------------------------
++ Added variable sanity check
+* Changed some variable names
+* Cosmetic improvements
+
+Version 0.20BETA (January 22, 2007)
+------------------------------------
+* Minor tweaks/changes

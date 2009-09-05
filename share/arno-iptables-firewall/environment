@@ -1,0 +1,678 @@
+# ------------------------------------------------------------------------------
+#                           -= Arno's iptables firewall =-
+#               Single- & multi-homed firewall script with DSL/ADSL support
+#
+#                           ~ In memory of my dear father ~
+#
+# (C) Copyright 2001-2009 by Arno van Amersfoort
+# Homepage              : http://rocky.eld.leidenuniv.nl/
+# Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
+# Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------
+
+# Some predefined variables/macros:
+IPTABLES_ERROR=0
+ANYHOST="0/0"
+ANYPORT="0:65535"
+SEP="~"
+SEP2="#"
+SEP3="|"
+TAB="$(printf '\t')"
+EOL='
+'
+
+# Set file to store which plugins are loaded
+PLUGIN_LOAD_FILE="/var/tmp/.aif_active_plugins"
+
+# Check whether we also need to drop messages in a dedicated firewall log file
+if [ -z "$FIREWALL_LOG" ]; then
+  FIREWALL_LOG="/dev/null"
+fi
+
+# Check for a local/global config file
+######################################
+if [ -e "$LOCAL_CONFIG_FILE" ]; then
+  . "$LOCAL_CONFIG_FILE"
+fi
+
+# if $LOGLEVEL is not set, default to "info"
+############################################
+if [ -z "$LOGLEVEL" ]; then
+  LOGLEVEL="info"
+fi
+
+
+# Detect all binaries
+#####################
+if [ -z "$IP6TABLES" ]; then
+  if [ -x /sbin/ip6tables ]; then
+    IP6TABLES="/sbin/ip6tables"
+  else
+    IP6TABLES=`which ip6tables 2>/dev/null`
+  fi
+fi
+  
+if [ -z "$IP4TABLES" ]; then
+  if [ -x /sbin/iptables ]; then
+    IP4TABLES="/sbin/iptables"
+  else
+    IP4TABLES=`which iptables 2>/dev/null`
+  fi
+fi
+
+if [ -x /sbin/ip ]; then
+  IP='/sbin/ip'
+else
+  IP=`which ip 2>/dev/null`
+fi
+
+if [ -x /sbin/tc ]; then
+  TC='/sbin/tc'
+else
+  TC=`which tc 2>/dev/null`
+fi
+
+if [ -x /sbin/sysctl ]; then
+  SYSCTL='/sbin/sysctl'
+else
+  SYSCTL=`which sysctl 2>/dev/null`
+fi
+
+if [ -x /sbin/modprobe ]; then
+  MODPROBE='/sbin/modprobe'
+else
+  MODPROBE=`which modprobe 2>/dev/null`
+fi
+
+if [ "$IPV6_SUPPORT" = "1" ]; then
+  IPTABLES="$IP6TABLES"
+  ICMP_PROTO="icmpv6"
+  ICMP_TYPE="--icmpv6-type"
+  
+  # If IPv6 support is enabled some options should be forced off as they
+  # are simply not supported (yet) by ip6tables
+  unset SET_MSS TTL_INC NAT PACKET_TTL NAT_FORWARD_TCP NAT_FORWARD_UDP NAT_FORWARD_IP
+else
+  IPTABLES="$IP4TABLES"
+  ICMP_PROTO="icmp"
+  ICMP_TYPE="--icmp-type"
+fi
+
+# check for tracing
+###################
+if [ "$TRACE" = "1" ]; then
+  TRACEFILE="/tmp/aif-trace.`date '+%Y%m%d-%H:%M:%S'`"
+  cp /dev/null $TRACEFILE
+fi
+
+
+# Check plugin bin path and fallback in case it's empty
+#######################################################
+if [ -z "$PLUGIN_BIN_PATH" ]; then
+  if [ -d "/usr/local/share/arno-iptables-firewall/plugins" ]; then
+    PLUGIN_BIN_PATH="/usr/local/share/arno-iptables-firewall/plugins"
+  else
+    if [ -d "/usr/share/arno-iptables-firewall/plugins" ]; then
+      PLUGIN_BIN_PATH="/usr/share/arno-iptables-firewall/plugins"
+    else
+      printf "\033[40m\033[1;31mERROR: The plugin binary path (PLUGIN_BIN_PATH) has not been specified\033[0m\n" >&2
+      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+      exit 2
+    fi
+  fi
+fi
+
+# Required for legacy plugins:
+PLUGIN_PATH="$PLUGIN_BIN_PATH"
+
+# Check plugin bin path and fallback in case it's empty
+#######################################################
+if [ -z "$PLUGIN_CONF_PATH" ]; then
+  if [ -d "/etc/arno-iptables-firewall/plugins" ]; then
+    PLUGIN_CONF_PATH="/etc/arno-iptables-firewall/plugins"
+  else
+    printf "\033[40m\033[1;31mERROR: The plugin config path (PLUGIN_CONF_PATH) has not been specified\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+    exit 2
+  fi
+fi
+
+################################# Functions ####################################
+
+trace()
+{
+  if [ -n "$TRACEFILE" ]; then
+   ((PS4='' ; set -x ; : "$@" >/dev/null) 2>&1 ) | sed 's/^: //' >> $TRACEFILE
+  else
+    "$@"
+  fi
+}
+
+
+# Check whether a binary is available
+check_binary()
+{
+  if ! which "$1" >/dev/null 2>&1; then
+    printf "\033[40m\033[1;31mERROR: Binary \"$1\" does not exist or is not executable!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       Please, make sure that it is (properly) installed!\033[0m\n" >&2
+    exit 2
+  fi
+}
+
+
+# Check if the current kernel is at least a certain version (or newer)
+# Arguments: major minor rev (ie. "2 6 25")
+# Return   : 0 = kernel is equal or newer, 1 = kernel is older
+######################################################################
+kernel_ver_chk()
+{
+  local maj min rev ver
+
+  if [ -n "$2" ]; then
+    maj="$1"
+    min="$2"
+    rev="$3"
+  else
+    maj=$(echo "$1" |cut -s -d'.' -f1)
+    min=$(echo "$1" |cut -s -d'.' -f2)
+    rev=$(echo "$1" |cut -s -d'.' -f3)
+  fi
+
+  ver=$(uname -r |cut -s -d'-' -f1)
+  if [ $(echo "$ver" |cut -s -d'.' -f1) -lt $maj ]; then
+    return 1
+  fi
+
+  if [ $(echo "$ver" |cut -s -d'.' -f2) -lt $min ]; then
+    return 1
+  fi
+
+  if [ $(echo "$ver" |cut -s -d'.' -f3) -lt $rev ]; then
+    return 1
+  fi
+
+  return 0
+}
+
+
+
+# Linecount function
+lc()
+{
+  wc -l |awk '{ print $1 }'
+}
+
+
+note_iptables_error()
+{
+  unset IFS
+  for arg in $*; do
+    if [ "$arg" = "-A" ] || [ "$arg" = "-I" ]; then
+      return 0
+    fi
+  done
+
+  return 1
+} 
+
+
+iptables()
+{
+  result=`trace $IPTABLES "$@" 2>&1`
+  retval=$?
+
+  if [ "$retval" != "0" ]; then
+    # Show any (error) messages in red
+    printf "\033[40m\033[1;31m($retval) $result\033[0m\n" >&2
+    if note_iptables_error "$@"; then
+      IPTABLES_ERROR=1
+    fi
+  elif [ -n "$result" ]; then
+    echo "$result"
+  fi
+
+  return $retval
+}
+
+
+ip4tables()
+{
+  result=`trace $IP4TABLES "$@" 2>&1`
+  retval=$?
+
+  if [ "$retval" != "0" ]; then
+    # Show any (error) messages in red
+    printf "\033[40m\033[1;31m($retval) $result\033[0m\n" >&2
+    if note_iptables_error "$@"; then
+      IPTABLES_ERROR=1
+    fi
+  elif [ -n "$result" ]; then
+    echo "$result"
+  fi
+
+  return $retval
+}
+
+
+ip6tables()
+{
+  result=`trace $IP6TABLES "$@" 2>&1`
+  retval=$?
+
+  if [ "$retval" != "0" ]; then
+    # Show any (error) messages in red
+    printf "\033[40m\033[1;31m($retval) $result\033[0m\n" >&2
+    if note_iptables_error "$@"; then
+      IPTABLES_ERROR=1
+    fi
+  elif [ -n "$result" ]; then
+    echo "$result"
+  fi
+
+  return $retval
+}
+
+
+# Wrapper function for modprobe
+###############################
+modprobe()
+{
+  # Module support available?
+  if [ -e /proc/modules ]; then
+    # Make sure environment variable is not set
+    MODPROBE_OPTIONS=""
+
+    result=`trace $MODPROBE $@ 2>&1`
+    retval=$?
+
+    if [ "$retval" != "0" ]; then
+      if ! echo "$result" |grep -q -e '^FATAL: Module .* not found'; then
+        # Show any (error) messages in red
+        printf "\033[40m\033[1;31m modprobe $@ ($retval): $result\033[0m\n" >&2
+      elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
+        echo " NOTE: Module \"$1\" not found. Assuming it is compiled in the kernel"
+      fi
+    else
+      if echo "$result" |grep -q -e '^WARNING:'; then
+        # Show any (warning) messages in red
+        printf "\033[40m\033[1;31m modprobe $@: $result\033[0m\n" >&2
+      elif [ -n "$result" ]; then            # If result is not empty, show it
+        echo " $result"
+      fi
+    fi
+  elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
+    echo " NOTE: Kernel has no module support. Assuming module \"$1\" is compiled in the kernel"
+  fi
+
+  return $retval
+}
+
+
+# Legacy function
+#################
+module_probe()
+{
+  printf "\033[40m\033[1;31mFunction module_probe() will soon be deprecated, please use modprobe() instead!\033[0m\n" >&2
+  modprobe "$@"
+}
+
+
+# sysctl binary wrapper
+#######################
+sysctl()
+{
+  result=`trace $SYSCTL -w "$@" 2>&1`
+  retval=$?
+
+  if [ "$retval" != "0" ]; then
+    # Show any (error) messages in red
+    printf "\033[40m\033[1;31m sysctl $@ ($retval): $result\033[0m\n" >&2
+  fi
+
+  return $retval
+}
+
+
+# tc binary wrapper
+###################
+tc()
+{
+  trace $TC "$@"
+}
+
+
+# ip binary wrapper
+###################
+ip()
+{
+  trace $IP "$@"
+}
+
+
+# Helper function to expand out wildcards in interface name list
+wildcard_ifs()
+{
+  local expnd if0 if1 IFS
+
+  expnd=""
+
+  IFS=', '
+  for if0 in $*; do
+    if1="$if0"
+    case $if1 in
+    *+)
+      if1="${if1/%+/}"
+      if1=`$IP link | awk "\\$2 ~ /${if1}[0-9]+:/ { print substr(\\$2, 1, length(\\$2)-1); }"`
+      if [ -z "$if1" ]; then
+        echo "wildcard: $if0 unmatched!" >&2
+        continue
+      fi
+      ;;
+    esac
+    expnd="$expnd${expnd:+ }$if1"
+  done
+  echo "$expnd"
+}
+
+
+# Helper function to get interface(s) from variable
+get_ifs()
+{
+  local result=""
+  
+  if echo "$1" |grep -q -e "$SEP2"; then
+    result=`echo "$1" |cut -s -d"$SEP2" -f1 |grep -v -e '\.' -e '0/0' |tr ' ' ','`
+  fi
+
+  if [ -n "$result" ]; then
+    echo "$result"
+    return 0
+  else
+    if [ -n "$2" ]; then
+      echo "$2"
+    else
+      echo "+"
+    fi
+    return 1
+  fi
+}
+
+
+# Helper function to get source/destination IP(s) from variable
+get_ips()
+{
+  local result=""
+
+  if echo "$1" |grep -q -e "$SEP2"; then
+    result=`echo "$1" |cut -s -d"$SEP2" -f1 |grep -e '\.' -e '0/0' |tr ' ' ','`
+  fi
+
+  if [ -n "$result" ]; then
+    echo "$result"
+    return 0
+  else
+    if [ -n "$2" ]; then
+      echo "$2"
+    else
+      echo "0/0"
+    fi
+    return 1
+  fi
+}
+
+
+# Helper function to get hostname(s) from variable (ifs|ips#hosts)
+get_hosts_ih()
+{
+  local result="$(echo "$1" |sed "s!^.*$SEP2!!")"
+
+  if [ -n "$result" ]; then
+    echo "$result"
+    return 0;
+  else
+    echo "$2"
+    return 1
+  fi
+}
+
+
+# Helper function to get hostname(s) from variable (ifs|ips#hosts~ports|protos)
+get_hosts_ihp()
+{
+  local result="$(echo "$1" |sed "s!^.*$SEP2!!" |cut -s -d"$SEP" -f1)"
+  
+  if [ -n "$result" ]; then
+    echo "$result"
+    return 0
+  else
+    echo "$2"
+    return 1
+  fi
+}
+
+
+# Helper function to get port(s) from variable (ifs|ips#hosts~ports|protos)
+get_ports_ihp()
+{
+  local result="$(echo "$1" |sed "s!^.*$SEP2!!")"
+
+  if echo "$result" |grep -q -e "$SEP"; then
+    echo "$result" |cut -s -d"$SEP" -f2 |tr '-' ':'
+    return 0
+  elif [ -n "$2" ]; then
+    # Use default, if specified
+    echo "$2"
+    return 1
+  else
+    # When we have no seperator, assume port(s) only and no host(s)
+    echo "$result" |tr '-' ':'
+    return 0
+  fi
+}
+
+
+# Helper function to get hostname(s) from variable (hosts~ports|protos)
+get_hosts_hp()
+{
+  local result="$(echo "$1" |sed "s!^.*$SEP2!!")"
+
+  if echo "$result" |grep -q -e "$SEP"; then
+    echo "$result" |cut -s -d"$SEP" -f1
+    return 0
+  elif [ -n "$2" ]; then
+    # Use default, if specified
+    echo "$2"
+    return 1
+  else
+    # When we have no seperator, assume host(s) only and no port(s)
+    echo "$result"
+    return 0
+  fi
+}
+
+
+# Helper function to get port(s) from variable (hosts~ports|protos)
+get_ports_hp()
+{
+  local result="$(echo "$1" |sed "s!^.*$SEP2!!")"
+
+  if echo "$result" |grep -q -e "$SEP"; then
+    echo "$result" |cut -s -d"$SEP" -f2 |tr '-' ':'
+    return 0
+  else
+    echo "$2"
+    return 1
+  fi
+}
+
+
+# Helper function to get port(s) from variable (ifs|ips#ports|protos)
+get_ports_ip()
+{
+  local result="$(echo "$1" |sed "s!^.*$SEP2!!")"
+
+  if [ -n "$result" ]; then
+    echo "$result" |tr '-' ':'
+    return 0
+  else
+    echo "$2"
+    return 1
+  fi
+}
+
+
+# Helper function to resolve an IP to a DNS name
+# $1 = IP. $2 (optional) = Additional arguments for dig. stdout = DNS name
+gethostbyaddr()
+{
+  host="$1"
+  shift
+
+  if [ -n "$(echo "$host" |grep '/')" ]; then
+    printf ""
+    return 1
+  fi
+
+  if [ -z "$1" ]; then
+    result="$(dig +short -x $host 2>/dev/null)"
+    retval=$?
+  else
+    result="$(dig $@ +short -x $host 2>/dev/null)"
+    retval=$?
+  fi
+
+  echo "$result" |grep -v -e "^;;" |head -n1 |sed -e 's!.$!!'
+
+  return $retval
+}
+
+
+# Helper function to resolve a DNS name to an IP
+# $1 = Hostname. $2 (optional) = Additional arguments for dig. stdout = IP
+gethostbyname()
+{
+  host="$1"
+  shift
+
+  if [ -z "$1" ]; then
+    result="$(dig +short $host 2>/dev/null)"
+    retval=$?
+  else
+    result="$(dig $@ +short $host 2>/dev/null)"
+    retval=$?
+  fi
+
+  echo "$result" |grep -v -e "^;;" |head -n1
+
+  return $retval
+}
+
+
+# Helper function to show (resolved) ip~hostname
+show_hostname()
+{
+  local hostname=""
+  local FIRST=0
+  
+  IFS=' ,'
+  # Argument(s) contains IP(s)
+  for host in $1; do
+    if [ "$RESOLV_IPS" = "1" ]; then
+      hostname=`gethostbyaddr "$host"`
+    else
+      hostname=""
+    fi
+
+    if [ "$FIRST" = "0" ]; then
+      FIRST=1
+    else
+      printf ","
+    fi
+
+    if [ -n "$hostname" ]; then
+      printf "$host=$hostname"
+    else
+      printf "$host"
+    fi
+  done
+}
+
+
+# Helper function to show interfaces / ips in front of verbose line
+# $1 =  interfaces. $2 = ips
+
+show_if_ip()
+{
+  # Only show interfaces if not empty:
+  if [ -n "$1" ] && [ "$1" != "+" ]; then
+    printf "($1) "
+  fi
+
+  # Only show destination IPs if not empty:
+  if [ -n "$2" ] && [ "$2" != "0/0" ]; then
+    printf "($2) "
+  fi
+}
+
+
+# Helper function to show hosts:ports
+# $1 = host. $2 = ports
+show_hosts_ports()
+{
+  # Only show interfaces if not empty:
+  if [ -n "$1" ]; then
+    printf "$1:$2"
+  else
+    printf "$2"
+  fi
+}
+
+
+# Helper function to translate host ranges from variable
+ip_range()
+{
+  FIRST=1
+
+  IFS=','
+  # Get variable from commandline
+  for item in $*; do
+    # Check whether an IP range was specified (only works like w.x.y.z1-z2!):
+    start="$(echo "$item" |cut -s -d'-' -f1 |awk -F'.' '{ print $NF }' |grep -e '[0-9]')"
+    host_base="$(echo "$item" |cut -s -d'-' -f1 |awk -F'.' '{ for (i=1; i<NF; i++) printf ("%s.",$i) }')"
+    stop="$(echo "$item" |cut -s -d'-' -f2 |grep -e '[0-9]')"
+
+    if [ -n "$stop" ] && [ -n "$start" ]; then
+      unset IFS
+      for x in `seq -s' ' $start $stop`; do
+        if [ "$FIRST" = "1" ]; then
+          FIRST=0
+        else
+          printf ","
+        fi
+        printf "$host_base$x"
+      done
+    else
+      if [ "$FIRST" = "1" ]; then
+        FIRST=0
+      else
+        printf ","
+      fi
+      printf "$item"
+    fi
+  done
+}

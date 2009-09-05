@@ -1,0 +1,257 @@
+#!/bin/sh
+
+# The plugin configuration file
+###############################
+PLUGIN_CONF_FILE="dyndns-host-open.conf"
+
+# Location of the main configuration file for the firewall
+##########################################################
+CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
+
+# Check if the main config file exists and if so load it
+########################################################
+if [ -e "$CONFIG_FILE" ]; then
+  . $CONFIG_FILE
+else
+  echo "ERROR: Could not read configuration file $CONFIG_FILE!" >&2
+  echo "       Please, check the file's location and (root) rights." >&2
+  exit 2
+fi
+
+# Check if the environment file exists and if so, load it
+#########################################################
+if [ -n "$ENV_FILE" ]; then
+  . "$ENV_FILE"
+else
+  if [ -f /usr/local/share/arno-iptables-firewall/environment ]; then
+    . /usr/local/share/arno-iptables-firewall/environment
+  else
+    if [ -f /usr/share/arno-iptables-firewall/environment ]; then
+      . /usr/share/arno-iptables-firewall/environment
+    else
+      printf "\033[40m\033[1;31mERROR: The environment file (ENV_FILE) has not been specified\033[0m\n" >&2
+      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+      exit 2
+    fi
+  fi
+fi
+
+
+# Function to first try to resolve @DynDNS else use the system default NS server
+resolvehost()
+{
+#  local result="$(gethostbyname "$1" "@ns.dyndns.org")"
+
+#  if [ -z "$result" ]; then
+    result="$(gethostbyname "$1")"
+#  fi
+
+  echo "$result"
+}
+
+
+# Check sanity of ie. environment
+sanity_check()
+{
+  if [ -z "$DYNDNS_HOST_OPEN_CRON" ]; then
+    echo "** ERROR: The plugin config file is not properly set! **" >&2
+    return 1
+  fi
+
+  # Check whether chain exists
+  if ! iptables -nL DYNDNS_CHAIN 2>&1 >/dev/null; then
+    echo "** ERROR: DYNDNS_CHAIN does not exist! **" >&2
+    return 1
+  fi
+
+  unset IFS
+  for rule in $DYNDNS_HOST_OPEN_TCP; do
+    hosts=`get_hosts_ihp "$rule"`
+
+    IFS=','
+    for host in $hosts; do
+      if [ -z "$(resolvehost "$host")" ]; then
+        echo "** ERROR: Unresolvable host \"$host\", refusing to (re)start! **" >&2
+        return 1
+      fi
+    done
+  done
+
+  unset IFS
+  for rule in $DYNDNS_HOST_OPEN_UDP; do
+    hosts=`get_hosts_ihp "$rule"`
+
+    IFS=','
+    for host in $hosts; do
+      if [ -z "$(resolvehost "$host")" ]; then
+        echo "** ERROR: Unresolvable host \"$host\", refusing to (re)start! **" >&2
+        return 1
+      fi
+    done
+  done
+
+  unset IFS
+  for rule in $DYNDNS_HOST_OPEN_IP; do
+    hosts=`get_hosts_ihp "$rule"`
+
+    IFS=','
+    for host in $hosts; do
+      if [ -z "$(resolvehost "$host")" ]; then
+        echo "** ERROR: Unresolvable host \"$host\", refusing to (re)start! **" >&2
+        return 1
+      fi
+    done
+  done
+
+  IFS=" ,"
+  for rule in $DYNDNS_HOST_OPEN_ICMP; do
+    hosts=`get_hosts_ih "$rule"`
+
+    IFS=','
+    for host in $hosts; do
+      if [ -z "$(resolvehost "$host")" ]; then
+        echo "** ERROR: Unresolvable host \"$host\", refusing to (re)start! **" >&2
+        return 1
+      fi
+    done
+  done
+
+  return 0
+}
+
+
+dyndns_host_open()
+{
+  # Flush the DYNDNS_CHAIN
+  iptables -F DYNDNS_CHAIN
+
+  # Add TCP ports to allow for certain hosts
+  ##########################################
+  unset IFS
+  for rule in $DYNDNS_HOST_OPEN_TCP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
+
+    echo "  $(show_if_ip "$interfaces" "$destips")Allowing $hosts for TCP port(s): $ports"
+
+    IFS=','
+    for host in $hosts; do
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A DYNDNS_CHAIN -i $interface -s $(resolvehost "$host") -d $destip -p tcp --dport $port -j ACCEPT
+          done
+        done
+      done
+    done
+  done
+
+
+  # Add UDP ports to allow for certain hosts
+  ##########################################
+  unset IFS
+  for rule in $DYNDNS_HOST_OPEN_UDP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
+
+    echo "  $(show_if_ip "$interfaces" "$destips")Allowing $hosts for UDP port(s): $ports"
+
+    IFS=','
+    for host in $hosts; do
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A DYNDNS_CHAIN -i $interface -s $(resolvehost "$host") -d $destip -p udp --dport $port -j ACCEPT
+          done
+        done
+      done
+    done
+  done
+
+
+  # Add IP protocols to allow for certain hosts
+  #############################################
+  unset IFS
+  for rule in $DYNDNS_HOST_OPEN_IP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule"`
+    protos=`get_ports_ihp "$rule"`
+
+    echo "  $(show_if_ip "$interfaces" "$destips")Allowing $hosts for IP protocol(s): $protos"
+
+    IFS=','
+    for host in $hosts; do
+      IFS=','
+      for proto in $protos; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A DYNDNS_CHAIN -i $interface -s $(resolvehost "$host") -d $destip -p $proto -j ACCEPT
+          done
+        done
+      done
+    done
+  done
+
+
+  # Add ICMP to allow for certain hosts
+  #####################################
+  unset IFS
+  for rule in $DYNDNS_HOST_OPEN_ICMP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ih "$rule"`
+
+    echo "  $(show_if_ip "$interfaces" "$destips")Allowing $hosts for ICMP-requests(ping)"
+
+    IFS=','
+    for host in $hosts; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A DYNDNS_CHAIN -i $interface -s $(resolvehost "$host") -d $destip -p $ICMP_PROTO $ICMP_TYPE echo-request -j ACCEPT
+        done
+      done
+    done
+  done
+
+  return 0
+}
+
+
+
+
+############
+# Mainline #
+############
+
+# Check where to find the config file
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+else
+  CONF_FILE="$PLUGIN_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Check if the config file exists
+if [ ! -e "$CONF_FILE" ]; then
+  printf "  ** ERROR: Config file \"$CONF_FILE\" not found! **\n" >&2
+  exit 1
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  if [ "$ENABLED" = "1" ]; then
+    # Only proceed if environment ok
+    if sanity_check; then
+      dyndns_host_open;
+    else
+#      printf "  ** ERROR: Sanity check failed! **" >&2
+      exit 1
+    fi
+  fi
+fi
+
+exit 0

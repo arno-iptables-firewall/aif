@@ -1,0 +1,268 @@
+#!/bin/bash
+
+# The plugin configuration file
+###############################
+PLUGIN_CONF_FILE="traffic-accounting.conf"
+
+# Location of the main configuration file for the firewall
+##########################################################
+CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
+
+# Check if the main config file exists and if so load it
+########################################################
+if [ -e "$CONFIG_FILE" ]; then
+  . $CONFIG_FILE
+else
+  echo "ERROR: Could not read configuration file $CONFIG_FILE!" >&2
+  echo "       Please, check the file's location and (root) rights." >&2
+  exit 2
+fi
+
+# Check if the environment file exists and if so, load it
+#########################################################
+if [ -n "$ENV_FILE" ]; then
+  . "$ENV_FILE"
+else
+  if [ -f /usr/local/share/arno-iptables-firewall/environment ]; then
+    . /usr/local/share/arno-iptables-firewall/environment
+  else
+    if [ -f /usr/share/arno-iptables-firewall/environment ]; then
+      . /usr/share/arno-iptables-firewall/environment
+    else
+      printf "\033[40m\033[1;31mERROR: The environment file (ENV_FILE) has not been specified\033[0m\n" >&2
+      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+      exit 2
+    fi
+  fi
+fi
+
+
+# Function to first try to resolve @DynDNS else use the system default NS server
+resolvehost()
+{
+#  result="$(gethostbyname "$1" "@ns.dyndns.org")"
+
+#  if [ -z "$result" ]; then
+    result="$(gethostbyname "$1")"
+#  fi
+
+  echo "$result"
+}
+
+
+# Check sanity of ie. environment
+sanity_check()
+{
+  if [ -z "$TRAFFIC_ACCOUNTING_CRON" ]; then
+    printf "** ERROR: The plugin config file is not properly set! **" >&2
+    return 1
+  fi
+
+  # Check whether chains exists
+  if ! iptables -nL ACCOUNTING_INPUT_CHAIN 2>&1 >/dev/null; then
+    echo "  ** ERROR: ACCOUNTING_INPUT_CHAIN does not exist! **" >&2
+    return 1
+  fi
+
+  if ! iptables -nL ACCOUNTING_OUTPUT_CHAIN 2>&1 >/dev/null; then
+    echo "  ** ERROR: ACCOUNTING_OUTPUT_CHAIN does not exist! **" >&2
+    return 1
+  fi
+
+  # Check if chains inserted in the main chains
+  if ! iptables -nL INPUT |grep -q '^ACCOUNTING_INPUT_CHAIN '; then
+    echo "  ** ERROR: ACCOUNTING_INPUT_CHAIN is not inserted in the INPUT chain! **" >&2
+    return 1
+  fi
+
+  if ! iptables -nL OUTPUT |grep -q '^ACCOUNTING_OUTPUT_CHAIN '; then
+    echo "  ** ERROR: ACCOUNTING_OUTPUT_CHAIN is not inserted in the OUTPUT chain! **" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+
+traffic_accounting()
+{
+  # Touch the log files (just in case they don't exist yet):
+  touch /var/log/traffic-accounting.log
+
+  # Truncate file
+  printf "" >/tmp/traffic-accounting.new
+
+  # Process the input chain
+  echo "Traffic Accounting Hosts:"
+  echo "-------------------------"
+  IFS=' ,'
+  # Also add catch all rule (0.0.0.0/0)
+  for host in $TRAFFIC_ACCOUNTING_HOSTS 0.0.0.0/0; do
+    printf "Host=$host "
+    old_entry="$(grep "^$host " /var/log/traffic-accounting.log)"
+    old_ip="$(echo "$old_entry" |cut -s -d' ' -f2)"
+    old_in_value="$(echo "$old_entry" |cut -s -d' ' -f3)"
+    old_out_value="$(echo "$old_entry" |cut -s -d' ' -f4)"
+
+    # If value is non-existant make it zero
+    if [ -z "$old_in_value" ]; then
+      old_in_value=0
+    fi
+
+    # If value is non-existant make it zero
+    if [ -z "$old_out_value" ]; then
+      old_out_value=0
+    fi
+
+    # Only try to resolve actual hostnames
+    if echo "$host" |grep -q -i '[a-z]'; then
+      # Get hostname
+      new_ip=`resolvehost "$host"`
+    else
+      new_ip="$host"
+    fi
+
+    # If it fails use old IP
+    if [ -z "$new_ip" ]; then
+      if [ -n "$old_ip" ]; then
+        echo "** ERROR: Unresolvable host \"$host\". Re-using old IP! **" >&2
+        new_ip="$old_ip"
+      else
+        echo "** ERROR: Unresolvable host \"$host\", and no old IP to fallback on! **" >&2
+        # TODO: continue here?
+        return 1
+      fi
+    fi
+
+    printf "old_ip=$old_ip new_ip=$new_ip "
+
+    # Process input chain
+    OLDFOUND=0
+    if [ -n "$old_ip" ]; then
+      LCOUNT=0
+      IFS=$EOL
+      for LINE in `iptables -xnvL ACCOUNTING_INPUT_CHAIN |sed -e "1,2d"`; do
+        ipt_ip="$(echo "$LINE" |awk '{ print $8 }')"
+
+        LCOUNT=$(($LCOUNT + 1))
+        if [ "$ipt_ip" = "$old_ip" ]; then
+          iptables -R ACCOUNTING_INPUT_CHAIN $LCOUNT -s $new_ip -j RETURN
+          printf "in_action=update "
+          OLDFOUND=1
+          ipt_in_value="$(echo "$LINE" |awk '{ print $2 }')"
+
+          break
+        fi
+      done
+    fi
+
+    if [ "$OLDFOUND" = "0" ]; then
+      printf "in_action=add "
+      iptables -A ACCOUNTING_INPUT_CHAIN -s $new_ip -j RETURN
+
+      # Preset values to zero as none exist yet
+      ipt_in_value=0
+    fi
+
+    # Process output chain
+    OLDFOUND=0
+    if [ -n "$old_ip" ]; then
+      LCOUNT=0
+      IFS=$EOL
+      for LINE in `iptables -xnvL ACCOUNTING_OUTPUT_CHAIN |sed -e "1,2d"`; do
+        ipt_ip="$(echo "$LINE" |awk '{ print $9 }')"
+
+        LCOUNT=$(($LCOUNT + 1))
+        if [ "$ipt_ip" = "$old_ip" ]; then
+          iptables -R ACCOUNTING_OUTPUT_CHAIN $LCOUNT -d $new_ip -j RETURN
+          printf "out_action=update "
+          OLDFOUND=1
+          ipt_out_value="$(echo "$LINE" |awk '{ print $2 }')"
+
+          break
+        fi
+      done
+    fi
+
+    if [ "$OLDFOUND" = "0" ]; then
+      printf "out_action=add "
+      iptables -A ACCOUNTING_OUTPUT_CHAIN -d $new_ip -j RETURN
+
+      # Preset values to zero as none exist yet
+      ipt_out_value=0
+    fi
+
+    # Calculate new in value
+    new_in_value=$(($old_in_value + $ipt_in_value))
+
+    # Calculate new out value
+    new_out_value=$(($old_out_value + $ipt_out_value))
+
+    printf "old_in_val=$old_in_value ipt_in_val=$ipt_in_value new_in_val=$new_in_value old_out_val=$old_out_value ipt_out_val=$ipt_out_value new_out_val=$new_out_value"
+
+    # Create entry in accounting file
+    echo "$host $new_ip $new_in_value $new_out_value" >>/tmp/traffic-accounting.new
+
+    printf "\n\n"
+  done
+
+  if [ -e /var/log/traffic-accounting.log ]; then
+    if [ -e /var/log/traffic-accounting.log.old ]; then
+      rm -f /var/log/traffic-accounting.log.old
+    fi
+
+    mv /var/log/traffic-accounting.log /var/log/traffic-accounting.log.old
+  fi
+  mv /tmp/traffic-accounting.new /var/log/traffic-accounting.log
+}
+
+
+############
+# Mainline #
+############
+
+# Check where to find the config file
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+else
+  CONF_FILE="$PLUGIN_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Check if the config file exists
+if [ ! -e "$CONF_FILE" ]; then
+  printf "  ** ERROR: Config file \"$CONF_FILE\" not found! **\n" >&2
+  exit 1
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  if [ "$ENABLED" = "1" ]; then
+    # Only proceed if environment ok
+    if sanity_check; then
+      # This is a cricital section so we use a lockfile
+      lockfile="/var/tmp/traffic-accounting-helper.lock"
+      if ( set -o noclobber; echo "$$" > "$lockfile") 2> /dev/null; then
+        # Setup int handler
+        trap 'rm -f "$lockfile"; exit $?' INT TERM EXIT
+
+        # Call our function
+        traffic_accounting;
+
+        # Remove lockfile
+        rm -f "$lockfile"
+
+        # Disable int handler
+        trap - INT TERM EXIT
+      else
+        echo "Failed to acquire lockfile: $lockfile." >&2
+        echo "Held by $(cat $lockfile)" >&2
+        exit 1
+      fi
+    else
+#      printf "  ** ERROR: Sanity check failed! **" >&2
+      exit 1
+    fi
+  fi
+fi
+
+exit 0

@@ -1,0 +1,48 @@
+Version 1.2.01 (Augest 23, 2009)
+--------------------------------
++ Call 'modprobe' directly and not module_probe as before.
+
+Version 1.2.00 (August 21, 2009)
+--------------------------------
++ Give the actual downstream/upstream bandwidth for visual confirmation.
+
+Version 1.1.01 (March 22, 2009)
+-------------------------------
++ Changed invocations of iptables to use short command names.
++ Now unload modules on 'stop'.
++ Check for presence of 'ip' and 'tc' during sanity routine.
+
+Version 1.1.00 (February 9, 2009)
+---------------------------------
++ Added support for wildcard interface names (e.g. "ppp+").
+
+Version 1.0.01 (December 6, 2008)
+---------------------------------
++ Lonnie added support to DSCP, and HTB.
+
+Version 0.24BETA (December 1, 2008)
+-----------------------------------
+! Fixed last change broke busybox setups
+
+Version 0.23BETA (November 19, 2008)
+------------------------------------
+! Fix error on Ubuntu
+
+Version 0.22BETA (November 17, 2008)
+------------------------------------
+- Cleanups
+
+Version 0.21BETA (August 11, 2008)
+----------------------------------
++ Added support for multiple interfaces
+
+VERSION 0.2BETA (February 19, 2008)
+-----------------------------------
+! Minor tweak for PLUGIN_RET_VAL
++ Updated according to the new plugin template
++ Changed config variables to have SHAPER_ prefix (since they might be shared
+  by other similar plugins with different schedulers, like 'red' or 'cbq')
+
+VERSION 0.1BETA (February 12, 2008)
+-----------------------------------
++ Initial version

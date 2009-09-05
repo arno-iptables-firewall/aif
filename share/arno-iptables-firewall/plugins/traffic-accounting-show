@@ -1,0 +1,79 @@
+#!/bin/bash
+
+TOTAL_IN=0
+TOTAL_OUT=0
+EOL='
+'
+
+show_human_size()
+{
+  if [ $1 -lt 10000 ]; then
+    echo "$1 Bytes"
+    return 0
+  fi
+
+  if [ $1 -lt 10000000 ]; then
+    echo "$(($1 / 1000)) KBytes"
+    return 0
+  fi
+
+  if [ $1 -lt 10000000000 ]; then
+    echo "$(($1 / 1000000)) MBytes"
+    return 0
+  fi
+
+  echo "$(($1 / 1000000000)) GBytes"
+  return 0
+}
+
+# Program entry point
+
+if [ -n "$1" ]; then
+  LOG_FILE="$1"
+else
+  LOG_FILE="/var/log/traffic-accounting.log"
+fi
+
+echo "Bytes input:"
+echo "-------------"
+IFS=$EOL
+for LINE in `cat "$LOG_FILE" |sort -n --key=3 --reverse`; do
+  hostname="$(echo "$LINE" |cut -s -d' ' -f1)"
+  ip="$(echo "$LINE" |cut -s -d' ' -f2)"
+  size="$(echo "$LINE" |cut -s -d' ' -f3)"
+
+
+  if [ "$hostname" = "0/0" ] || [ "$hostname" = "0.0.0.0/0" ]; then
+    hostname="Other traffic"
+  fi
+
+  echo "$hostname ($ip): $(show_human_size $size)"
+
+  TOTAL_IN=$(($TOTAL_IN + $size))
+done
+
+echo ""
+echo "Total input traffic: $(show_human_size $TOTAL_IN)"
+
+echo ""
+echo "Bytes output:"
+echo "-------------"
+IFS=$EOL
+for LINE in `cat "$LOG_FILE" |sort -n --key=4 --reverse`; do
+  hostname="$(echo "$LINE" |cut -s -d' ' -f1)"
+  ip="$(echo "$LINE" |cut -s -d' ' -f2)"
+  size="$(echo "$LINE" |cut -s -d' ' -f4)"
+
+  if [ "$hostname" = "0/0" ] || [ "$hostname" = "0.0.0.0/0" ]; then
+    hostname="Other traffic"
+  fi
+
+  echo "$hostname ($ip): $(show_human_size $size)"
+
+  TOTAL_OUT=$(($TOTAL_OUT + $size))
+done
+
+echo ""
+echo "Total output traffic: $(show_human_size $TOTAL_OUT)"
+
+

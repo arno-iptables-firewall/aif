@@ -1,0 +1,5133 @@
+#!/bin/sh
+
+MY_VERSION="1.9.2d"
+
+# Location of the main configuration file for the firewall
+##########################################################
+CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
+
+# ------------------------------------------------------------------------------
+#                           -= Arno's iptables firewall =-
+#               Single- & multi-homed firewall script with DSL/ADSL support
+#
+#                           ~ In memory of my dear father ~
+#
+# (C) Copyright 2001-2009 by Arno van Amersfoort
+# Homepage              : http://rocky.eld.leidenuniv.nl/
+# Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
+# Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------
+
+printf "\033[40m\033[1;32mArno's Iptables Firewall Script v$MY_VERSION\033[0m\n"
+echo "-------------------------------------------------------------------------------"
+
+# Check if the main config file exists and if so load it
+########################################################
+if [ -e "$CONFIG_FILE" ]; then
+  . "$CONFIG_FILE"
+else
+  printf "\033[40m\033[1;31mERROR: Could not read configuration file $CONFIG_FILE!\033[0m\n" >&2
+  printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n" >&2
+  exit 2
+fi
+
+# Check if the environment file exists and if so, load it
+#########################################################
+if [ -z "$ENV_FILE" ]; then
+  if [ -f /usr/local/share/arno-iptables-firewall/environment ]; then
+    ENV_FILE="/usr/local/share/arno-iptables-firewall/environment"
+  else
+    if [ -f /usr/share/arno-iptables-firewall/environment ]; then
+      ENV_FILE="/usr/share/arno-iptables-firewall/environment"
+    else
+      printf "\033[40m\033[1;31mERROR: The environment file (ENV_FILE) has not been specified\033[0m\n" >&2
+      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+      exit 2
+    fi
+  fi
+fi
+
+if [ -e "$ENV_FILE" ]; then
+  . "$ENV_FILE"
+else
+  printf "\033[40m\033[1;31mERROR: Could not read environment file \"$ENV_FILE\"!\033[0m\n" >&2
+  printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n" >&2
+  exit 2
+fi
+
+
+sanity_check()
+{
+  # root check
+  if [ "$(id -u)" != "0" ]; then
+    printf "\033[40m\033[1;31mERROR: Root check FAILED (you MUST be root to use this script)! Quitting...\033[0m\n" >&2
+    exit 1
+  fi
+
+  # Check whether the required binaries exist and are executable
+  ##############################################################
+  check_binary awk
+  check_binary tr
+  check_binary ifconfig
+  check_binary cut
+  check_binary uname
+  check_binary sed
+  check_binary cat
+  check_binary date
+  check_binary modprobe
+  check_binary sysctl
+  check_binary head
+  check_binary tail
+  check_binary wc
+  check_binary $IPTABLES
+  check_binary $IP4TABLES
+
+  # Make sure EXT_IF != ""
+  ########################
+  if [ -z "$EXT_IF" ]; then
+    printf "\033[40m\033[1;31mERROR: The required variable EXT_IF is empty!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       Please, check the configuration file.\033[0m\n" >&2
+    exit 2
+  fi
+
+  # Check whether EXT_IF exists
+  #############################
+  IFS=' ,'
+  for interface in $EXT_IF; do
+    if ! echo $interface |grep -q '\+'; then
+      result=`ifconfig $interface >/dev/null 2>&1`
+      return_val=$?
+      if [ "$return_val" != "0" ]; then
+        printf "\033[40m\033[1;31mNOTE: External interface $interface does NOT exist (yet?)\033[0m\n"
+        if [ -n "$result" ]; then
+          printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
+        fi
+      fi
+    fi
+  done
+
+  # Check whether INT_IF exists
+  ###############################
+  IFS=' ,'
+  for interface in $INT_IF; do
+    if ! echo $interface |grep -q '\+'; then
+      result=`ifconfig $interface >/dev/null 2>&1`
+      return_val=$?
+      if [ "$return_val" != "0" ]; then
+        printf "\033[40m\033[1;31mNOTE: Internal interface $interface does NOT exist (yet?)\033[0m\n"
+        if [ -n "$result" ]; then
+          printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
+        fi
+      fi
+    fi
+  done
+
+  # Check whether DMZ_IF exists
+  ###############################
+  IFS=' ,'
+  for interface in $DMZ_IF; do
+    if ! echo $interface |grep -q '\+'; then
+      result=`ifconfig $interface >/dev/null 2>&1`
+      return_val=$?
+      if [ "$return_val" != "0" ]; then
+        printf "\033[40m\033[1;31mNOTE: DMZ interface $interface does NOT exist (yet?)\033[0m\n"
+        if [ -n "$result" ]; then
+          printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
+        fi
+      fi
+    fi
+  done
+
+  # Check whether TRUSTED_IF exists
+  ###################################
+  IFS=' ,'
+  for interface in $TRUSTED_IF; do
+    if ! echo $interface |grep -q '\+'; then
+      result=`ifconfig $interface >/dev/null 2>&1`
+      return_val=$?
+      if [ "$return_val" != "0" ]; then
+        printf "\033[40m\033[1;31mNOTE: Trusted interface $interface does NOT exist (yet?)\033[0m\n"
+        if [ -n "$result" ]; then
+          printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
+        fi
+      fi
+    fi
+  done
+
+  # Make sure INT_IF != EXT_IF
+  ############################
+  IFS=' ,'
+  for eif in $EXT_IF; do
+    for iif in $INT_IF; do
+      if [ "$iif" = "$eif" ]; then
+        printf "\033[40m\033[1;31mERROR: One or more interfaces specified in EXT_IF is the same as one in\033[0m\n" >&2
+        printf "\033[40m\033[1;31m       INT_IF! Please, check the configuration file.\033[0m\n" >&2
+        exit 3
+      fi
+    done
+  done
+
+  # Make sure EXT_IF != lo / 127.0.0.1
+  ####################################
+  IFS=' ,'
+  for eif in $EXT_IF; do
+    if [ "$eif" = "lo" ] || [ "$eif" = "127.0.0.1" ]; then
+      printf "\033[40m\033[1;31mERROR: One or more interfaces specified in EXT_IF has the address or name of the\033[0m\n" >&2
+      printf "\033[40m\033[1;31m       local loopback device! Please, check the configuration file.\033[0m\n" >&2
+      exit 6
+    fi
+  done
+
+  # Make sure INT_IF != lo / 127.0.0.1
+  ####################################
+  IFS=' ,'
+  for iif in $INT_IF; do
+    if [ "$iif" = "lo" ] || [ "$iif" = "127.0.0.1" ]; then
+      printf "\033[40m\033[1;31mERROR: At least one of the interfaces specified in INT_IF has the address or\033[0m\n" >&2
+      printf "\033[40m\033[1;31m       name of the local loopback device! Please, check the configuration file.\033[0m\n" >&2
+      exit 7
+    fi
+  done
+
+  # If support for an DHCP server serving an external net is enabled, we
+  # also need to know what the external net is.
+  ##########################################################################
+  if [ "$EXTERNAL_DHCP_SERVER" = "1" ] && [ -z "$EXTERNAL_NET" ]; then
+    printf "\033[40m\033[1;31mERROR: You have enabled external DHCP server support but required variable\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n" >&2
+    exit 10
+  fi
+
+  # We can only perform NAT if NAT_INTERNAL_NET is defined
+  if [ "$NAT" = "1" ] && [ -z "$NAT_INTERNAL_NET" ]; then
+    printf "\033[40m\033[1;31mERROR: Unable to enable NAT because there's no (NAT_)INTERNAL_NET specified!\033[0m\n" >&2
+    exit 11
+  fi
+
+  # If support the nmb_broadcast_fix is enabled we need the EXTERNAL_NET set
+  ##########################################################################
+  if [ "$NMB_BROADCAST_FIX" = "1" ] && [ -z "$EXTERNAL_NET" ]; then
+    printf "\033[40m\033[1;31mERROR: You have enabled the NMB_BROADCAST_FIX but required variable\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n" >&2
+    exit 12
+  fi
+
+  # Warn if no_broadcast variables are used and external net is NOT defined
+  ##########################################################################
+  if [ -n "$BROADCAST_TCP_NOLOG" ] || [ -n "$BROADCAST_UDP_NOLOG" ]; then
+    if [ -z "$EXTERNAL_NET" ]; then
+      printf "\033[40m\033[1;31mWARNING: You are using the BROADCAST_xxx_NOLOG variables but the EXTERNAL_NET\033[0m\n" >&2
+      printf "\033[40m\033[1;31m         has NOT been defined! This could be a problem.\033[0m\n" >&2
+    fi
+  fi
+
+
+  # Passed all sanity checks :-)
+  ##############################
+  echo "Sanity checks passed...OK"
+}
+
+
+load_modules()
+{
+  if [ "$IPV6_SUPPORT" != "1" ]; then
+    echo "Checking/probing IPv4 Iptables modules:"
+
+    modprobe ip_tables               # Required; all ipv4 modules depend on this one
+    modprobe ip_conntrack            # Allows connection tracking state match, which allows you to
+                                         # write rules matching the state of a connection
+    modprobe ip_conntrack_ftp        # Permits active FTP; requires ip_conntrack
+
+    modprobe ipt_conntrack           # Allows tracking for various protocols, placing entries
+                                         # in the conntrack table etc.
+    modprobe ipt_limit               # Allows log limits
+    modprobe ipt_state               # Permits packet state checking (SYN, SYN-ACK, ACK, and so on).
+    modprobe ipt_multiport           # Allows packet specifications on multiple ports
+
+    modprobe iptable_filter          # Implements the filter table
+    modprobe iptable_mangle          # Implements the mangle table
+
+    # Explicitly load some targets
+    modprobe ipt_REJECT              # Implements the REJECT target
+    modprobe ipt_LOG                 # Implements the LOG target
+
+  # (Currently) unused modules:
+  #    modprobe ipt_addrtype            # Allows matching src/dst address type (BROKEN!)
+  #    modprobe ipt_pkttype             # Permits checking for packet type (BROADCAST, MULTICAST etc.) (BROKEN!)
+  #    modprobe ip_queue                # Allows queuing packets to user space
+  #    modprobe ipt_owner               # Permits user/group checking on OUTPUT packets
+  #    modprobe ipt_mark                # Allows use of mark match
+  #    modprobe ip_conntrack_egg
+
+    if [ "$USE_IRC" = "1" ]; then
+  #      echo "Enabling IRC DCC module support..."
+      modprobe ip_conntrack_irc        #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
+
+      if [ "$NAT" = "1" ]; then
+        modprobe ip_nat_irc            #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
+      fi
+    fi
+
+    if [ "$SET_MSS" != "0" ]; then
+      modprobe ipt_TCPMSS             # Load the TCPMSS target
+    fi
+
+    if [ "$NAT" = "1" ]; then
+      modprobe ip_nat_ftp             # Permits active FTP via nat; requires ip_conntrack, iptables_nat
+    fi
+    
+    if [ "$NAT" = "1" ] || [ -n "$NAT_FORWARD_TCP" ] || [ -n "$NAT_FORWARD_UDP" ] || [ -n "$NAT_FORWARD_IP" ]; then
+      modprobe iptable_nat            # Implements the NAT table
+      modprobe ipt_MASQUERADE         # Load the MASQUERADE target
+    fi
+
+    if [ "$MANGLE_TOS" != "0" ]; then
+      modprobe ipt_TOS                # Load the TOS target
+    fi
+
+    if [ "$PACKET_TTL" = "1" ] || [ "$TTL_INC" = "1" ]; then
+      modprobe ipt_TTL                # Load the TTL target
+    fi
+  else
+    echo "Checking/probing IPv6 Iptables modules:"
+
+    modprobe ip6_tables              # Required; all ipv6 modules depend on this one
+
+    modprobe nf_conntrack_ipv6       # Allows connection tracking state match, which allows you to
+                                     # write rules matching the state of a connection
+
+    modprobe ip6table_filter         # Implements the filter table
+    modprobe ip6table_mangle         # Implements the mangle table
+
+    # Explicitly load some targets
+    modprobe ip6t_REJECT             # Implements the REJECT target
+    modprobe ip6t_LOG                # Implements the LOG target
+  fi
+
+  echo " Module check done..."
+}
+
+
+setup_misc()
+{
+  # Most people don't want to get any firewall logs being spit to the console
+  # This option makes the kernel ring buffer to only log messages with level "panic"
+  if [ "$DMESG_PANIC_ONLY" = "1" ]; then
+    echo "Setting the kernel ring buffer to only log panic messages to the console"
+#    dmesg -c    # Clear ring buffer
+    dmesg -n 1  # Only show panic messages on the console
+  fi
+}
+
+
+setup_kernel_settings()
+{
+  echo "Setup kernel settings:"
+
+  # Set the maximum number of connections to track.
+  # The kernel "default" depends on the available amount of RAM, 128 MB of RAM -> 8192
+  # possible entries, 256 MB of RAM --> 16376 possible entries, etc...
+  #######################################################################################
+  if [ -z "$CONNTRACK" ]; then
+    CONNTRACK="4096"
+  fi
+
+  echo " Setting the max. amount of simultaneous connections to $CONNTRACK"
+  sysctl net.nf_conntrack_max=$CONNTRACK 2>/dev/null || \
+    sysctl net.ipv4.netfilter.ip_conntrack_max=$CONNTRACK 2>/dev/null || \
+    sysctl net.ipv4.ip_conntrack_max=$CONNTRACK 2>/dev/null || \
+    {
+      printf "\033[40m\033[1;31m WARNING: ...ip_conntrack_max could NOT be set. This may be a problem!\033[0m\n" >&2
+#      exit 20
+    }
+
+  # Change some default timings to fix false logs generated by "lost connections"
+  # Defaults:
+  #          echo 60 > /proc/sys/net/ipv4/netfilter/ip_conntrack_udp_timeout
+  #          echo 180 > /proc/sys/net/ipv4/netfilter/ip_conntrack_udp_timeout_stream
+  #          echo 10 >/proc/sys/net/ipv4/netfilter/ip_conntrack_tcp_timeout_close
+  #          echo 300 > /proc/sys/net/ipv4/netfilter/ip_conntrack_tcp_timeout_max_retrans
+  #          echo 120 > /proc/sys/net/ipv4/netfilter/ip_conntrack_tcp_timeout_time_wait
+  #          echo 30 > /proc/sys/net/ipv4/netfilter/ip_conntrack_tcp_timeout_last_ack
+  #          echo 60 > /proc/sys/net/ipv4/netfilter/ip_conntrack_tcp_timeout_close_wait
+  #          echo 120 > /proc/sys/net/ipv4/netfilter/ip_conntrack_tcp_timeout_fin_wait
+  #          echo 60 > /proc/sys/net/ipv4/netfilter/ip_conntrack_tcp_timeout_syn_recv
+  #          echo 120 > /proc/sys/net/ipv4/netfilter/ip_conntrack_tcp_timeout_syn_sent
+  #          echo 30 > /proc/sys/net/ipv4/netfilter/ip_conntrack_icmp_timeout
+  #          echo 1200 > /proc/sys/net/ipv4/netfilter/ip_conntrack_generic_timeout
+  ###############################################################################
+  echo " Setting default conntrack timeouts"
+
+  # This is to fix issues with DNS:
+  sysctl net.netfilter.nf_conntrack_udp_timeout=60 2>/dev/null || \
+    sysctl net.ipv4.netfilter.ip_conntrack_udp_timeout=60 2>/dev/null || \
+    printf "\033[40m\033[1;31m WARNING: ...conntrack_udp_timeout could NOT be set. This may be a problem!\033[0m\n" >&2
+
+  sysctl net.netfilter.nf_conntrack_udp_timeout_stream=180 2>/dev/null || \
+    sysctl net.ipv4.netfilter.ip_conntrack_udp_timeout_stream=180 2>/dev/null || \
+    printf "\033[40m\033[1;31m WARNING: ...conntrack_udp_timeout_stream could NOT be set. This may be a problem!\033[0m\n" >&2
+
+  # Enable Conntrack Accounting (kernel config CONFIG_NF_CT_ACCT)
+  # CONFIG_NF_CT_ACCT is deprecated and will be removed sometime after kernel 2.6.27
+  sysctl net.netfilter.nf_conntrack_acct=1 2>/dev/null
+
+  # Only set IPv4 options if IPv4 is used (and not IPv6)
+  ######################################################
+  if [ "$IPV6_SUPPORT" != "1" ]; then
+    # IPv4 is selected:
+
+    # Disable ICMP send_redirect
+    ############################
+    sysctl net.ipv4.conf.all.send_redirects=0
+
+    # Don't accept source routed packets.
+    # Attackers can use source routing to generate
+    # traffic pretending to be from inside your network, but which is routed back along
+    # the path from which it came, namely outside, so attackers can compromise your
+    # network. Source routing is rarely used for legitimate purposes.
+    ###################################################################################
+    if [ "$SOURCE_ROUTE_PROTECTION" = "0" ]; then
+      echo " DISABLING protection against source routed packets"
+      sysctl net.ipv4.conf.all.accept_source_route=1
+    else
+      echo " Enabling protection against source routed packets"
+      sysctl net.ipv4.conf.all.accept_source_route=0
+    fi
+
+    # ICMP Broadcasting protection (smurf amplifier protection)
+    ###########################################################
+    sysctl net.ipv4.icmp_echo_ignore_broadcasts=1
+
+    # ICMP Dead Error Messages protection
+    #####################################
+    sysctl net.ipv4.icmp_ignore_bogus_error_responses=1
+
+    # IP forwarding (need it to perform for example NAT)
+    ####################################################
+    if [ "$IP_FORWARDING" != "0" ]; then
+      echo " Enabling packet forwarding"
+#      sysctl -e net.ipv4.conf.all.forwarding=1
+      if ! sysctl net.ipv4.ip_forward=1; then
+        printf "\033[40m\033[1;31m WARNING: net.ipv4.ip_forward could not be set! If you're using\033[0m\n" >&2
+        printf "\033[40m\033[1;31m          NAT or any other type of forwarding this may be a problem.\033[0m\n" >&2
+      fi
+    else
+      echo " DISABLING packet forwarding"
+#      sysctl -e net.ipv4.conf.all.forwarding=0
+      sysctl -e net.ipv4.ip_forward=0 2>/dev/null
+    fi
+
+    # Enable some general settings
+    ##############################
+  #  echo 1 > /proc/sys/net/ipv4/tcp_window_scaling
+  #  echo 1024 > /proc/sys/net/ipv4/tcp_max_syn_backlog
+
+    # Reduce DoS'ing ability by reducing timeouts
+    #############################################################
+    if [ "$REDUCE_DOS_ABILITY" = "1" ]; then
+      echo " Enabling reduction of the DoS'ing ability"
+
+#      sysctl net.ipv4.tcp_sack=0
+      sysctl net.ipv4.tcp_fin_timeout=30
+      sysctl net.ipv4.tcp_keepalive_time=1800
+    else
+      echo " Disabling reduction of the DoS'ing ability"
+
+      # Defaults:
+#      sysctl net.ipv4.tcp_sack=1
+      sysctl net.ipv4.tcp_fin_timeout=60
+      sysctl net.ipv4.tcp_keepalive_time=7200
+    fi
+
+    # Set out local port range. Kernel default = "1024 4999"
+    ########################################################
+    if [ -z "$LOCAL_PORT_RANGE" ]; then
+      LOCAL_PORT_RANGE="32768 61000"
+    fi
+    sysctl net.ipv4.ip_local_port_range="$LOCAL_PORT_RANGE"
+
+    # Now we change the LOCAL_PORT_RANGE for further use by iptables (replace space with :)
+    LOCAL_PORT_RANGE="$(echo "$LOCAL_PORT_RANGE" |tr ' ' ':')"
+
+    # Use rp_filter to drop connections from non-routable IPs
+    ######################################################################
+    if [ "$RP_FILTER" = "1" ]; then
+      echo " Enabling anti-spoof with rp_filter"
+      sysctl net.ipv4.conf.all.rp_filter=1
+    else
+      echo " Disabling anti-spoof with rp_filter"
+      sysctl net.ipv4.conf.all.rp_filter=0
+    fi
+
+
+    # Block ALL ICMP echo requests?
+    ###############################
+    if [ "$ECHO_IGNORE" = "1" ]; then
+      echo " Blocking all ICMP echo-requests"
+      sysctl net.ipv4.icmp_echo_ignore_all=1
+    else
+      sysctl net.ipv4.icmp_echo_ignore_all=0
+    fi
+
+    # Add synflood protection?
+    ##########################
+    if [ "$SYN_PROT" != 0 ]; then
+      echo " Enabling SYN-flood protection via SYN-cookies"
+      sysctl net.ipv4.tcp_syncookies=1
+    else
+      echo " Disabling SYN-flood protection via SYN-cookies"
+      sysctl net.ipv4.tcp_syncookies=0
+    fi
+
+    # Log martians?
+    ###############
+    if [ "$LOG_MARTIANS" = "1" ]; then
+      echo " Enabling the logging of martians"
+      sysctl net.ipv4.conf.all.log_martians=1
+    else
+      echo " Disabling the logging of martians"
+      sysctl net.ipv4.conf.all.log_martians=0
+    fi
+
+    # Accept ICMP redirect messages?
+    ################################
+    if [ "$ICMP_REDIRECT" = "1" ]; then
+      echo " Enabling the acception of ICMP-redirect messages"
+      sysctl net.ipv4.conf.all.accept_redirects=1
+    else
+      echo " Disabling the acception of ICMP-redirect messages"
+      sysctl net.ipv4.conf.all.accept_redirects=0
+    fi
+
+    # Time To Live (TTL) is the term for a data field in the internet protocol.
+    # TTL is today interpreted to indicate the maximum number of routers a packet may transit.
+    # Each router that handles a packet will decrement the TTL field by 1.
+    # Raise if you have a huge network.
+    # Set the default ttl. (Kernel Default: 64)
+    ###########################################################################################
+    if [ -z "$DEFAULT_TTL" ]; then
+      DEFAULT_TTL="64"
+    fi
+
+    if [ $DEFAULT_TTL -gt 9 ] && [ $DEFAULT_TTL -lt 256 ]; then
+      echo " Setting default TTL=$DEFAULT_TTL"
+      sysctl net.ipv4.ip_default_ttl=$DEFAULT_TTL
+    else
+      printf "\033[40m\033[1;31m WARNING: Ingoring invalid value for DEFAULT_TTL ($DEFAULT_TTL), it should be between 10 and 255!\033[0m\n" >&2
+    fi
+
+    # Increase the default queuelength. (Kernel Default: 1024)
+    ##########################################################
+#    sysctl -e net.ipv4.ip_queue_maxlen=2048
+
+    # Enable ECN? (Explicit Congestion Notification)
+    ################################################
+    if [ "$ECN" = "1" ]; then
+      echo " Enabling ECN (Explicit Congestion Notification)"
+      sysctl net.ipv4.tcp_ecn=1
+    else
+      echo " Disabling ECN (Explicit Congestion Notification)"
+      sysctl net.ipv4.tcp_ecn=0
+    fi
+
+    # This enables dynamic-address hacking which makes the
+    # life with Diald and similar programs much easier.
+    ######################################################
+    if [ "$EXT_IF_DHCP_IP" = "1" ]; then
+      echo " Enabling kernel support for dynamic IPs"
+      sysctl net.ipv4.ip_dynaddr=1
+    else
+      sysctl net.ipv4.ip_dynaddr=0
+    fi
+
+    # In most cases pmtu discovery is ok, but in some rare cases (when having problems)
+    # you might want to disable it.
+    if [ "$NO_PMTU_DISCOVERY" = "1" ]; then
+      echo " Disabling PMTU discovery"
+      sysctl net.ipv4.ip_no_pmtu_disc=1
+    else
+      sysctl net.ipv4.ip_no_pmtu_disc=0
+    fi
+
+    echo " Flushing route table"
+    sysctl net.ipv4.route.flush=1
+  else
+    # IPv6 is selected:
+
+    # Disable ICMP send_redirect
+    ############################
+    sysctl net.ipv6.conf.all.send_redirects=0
+
+    # Don't accept source routed packets.
+    # Attackers can use source routing to generate
+    # traffic pretending to be from inside your network, but which is routed back along
+    # the path from which it came, namely outside, so attackers can compromise your
+    # network. Source routing is rarely used for legitimate purposes.
+    ###################################################################################
+    if [ "$SOURCE_ROUTE_PROTECTION" = "0" ]; then
+      echo " DISABLING protection against source routed packets"
+      sysctl net.ipv6.conf.all.accept_source_route=1
+    else
+      echo " Enabling protection against source routed packets"
+      sysctl net.ipv6.conf.all.accept_source_route=0
+    fi
+
+    # Accept ICMP redirect messages?
+    ################################
+    if [ "$ICMP_REDIRECT" = "1" ]; then
+      echo " Enabling the acception of ICMP-redirect messages"
+      sysctl net.ipv6.conf.all.accept_redirects=1
+    else
+      echo " Disabling the acception of ICMP-redirect messages"
+      sysctl net.ipv6.conf.all.accept_redirects=0
+    fi
+
+    # IP forwarding (need it to perform for example NAT)
+    ####################################################
+    if [ "$IP_FORWARDING" != "0" ]; then
+      sysctl -e net.ipv6.conf.all.forwarding=1
+    else
+      sysctl -e net.ipv6.conf.all.forwarding=0 2>/dev/null
+    fi
+
+    echo " Flushing route table"
+    sysctl net.ipv6.route.flush=1
+  fi
+
+  echo " Kernel setup done..."
+
+  # Return "no error"
+  return 0
+}
+
+
+init_firewall_chains()
+{
+  echo "Initializing firewall chains"
+
+  # Attempt to flush all rules in filter table
+  ############################################
+  iptables -F
+  iptables -X
+
+  # Flush built-in rules
+  ######################
+  iptables -F INPUT
+  iptables -F OUTPUT
+  iptables -F FORWARD
+  iptables -t nat -F 2>/dev/null
+  iptables -t nat -X 2>/dev/null
+  iptables -t mangle -F
+  iptables -t mangle -X
+
+  # Create our "base" chains
+  ##########################
+  iptables -N BASE_INPUT_CHAIN
+  iptables -N BASE_FORWARD_CHAIN
+  iptables -N BASE_OUTPUT_CHAIN
+
+  # Accept packets of ESTABLISHED connections
+  ###########################################
+  iptables -A BASE_INPUT_CHAIN -m state --state ESTABLISHED -j ACCEPT
+  iptables -A BASE_FORWARD_CHAIN -m state --state ESTABLISHED -j ACCEPT
+  iptables -A BASE_OUTPUT_CHAIN -m state --state ESTABLISHED -j ACCEPT
+
+  # Accept packets of RELATED connections
+  #######################################
+  iptables -A BASE_INPUT_CHAIN -m state --state RELATED -p tcp --dport 1024: -j ACCEPT
+  iptables -A BASE_INPUT_CHAIN -m state --state RELATED -p udp --dport 1024: -j ACCEPT
+  iptables -A BASE_INPUT_CHAIN -m state --state RELATED -p $ICMP_PROTO -j ACCEPT
+  iptables -A BASE_FORWARD_CHAIN -m state --state RELATED -p tcp --dport 1024: -j ACCEPT
+  iptables -A BASE_FORWARD_CHAIN -m state --state RELATED -p udp --dport 1024: -j ACCEPT
+  iptables -A BASE_FORWARD_CHAIN -m state --state RELATED -p $ICMP_PROTO -j ACCEPT
+
+  # Accept all packets for the loopback device
+  ############################################
+  iptables -A BASE_INPUT_CHAIN -i lo -j ACCEPT
+  iptables -A BASE_FORWARD_CHAIN -i lo -j ACCEPT
+  iptables -A BASE_OUTPUT_CHAIN -o lo -j ACCEPT
+
+  # Insert our base chains
+  ########################
+  iptables -A INPUT -j BASE_INPUT_CHAIN
+  iptables -A FORWARD -j BASE_FORWARD_CHAIN
+  iptables -A OUTPUT -j BASE_OUTPUT_CHAIN
+
+  # Create several chains that we will use later on
+  #################################################
+  create_user_chains;
+
+  # Reset the iptables counters
+  iptables -Z
+  iptables -t nat -Z 2>/dev/null
+  iptables -t mangle -Z
+}
+
+
+setup_default_policies()
+{
+  # Set the default policies for the built-in INPUT & FORWARD tables. The
+  # default for other chains (ie. OUTPUT) is always set to ACCEPT.
+  #######################################################################
+  if [ "$DEFAULT_POLICY_DROP" != "0" ]; then
+    echo " Setting default INPUT/FORWARD policy to DROP"
+    iptables -P INPUT DROP
+    iptables -P FORWARD DROP
+  else
+    echo " WARNING: Setting default INPUT/FORWARD policy to ACCEPT (during startup)"
+    iptables -P INPUT ACCEPT
+    iptables -P FORWARD ACCEPT
+  fi
+
+  iptables -P OUTPUT ACCEPT
+
+  # The POST_INPUT_DROP_CHAIN should temporarely DROP for now
+  # We we'll change this once the rules are in place
+  ###########################################################
+  iptables -A POST_INPUT_DROP_CHAIN -j DROP
+}
+
+
+##################################################################################################################
+## Chain VALID_CHK - Check packets for invalid flags etc.                                                       ##
+##################################################################################################################
+setup_valid_chk_chain()
+{
+  ## Log scanning of nmap etc.
+  ############################
+  if [ "$SCAN_LOG" != "0" ]; then
+    echo "Logging of stealth scans (nmap probes etc.) enabled"
+
+    # (NMAP) FIN/URG/PSH
+    ####################
+    iptables -A VALID_CHK -p tcp --tcp-flags ALL FIN,URG,PSH \
+      -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Stealth XMAS scan: "
+
+    # SYN/RST/ACK/FIN/URG
+    #####################
+    iptables -A VALID_CHK -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG \
+      -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Stealth XMAS-PSH scan: "
+
+    # ALL/ALL
+    #########
+    iptables -A VALID_CHK -p tcp --tcp-flags ALL ALL \
+      -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Stealth XMAS-ALL scan: "
+
+    # NMAP FIN Stealth
+    ##################
+    iptables -A VALID_CHK -p tcp --tcp-flags ALL FIN \
+      -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Stealth FIN scan: "
+
+    # SYN/RST
+    #########
+    iptables -A VALID_CHK -p tcp --tcp-flags SYN,RST SYN,RST \
+      -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Stealth SYN/RST scan: "
+
+    # SYN/FIN (probably)
+    ####################
+    iptables -A VALID_CHK -p tcp --tcp-flags SYN,FIN SYN,FIN \
+      -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Stealth SYN/FIN scan?: "
+
+    # Null scan
+    ###########
+    iptables -A VALID_CHK -p tcp --tcp-flags ALL NONE \
+      -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Stealth Null scan: "
+
+  else
+    echo "Logging of stealth scans (nmap probes etc.) disabled"
+  fi
+
+  # Drop (NMAP) scan packets:
+  ###########################
+
+  # NMAP FIN/URG/PSH
+  ##################
+  iptables -A VALID_CHK -p tcp --tcp-flags ALL FIN,URG,PSH -j POST_INPUT_DROP_CHAIN
+
+  # SYN/RST/ACK/FIN/URG
+  #####################
+  iptables -A VALID_CHK -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j POST_INPUT_DROP_CHAIN
+
+  # ALL/ALL Scan
+  ##############
+  iptables -A VALID_CHK -p tcp --tcp-flags ALL ALL -j POST_INPUT_DROP_CHAIN
+
+  # NMAP FIN Stealth
+  ##################
+  iptables -A VALID_CHK -p tcp --tcp-flags ALL FIN -j POST_INPUT_DROP_CHAIN
+
+  # SYN/RST
+  #########
+  iptables -A VALID_CHK -p tcp --tcp-flags SYN,RST SYN,RST -j POST_INPUT_DROP_CHAIN
+
+  # SYN/FIN -- Scan(probably)
+  ###########################
+  iptables -A VALID_CHK -p tcp --tcp-flags SYN,FIN SYN,FIN -j POST_INPUT_DROP_CHAIN
+
+  # NMAP Null Scan
+  ################
+  iptables -A VALID_CHK -p tcp --tcp-flags ALL NONE -j POST_INPUT_DROP_CHAIN
+
+  # Log packets with bad flags?
+  #############################
+  if [ "$BAD_FLAGS_LOG" != "0" ]; then
+    echo "Logging of packets with bad TCP-flags enabled"
+    iptables -A VALID_CHK -p tcp --tcp-option 64 \
+      -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Bad TCP flag(64): "
+
+    iptables -A VALID_CHK -p tcp --tcp-option 128 \
+      -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Bad TCP flag(128): "
+  else
+    echo "Logging of packets with bad TCP-flags disabled"
+  fi
+
+  # Drop packets with bad tcp flags
+  #################################
+  iptables -A VALID_CHK -p tcp --tcp-option 64 -j POST_INPUT_DROP_CHAIN
+  iptables -A VALID_CHK -p tcp --tcp-option 128 -j POST_INPUT_DROP_CHAIN
+
+  # These packets are normally from "lost connection" and thus can generate false alarms
+  # So we might want to ignore such packets
+  ######################################################################################
+#  if [ "$LOST_CONNECTION_LOG" != "1" ]; then
+#    iptables -A VALID_CHK -p tcp --tcp-flags SYN,ACK,FIN,RST ACK -j POST_INPUT_DROP_CHAIN
+#    iptables -A VALID_CHK -p tcp --tcp-flags SYN,ACK,FIN,RST FIN -j POST_INPUT_DROP_CHAIN
+#    iptables -A VALID_CHK -p tcp --tcp-flags SYN,ACK,FIN,RST RST -j POST_INPUT_DROP_CHAIN
+#    iptables -A VALID_CHK -p tcp --tcp-flags SYN,ACK,FIN,RST ACK,FIN -j POST_INPUT_DROP_CHAIN
+#    iptables -A VALID_CHK -p tcp --tcp-flags SYN,ACK,FIN,RST ACK,RST -j POST_INPUT_DROP_CHAIN
+#    iptables -A VALID_CHK -p tcp --tcp-flags SYN,ACK,FIN,RST SYN,ACK -j POST_INPUT_DROP_CHAIN
+#  fi
+
+  # Here we add some protection from random packets we receive, such as random sweeps from other
+  # (possible) hacked computers, or just packets who are invalid, not belonging to ANY connection
+  ###############################################################################################
+  if [ "$INVALID_TCP_LOG" = "1" ]; then
+    echo "Logging of INVALID TCP packets enabled"
+
+    iptables -A VALID_CHK -p tcp -m state --state INVALID \
+      -m limit --limit 1/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INVALID TCP: "
+  else
+    echo "Logging of INVALID TCP packets disabled"
+  fi
+
+  if [ "$INVALID_UDP_LOG" = "1" ]; then
+    echo "Logging of INVALID UDP packets enabled"
+
+    iptables -A VALID_CHK -p udp -m state --state INVALID \
+      -m limit --limit 1/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INVALID UDP: "
+  else
+    echo "Logging of INVALID UDP packets disabled"
+  fi
+
+  if [ "$INVALID_ICMP_LOG" = "1" ]; then
+    echo "Logging of INVALID ICMP packets enabled"
+
+    # Only log INVALID ICMP-request packets when we also want to log "normal" ICMP-request packets
+    if [ "$ICMP_REQUEST_LOG" != "0" ]; then
+      iptables -A VALID_CHK -p $ICMP_PROTO $ICMP_TYPE echo-request -m state --state INVALID \
+        -m limit --limit 1/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INVALID ICMP-request: "
+    fi
+
+    # Only log INVALID ICMP-other when enabled in the config
+    if [ "$ICMP_OTHER_LOG" != "0" ]; then
+      iptables -A VALID_CHK -p $ICMP_PROTO ! $ICMP_TYPE echo-request -m state --state INVALID \
+        -m limit --limit 1/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INVALID ICMP-other: "
+    fi
+  else
+    echo "Logging of INVALID ICMP packets disabled"
+  fi
+
+  # Drop invalid packets
+  ######################
+  iptables -A VALID_CHK -m state --state INVALID -j POST_INPUT_DROP_CHAIN
+
+  # Fragmentation cannot happen with IPV6 (and maybe even not with iptables/ipv4?)
+  if [ "$IPV6_SUPPORT" != "1" ]; then
+    ## Log fragmented packets
+    #########################
+    if [ "$FRAG_LOG" = "1" ]; then
+      echo "Logging of fragmented packets enabled"
+      iptables -A VALID_CHK -f -m limit --limit 3/m --limit-burst 1 -j LOG --log-prefix "AIF:Fragment packet: "
+    else
+      echo "Logging of fragmented packets disabled"
+    fi
+
+    # Drop fragmented packets
+    #########################
+    iptables -A VALID_CHK -f -j DROP
+  fi
+}
+
+
+################################################################################################################
+## Chain RESERVED_NET_CHK - Check if the source addresses of the packets are (in)valid                        ##
+################################################################################################################
+setup_reserved_net_chk_chain()
+{
+
+
+  if [ "$IPV6_SUPPORT" != "1" ]; then
+    # Log access from reserved addresses
+    ####################################
+    if [ "$RESERVED_NET_LOG" != "0" ]; then
+      echo "Logging of access from reserved addresses enabled"
+      iptables -A RESERVED_NET_CHK -s 10.0.0.0/8 \
+        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class A address: "
+
+      iptables -A RESERVED_NET_CHK -s 172.16.0.0/12 \
+        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class B address: "
+
+      iptables -A RESERVED_NET_CHK -s 192.168.0.0/16 \
+        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class C address: "
+
+      iptables -A RESERVED_NET_CHK -s 169.254.0.0/16 \
+        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class M$ address: "
+    else
+      echo "Logging of access from reserved addresses disabled"
+    fi
+
+    # rp_filter drops some of these addresses, but just to be sure :)
+    ################################################################
+    #echo "Denying access from reserved addresses..."
+    iptables -A RESERVED_NET_CHK -s 10.0.0.0/8 -j POST_INPUT_DROP_CHAIN
+    iptables -A RESERVED_NET_CHK -s 172.16.0.0/12 -j POST_INPUT_DROP_CHAIN
+    iptables -A RESERVED_NET_CHK -s 192.168.0.0/16 -j POST_INPUT_DROP_CHAIN
+    iptables -A RESERVED_NET_CHK -s 169.254.0.0/16 -j POST_INPUT_DROP_CHAIN
+  else
+    # Currently only 2000::/3 are unicast/internet routable for IPv6 (correct me if I am wrong)
+    iptables -A RESERVED_NET_CHK ! -s 2000::/3 -j POST_INPUT_DROP_CHAIN
+  fi
+}
+
+
+################################################################################################################
+## Chain SPOOF_CHK - Check if the source address is not spoofed                                               ##
+################################################################################################################
+setup_spoof_chk_chain()
+{
+  # Anti-spoof protection for the internal net
+  if [ -n "$INT_IF" ]; then
+    printf "Setting up (antispoof) INTERNAL net(s): "
+    IFS=' ,'
+    for net in $INTERNAL_NET; do
+      printf "$net "
+      for interface in $INT_IF; do
+        # Any internal net is valid
+        iptables -A SPOOF_CHK -i $interface -s $net -j RETURN
+      done
+      iptables -A SPOOF_CHK -s $net -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Spoofed packet: "
+      iptables -A SPOOF_CHK -s $net -j POST_INPUT_DROP_CHAIN
+    done
+    echo ""
+  fi
+
+  # Anti-spoof protection for the DMZ net
+  if [ -n "$DMZ_IF" ]; then
+    printf "Setting up (antispoof) DMZ net(s): "
+    IFS=' ,'
+    for net in $DMZ_NET; do
+      printf "$net "
+      for interface in $DMZ_IF; do
+        # Any dmz net is valid
+        iptables -A SPOOF_CHK -i $interface -s $net -j RETURN
+      done
+      iptables -A SPOOF_CHK -s $net -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Spoofed packet: "
+      iptables -A SPOOF_CHK -s $net -j POST_INPUT_DROP_CHAIN
+    done
+    echo ""
+  fi
+
+  # Everything else is valid
+  iptables -A SPOOF_CHK -j RETURN
+}
+
+
+##################################################
+# Setup chain for the DMZ input traffic          #
+##################################################
+setup_dmz_input_chain()
+{
+  # Add TCP ports to allow for certain hosts
+  ##########################################
+  unset IFS
+  for rule in $DMZ_HOST_OPEN_TCP; do
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
+
+    echo " Allowing $hosts(DMZ) for TCP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        iptables -A DMZ_INPUT_CHAIN -s $host -p tcp --dport $port -j ACCEPT
+      done
+    done
+  done
+
+  # Add UDP ports to allow for certain hosts
+  ##########################################
+  unset IFS
+  for rule in $DMZ_HOST_OPEN_UDP; do
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
+
+    echo " Allowing $hosts(DMZ) for UDP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        iptables -A DMZ_INPUT_CHAIN -s $host -p udp --dport $port -j ACCEPT
+      done
+    done
+  done
+
+  # Add IP protocols to allow for certain hosts
+  #############################################
+  unset IFS
+  for rule in $DMZ_HOST_OPEN_IP; do
+    hosts=`get_hosts_ihp "$rule"`
+    protos=`get_ports_ihp "$rule"`
+
+    echo " Allowing $hosts(DMZ) for IP protocol(s): $protos"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for proto in $protos; do
+        iptables -A DMZ_INPUT_CHAIN -s $host -p $proto -j ACCEPT
+      done
+    done
+  done
+
+  # Adding TCP ports NOT to be firewalled
+  #######################################
+  if [ -n "$DMZ_OPEN_TCP" ]; then
+    echo " Allowing TCP port(s): $DMZ_OPEN_TCP"
+    unset IFS
+    for port in $DMZ_OPEN_TCP; do
+      iptables -A DMZ_INPUT_CHAIN -p tcp --dport $port -j ACCEPT
+    done
+  fi
+
+  # Adding UDP ports NOT to be firewalled
+  #######################################
+  if [ -n "$DMZ_OPEN_UDP" ]; then
+    echo " Allowing UDP port(s): $DMZ_OPEN_UDP"
+    unset IFS
+    for port in $DMZ_OPEN_UDP; do
+      iptables -A DMZ_INPUT_CHAIN -p udp --dport $port -j ACCEPT
+    done
+  fi
+
+  # Adding IP protocols NOT to be firewalled
+  ##########################################
+  if [ -n "$DMZ_OPEN_IP" ]; then
+    echo " Allowing IP protocol(s): $DMZ_OPEN_IP"
+    unset IFS
+    for proto in $DMZ_OPEN_IP; do
+      iptables -A DMZ_INPUT_CHAIN -p $proto -j ACCEPT
+    done
+  fi
+
+  # Allow to send ICMP packets?
+  #############################
+  if [ "$DMZ_OPEN_ICMP" != "0" ]; then
+    echo " Allowing ICMP-requests(ping)"
+    iptables -A DMZ_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+  fi
+
+  # Log incoming ICMP-request packets?
+  ####################################
+  if [ "$ICMP_REQUEST_LOG" != "0" ]; then
+    iptables -A DMZ_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+      -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
+  fi
+
+  # Drop ICMP packets
+  iptables -A DMZ_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j DROP
+
+  # Log everything else
+  iptables -A DMZ_INPUT_CHAIN -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ-INPUT denied: "
+
+  # Everything else is denied
+  iptables -A DMZ_INPUT_CHAIN -j DROP
+}
+
+
+##################################################
+# Setup chain for the DMZ-to-LAN forward traffic #
+##################################################
+setup_dmz_lan_forward_chain()
+{
+  echo " Setting up DMZ->LAN policy:"
+
+  # TCP ports to ALLOW for certain DMZ hosts
+  ##########################################
+  unset IFS
+  for rule in $DMZ_LAN_HOST_OPEN_TCP; do
+    shosts=`get_hosts_ih $(echo "$rule" |cut -s -d'>' -f1 ) "$ANYHOST"`
+    dhosts=`get_hosts_hp $(echo "$rule" |cut -s -d'>' -f2 ) "$ANYHOST"`
+    ports=`get_ports_hp $(echo "$rule" |cut -s -d'>' -f2) "$ANYPORT"`
+
+    echo "  Allowing $shosts(DMZ) to $dhosts(LAN) for TCP port(s): $ports"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for port in $ports; do
+          iptables -A DMZ_LAN_FORWARD_CHAIN -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+        done
+      done
+    done
+  done
+
+  # UDP ports to ALLOW for certain DMZ hosts
+  ##########################################
+  unset IFS
+  for rule in $DMZ_LAN_HOST_OPEN_UDP; do
+    shosts=`get_hosts_ih $(echo "$rule" |cut -s -d'>' -f1) "$ANYHOST"`
+    dhosts=`get_hosts_hp $(echo "$rule" |cut -s -d'>' -f2) "$ANYHOST"`
+    ports=`get_ports_hp $(echo "$rule" |cut -s -d'>' -f2) "$ANYPORT"`
+
+    echo "  Allowing $shosts(DMZ) to $dhosts(LAN) for UDP port(s): $ports"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for port in $ports; do
+          iptables -A DMZ_LAN_FORWARD_CHAIN -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+        done
+      done
+    done
+  done
+
+  # IP protocol(s) to ALLOW for certain DMZ hosts
+  ###############################################
+  unset IFS
+  for rule in $DMZ_LAN_HOST_OPEN_IP; do
+    shosts=`get_hosts_ih $(echo "$rule" |cut -s -d'>' -f1) "$ANYHOST"`
+    dhosts=`get_hosts_hp $(echo "$rule" |cut -s -d'>' -f2) "$ANYHOST"`
+    protos=`get_ports_hp $(echo "$rule" |cut -s -d'>' -f2)`
+
+    echo "  Allowing $shosts(DMZ) to $dhosts(LAN) for IP protocol(s): $protos"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for proto in $protos; do
+          iptables -A DMZ_LAN_FORWARD_CHAIN -s $shost -d $dhost -p $proto -j ACCEPT
+        done
+      done
+    done
+  done
+
+  # Allow ICMP-requests(ping) for DMZ->LAN?
+  ##########################################
+  if [ "$DMZ_LAN_OPEN_ICMP" = "1" ]; then
+    echo "  Allowing ICMP-requests(ping)"
+    iptables -A DMZ_LAN_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+      -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+  fi
+
+  # Log incoming ICMP-request packets?
+  ####################################
+  if [ "$ICMP_REQUEST_LOG" != "0" ]; then
+    iptables -A DMZ_LAN_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+      -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
+  fi
+
+  # Drop ICMP packets
+  iptables -A DMZ_LAN_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j DROP
+
+  # Log everything else
+  iptables -A DMZ_LAN_FORWARD_CHAIN -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ->LAN denied: "
+
+  # Everything else is denied
+  iptables -A DMZ_LAN_FORWARD_CHAIN -j DROP
+}
+
+
+###################################################
+# Setup chain for the INET-to-DMZ forward traffic #
+###################################################
+setup_inet_dmz_forward_chain()
+{
+  echo " Setting up INET->DMZ policy:"
+
+  # TCP ports to ALLOW for certain INET hosts
+  #########################################
+  unset IFS
+  for rule in $INET_DMZ_HOST_OPEN_TCP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    destips=`get_ips "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts"`
+    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces" "$destips")Allowing $shosts(INET) to $dhosts(DMZ) for TCP port(s): $ports"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+            done
+          done
+        done
+      done
+    done
+  done
+
+  # UDP ports to ALLOW for certain INET hosts
+  #########################################
+  unset IFS
+  for rule in $INET_DMZ_HOST_OPEN_UDP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    destips=`get_ips "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts"`
+    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces" "$destips")Allowing $shosts(INET) to $dhosts(DMZ) for UDP port(s): $ports"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+            done
+          done
+        done
+      done
+    done
+  done
+
+  # (Other) IP protocols to ALLOW for certain INET hosts
+  ######################################################
+  unset IFS
+  for rule in $INET_DMZ_HOST_OPEN_IP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    destips=`get_ips "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts"`
+    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    protos=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces" "$destips")Allowing $shosts(INET) to $dhosts(DMZ) for IP protocol(s): $protos"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for proto in $protos; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -s $shost -d $dhost -p $proto -j ACCEPT
+            done
+          done
+        done
+      done
+    done
+  done
+
+
+  # TCP ports to DENY for certain INET hosts
+  #########################################
+  unset IFS
+  for rule in $INET_DMZ_HOST_DENY_UDP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    destips=`get_ips "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts"`
+    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces" "$destips")Denying $shosts(INET) to $dhosts(DMZ) for TCP port(s): $ports"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+                iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -s $shost -d $dhost -p tcp --dport $port \
+                  -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET->DMZ denied: "
+              fi
+              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -s $shost -d $dhost -p tcp --dport $port -j DROP
+            done
+          done
+        done
+      done
+    done
+  done
+
+  # UDP ports to DENY for certain INET hosts
+  #########################################
+  unset IFS
+  for rule in $INET_DMZ_HOST_DENY_UDP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    destips=`get_ips "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts"`
+    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces" "$destips")Denying $shosts(INET) to $dhosts(DMZ) for UDP port(s): $ports"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+                iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -s $shost -d $dhost -p udp --dport $port \
+                  -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET->DMZ denied: "
+              fi
+              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -s $shost -d $dhost -p udp --dport $port -j DROP
+            done
+          done
+        done
+      done
+    done
+  done
+
+  # (Other) IP protocols to DENY for certain INET hosts
+  #####################################################
+  unset IFS
+  for rule in $INET_DMZ_HOST_DENY_IP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    destips=`get_ips "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts"`
+    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces" "$destips")Denying $shosts(INET) to $dhosts(DMZ) for IP protocol(s): $protos"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for proto in $protos; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+                iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -s $shost -d $dhost -p $proto \
+                  -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET->DMZ denied: "
+              fi
+              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -s $shost -d $dhost -p $proto -j DROP
+            done
+          done
+        done
+      done
+    done
+  done
+
+  # Allow only certain TCP ports to be used from the INET->DMZ?
+  #############################################################
+  unset IFS
+  for rule in $INET_DMZ_OPEN_TCP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Allowing TCP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -j ACCEPT
+        done
+      done
+    done
+  done
+
+  # Allow only certain UDP ports to be used from the INET->DMZ?
+  #############################################################
+  unset IFS
+  for rule in $INET_DMZ_OPEN_UDP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Allowing UDP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p udp --dport $port -j ACCEPT
+        done
+      done
+    done
+  done
+
+  # Allow only certain IP protocols to be used from the INET->DMZ?
+  ################################################################
+  unset IFS
+  for rule in $INET_DMZ_OPEN_IP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    protos=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Allowing IP protocol(s): $protos"
+
+    IFS=','
+    for proto in $protos; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p $proto -j ACCEPT
+        done
+      done
+    done
+  done
+
+  # Allow ICMP-requests(ping) for INET->DMZ?
+  ##########################################
+  if [ "$INET_DMZ_OPEN_ICMP" = "1" ]; then
+    echo " Allowing ICMP-requests(ping)"
+    iptables -A INET_DMZ_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+      -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+  fi
+
+  # TCP ports to DENY for INET->DMZ
+  #################################
+  unset IFS
+  for rule in $INET_DMZ_DENY_TCP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Denying TCP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+          iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -m limit \
+            --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
+        fi
+        iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -j DROP
+      done
+    done
+  done
+
+  # UDP ports to DENY for INET->DMZ
+  #################################
+  unset IFS
+  for rule in $INET_DMZ_DENY_UDP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Denying UDP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p udp --dport $port -m limit \
+              --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
+          fi
+          iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p udp --dport $port -j DROP
+        done
+      done
+    done
+  done
+
+  # IP protocols to DENY for INET->DMZ
+  ####################################
+  unset IFS
+  for rule in $INET_DMZ_DENY_IP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    protos=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Denying IP protocol(s): $protos"
+
+    IFS=','
+    for proto in $protos; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p $proto -m limit \
+              --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
+          fi
+          iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p $proto -j DROP
+        done
+      done
+    done
+  done
+
+  # Log incoming ICMP-request packets?
+  ####################################
+  if [ "$ICMP_REQUEST_LOG" != "0" ]; then
+    iptables -A INET_DMZ_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+      -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
+  fi
+
+  # Drop ICMP packets
+  iptables -A INET_DMZ_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j DROP
+
+  # Set the default policy (switch to DROP for a protocol when xxx_OPEN_xxx variable is used)
+  ###########################################################################################
+  if [ -z "$INET_DMZ_OPEN_TCP" ]; then
+    echo "  Allowing all (other) TCP ports"
+    iptables -A INET_DMZ_FORWARD_CHAIN -p tcp -j ACCEPT
+  else
+    if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+      iptables -A INET_DMZ_FORWARD_CHAIN -p tcp -m limit \
+        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
+    fi
+    echo "  Denying all (other) TCP ports"
+    iptables -A INET_DMZ_FORWARD_CHAIN -p tcp -j DROP
+  fi
+
+  if [ -z "$INET_DMZ_OPEN_UDP" ]; then
+    echo "  Allowing all (other) UDP ports"
+    iptables -A INET_DMZ_FORWARD_CHAIN -p udp -j ACCEPT
+  else
+    if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+      iptables -A INET_DMZ_FORWARD_CHAIN -p udp -m limit \
+        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
+    fi
+    echo "  Denying all (other) UDP ports"
+    iptables -A INET_DMZ_FORWARD_CHAIN -p udp -j DROP
+  fi
+
+  if [ -z "$INET_DMZ_OPEN_IP" ]; then
+    echo "  Allowing all (other) protocols"
+    iptables -A INET_DMZ_FORWARD_CHAIN -j ACCEPT
+  else
+    if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+      iptables -A INET_DMZ_FORWARD_CHAIN -m limit \
+        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
+    fi
+    echo "  Denying all (other) protocols"
+    iptables -A INET_DMZ_FORWARD_CHAIN -j DROP
+  fi
+}
+
+
+###################################################
+# Setup chain for the DMZ-to-INET forward traffic #
+###################################################
+setup_dmz_inet_forward_chain()
+{
+  echo " Setting up DMZ->INET policy:"
+
+  # TCP ports to ALLOW for certain DMZ hosts
+  #########################################
+  unset IFS
+  for rule in $DMZ_INET_HOST_OPEN_TCP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
+    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces" "$destips")Allowing $shosts(DMZ) to $dhosts(INET) for TCP port(s): $ports"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for port in $ports; do
+          for interface in $interfaces; do
+            iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+          done
+        done
+      done
+    done
+  done
+
+  # UDP ports to ALLOW for certain DMZ hosts
+  #########################################
+  unset IFS
+  for rule in $DMZ_INET_HOST_OPEN_UDP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
+    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces")Allowing $shosts(DMZ) to $dhosts(INET) for UDP port(s): $ports"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for port in $ports; do
+          for interface in $interfaces; do
+            iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+          done
+        done
+      done
+    done
+  done
+
+  # (Other) IP protocols to ALLOW for certain DMZ hosts
+  #####################################################
+  unset IFS
+  for rule in $DMZ_INET_HOST_OPEN_IP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
+    dhosts_protos=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_protos" "$ANYHOST"`
+    protos=`get_ports_hp "$dhosts_protos" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces")Allowing $shosts(DMZ) to $dhosts(INET) for IP protocol(s): $protos"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for proto in $protos; do
+          for interface in $interfaces; do
+            iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j ACCEPT
+          done
+        done
+      done
+    done
+  done
+
+
+  # TCP ports to DENY for certain DMZ hosts
+  #########################################
+  unset IFS
+  for rule in $DMZ_INET_HOST_DENY_TCP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
+    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces")Denying $shosts(DMZ) to $dhosts(INET) for TCP port(s): $ports"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for port in $ports; do
+          for interface in $interfaces; do
+            if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
+              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port \
+                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host DMZ->INET denied: "
+            fi
+            iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j DROP
+          done
+        done
+      done
+    done
+  done
+
+  # UDP ports to DENY for certain DMZ hosts
+  #########################################
+  unset IFS
+  for rule in $DMZ_INET_HOST_DENY_UDP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
+    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces")Denying $shosts(DMZ) to $dhosts(INET) for UDP port(s): $ports"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for port in $ports; do
+          for interface in $interfaces; do
+            if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
+              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port \
+                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host DMZ->INET denied: "
+            fi
+            iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j DROP
+          done
+        done
+      done
+    done
+  done
+
+  # (Other) IP protocols to DENY for certain DMZ hosts
+  #####################################################
+  unset IFS
+  for rule in $DMZ_INET_HOST_DENY_IP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
+    dhosts_protos=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_protos" "$ANYHOST"`
+    protos=`get_ports_hp "$dhosts_protos" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces")Denying $shosts(DMZ) to $dhosts(INET) for IP protocol(s): $protos"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for proto in $protos; do
+          for interface in $interfaces; do
+            if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
+              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto \
+                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host DMZ->INET denied: "
+            fi
+            iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j DROP
+          done
+        done
+      done
+    done
+  done
+
+  # Allow only certain TCP ports to be used from the DMZ->INET?
+  #############################################################
+  unset IFS
+  for rule in $DMZ_INET_OPEN_TCP; do
+    interfaces=`get_ifs "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces")Allowing TCP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for interface in $interfaces; do
+        iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p tcp --dport $port -j ACCEPT
+      done
+    done
+  done
+
+  # Allow only certain UDP ports to be used from the DMZ->INET?
+  #############################################################
+  unset IFS
+  for rule in $DMZ_INET_OPEN_UDP; do
+    interfaces=`get_ifs "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces")Allowing UDP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for interface in $interfaces; do
+        iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p udp --dport $port -j ACCEPT
+      done
+    done
+  done
+
+  # Allow only certain IP protocols to be used from the DMZ->INET?
+  ################################################################
+  unset IFS
+  for rule in $DMZ_INET_OPEN_IP; do
+    interfaces=`get_ifs "$rule"`
+    protos=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces")Allowing IP protocol(s): $protos"
+
+    IFS=','
+    for proto in $protos; do
+      for interface in $interfaces; do
+        iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p $proto -j ACCEPT
+      done
+    done
+  done
+
+  # Allow ICMP-requests(ping) for DMZ->INET?
+  ##########################################
+  if [ "$DMZ_INET_OPEN_ICMP" != "0" ]; then
+    echo " Allowing ICMP-requests(ping)"
+    iptables -A DMZ_INET_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+      -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+  fi
+
+  # TCP ports to DENY for DMZ->INET
+  #################################
+  unset IFS
+  for rule in $DMZ_INET_DENY_TCP; do
+    interfaces=`get_ifs "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces")Denying TCP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for interface in $interfaces; do
+        if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
+          iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p tcp --dport $port -m limit \
+            --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ->INET denied: "
+        fi
+        iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p tcp --dport $port -j DROP
+      done
+    done
+  done
+
+  # UDP ports to DENY for DMZ->INET
+  #################################
+  unset IFS
+  for rule in $DMZ_INET_DENY_UDP; do
+    interfaces=`get_ifs "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces")Denying UDP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for interface in $interfaces; do
+        if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
+          iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p udp --dport $port -m limit \
+            --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ->INET denied: "
+        fi
+        iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p udp --dport $port -j DROP
+      done
+    done
+  done
+
+  # IP protocols to DENY for DMZ->INET
+  ####################################
+  unset IFS
+  for rule in $DMZ_INET_DENY_IP; do
+    interfaces=`get_ifs "$rule"`
+    protos=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces")Denying IP protocol(s): $protos"
+
+    IFS=','
+    for proto in $protos; do
+      for interface in $interfaces; do
+        if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
+          iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p $proto -m limit \
+            --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ->INET denied: "
+        fi
+        iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p $proto -j DROP
+      done
+    done
+  done
+
+  # Log incoming ICMP-request packets?
+  ####################################
+  if [ "$ICMP_REQUEST_LOG" != "0" ]; then
+    iptables -A DMZ_INET_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+      -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
+  fi
+
+  # Drop ICMP packets
+  iptables -A DMZ_INET_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j DROP
+
+  # Set the default policy (switch to DROP for a protocol when xxx_OPEN_xxx variable is used)
+  ###########################################################################################
+  if [ -z "$DMZ_INET_OPEN_TCP" ]; then
+    echo "  Allowing all (other) TCP ports"
+    iptables -A DMZ_INET_FORWARD_CHAIN -p tcp -j ACCEPT
+  else
+    if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
+      iptables -A DMZ_INET_FORWARD_CHAIN -p tcp -m limit \
+        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ->INET denied: "
+    fi
+    echo "  Denying all (other) TCP ports"
+    iptables -A DMZ_INET_FORWARD_CHAIN -p tcp -j DROP
+  fi
+
+  if [ -z "$DMZ_INET_OPEN_UDP" ]; then
+    echo "  Allowing all (other) UDP ports"
+    iptables -A DMZ_INET_FORWARD_CHAIN -p udp -j ACCEPT
+  else
+    if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
+      iptables -A DMZ_INET_FORWARD_CHAIN -p udp -m limit \
+        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ->INET denied: "
+    fi
+    echo "  Denying all (other) UDP ports"
+    iptables -A DMZ_INET_FORWARD_CHAIN -p udp -j DROP
+  fi
+
+  if [ -z "$DMZ_INET_OPEN_IP" ]; then
+    echo "  Allowing all (other) protocols"
+    iptables -A DMZ_INET_FORWARD_CHAIN -j ACCEPT
+  else
+    if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
+      iptables -A DMZ_INET_FORWARD_CHAIN -m limit \
+        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ->INET denied: "
+    fi
+    echo "  Denying all (other) protocols"
+    iptables -A DMZ_INET_FORWARD_CHAIN -j DROP
+  fi
+}
+
+
+#########################################
+# Setup chain for the LAN input traffic #
+#########################################
+setup_int_input_chain()
+{
+  # TCP ports to OPEN for certain LAN hosts
+  #########################################
+  unset IFS
+  for rule in $LAN_HOST_OPEN_TCP; do
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
+
+    echo " Allowing $hosts(LAN) for TCP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        iptables -A INT_INPUT_CHAIN -s $host -p tcp --dport $port -j ACCEPT
+      done
+    done
+  done
+
+  # UDP ports to OPEN for certain LAN hosts
+  #########################################
+  unset IFS
+  for rule in $LAN_HOST_OPEN_UDP; do
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
+
+    echo " Allowing $hosts(LAN) for UDP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        iptables -A INT_INPUT_CHAIN -s $host -p udp --dport $port -j ACCEPT
+      done
+    done
+  done
+
+  # IP protocols to OPEN for certain LAN hosts
+  ############################################
+  unset IFS
+  for rule in $LAN_HOST_OPEN_IP; do
+    hosts=`get_hosts_ihp "$rule"`
+    protos=`get_ports_ihp "$rule"`
+
+    echo " Allowing $hosts(LAN) for IP protocol(s): $protos"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for proto in $protos; do
+        iptables -A INT_INPUT_CHAIN -s $host -p $proto -j ACCEPT
+      done
+    done
+  done
+
+  # TCP ports to DENY for certain LAN hosts
+  #########################################
+  unset IFS
+  for rule in $LAN_HOST_DENY_TCP; do
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+
+    echo " Denying $hosts(LAN) for TCP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        if [ "$LAN_INPUT_DENY_LOG" != "0" ]; then
+          iptables -A INT_INPUT_CHAIN -s $host -p tcp --dport $port \
+            -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host LAN denied: "
+        fi
+        iptables -A INT_INPUT_CHAIN -s $host -p tcp --dport $port -j DROP
+      done
+    done
+  done
+
+  # UDP ports to DENY for certain LAN hosts
+  #########################################
+  unset IFS
+  for rule in $LAN_HOST_DENY_UDP; do
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+
+    echo " Denying $hosts(LAN) for UDP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        if [ "$LAN_INPUT_DENY_LOG" != "0" ]; then
+          iptables -A INT_INPUT_CHAIN -s $host -p udp --dport $port \
+            -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host LAN denied: "
+        fi
+        iptables -A INT_INPUT_CHAIN -s $host -p udp --dport $port -j DROP
+      done
+    done
+  done
+
+  # IP protocols to DENY for certain LAN hosts
+  ############################################
+  unset IFS
+  for rule in $LAN_HOST_DENY_IP; do
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    protos=`get_ports_ihp "$rule"`
+
+    echo " Denying $hosts(LAN) for IP protocol(s): $protos"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for proto in $protos; do
+        if [ "$LAN_INPUT_DENY_LOG" != "0" ]; then
+          iptables -A INT_INPUT_CHAIN -s $host -p $proto \
+            -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host LAN denied: "
+        fi
+        iptables -A INT_INPUT_CHAIN -s $host -p $proto -j DROP
+      done
+    done
+  done
+
+  # Allow only certain TCP ports to be used from the LAN?
+  #######################################################
+  if [ -n "$LAN_OPEN_TCP" ]; then
+    echo " Allowing TCP port(s): $LAN_OPEN_TCP"
+    unset IFS
+    for port in $LAN_OPEN_TCP; do
+      iptables -A INT_INPUT_CHAIN -p tcp --dport $port -j ACCEPT
+    done
+  fi
+
+  # Allow only certain UDP ports to be used from the LAN?
+  #######################################################
+  if [ -n "$LAN_OPEN_UDP" ]; then
+    echo " Allowing UDP port(s): $LAN_OPEN_UDP"
+    unset IFS
+    for port in $LAN_OPEN_UDP; do
+      iptables -A INT_INPUT_CHAIN -p udp --dport $port -j ACCEPT
+    done
+  fi
+
+  # Allow only certain IP protocols to be used from the LAN?
+  ##########################################################
+  if [ -n "$LAN_OPEN_IP" ]; then
+    echo " Allowing IP protocol(s): $LAN_OPEN_IP"
+    unset IFS
+    for proto in $LAN_OPEN_IP; do
+      iptables -A INT_INPUT_CHAIN -p $proto -j ACCEPT
+    done
+  fi
+
+  # Allow world to send ICMP packets?
+  ###################################
+  if [ "$LAN_OPEN_ICMP" != "0" ]; then
+    echo " Allowing ICMP-requests(ping)"
+    iptables -A INT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+  fi
+
+  # TCP ports to DENY for LAN hosts
+  #################################
+  if [ -n "$LAN_DENY_TCP" ]; then
+    echo " Denying TCP port(s): $LAN_DENY_TCP"
+    unset IFS
+    for port in $LAN_DENY_TCP; do
+      if [ "$LAN_INPUT_DENY_LOG" != "0" ]; then
+        iptables -A INT_INPUT_CHAIN -p tcp --dport $port -m limit \
+          --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN-INPUT denied: "
+      fi
+      iptables -A INT_INPUT_CHAIN -p tcp --dport $port -j DROP
+    done
+  fi
+
+  # UDP ports to DENY for LAN hosts
+  #################################
+  if [ -n "$LAN_DENY_UDP" ]; then
+    echo " Denying UDP port(s): $LAN_DENY_UDP"
+    unset IFS
+    for port in $LAN_DENY_UDP; do
+      if [ "$LAN_INPUT_DENY_LOG" != "0" ]; then
+        iptables -A INT_INPUT_CHAIN -p udp --dport $port -m limit \
+          --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN-INPUT denied: "
+      fi
+      iptables -A INT_INPUT_CHAIN -p udp --dport $port -j DROP
+    done
+  fi
+
+  # IP protocols to DENY for LAN hosts
+  ####################################
+  if [ -n "$LAN_DENY_IP" ]; then
+    echo " Denying IP protocol(s): $LAN_DENY_IP"
+    unset IFS
+    for proto in $LAN_DENY_IP; do
+      if [ "$LAN_INPUT_DENY_LOG" != "0" ]; then
+        iptables -A INT_INPUT_CHAIN -p $proto -m limit \
+          --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN-INPUT denied: "
+      fi
+      iptables -A INT_INPUT_CHAIN -p $proto -j DROP
+    done
+  fi
+
+  # Log incoming ICMP-request packets?
+  ####################################
+  if [ "$ICMP_REQUEST_LOG" != "0" ]; then
+    iptables -A INT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+      -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
+  fi
+
+  # Drop ICMP packets
+  iptables -A INT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j DROP
+
+  # Set the default policy
+  ########################
+  if [ -z "$LAN_OPEN_TCP" ] && [ -z "$LAN_HOST_OPEN_TCP" ] &&
+     [ -z "$LAN_OPEN_UDP" ] && [ -z "$LAN_HOST_OPEN_UDP" ] &&
+     [ -z "$LAN_OPEN_IP" ] && [ -z "$LAN_HOST_OPEN_IP" ]; then
+    echo " Allowing all (other) ports/protocols"
+    iptables -A INT_INPUT_CHAIN -j ACCEPT
+  else
+    echo " Denying all (other) ports/protocols"
+    if [ "$LAN_INPUT_DENY_LOG" != "0" ]; then
+      iptables -A INT_INPUT_CHAIN -m limit \
+        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN-INPUT denied: "
+    fi
+    iptables -A INT_INPUT_CHAIN -j DROP
+  fi
+}
+
+
+###################################################
+# Setup chain for the LAN-to-INET forward traffic #
+###################################################
+setup_lan_inet_forward_chain()
+{
+  echo " Setting up LAN->INET policy:"
+
+  # udp ports to ALLOW for certain LAN hosts
+  #########################################
+  unset IFS
+  for rule in $LAN_INET_HOST_OPEN_TCP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
+    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces")Allowing $shosts(LAN) to $dhosts(INET) for TCP port(s): $ports"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for port in $ports; do
+          for interface in $interfaces; do
+            iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+          done
+        done
+      done
+    done
+  done
+
+  # UDP ports to ALLOW for certain LAN hosts
+  #########################################
+  unset IFS
+  for rule in $LAN_INET_HOST_OPEN_UDP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
+    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces")Allowing $shosts(LAN) to $dhosts(INET) for UDP port(s): $ports"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for port in $ports; do
+          for interface in $interfaces; do
+            iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+          done
+        done
+      done
+    done
+  done
+
+  # (Other) IP protocols to ALLOW for certain LAN hosts
+  #####################################################
+  unset IFS
+  for rule in $LAN_INET_HOST_OPEN_IP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
+    dhosts_protos=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_protos" "$ANYHOST"`
+    protos=`get_ports_hp "$dhosts_protos"`
+
+    echo "  $(show_if_ip "$interfaces")Allowing $shosts(LAN) to $dhosts(INET) for IP protocol(s): $protos"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for proto in $protos; do
+          for interface in $interfaces; do
+            iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j ACCEPT
+          done
+        done
+      done
+    done
+  done
+
+  # udp ports to DENY for certain LAN hosts
+  #########################################
+  unset IFS
+  for rule in $LAN_INET_HOST_DENY_TCP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
+    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces")Denying $shosts(LAN) to $dhosts(INET) for TCP port(s): $ports"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for port in $ports; do
+          for interface in $interfaces; do
+            if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
+              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port \
+                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host LAN->INET denied: "
+            fi
+            iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j DROP
+          done
+        done
+      done
+    done
+  done
+
+  # UDP ports to DENY for certain LAN hosts
+  #########################################
+  unset IFS
+  for rule in $LAN_INET_HOST_DENY_UDP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
+    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+
+    echo "  $(show_if_ip "$interfaces")Denying $shosts(LAN) to $dhosts(INET) for UDP port(s): $ports"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for port in $ports; do
+          for interface in $interfaces; do
+            if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
+              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port \
+                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host LAN->INET denied: "
+            fi
+            iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j DROP
+          done
+        done
+      done
+    done
+  done
+
+  # (Other) IP protocols to DENY for certain LAN hosts
+  #####################################################
+  unset IFS
+  for rule in $LAN_INET_HOST_DENY_IP; do
+    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts"`
+    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
+    dhosts_protos=`echo "$rule" |cut -s -d'>' -f2`
+    dhosts=`get_hosts_hp "$dhosts_protos" "$ANYHOST"`
+    protos=`get_ports_hp "$dhosts_protos"`
+
+    echo "  $(show_if_ip "$interfaces")Denying $shosts(LAN) to $dhosts(INET) for IP protocol(s): $protos"
+
+    IFS=','
+    for shost in `ip_range "$shosts"`; do
+      for dhost in `ip_range "$dhosts"`; do
+        for proto in $protos; do
+          for interface in $interfaces; do
+            if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
+              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto \
+                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host LAN->INET denied: "
+            fi
+            iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j DROP
+          done
+        done
+      done
+    done
+  done
+
+  # Allow only certain udp ports to be used from the LAN->INET?
+  #############################################################
+  unset IFS
+  for rule in $LAN_INET_OPEN_TCP; do
+    interfaces=`get_ifs "$rule"`
+    ports=`get_ports_ihp "$rule"`
+
+    echo "  $(show_if_ip "$interfaces")Allowing TCP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for interface in $interfaces; do
+        iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p tcp --dport $port -j ACCEPT
+      done
+    done
+  done
+
+  # Allow only certain UDP ports to be used from the LAN->INET?
+  #############################################################
+  unset IFS
+  for rule in $LAN_INET_OPEN_UDP; do
+    interfaces=`get_ifs "$rule"`
+    ports=`get_ports_ihp "$rule"`
+
+    echo "  $(show_if_ip "$interfaces")Allowing UDP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for interface in $interfaces; do
+        iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p udp --dport $port -j ACCEPT
+      done
+    done
+  done
+
+  # Allow only certain IP protocols to be used from the LAN->INET?
+  ################################################################
+  unset IFS
+  for rule in $LAN_INET_OPEN_IP; do
+    interfaces=`get_ifs "$rule"`
+    protos=`get_ports_ihp "$rule"`
+
+    echo "  $(show_if_ip "$interfaces")Allowing IP protocol(s): $protos"
+
+    IFS=','
+    for proto in $protos; do
+      for interface in $interfaces; do
+        iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p $proto -j ACCEPT
+      done
+    done
+  done
+
+  # Allow ICMP-requests(ping) for LAN->INET?
+  ##########################################
+  if [ "$LAN_INET_OPEN_ICMP" != "0" ]; then
+    echo "  Allowing ICMP-requests(ping)"
+    iptables -A LAN_INET_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+      -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+  fi
+
+  # TCP ports to DENY for LAN->INET
+  #################################
+  unset IFS
+  for rule in $LAN_INET_DENY_TCP; do
+    interfaces=`get_ifs "$rule"`
+    ports=`get_ports_ihp "$rule"`
+
+    echo "  $(show_if_ip "$interfaces")Denying TCP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for interface in $interfaces; do
+        if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
+          iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p tcp --dport $port -m limit \
+            --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN->INET denied: "
+        fi
+        iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p tcp --dport $port -j DROP
+      done
+    done
+  done
+
+  # UDP ports to DENY for LAN->INET
+  #################################
+  unset IFS
+  for rule in $LAN_INET_DENY_UDP; do
+    interfaces=`get_ifs "$rule"`
+    ports=`get_ports_ihp "$rule"`
+
+    echo "  $(show_if_ip "$interfaces")Denying UDP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for interface in $interfaces; do
+        if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
+          iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p udp --dport $port -m limit \
+            --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN->INET denied: "
+        fi
+        iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p udp --dport $port -j DROP
+      done
+    done
+  done
+
+  # IP protocols to DENY for LAN->INET
+  ####################################
+  unset IFS
+  for rule in $LAN_INET_DENY_IP; do
+    interfaces=`get_ifs "$rule"`
+    protos=`get_ports_ihp "$rule"`
+
+    echo "  $(show_if_ip "$interfaces")Denying IP protocol(s): $protos"
+
+    IFS=','
+    for proto in $protos; do
+      for interface in $interfaces; do
+        if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
+          iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p $proto -m limit \
+            --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN->INET denied: "
+        fi
+        iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p $proto -j DROP
+      done
+    done
+  done
+
+  # Log incoming ICMP-request packets?
+  ####################################
+  if [ "$ICMP_REQUEST_LOG" != "0" ]; then
+    iptables -A LAN_INET_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+      -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
+  fi
+
+  # Drop ICMP packets
+  iptables -A LAN_INET_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j DROP
+
+  # Set the default policy (switch to DROP for a protocol when xxx_OPEN_xxx variable is used)
+  ###########################################################################################
+  if [ -z "$LAN_INET_OPEN_TCP" ]; then
+    echo "  Allowing all (other) TCP ports"
+    iptables -A LAN_INET_FORWARD_CHAIN -p tcp -j ACCEPT
+  else
+    if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
+      iptables -A LAN_INET_FORWARD_CHAIN -p tcp -m limit \
+        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN->INET denied: "
+    fi
+    echo "  Denying all (other) TCP ports"
+    iptables -A LAN_INET_FORWARD_CHAIN -p tcp -j DROP
+  fi
+
+  if [ -z "$LAN_INET_OPEN_UDP" ]; then
+    echo "  Allowing all (other) UDP ports"
+    iptables -A LAN_INET_FORWARD_CHAIN -p udp -j ACCEPT
+  else
+    if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
+      iptables -A LAN_INET_FORWARD_CHAIN -p udp -m limit \
+        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN->INET denied: "
+    fi
+    echo "  Denying all (other) UDP ports"
+    iptables -A LAN_INET_FORWARD_CHAIN -p udp -j DROP
+  fi
+
+  if [ -z "$LAN_INET_OPEN_IP" ]; then
+    echo "  Allowing all (other) protocols"
+    iptables -A LAN_INET_FORWARD_CHAIN -j ACCEPT
+  else
+    if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
+      iptables -A LAN_INET_FORWARD_CHAIN -m limit \
+        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN->INET denied: "
+    fi
+    echo "  Denying all (other) protocols"
+    iptables -A LAN_INET_FORWARD_CHAIN -j DROP
+  fi
+}
+
+
+######################################################################################################################
+## Chain EXT_INPUT_CHAIN - Checks all incoming packets for the EXTERNAL interface(s)                                ##
+######################################################################################################################
+setup_ext_input_chain()
+{
+  echo "Setting up INPUT policy for the external net (INET):"
+
+  ## Log scanning of port 0 fingerprinting
+  ########################################
+  if [ "$SCAN_LOG" != "0" ]; then
+    iptables -A EXT_INPUT_CHAIN -p tcp --dport 0 \
+      -m limit --limit 6/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Port 0 OS fingerprint: "
+    iptables -A EXT_INPUT_CHAIN -p udp --dport 0 \
+      -m limit --limit 6/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Port 0 OS fingerprint: "
+  fi
+
+  # Drop port 0 scan packets
+  ##########################
+  iptables -A EXT_INPUT_CHAIN -p tcp --dport 0 -j POST_INPUT_DROP_CHAIN
+  iptables -A EXT_INPUT_CHAIN -p udp --dport 0 -j POST_INPUT_DROP_CHAIN
+
+  ## Log scanning of source port 0
+  ################################
+  if [ "$SCAN_LOG" != "0" ]; then
+    iptables -A EXT_INPUT_CHAIN -p tcp --sport 0 \
+      -m limit --limit 6/h --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:TCP source port 0: "
+    iptables -A EXT_INPUT_CHAIN -p udp --sport 0 \
+      -m limit --limit 6/h --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UDP source port 0: "
+  fi
+
+  # Drop source port 0 packets
+  ############################
+  iptables -A EXT_INPUT_CHAIN -p tcp --sport 0 -j POST_INPUT_DROP_CHAIN
+  iptables -A EXT_INPUT_CHAIN -p udp --sport 0 -j POST_INPUT_DROP_CHAIN
+
+  # Here we add support for DHCP assigned IP
+  ##########################################
+  if [ "$EXT_IF_DHCP_IP" = "1" ]; then
+    echo " Enabling support for DHCP-assigned-IP (DHCP client)"
+    # Allow this host to be an DHCP client:
+    iptables -A EXT_INPUT_CHAIN -p udp --sport 67 --dport 68 -j ACCEPT
+  fi
+
+
+  # Here we add support for a DHCP/BootP service on the EXTERNAL interface
+  ########################################################################
+  if [ "$EXTERNAL_DHCP_SERVER" = "1" ]; then
+    echo " Enabling support for DHCP/BOOTP (DHCP server) for subnet(s): $EXTERNAL_NET"
+    unset IFS
+    for net in $EXTERNAL_NET; do
+      # Allow this host to be a DHCP/BOOTP-server:
+      iptables -A EXT_INPUT_CHAIN -d 255.255.255.255 -p udp --dport 67 -j ACCEPT
+      iptables -A EXT_INPUT_CHAIN -s $net -p udp --dport 67 -j ACCEPT
+#      iptables -A EXT_INPUT_CHAIN -d 255.255.255.255 -p udp --sport 68 --dport 67 -j ACCEPT
+#      iptables -A EXT_INPUT_CHAIN -s $net -p udp --sport 68 --dport 67 -j ACCEPT
+
+      # Extra rules to allow packets from other dhcp servers in the same segment
+      iptables -A EXT_INPUT_CHAIN -s $net -d 255.255.255.255 -p udp --sport 67 --dport 68 -j ACCEPT
+    done
+  fi
+
+  # This is the fix(hack) for nmb broadcast packets (nmblookup/Samba)
+  ###################################################################
+  if [ "$NMB_BROADCAST_FIX" = "1" ]; then
+    echo " Enabling support for NMB-broadcasts(Samba) for subnet(s): $EXTERNAL_NET"
+    unset IFS
+    for net in $EXTERNAL_NET; do
+      iptables -A EXT_INPUT_CHAIN -s $net -p udp --sport 137 --dport "$LOCAL_PORT_RANGE" -j ACCEPT
+    done
+  fi
+
+  # Enable logging of blocked hosts?
+  ##################################
+  if [ "$BLOCKED_HOST_LOG" != "0" ]; then
+    echo " Logging of explicitly blocked hosts enabled"
+  else
+    echo " Logging of explicitly blocked hosts disabled"
+  fi
+
+  # Enable logging of denied output connections?
+  ##############################################
+  if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
+    echo " Logging of denied local output connections enabled"
+  else
+    echo " Logging of denied local output connections disabled"
+  fi
+
+  # Add TCP ports to allow for certain hosts
+  ##########################################
+  unset IFS
+  for rule in $HOST_OPEN_TCP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Allowing $hosts for TCP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j ACCEPT
+          done
+        done
+      done
+    done
+  done
+
+
+  # Add UDP ports to allow for certain hosts
+  ##########################################
+  unset IFS
+  for rule in $HOST_OPEN_UDP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Allowing $hosts for UDP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j ACCEPT
+          done
+        done
+      done
+    done
+  done
+
+
+  # Add IP protocols to allow for certain hosts
+  #############################################
+  unset IFS
+  for rule in $HOST_OPEN_IP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule"`
+    protos=`get_ports_ihp "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Allowing $hosts for IP protocol(s): $protos"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      IFS=','
+      for proto in $protos; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p $proto -j ACCEPT
+          done
+        done
+      done
+    done
+  done
+
+
+  # Add ICMP to allow for certain hosts
+  #####################################
+  unset IFS
+  for rule in $HOST_OPEN_ICMP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ih "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Allowing $hosts for ICMP-requests(ping)"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p $ICMP_PROTO $ICMP_TYPE echo-request -j ACCEPT
+        done
+      done
+    done
+  done
+
+
+  # Add TCP ports to REJECT for certain hosts but NOT logged
+  ##########################################################
+  unset IFS
+  for rule in $HOST_REJECT_TCP_NOLOG; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for TCP port(s) (NO LOG): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+          done
+        done
+      done
+    done
+  done
+
+
+  # Add UDP ports to REJECT for certain hosts NOT logged
+  ######################################################
+  unset IFS
+  for rule in $HOST_REJECT_UDP_NOLOG; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for UDP port(s) (NO LOG): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+          done
+        done
+      done
+    done
+  done
+
+
+  # Add TCP ports to REJECT for certain hosts
+  ###########################################
+  unset IFS
+  for rule in $HOST_REJECT_TCP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for TCP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port \
+              -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise TCP rejected: "
+
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+          done
+        done
+      done
+    done
+  done
+
+
+  # Add UDP ports to REJECT for certain hosts
+  ###########################################
+  unset IFS
+  for rule in $HOST_REJECT_UDP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for UDP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port \
+              -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise UDP rejected: "
+
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+          done
+        done
+      done
+    done
+  done
+
+
+  # Add TCP ports to DENY for certain hosts but NOT logged
+  ########################################################
+  unset IFS
+  for rule in $HOST_DENY_TCP_NOLOG; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for TCP port(s) (NO LOG): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+          done
+        done
+      done
+    done
+  done
+
+
+  # Add UDP ports to DENY for certain hosts but NOT logged
+  ########################################################
+  unset IFS
+  for rule in $HOST_DENY_UDP_NOLOG; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for UDP port(s) (NO LOG): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+          done
+        done
+      done
+    done
+  done
+
+  # Add IP protocols to DENY for certain hosts but NOT logged
+  ###########################################################
+  unset IFS
+  for rule in $HOST_DENY_IP_NOLOG; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    protos=`get_ports_ihp "$rule" "$ANYPORT"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for IP protocol(s) (NO LOG): $protos"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for proto in $protos; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p $proto -j POST_INPUT_DROP_CHAIN
+          done
+        done
+      done
+    done
+  done
+
+  # Add ICMP-request to DENY for certain hosts but NOT logged
+  ############################################################
+  unset IFS
+  for rule in $HOST_DENY_ICMP_NOLOG; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ih "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for ICMP-requests(ping)"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p $ICMP_PROTO $ICMP_TYPE icmp-request -j POST_INPUT_DROP_CHAIN
+        done
+      done
+    done
+  done
+
+
+  # Add TCP ports to DENY for certain hosts
+  #########################################
+  unset IFS
+  for rule in $HOST_DENY_TCP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for TCP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port \
+              -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
+
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+          done
+        done
+      done
+    done
+  done
+
+
+  # Add UDP ports to DENY for certain hosts
+  #########################################
+  unset IFS
+  for rule in $HOST_DENY_UDP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for UDP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port \
+              -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
+
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+          done
+        done
+      done
+    done
+  done
+
+
+  # Add IP protocols to DENY for certain hosts
+  ############################################
+  unset IFS
+  for rule in $HOST_DENY_IP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    protos=`get_ports_ihp "$rule" "$ANYPORT"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for IP protocol(s): $protos"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for proto in $protos; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -s $host -p $proto \
+               -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
+
+            iptables -A EXT_INPUT_CHAIN -s $host -p $proto -j POST_INPUT_DROP_CHAIN
+          done
+        done
+      done
+    done
+  done
+
+
+  # Add ICMP-request to DENY for certain hosts
+  ############################################
+  unset IFS
+  for rule in $HOST_DENY_ICMP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ih "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for ICMP-requests(ping)"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          if [ "$ICMP_DROP_LOG" != "0" ]; then
+            iptables -A EXT_INPUT_CHAIN -s $host -p $ICMP_PROTO $ICMP_TYPE icmp-request -m limit --limit 1/h --limit-burst 1 \
+              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
+          fi
+          iptables -A EXT_INPUT_CHAIN -s $host -p $ICMP_PROTO $ICMP_TYPE icmp-request -j POST_INPUT_DROP_CHAIN
+        done
+      done
+    done
+  done
+
+  # Adding TCP ports to be denied for everyone
+  ############################################
+  unset IFS
+  for rule in $DENY_TCP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for TCP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port \
+            -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-INPUT denied: "
+
+          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+        done
+      done
+    done
+  done
+
+  # Adding UDP ports to be denied for everyone
+  ############################################
+  unset IFS
+  for rule in $DENY_UDP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for UDP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port \
+            -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-INPUT denied: "
+
+          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+        done
+      done
+    done
+  done
+
+  # Adding TCP ports to be rejected for everyone
+  ##############################################
+  unset IFS
+  for rule in $REJECT_TCP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for TCP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port \
+            -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Rejected TCP port: "
+
+          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+        done
+      done
+    done
+  done
+
+  # Adding UDP ports to be rejected for everyone
+  ##############################################
+  unset IFS
+  for rule in $REJECT_UDP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for UDP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -p udp --dport $port \
+            -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Rejected UDP port: "
+
+          iptables -A EXT_INPUT_CHAIN -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+        done
+      done
+    done
+  done
+
+  # Adding the "full access hosts"
+  ################################
+  unset IFS
+  for rule in $FULL_ACCESS_HOSTS; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ih "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Allowing $hosts full (inbound) access"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -j ACCEPT
+        done
+      done
+    done
+  done
+
+  # TCP ports to DENY but NOT to LOG
+  ##################################
+  unset IFS
+  for rule in $DENY_TCP_NOLOG; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for TCP port(s) (NO LOG): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+        done
+      done
+    done
+  done
+
+  # UDP ports to DENY but NOT to LOG
+  ##################################
+  unset IFS
+  for rule in $DENY_UDP_NOLOG; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for UDP port(s) (NO LOG): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+        done
+      done
+    done
+  done
+
+  # TCP ports to REJECT but NOT to LOG
+  ####################################
+  unset IFS
+  for rule in $REJECT_TCP_NOLOG; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for TCP port(s) (NO LOG): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+        done
+      done
+    done
+  done
+
+  # UDP ports to REJECT but NOT to LOG
+  ####################################
+  unset IFS
+  for rule in $REJECT_UDP_NOLOG; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for UDP port(s) (NO LOG): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+        done
+      done
+    done
+  done
+
+  # Check the packet source address
+  #################################
+  if [ "$DROP_PRIVATE_ADDRESSES" = "1" ]; then
+    echo " Packets will be checked for private source addresses"
+    iptables -A EXT_INPUT_CHAIN -j RESERVED_NET_CHK
+  else
+    echo " Packets will NOT be checked for private source addresses"
+  fi
+
+  # Do NOT allow DRDOS abuse (Distributed Reflection Denial Of Service attack)
+  ############################################################################
+  if [ "$DRDOS_PROTECT" = "1" ]; then
+    echo " Enabling protection against DRDOS-abuse"
+
+    iptables -A EXT_INPUT_CHAIN -p tcp ! --dport 2049 -m multiport --sports 20,21,22,23,80,110,143,443,993,995 \
+      -m limit --limit 6/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Possible DRDOS abuse: "
+    iptables -A EXT_INPUT_CHAIN -p udp ! --dport 2049 -m multiport --sports 20,21,22,23,80,110,143,443,993,995 \
+      -m limit --limit 6/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Possible DRDOS abuse: "
+
+    iptables -A EXT_INPUT_CHAIN -p tcp ! --dport 2049 -m multiport --sports 20,21,22,23,80,110,143,443,993,995 -j POST_INPUT_DROP_CHAIN
+    iptables -A EXT_INPUT_CHAIN -p udp ! --dport 2049 -m multiport --sports 20,21,22,23,80,110,143,443,993,995 -j POST_INPUT_DROP_CHAIN
+  fi
+
+  # Adding TCP ports NOT to be firewalled
+  #######################################
+  unset IFS
+  for rule in $OPEN_TCP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Allowing ANYHOST for TCP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j ACCEPT
+        done
+      done
+    done
+  done
+
+
+  # Adding UDP ports NOT to be firewalled
+  #######################################
+  unset IFS
+  for rule in $OPEN_UDP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Allowing ANYHOST for UDP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j ACCEPT
+        done
+      done
+    done
+  done
+
+
+  # Adding IP protocols NOT to be firewalled
+  ##########################################
+  unset IFS
+  for rule in $OPEN_IP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    protos=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Allowing ANYHOST for IP protocol(s): $protos"
+
+    IFS=','
+    for proto in $protos; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p $proto -j ACCEPT
+        done
+      done
+    done
+  done
+
+  # Allow world to send ICMP packets?
+  ###################################
+  if [ "$OPEN_ICMP" = "1" ]; then
+    echo " Allowing ANYHOST to send ICMP-requests(ping)"
+    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+  else
+    echo " Denying ANYHOST to send ICMP-requests(ping)"
+  fi
+
+  # Log incoming ICMP-request packets
+  ###################################
+  if [ "$ICMP_REQUEST_LOG" != "0" ]; then
+    echo " Logging of dropped ICMP-request(ping) packets enabled"
+    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+      -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
+  else
+    echo " Logging of dropped ICMP-request(ping) packets disabled"
+  fi
+  #FIXME:
+  if [ "$ICMP_OTHER_LOG" != "0" ]; then
+    echo " Logging of dropped other ICMP packets enabled"
+
+    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE destination-unreachable \
+      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-unreachable: "
+
+    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE time-exceeded \
+      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-time-exceeded: "
+
+    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE parameter-problem \
+      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-param.-problem: "
+
+#    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE source-quench \
+#      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-source-quench: "
+
+    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE destination-unreachable -j POST_INPUT_DROP_CHAIN
+    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE time-exceeded -j POST_INPUT_DROP_CHAIN
+    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE parameter-problem -j POST_INPUT_DROP_CHAIN
+    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j POST_INPUT_DROP_CHAIN
+    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-reply -j POST_INPUT_DROP_CHAIN
+
+  else
+    echo " Logging of dropped other ICMP packets disabled"
+  fi
+
+  # Logging of possible stealth scans
+  ##########################
+  if [ "$POSSIBLE_SCAN_LOG" = "1" ]; then
+    echo " Logging of possible stealth scans enabled"
+    if [ "$UNPRIV_TCP_LOG" != "0" ]; then
+      iptables -A EXT_INPUT_CHAIN -p tcp ! --syn --dport 1024: \
+        -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Stealth scan (UNPRIV)?: "
+    fi
+
+    if [ "$PRIV_TCP_LOG" != "0" ]; then
+      iptables -A EXT_INPUT_CHAIN -p tcp ! --syn --dport :1023 \
+        -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Stealth scan (PRIV)?: "
+    fi
+  else
+    echo " Logging of possible stealth scans disabled"
+  fi
+
+  # General stealth scan drop
+  ###########################
+  iptables -A EXT_INPUT_CHAIN -p tcp ! --syn -j POST_INPUT_DROP_CHAIN
+
+  # Check whether IPv4 or IPv6 is used
+  if [ "$IPV6_SUPPORT" != "1" ]; then
+    # Disable logging of certain TCP broadcasts on the external interface
+    #####################################################################
+    unset IFS
+    for rule in $BROADCAST_TCP_NOLOG; do
+      interfaces=`get_ifs "$rule"`
+      destips=`get_ips "$rule"`
+      ports=`get_ports_ip "$rule"`
+
+      echo " $(show_if_ip "$interfaces" "$destips")Logging of external subnet broadcasts disabled for TCP port(s): $ports"
+
+      IFS=' ,'
+      for port in $ports; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -i $interface -d 255.255.255.255 -p tcp --dport $port -j DROP
+
+          #iptables -A EXT_INPUT_CHAIN -i $interface -p tcp --dport $port -m pkttype --pkt-type broadcast -j DROP
+          #iptables -A EXT_INPUT_CHAIN -i $interface -p tcp --dport $port -m addrtype --dst-type BROADCAST -j DROP
+          if [ -n "$EXT_NET_BCAST_ADDRESS" ]; then
+            for address in $EXT_NET_BCAST_ADDRESS; do
+              iptables -A EXT_INPUT_CHAIN -i $interface -d $address -p tcp --dport $port -j DROP
+            done
+          else
+            for net in $EXTERNAL_NET; do
+              # Class C net
+              iptables -A EXT_INPUT_CHAIN -i $interface -d $(echo $net |awk -F. '{ print $1"."$2"."$3".255" }') \
+               -p tcp --dport $port -j DROP
+
+              # Class B net
+              iptables -A EXT_INPUT_CHAIN -i $interface -d $(echo $net |awk -F. '{ print $1"."$2".255.255" }') \
+               -p tcp --dport $port -j DROP
+
+              # Class A net
+              iptables -A EXT_INPUT_CHAIN -i $interface -d $(echo $net |awk -F. '{ print $1".255.255.255" }') \
+               -p tcp --dport $port -j DROP
+            done
+          fi
+        done
+      done
+    done
+
+    # Disable logging of certain UDP broadcasts on the external interface
+    ##########################################################################################
+    unset IFS
+    for rule in $BROADCAST_UDP_NOLOG; do
+      interfaces=`get_ifs "$rule"`
+      destips=`get_ips "$rule"`
+      ports=`get_ports_ip "$rule"`
+
+      echo " $(show_if_ip "$interfaces" "$destips")Logging of external subnet broadcasts disabled for UDP port(s): $ports"
+
+      IFS=' ,'
+      for port in $ports; do
+        for interface in $interfaces; do
+          iptables -A EXT_INPUT_CHAIN -i $interface -d 255.255.255.255 -p udp --dport $port -j DROP
+
+          #iptables -A EXT_INPUT_CHAIN -i $interface -p udp --dport $port -m pkttype --pkt-type broadcast -j DROP
+          #iptables -A EXT_INPUT_CHAIN -i $interface -p udp --dport $port -m addrtype --dst-type BROADCAST -j DROP
+          if [ -n "$EXT_NET_BCAST_ADDRESS" ]; then
+            for address in $EXT_NET_BCAST_ADDRESS; do
+              iptables -A EXT_INPUT_CHAIN -i $interface -d $address -p udp --dport $port -j DROP
+            done
+          else
+            for net in $EXTERNAL_NET; do
+              # Class C net
+              iptables -A EXT_INPUT_CHAIN -i $interface -d $(echo $net |awk -F. '{ print $1"."$2"."$3".255" }') \
+               -p udp --dport $port -j DROP
+
+              # Class B net
+              iptables -A EXT_INPUT_CHAIN -i $interface -d $(echo $net |awk -F. '{ print $1"."$2".255.255" }') \
+               -p udp --dport $port -j DROP
+
+              # Class A net
+              iptables -A EXT_INPUT_CHAIN -i $interface -d $(echo $net |awk -F. '{ print $1".255.255.255" }') \
+               -p udp --dport $port -j DROP
+            done
+          fi
+        done
+      done
+    done
+  fi
+  
+  
+  # Log connection attempts to privileged TCP ports?
+  ##################################################
+  if [ "$PRIV_TCP_LOG" != "0" ]; then
+    echo " Logging of (other) connection attempts to PRIVILEGED TCP ports enabled"
+    iptables -A EXT_INPUT_CHAIN -p tcp --dport :1023 \
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV connect attempt: "
+  else
+    echo " Logging of (other) connection attempts to PRIVILEGED TCP ports disabled"
+  fi
+
+  # Log connection attempts to privileged UDP ports?
+  ##################################################
+  if [ "$PRIV_UDP_LOG" != "0" ]; then
+    echo " Logging of (other) connection attempts to PRIVILEGED UDP ports enabled"
+    iptables -A EXT_INPUT_CHAIN -p udp --dport :1023 \
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV connect attempt: "
+  else
+    echo " Logging of (other) connection attempts to PRIVILEGED UDP ports disabled"
+  fi
+
+  # Log connection attempts to unprivileged TCP ports?
+  ####################################################
+  if [ "$UNPRIV_TCP_LOG" != "0" ]; then
+    echo " Logging of (other) connection attempts to UNPRIVILEGED TCP ports enabled"
+    iptables -A EXT_INPUT_CHAIN -p tcp --dport 1024: \
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV connect attempt: "
+  else
+    echo " Logging of (other) connection attempts to UNPRIVILEGED TCP ports disabled"
+  fi
+
+  # Log connection attempts to unprivileged UDP ports?
+  ####################################################
+  if [ "$UNPRIV_UDP_LOG" != "0" ]; then
+    echo " Logging of (other) connection attempts to UNPRIVILEGED UDP ports enabled"
+    iptables -A EXT_INPUT_CHAIN -p udp --dport 1024: \
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV connect attempt: "
+  else
+    echo "Logging of (other) connection attempts to UNPRIVILEGED UDP ports disabled"
+  fi
+
+  # Allow all packets that have been locally redirected
+  #####################################################
+  iptables -A EXT_INPUT_CHAIN -m conntrack --ctstate DNAT -j ACCEPT
+
+  # Drop all "standard" IP protcols
+  #################################
+  iptables -A EXT_INPUT_CHAIN -p tcp -j POST_INPUT_DROP_CHAIN
+  iptables -A EXT_INPUT_CHAIN -p udp -j POST_INPUT_DROP_CHAIN
+  iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO -j POST_INPUT_DROP_CHAIN
+
+  # Do we want to log non udp/tcp/icmp packets?
+  #############################################
+  if [ "$OTHER_IP_LOG" != "0" ]; then
+    echo " Logging of other IP protocols (non TCP/UDP/ICMP) connection attempts enabled"
+    iptables -A EXT_INPUT_CHAIN \
+      -m limit --limit 1/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Connect attempt: "
+  else
+    echo " Logging of other IP protocols (non TCP/UDP/ICMP) connection attempts disabled"
+  fi
+
+  # Jump into the post input chain, which will finally drop the packet
+  iptables -A EXT_INPUT_CHAIN -j POST_INPUT_DROP_CHAIN
+}
+
+
+######################################################################################################################
+## Chain EXT_ICMP_FLOOD_CHAIN - Checks all ICMP (flooded) packets for the EXTERNAL interface(s)                     ##
+######################################################################################################################
+setup_ext_icmp_flood_chain()
+{
+  # Log of ICMP flooding
+  ######################
+  if [ "$ICMP_FLOOD_LOG" != "0" ]; then
+    echo " Logging of ICMP flooding enabled"
+
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE destination-unreachable \
+      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-unreachable flood: "
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE destination-unreachable -j POST_INPUT_DROP_CHAIN
+
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE time-exceeded \
+      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-time-exceeded fld: "
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE time-exceeded -j POST_INPUT_DROP_CHAIN
+
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE parameter-problem \
+      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-param-problem fld: "
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE parameter-problem -j POST_INPUT_DROP_CHAIN
+
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request(ping) fld: "
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j POST_INPUT_DROP_CHAIN
+
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-reply \
+      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-reply(pong) flood: "
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-reply -j POST_INPUT_DROP_CHAIN
+
+    if [ "$IPV6_SUPPORT" != "1" ]; then
+      iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE source-quench \
+        -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-source-quench fld: "
+      iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE source-quench -j POST_INPUT_DROP_CHAIN
+    else
+      iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE packet-too-big \
+        -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-packet-too-big fld: "
+      iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE packet-too-big -j POST_INPUT_DROP_CHAIN
+    fi
+
+    # All other ICMP into the general log rule
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO \
+      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP(other) flood: "
+  else
+    echo " Logging of ICMP flooding disabled"
+  fi
+
+  # Drop any ICMP packets left
+  iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO -j POST_INPUT_DROP_CHAIN
+}
+
+
+######################################################################################################################
+## Chain EXT_OUTPUT_CHAIN - Checks all outgoing packets for the EXTERNAL interface(s)                               ##
+######################################################################################################################
+setup_ext_output_chain()
+{
+  echo "Setting up OUTPUT policy for the external net (INET):"
+
+  # This rule is for hostwise OUTPUT TCP blocking
+  ###############################################
+  unset IFS
+  for rule in $HOST_DENY_TCP_OUTPUT; do
+    interfaces=`get_ifs "$rule"`
+    srcips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+
+    echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for TCP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for interface in $interfaces; do
+          for srcip in $srcips; do
+            if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
+              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p tcp --dport $port \
+                -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
+            fi
+            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p tcp --dport $port -j DROP
+          done
+        done
+      done
+    done
+  done
+
+  # This rule is for hostwise OUTPUT UDP blocking
+  ###############################################
+  unset IFS
+  for rule in $HOST_DENY_UDP_OUTPUT; do
+    interfaces=`get_ifs "$rule"`
+    srcips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+
+    echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for UDP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for interface in $interfaces; do
+          for srcip in $srcips; do
+            if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
+              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p udp --dport $port \
+                -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
+            fi
+            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p udp --dport $port -j DROP
+          done
+        done
+      done
+    done
+  done
+
+  # This rule is for hostwise OUTPUT IP blocking
+  ##############################################
+  unset IFS
+  for rule in $HOST_DENY_IP_OUTPUT; do
+    interfaces=`get_ifs "$rule"`
+    srcips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    protos=`get_ports_ihp "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for IP protocol(s): $protos"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for proto in $protos; do
+        for interface in $interfaces; do
+          for srcip in $srcips; do
+            if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
+              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p $proto \
+                -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
+            fi
+            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p $proto -j DROP
+          done
+        done
+      done
+    done
+  done
+
+  # Adding the "full access hosts"
+  ################################
+  unset IFS
+  for rule in $FULL_ACCESS_HOSTS; do
+    interfaces=`get_ifs "$rule"`
+    srcips=`get_ips "$rule"`
+    hosts=`get_hosts_ih "$rule"`
+
+    echo " $(show_if_ip "$interfaces")Allowing $hosts full (outbound) access"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for interface in $interfaces; do
+        for srcip in $srcips; do
+          iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -j ACCEPT
+        done
+      done
+    done
+  done
+
+  # This rule is for local OUTPUT TCP blocking
+  ############################################
+  unset IFS
+  for rule in $DENY_TCP_OUTPUT; do
+    interfaces=`get_ifs "$rule"`
+    srcips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$srcips")Denying TCP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for interface in $interfaces; do
+        for srcip in $srcips; do
+          if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
+            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p tcp --dport $port \
+              -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
+          fi
+          iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p tcp --dport $port -j DROP
+        done
+      done
+    done
+  done
+
+  # This rule is for local OUTPUT UDP blocking
+  ############################################
+  unset IFS
+  for rule in $DENY_UDP_OUTPUT; do
+    interfaces=`get_ifs "$rule"`
+    srcips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$srcips")Denying UDP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for interface in $interfaces; do
+        for srcip in $srcips; do
+          if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
+            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p udp --dport $port \
+              -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
+          fi
+          iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p udp --dport $port -j DROP
+        done
+      done
+    done
+  done
+
+  # This rule is for local OUTPUT IP blocking
+  ############################################
+  unset IFS
+  for rule in $DENY_IP_OUTPUT; do
+    interfaces=`get_ifs "$rule"`
+    srcips=`get_ips "$rule"`
+    protos=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$srcips")Denying IP protocol(s): $protos"
+
+    IFS=','
+    for proto in $DENY_IP_OUTPUT; do
+      for interface in $interfaces; do
+        for srcip in $srcips; do
+          if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
+            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p $proto \
+              -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
+          fi
+          iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p $proto -j DROP
+        done
+      done
+    done
+  done
+
+  echo " Allowing all (other) ports/protocols"
+  iptables -A EXT_OUTPUT_CHAIN -j ACCEPT
+}
+
+
+# This creates the input logging rules
+##########################################################
+setup_input_log()
+{
+  # This rule is for local INPUT TCP watching
+  ############################################
+  unset IFS
+  for rule in $LOG_INPUT_TCP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo "$(show_if_ip "$interfaces" "$destips")Logging incoming TCP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A INPUT -i $interface -d $destip -p tcp --dport $port -m state --state NEW -m limit \
+            --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:TCP INPUT log: "
+        done
+      done
+    done
+  done
+
+
+  # This rule is for local INPUT UDP watching
+  ###########################################
+  unset IFS
+  for rule in $LOG_INPUT_UDP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo "$(show_if_ip "$interfaces" "$destips")Logging incoming UDP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A INPUT -i $interface -d $destip -p udp --dport $port -m state --state NEW -m limit \
+            --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UDP INPUT log: "
+        done
+      done
+    done
+  done
+
+  # This rule is for local INPUT IP watching
+  ##########################################
+  unset IFS
+  for rule in $LOG_INPUT_IP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    protos=`get_ports_ip "$rule"`
+
+    echo "$(show_if_ip "$interfaces" "$destips")Logging incoming IP protocol(s): $protos"
+
+    IFS=','
+    for proto in $protos; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A INPUT -i $interface -d $destip -p $proto -m state --state NEW -m limit \
+            --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IP INPUT log: "
+        done
+      done
+    done
+  done
+
+
+  # Hostwise logging of input connection attempts
+  ###############################################
+  unset IFS
+  for rule in $LOG_HOST_INPUT; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ih "$rule"`
+
+    echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of: $hosts"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for destip in $destips; do
+        for interface in $interfaces; do
+          iptables -A INPUT -i $interface -s $host -d $destip -m state --state NEW \
+            -m limit --limit 12/m --limit-burst 50 \
+            -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise INPUT log: "
+        done
+      done
+    done
+  done
+
+  # Hostwise logging of certain TCP port connection attempts
+  ##########################################################
+  unset IFS
+  for rule in $LOG_HOST_INPUT_TCP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
+
+    echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of $hosts to TCP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A INPUT -i $interface -s $host -d $destip -p tcp --dport $port -m state --state NEW \
+              -m limit --limit 12/m --limit-burst 5 \
+              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise TCP log (IN): "
+          done
+        done
+      done
+    done
+  done
+
+
+  # Hostwise logging of certain UDP port connection attempts
+  ##########################################################
+  unset IFS
+  for rule in $LOG_HOST_INPUT_UDP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
+
+    echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of $hosts to UDP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A INPUT -i $interface -s $host -d $destip -p udp --dport $port -m state --state NEW \
+              -m limit --limit 12/m --limit-burst 5 \
+              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise UDP INPUT log: "
+          done
+        done
+      done
+    done
+  done
+
+  # Hostwise logging of certain IP protocols connection attempts
+  ##############################################################
+  unset IFS
+  for rule in $LOG_HOST_INPUT_IP; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule"`
+    protos=`get_ports_ihp "$rule"`
+
+    echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of $hosts to IP protocol(s): $protos"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for proto in $protos; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A INPUT -i $interface -s $host -d $destip -p $proto -m state --state NEW \
+              -m limit --limit 12/m --limit-burst 5 \
+              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise IP INPUT log: "
+          done
+        done
+      done
+    done
+  done
+}
+
+
+# This creates the output logging rules
+##########################################################
+setup_output_log()
+{
+  # This rule is for local OUTPUT TCP watching
+  ############################################
+  unset IFS
+  for rule in $LOG_OUTPUT_TCP; do
+    interfaces=`get_ifs "$rule"`
+    srcips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing TCP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for interface in $interfaces; do
+        for srcip in $srcips; do
+          iptables -A OUTPUT -o $interface -s $srcip -p tcp --dport $port -m state --state NEW -m limit \
+            --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:TCP OUTPUT log: "
+        done
+      done
+    done
+  done
+
+  # This rule is for local OUTPUT UDP watching
+  ############################################
+  unset IFS
+  for rule in $LOG_OUTPUT_UDP; do
+    interfaces=`get_ifs "$rule"`
+    srcips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo "$(show_if_ip "$interfaces")Logging outgoing UDP port(s): $ports"
+
+    IFS=','
+    for port in $ports; do
+      for interface in $interfaces; do
+        for srcip in $srcips; do
+          iptables -A OUTPUT -o $interface -s $srcip -p udp --dport $port -m state --state NEW -m limit \
+            --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UDP OUTPUT log: "
+        done
+      done
+    done
+  done
+
+  # This rule is for local OUTPUT IP watching
+  ###########################################
+  unset IFS
+  for rule in $LOG_OUTPUT_IP; do
+    interfaces=`get_ifs "$rule"`
+    srcips=`get_ips "$rule"`
+    protos=`get_ports_ip "$rule"`
+
+    echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing IP protocol(s): $protos"
+
+    IFS=','
+    for proto in $protos; do
+      for interface in $interfaces; do
+        for srcip in $srcips; do
+          iptables -A OUTPUT -o $interface -s $srcip -p $proto -m state --state NEW -m limit \
+            --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IP OUTPUT log: "
+        done
+      done
+    done
+  done
+
+  # Hostwise logging of output connection attempts
+  ################################################
+  unset IFS
+  for rule in $LOG_HOST_OUTPUT; do
+    interfaces=`get_ifs "$rule"`
+    srcips=`get_ips "$rule"`
+    hosts=`get_hosts_ih "$rule"`
+
+    echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections to: $hosts"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for interface in $interfaces; do
+        for srcip in $srcips; do
+          iptables -A OUTPUT -o $interface -s $srcip -d $host -m state --state NEW \
+            -m limit --limit 12/m --limit-burst 50 \
+            -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise OUTPUT log: "
+        done
+      done
+    done
+  done
+
+
+  # Hostwise logging of certain TCP port connection attempts
+  ##########################################################
+  unset IFS
+  for rule in $LOG_HOST_OUTPUT_TCP; do
+    interfaces=`get_ifs "$rule"`
+    srcips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"` 
+
+    echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections of $hosts to TCP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for interface in $interfaces; do
+          for srcip in $srcips; do
+            iptables -A OUTPUT -o $interface -s $srcip -d $host -p tcp --dport $port -m state --state NEW \
+              -m limit --limit 12/m --limit-burst 5 \
+              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host TCP log (OUT): "
+          done
+        done
+      done
+    done
+  done
+
+
+  # Hostwise logging of certain UDP port connection attempts
+  ##########################################################
+  unset IFS
+  for rule in $LOG_HOST_OUTPUT_UDP; do
+    interfaces=`get_ifs "$rule"`
+    srcips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
+
+    echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections of $hosts to UDP port(s): $ports"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for port in $ports; do
+        for interface in $interfaces; do
+          for srcip in $srcips; do
+            iptables -A OUTPUT -o $interface -s $srcip -d $host -p udp --dport $port -m state --state NEW \
+              -m limit --limit 12/m --limit-burst 5 \
+              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host UDP log (OUT): "
+          done
+        done
+      done
+    done
+  done
+
+  # Hostwise logging of certain IP protocols connection attempts
+  ##############################################################
+  unset IFS
+  for rule in $LOG_HOST_OUTPUT_IP; do
+    interfaces=`get_ifs "$rule"`
+    srcips=`get_ips "$rule"`
+    hosts=`get_hosts_ihp "$rule"`
+    protos=`get_ports_ihp "$rule"`
+
+    echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections of $hosts to IP protocol(s): $protos"
+
+    IFS=','
+    for host in `ip_range "$hosts"`; do
+      for proto in $protos; do
+        for interface in $interfaces; do
+          for srcip in $srcips; do
+            iptables -A OUTPUT -o $interface -s $srcip -d $host -p $proto -m state --state NEW \
+              -m limit --limit 12/m --limit-burst 5 \
+              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host IP log (OUT): "
+          done
+        done
+      done
+    done
+  done
+}
+
+
+# This creates the separate host block
+######################################
+setup_hostblock_chain()
+{
+  if iptables -F HOST_BLOCK 2>&1 |grep -q "No chain"; then
+    printf "\033[40m\033[1;31mERROR: The firewall isn't running!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       You should first run this script with the \"start\" command.\033[0m\n" >&2
+    return 5
+  fi
+
+  if [ -n "$BLOCK_HOSTS" ]; then
+    printf "Blocking (blackhole) host(s): "
+
+    IFS=' ,'
+    for hosts in $BLOCK_HOSTS; do
+      printf "$hosts "
+
+      for host in `ip_range "$hosts"`; do
+        if [ "$BLOCKED_HOST_LOG" != "0" ]; then
+          iptables -A HOST_BLOCK -s $host \
+            -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s): "
+        fi
+        iptables -A HOST_BLOCK -s $host -j POST_INPUT_DROP_CHAIN
+      done
+    done
+    echo ""
+  fi
+
+
+  # Setup the blocked hosts from our file
+  if [ -n "$BLOCK_HOSTS_FILE" ]; then
+    if [ -e "$BLOCK_HOSTS_FILE" ]; then
+
+      echo "(Re)loading list of BLOCKED hosts from $BLOCK_HOSTS_FILE..."
+
+      HCOUNT=0
+      LCOUNT=0
+      IFS=$EOL
+      for hosts in `cat "$BLOCK_HOSTS_FILE" |sed -e 's|#.*||' -e 's| *$||'`; do
+        # Inc. line count
+        LCOUNT=$(($LCOUNT + 1))
+
+        if [ -n "$hosts" ]; then
+          IFS=','
+          for host in `ip_range "$hosts"`; do
+            HCOUNT=$(($HCOUNT + 1))
+
+            if [ "$BLOCKED_HOST_LOG" = "1" ]; then
+              iptables -A HOST_BLOCK -s $host \
+                -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s): "
+            fi
+            iptables -A HOST_BLOCK -s $host -j POST_INPUT_DROP_CHAIN
+          done
+          unset IFS
+        fi
+      done
+      echo " $LCOUNT line(s) read. $HCOUNT host(s) blocked."
+    else
+      printf "\033[40m\033[1;31mNOTE: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
+    fi
+  fi
+}
+
+
+setup_mangle_tables()
+{
+  # The following line is intended to hide the firewall during a traceroute.
+  ##########################################################################
+  if [ "$TTL_INC" = "1" ]; then
+    echo "Enabling TTL-increase for the PREROUTING chain"
+    IFS=' ,'
+    for interface in $EXT_IF; do
+      iptables -t mangle -A PREROUTING -i $interface -j TTL --ttl-inc 1
+    done
+  fi
+
+  # Set TTL on outgoing & forwarded packets:
+  ##########################################
+  if [ -n "$PACKET_TTL" ]; then
+    if [ $PACKET_TTL -gt 9 ] && [ $PACKET_TTL -lt 256 ]; then
+      echo "Setting TTL=$PACKET_TTL for the FORWARD & OUTPUT chains"
+      IFS=' ,'
+      for interface in $EXT_IF; do
+        iptables -t mangle -A FORWARD -o $interface -j TTL --ttl-set $PACKET_TTL
+        iptables -t mangle -A OUTPUT -o $interface -j TTL --ttl-set $PACKET_TTL
+      done
+    else
+      printf "\033[40m\033[1;31m WARNING: Ingoring invalid value for PACKET_TTL ($PACKET_TTL), it should be between 10 and 255!\033[0m\n" >&2
+    fi
+  fi
+
+  # Mangles the TOS on standard ports so they get priority in routers
+  ###################################################################
+  # TOS table
+  # Options:
+  #               Normal-Service = 0 (0x00)
+  #               Minimize-Cost = 2 (0x02)
+  #               Maximize-Reliability = 4 (0x04)
+  #               Maximize-Throughput = 8 (0x08)
+  #               Minimize-Delay = 16 (0x10)
+  if [ "$MANGLE_TOS" = "1" ]; then
+    echo "Enabling mangling TOS"
+    # ToS: Client Applications; data => tos_client
+    # Most of these are the RFC 1060/1349 suggested TOS values, yours might vary.
+    # To view mangle table, type: iptables -L -t mangle
+    IFS=' ,'
+    for interface in $EXT_IF; do
+      # Mangle values of packets created locally.
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 20 -j TOS --set-tos Maximize-Throughput
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 21 -j TOS --set-tos Minimize-Delay
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 22 -j TOS --set-tos Minimize-Delay
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 23 -j TOS --set-tos Minimize-Delay
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 25 -j TOS --set-tos Minimize-Delay
+      iptables -t mangle -A OUTPUT -o $interface -p udp --dport 53 -j TOS --set-tos Maximize-Throughput
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 67 -j TOS --set-tos Minimize-Delay
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 80 -j TOS --set-tos Maximize-Throughput
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 110 -j TOS --set-tos Maximize-Throughput
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 113 -j TOS --set-tos Minimize-Delay
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 123 -j TOS --set-tos Minimize-Delay
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 143 -j TOS --set-tos Maximize-Throughput
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 443 -j TOS --set-tos Maximize-Throughput
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 993 -j TOS --set-tos Maximize-Throughput
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 995 -j TOS --set-tos Maximize-Throughput
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 1080 -j TOS --set-tos Minimize-Delay
+      iptables -t mangle -A OUTPUT -o $interface -p tcp --dport 6000:6063 -j TOS --set-tos Maximize-Throughput
+    done
+
+    # Rules to mangle TOS values of packets routed through the firewall
+    iptables -t mangle -A PREROUTING -p tcp --dport 20 -j TOS --set-tos Maximize-Throughput
+    iptables -t mangle -A PREROUTING -p tcp --dport 21 -j TOS --set-tos Minimize-Delay
+    iptables -t mangle -A PREROUTING -p tcp --dport 22 -j TOS --set-tos Minimize-Delay
+    iptables -t mangle -A PREROUTING -p tcp --dport 23 -j TOS --set-tos Minimize-Delay
+    iptables -t mangle -A PREROUTING -p tcp --dport 25 -j TOS --set-tos Minimize-Delay
+    iptables -t mangle -A PREROUTING -p udp --dport 53 -j TOS --set-tos Minimize-Delay
+    iptables -t mangle -A PREROUTING -p tcp --dport 67 -j TOS --set-tos Minimize-Delay
+    iptables -t mangle -A PREROUTING -p tcp --dport 80 -j TOS --set-tos Maximize-Throughput
+    iptables -t mangle -A PREROUTING -p tcp --dport 110 -j TOS --set-tos Maximize-Throughput
+    iptables -t mangle -A PREROUTING -p tcp --dport 113 -j TOS --set-tos Minimize-Delay
+    iptables -t mangle -A PREROUTING -p tcp --dport 123 -j TOS --set-tos Minimize-Delay
+    iptables -t mangle -A PREROUTING -p tcp --dport 143 -j TOS --set-tos Maximize-Throughput
+    iptables -t mangle -A PREROUTING -p tcp --dport 443 -j TOS --set-tos Maximize-Throughput
+    iptables -t mangle -A PREROUTING -p tcp --dport 993 -j TOS --set-tos Maximize-Throughput
+    iptables -t mangle -A PREROUTING -p tcp --dport 995 -j TOS --set-tos Maximize-Throughput
+    iptables -t mangle -A PREROUTING -p tcp --dport 1080 -j TOS --set-tos Minimize-Delay
+    iptables -t mangle -A PREROUTING -p tcp --dport 6000:6063 -j TOS --set-tos Maximize-Throughput
+  fi
+}
+
+
+setup_tcp_mss()
+{
+  # Besides MTU, there is yet another way to set the maximum packet size, the so called Maximum Segment Size.
+  # This is a field in the TCP Options part of a SYN packet.
+  # The good thing about this is that by setting the MSS value, you are telling the remote side unequivocally
+  # 'do not ever try to send me packets bigger than this value'. No ICMP traffic is needed to get this to work.
+  # In order for this to work you need at least iptables-1.2.1a and Linux 2.4.3 or higher.
+  ##################################################################################################################
+  if [ "$SET_MSS" = "1" ]; then
+    echo "Enabling setting the maximum packet size via MSS"
+    IFS=' ,'
+    for interface in $EXT_IF; do
+      iptables -A FORWARD -o $interface -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+      iptables -A OUTPUT -o $interface -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+
+      if [ "$NAT" = "1" ]; then
+        iptables -t nat -A POSTROUTING -o $interface -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+      fi
+    done
+  fi
+}
+
+
+# Function to implement plugin support:
+#######################################
+plugins_start()
+{
+  PLUGIN_CMD=start
+
+  # Truncate/create file
+  cp -f /dev/null "$PLUGIN_LOAD_FILE"
+
+  printf "Checking for (user) plugins in $PLUGIN_BIN_PATH..."
+
+  # Check for plugins in our plugins binary path:
+  if [ -n "$(find "$PLUGIN_BIN_PATH/" -maxdepth 1 -name "*.plugin" 2>/dev/null)" ]; then
+    echo ""
+    plugin_count=0
+    
+    unset IFS
+    for plugin in "$PLUGIN_BIN_PATH"/*.plugin; do
+      # Preset ENABLED=0 to make sure the plugin only
+      # gets loaded if the config has an explicit ENABLED=1:
+      ENABLED=0
+
+      # Explicit unset IFS, just in case
+      unset IFS
+
+      # Source the plugin:
+      . "$plugin"
+
+      # By checking the ENABLED variable, we know whether the plugin
+      # was actually loaded. If so increase the plugin count:
+      if [ "$ENABLED" = "1" ]; then
+        echo "$plugin" >> "$PLUGIN_LOAD_FILE"
+        plugin_count=$(($plugin_count + 1))
+      fi
+    done
+    echo " Loaded $plugin_count plugin(s)..."
+  else
+    echo "None found"
+  fi
+}
+
+
+plugins_stop()
+{
+  PLUGIN_CMD=stop
+
+  if [ -e "$PLUGIN_LOAD_FILE" ]; then
+    echo "Stopping (user) plugins..."
+  
+    IFS=$EOL
+    for plugin in `cat "$PLUGIN_LOAD_FILE"`; do
+      plugin_name="$(basename "$plugin" |sed 's/^[0-9]*//')"
+      
+      if [ -e "$plugin" ]; then
+        plugin_file="$plugin"
+      else
+        # If we can't find it, ignore the priority number in front of the plugin-filename
+        plugin_file="$(find "$PLUGIN_BIN_PATH/" -maxdepth 1 -name "*.plugin" |grep "[0-9]*$plugin_name" |head -n1)"
+      fi
+      
+      if [ -e "$plugin_file" ]; then
+        # Only issue the stop command for plugins that support it:
+        if grep -q "^plugin_stop\(\)" "$plugin_file"; then
+          # Preset ENABLED=0 to make sure the plugin only
+          # gets loaded if the config has an explicit ENABLED=1:
+          ENABLED=0
+    
+          # Source the plugin:
+          . "$plugin_file"
+        fi
+      else
+        printf "\033[40m\033[1;31mERROR: Could not stop plugin \"$plugin_name\" as it does no exist!\033[0m\n" >&2 
+      fi
+    done
+    rm -f "$PLUGIN_LOAD_FILE" 2>/dev/null
+  fi
+}
+
+
+plugins_status()
+{
+  PLUGIN_CMD=status
+
+  # Load/insert user plugins
+  if [ -e "$PLUGIN_LOAD_FILE" ]; then
+    printf "\nShowing status of (user) plugins...\n"
+
+    IFS=$EOL
+    for plugin in `cat "$PLUGIN_LOAD_FILE"`; do
+      # Only issue the status command for plugins that support the PLUGIN_CMD-variable:
+      if grep -q "^plugin_status\(\)" $plugin; then
+        # Preset ENABLED=0 to make sure the plugin only
+        # gets loaded if the config has an explicit ENABLED=1:
+        ENABLED=0
+
+        # Source the plugin:
+        . "$plugin"
+      fi
+    done
+  fi
+}
+
+
+# Here the actual iptables rules are loaded
+###########################################
+setup_firewall_rules()
+{
+  echo "Using loglevel \"$LOGLEVEL\" for syslogd"
+  echo ""
+
+  echo "Setting up firewall rules:"
+  echo "-------------------------------------------------------------------------------"
+
+  # When IPv4 support is active, disable IPv6 traffic
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+      echo "NOTE: IPv6 support enabled, setting default policy for IPv4 to DROP"
+    ip4tables -P INPUT DROP
+    ip4tables -P FORWARD DROP
+    ip4tables -P OUTPUT DROP
+  else
+    # IPv6 support available on the system?
+    if sysctl -a 2>/dev/null |grep -q "^net.ipv6.conf"; then
+      if [ -x "$IP6TABLES" ]; then
+        echo "NOTE: IPv4 support enabled, setting default policy for IPv6 to DROP"
+        ip6tables -P INPUT DROP
+        ip6tables -P FORWARD DROP
+        ip6tables -P OUTPUT DROP
+      else
+        printf "\033[40m\033[1;31mWARNING: IPv4 support enabled, but unable to set the default policy\033[0m\n" >&2
+        printf "\033[40m\033[1;31m         for IPv6 to DROP as the ip6tables-binary is not available!\033[0m\n" >&2
+      fi
+    fi  
+  fi
+
+  # Setup all TCP MSS stuff
+  #########################
+  setup_tcp_mss;
+
+  # Setup all mangle stuff
+  ########################
+  setup_mangle_tables;
+
+  # Setup basic input/forward/output/... chains
+  #############################################
+  iptables -A INPUT -j INPUT_CHAIN
+  iptables -A FORWARD -j FORWARD_CHAIN
+  iptables -A OUTPUT -j OUTPUT_CHAIN
+  iptables -t nat -A PREROUTING -j NAT_PREROUTING_CHAIN
+  iptables -t nat -A POSTROUTING -j NAT_POSTROUTING_CHAIN
+
+  # Block all hosts in the custom blocked hosts file
+  ##################################################
+  iptables -A INPUT -j HOST_BLOCK
+  iptables -A FORWARD -j HOST_BLOCK
+  iptables -A OUTPUT -j HOST_BLOCK
+
+  # Setup global helper chains
+  ############################
+  setup_valid_chk_chain;
+  setup_reserved_net_chk_chain;
+  setup_spoof_chk_chain;
+
+  # Check if source address is spoofed
+  ####################################
+  iptables -A INPUT -j SPOOF_CHK
+
+  # Setup rules for input/output logging
+  ######################################
+  setup_input_log;
+  setup_output_log;
+
+  # Explicit unset IFS, just in case
+  unset IFS
+
+  # Insert the custom rules
+  #########################
+  if [ -e "$CUSTOM_RULES" ]; then
+    echo "Reading custom rules from $CUSTOM_RULES"
+    . $CUSTOM_RULES
+  fi
+
+  # Start (user) plugins
+  ######################
+  plugins_start;
+
+  if [ "$IPV6_SUPPORT" != "1" ]; then
+    # Drop outgoing fragmented packets (this should in principle never happen because of netfilter's
+    # packet defragmentation
+    ################################################################################################
+    iptables -A OUTPUT -f \
+      -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Fragment packet: "
+    iptables -A OUTPUT -f -j DROP
+  fi
+
+  # Setup helper chains for EXTERNAL traffic:
+  setup_ext_input_chain;
+  setup_ext_icmp_flood_chain;
+  setup_ext_output_chain;
+
+  # This is used for your external (untrusted) interfaces
+  #######################################################
+  COUNT=0
+  IFS=' ,'
+  for interface in $EXT_IF; do
+    COUNT=$(($COUNT + 1))
+    EXTIF_NET=$(echo "$EXTERNAL_NET" |awk "{ print \$$COUNT }")
+
+    printf "Applying INET policy to external interface: $interface"
+    if [ -z "$EXTIF_NET" ]; then
+      echo " (without an external subnet specified)"
+    else
+      echo " (EXTERNAL_NET=$EXTIF_NET)"
+    fi
+
+    # Apply external (internet) interface policy for the output chain:
+    ##################################################################
+    iptables -A OUTPUT -o $interface -j EXT_OUTPUT_CHAIN
+
+    # Apply external (internet) interface policy for the input chain:
+    #################################################################
+    # Check packets for invalid flags:
+    iptables -A INPUT -i $interface -j VALID_CHK
+
+    # Perform check:
+    ################
+    # Non-ICMP traffic:
+    iptables -A INPUT -i $interface ! -p $ICMP_PROTO -m state --state NEW -j EXT_INPUT_CHAIN
+
+    # ICMP traffic (rate limited):
+    iptables -A INPUT -i $interface -p $ICMP_PROTO -m state --state NEW \
+      -m limit --limit 60/second --limit-burst 100 -j EXT_INPUT_CHAIN
+
+    # ICMP traffic (flood)
+    iptables -A INPUT -i $interface -p $ICMP_PROTO -m state --state NEW -j EXT_ICMP_FLOOD_CHAIN
+  done
+
+
+  # Setup input rules for your internal net
+  #########################################
+  if [ -n "$INT_IF" ]; then
+    echo "Setting up INPUT policy for internal (LAN) interface(s): $INT_IF"
+
+    # Setup helper chain for the LAN:
+    setup_int_input_chain;
+
+    IFS=' ,'
+    for interface in $INT_IF; do
+      iptables -A INPUT -i $interface -j INT_INPUT_CHAIN
+      iptables -A OUTPUT -o $interface -j INT_OUTPUT_CHAIN
+    done
+  fi
+
+  # Setup input rules for your DMZ net
+  ####################################
+  if [ -n "$DMZ_IF" ]; then
+    echo "Setting up INPUT policy for DMZ interface(s): $DMZ_IF"
+
+    # Setup helper chain for the DMZ:
+    setup_dmz_input_chain;
+
+    IFS=' ,'
+    for interface in $DMZ_IF; do
+      iptables -A INPUT -i $interface -j DMZ_INPUT_CHAIN
+      iptables -A OUTPUT -o $interface -j DMZ_OUTPUT_CHAIN
+    done
+  fi
+
+  # Accept all packets on "other" interfaces
+  ##########################################
+  if [ -n "$TRUSTED_IF" ]; then
+    echo "Accepting ALL INPUT traffic from trusted interface(s): $TRUSTED_IF"
+    IFS=' ,'
+    for interface in $TRUSTED_IF; do
+      iptables -A INPUT -i $interface -j ACCEPT
+    done
+  fi
+
+  # Jump to the POST INPUT chain
+  ##############################
+  iptables -A INPUT -j POST_INPUT_CHAIN
+  
+  # block everything else (just in case)...
+  #########################################
+  iptables -A INPUT -m limit --limit 1/s -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Dropped INPUT packet: "
+  iptables -A INPUT -j DROP
+
+  ###############################################################################################
+  # FORWARD rules                                                                               #
+  ###############################################################################################
+
+  # Allow forward traffic from "trusted-if"
+  #########################################
+  if [ -n "$TRUSTED_IF" ]; then
+    echo "Accepting ALL FORWARD traffic for trusted interface(s): $TRUSTED_IF"
+    IFS=' ,'
+    for interface in $TRUSTED_IF; do
+      # Allow forward traffic in:
+      iptables -A FORWARD -i $interface -j ACCEPT
+      # Allow forward traffic out:
+      iptables -A FORWARD -o $interface -j ACCEPT
+    done
+  fi
+
+  # Source the IN/OUT chains for the external interface(s)
+  ########################################################
+  IFS=' ,'
+  for eif in $EXT_IF; do
+    iptables -A FORWARD -i $eif -j EXT_FORWARD_IN_CHAIN
+    iptables -A FORWARD -o $eif -j EXT_FORWARD_OUT_CHAIN
+  done
+  
+  # Source the IN/OUT chains for the internal interface(s)
+  ########################################################
+  IFS=' ,'
+  for iif in $INT_IF; do
+    iptables -A FORWARD -i $iif -j INT_FORWARD_IN_CHAIN
+    iptables -A FORWARD -o $iif -j INT_FORWARD_OUT_CHAIN
+  done
+
+  # Source the IN/OUT chains for the dmz interface(s)
+  ########################################################
+  IFS=' ,'
+  for dif in $DMZ_IF; do
+    iptables -A FORWARD -i $dif -j DMZ_FORWARD_IN_CHAIN
+    iptables -A FORWARD -o $dif -j DMZ_FORWARD_OUT_CHAIN
+  done
+
+  # Check source address for spoofing
+  ###################################
+  iptables -A FORWARD -j SPOOF_CHK
+
+  # Check if the incoming packet is (in)valid
+  ###########################################
+  iptables -A EXT_FORWARD_IN_CHAIN -j VALID_CHK
+
+  # Check if incoming packet sources are (in)valid
+  ################################################
+  if [ "$DROP_PRIVATE_ADDRESSES" != "0" ]; then
+    iptables -A EXT_FORWARD_IN_CHAIN -j RESERVED_NET_CHK
+  fi
+
+  # Setup forward policy for the DMZ
+  ##################################
+  if [ -n "$DMZ_IF" ]; then
+
+    echo "Setting up FORWARD policy for DMZ interface(s): $DMZ_IF"
+
+    if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
+      echo " Logging of denied DMZ (forward) output connections enabled"
+    else
+      echo " Logging of denied DMZ (forward) output connections disabled"
+    fi
+
+    if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+      echo " Logging of denied DMZ (forward) input connections enabled"
+    else
+      echo " Logging of denied DMZ (forward) input connections disabled"
+    fi
+
+    # Setup helper chains for the DMZ:
+    setup_inet_dmz_forward_chain;
+    setup_dmz_inet_forward_chain;
+    setup_dmz_lan_forward_chain;
+
+    IFS=' ,'
+    for dif in $DMZ_IF; do
+      # Always make subnets on the SAME interface trust each other
+      iptables -A FORWARD -i $dif -o $dif -j ACCEPT
+
+      for eif in $EXT_IF; do
+        # Apply policy for inet->DMZ traffic
+        iptables -A FORWARD -i $eif -o $dif -j INET_DMZ_FORWARD_CHAIN
+
+        # Apply policy for DMZ->inet traffic
+        iptables -A FORWARD -i $dif -o $eif -j DMZ_INET_FORWARD_CHAIN
+      done
+
+      # Apply policy for DMZ->LAN traffic & LAN->DMZ traffic
+      for iif in $INT_IF; do
+        # Apply policy for DMZ->LAN
+        iptables -A FORWARD -i $dif -o $iif -j DMZ_LAN_FORWARD_CHAIN
+
+        # Apply policy for LAN->DMZ (allow all)
+        iptables -A FORWARD -i $iif -o $dif -j ACCEPT
+      done
+    done
+  fi
+
+  # Forward traffic for LAN interface(s) that trust each other
+  #######################################################################
+  IFS=$SEP3
+  for if_group in $IF_TRUSTS; do
+    echo "Setting up trust FORWARD policy for interface(s): $if_group"
+    IFS=' ,'
+    for input_if in $if_group; do
+      for output_if in $if_group; do
+        if [ "$input_if" != "$output_if" ]; then
+          iptables -A FORWARD -i $input_if -o $output_if -j ACCEPT
+        fi
+      done
+    done
+  done
+
+  # Additional rules for the internal subnet(s)
+  #############################################
+  if [ -n "$INT_IF" ]; then
+    echo "Setting up FORWARD policy for internal (LAN) interface(s): $INT_IF"
+
+    # Enable logging of denied LAN output connections?
+    ##################################################
+    if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
+      echo " Logging of denied LAN->INET FORWARD connections enabled"
+    else
+      echo " Logging of denied LAN->INET FORWARD connections disabled"
+    fi
+
+    # Setup helper chain for the LAN:
+    setup_lan_inet_forward_chain;
+
+    IFS=' ,'
+    for iif in $INT_IF; do
+      # Always make subnets on the SAME interface trust each other
+      iptables -A FORWARD -i $iif -o $iif -j ACCEPT
+
+      for eif in $EXT_IF; do
+        iptables -A FORWARD -i $iif -o $eif -j LAN_INET_FORWARD_CHAIN
+      done
+    done
+  fi
+
+
+  ##############################################################################
+  # Masquerade (NAT) or SNAT. Share the gateway's internet connection with     #
+  # the internal network                                                       #
+  ##############################################################################
+  if [ "$NAT" = "1" ]; then
+    if [ -n "$NAT_STATIC_IP" ]; then
+      echo "Enabling SNAT via external interface(s): $EXT_IF"
+
+      printf " Adding (internal) host(s): "
+
+      IFS=' ,'
+      for net in $NAT_INTERNAL_NET; do
+        printf "$net "
+
+        COUNT=0
+        for interface in $EXT_IF; do
+          COUNT=$(($COUNT + 1))         # x++;
+          STATIC_IP=$(echo "$NAT_STATIC_IP" |awk "{ print \$$COUNT }")
+          iptables -t nat -A POSTROUTING -o $interface -s $net ! -d $net -j SNAT --to-source $STATIC_IP
+        done
+      done
+      echo ""
+    else
+      # All internal traffic is masqueraded externally
+      ################################################
+      echo "Enabling masquerading(NAT) via external interface(s): $EXT_IF"
+
+      printf " Adding (internal) host(s): "
+
+      IFS=' ,'
+      for net in $NAT_INTERNAL_NET; do
+        printf "$net "
+
+        for interface in $EXT_IF; do
+          # the "! -d $net" is to avoid problems with Freeswan etc.
+          iptables -t nat -A POSTROUTING -o $interface -s $net ! -d $net -j MASQUERADE
+        done
+      done
+      echo ""
+    fi
+  fi
+
+  # Port / protocol forwarding. Forward ports or protocols on the internet-gateway to machines in our LAN
+  #######################################################################################################
+  local_fwds=0
+
+  # NAT TCP port forwards
+  #######################
+  unset IFS
+  for rule in $NAT_FORWARD_TCP; do
+    if_shosts_sports=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts_sports" "$EXT_IF"`
+    destips=`get_ips "$if_shosts_sports"`
+    shosts=`get_hosts_ihp "$if_shosts_sports" "0/0"`
+    sports=`get_ports_ihp "$if_shosts_sports"`
+    dhost_dport=`echo "$rule" |cut -s -d'>' -f2`
+    dhost=`get_hosts_hp "$dhost_dport"`
+
+    echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) TCP port(s) $(show_hosts_ports "$shosts" "$sports") to $(echo "$dhost_dport" |tr "$SEP-" '::')"
+
+    IFS=' ,'
+    for shost in `ip_range "$shosts"`; do
+      for sport in $sports; do
+        for destip in $destips; do
+          # Portforward for all specified interfaces
+          for eif in $interfaces; do
+            # This code makes it possible to forward to a different port on the internal host
+            dport=`get_ports_hp "$dhost_dport" "$sport"`
+
+            iptables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p tcp --dport $sport -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
+            if [ -n "$dhost" ]; then
+              iptables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p tcp --dport $dport -j ACCEPT
+            else
+              local_fwds=$(($local_fwds + 1))
+            fi
+          done
+        done
+      done
+    done
+  done
+
+
+  # NAT UDP port forwards
+  #######################
+  unset IFS
+  for rule in $NAT_FORWARD_UDP; do
+    if_shosts_sports=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts_sports" "$EXT_IF"`
+    destips=`get_ips "$if_shosts_sports"`
+    shosts=`get_hosts_ihp "$if_shosts_sports" "0/0"`
+    sports=`get_ports_ihp "$if_shosts_sports"`
+    dhost_dport=`echo "$rule" |cut -s -d'>' -f2`
+    dhost=`get_hosts_hp "$dhost_dport"`
+
+    echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) UDP port(s) $(show_hosts_ports "$shosts" "$sports") to $(echo "$dhost_dport" |tr "$SEP-" '::')"
+
+    IFS=' ,'
+    for shost in `ip_range "$shosts"`; do
+      for sport in $sports; do
+        for destip in $destips; do
+          # Portforward for all specified interfaces
+          for eif in $interfaces; do
+            # This code makes it possible to forward to a different port on the internal host
+            dport=`get_ports_hp "$dhost_dport" "$sport"`
+
+            iptables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p udp --dport $sport -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
+            if [ -n "$dhost" ]; then
+              iptables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p udp --dport $dport -j ACCEPT
+            else
+              local_fwds=$(($local_fwds + 1))
+            fi
+          done
+        done
+      done
+    done
+  done
+
+
+  # Non-TCP/UDP port forwards (protocol based)
+  ############################################
+  unset IFS
+  for rule in $NAT_FORWARD_IP; do
+    if_shosts_protos=`echo "$rule" |cut -s -d'>' -f1`
+    interfaces=`get_ifs "$if_shosts_protos" "$EXT_IF"`
+    destips=`get_ips "$if_shosts_protos"`
+    shosts=`get_hosts_ihp "$if_shosts_protos" "0/0"`
+    protos=`get_ports_ihp "$if_shosts_protos"`
+    dhost=`echo "$rule" |cut -s -d'>' -f2`
+
+    echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) IP protocol(s) $(show_hosts_ports "$shosts" "$protos") to $dhost"
+
+    IFS=' ,'
+    for shost in `ip_range "$shosts"`; do
+      for proto in $protos; do
+        for destip in $destips; do
+          for eif in $interfaces; do
+            iptables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p $proto -j DNAT --to-destination $dhost
+            if [ -n "$dhost" ]; then
+              iptables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p $proto -j ACCEPT
+            else
+              local_fwds=$(($local_fwds + 1))
+            fi
+          done
+        done
+      done
+    done
+  done
+
+  # No need to keep this around, when we don't use it
+  if [ $local_fwds -eq 0 ]; then
+    iptables -D EXT_INPUT_CHAIN -m conntrack --ctstate DNAT -j ACCEPT
+  fi
+
+  # Do we want to loose the forward chain to make use of protocols like UPnP possible?
+  ####################################################################################
+  if [ "$LOOSE_FORWARD" = "1" ]; then
+    echo "Security is LOOSENED for external interface(s) in the FORWARD chain!"
+    # Loose the forward chain
+    IFS=' ,'
+    for eif in $EXT_IF; do
+      iptables -A FORWARD -i $eif ! -o $eif -j ACCEPT
+    done
+  else
+    echo "Security is ENFORCED for external interface(s) in the FORWARD chain"
+  fi
+
+  # Jump to the post forward chain
+  iptables -A FORWARD -j POST_FORWARD_CHAIN
+  
+  # Everything else is logged & dropped
+  iptables -A FORWARD -m limit --limit 1/m  --limit-burst 3 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Dropped FORWARD packet: "
+  iptables -A FORWARD -j DROP
+
+  # Post/pre routing post chains
+  iptables -t nat -A PREROUTING -j POST_NAT_PREROUTING_CHAIN
+  iptables -t nat -A POSTROUTING -j POST_NAT_POSTROUTING_CHAIN
+
+  # Mark outgoing packets for traffic shaping?
+  ############################################
+  #if [ "$TRAFFIC_SHAPING" = "1" ]; then
+  #  iptables -t mangle -I OUTPUT -m length --length 0:500 -j MARK --set-mark 1
+  #  iptables -t mangle -I OUTPUT -m length --length 500:1500 -j MARK --set-mark 2
+  #fi
+
+  # Jump to the post output chain
+  iptables -A OUTPUT -j POST_OUTPUT_CHAIN
+  
+  # Drop all packets at the end of the POST_INPUT_DROP_CHAIN
+  iptables -A POST_INPUT_DROP_CHAIN -j DROP
+  
+  # Remove the temp rule at the beginning of the POST_INPUT_DROP_CHAIN
+  iptables -D POST_INPUT_DROP_CHAIN 1
+}
+
+
+# Create our custom chains
+create_user_chains()
+{
+  # General chains
+  iptables -N HOST_BLOCK
+  iptables -N VALID_CHK
+  iptables -N RESERVED_NET_CHK
+  iptables -N SPOOF_CHK
+  iptables -N INPUT_CHAIN
+  iptables -N FORWARD_CHAIN
+  iptables -N OUTPUT_CHAIN
+  iptables -t nat -N NAT_PREROUTING_CHAIN
+  iptables -t nat -N NAT_POSTROUTING_CHAIN
+  iptables -N POST_INPUT_DROP_CHAIN
+  iptables -N POST_INPUT_CHAIN
+  iptables -N POST_FORWARD_CHAIN
+  iptables -N POST_OUTPUT_CHAIN
+  iptables -t nat -N POST_NAT_PREROUTING_CHAIN
+  iptables -t nat -N POST_NAT_POSTROUTING_CHAIN
+
+  # Interface-2-interface chains
+  iptables -N DMZ_LAN_FORWARD_CHAIN
+  iptables -N INET_DMZ_FORWARD_CHAIN
+  iptables -N DMZ_INET_FORWARD_CHAIN
+  iptables -N LAN_INET_FORWARD_CHAIN
+
+  # Chains for the external interface
+  iptables -N EXT_ICMP_FLOOD_CHAIN
+  iptables -N EXT_INPUT_CHAIN
+  iptables -N EXT_FORWARD_IN_CHAIN
+  iptables -N EXT_FORWARD_OUT_CHAIN
+  iptables -N EXT_OUTPUT_CHAIN
+
+  # INT(LAN) chains
+  iptables -N INT_INPUT_CHAIN
+  iptables -N INT_FORWARD_IN_CHAIN
+  iptables -N INT_FORWARD_OUT_CHAIN
+  iptables -N INT_OUTPUT_CHAIN
+
+  # DMZ chains
+  iptables -N DMZ_INPUT_CHAIN
+  iptables -N DMZ_FORWARD_IN_CHAIN
+  iptables -N DMZ_FORWARD_OUT_CHAIN
+  iptables -N DMZ_OUTPUT_CHAIN
+}
+
+
+# Flush our custom chains
+flush_user_chains()
+{
+  # General chains
+  iptables -F HOST_BLOCK
+  iptables -F VALID_CHK
+  iptables -F RESERVED_NET_CHK
+  iptables -F SPOOF_CHK
+  iptables -F INPUT_CHAIN
+  iptables -F FORWARD_CHAIN
+  iptables -F OUTPUT_CHAIN
+  iptables -t nat -F NAT_PREROUTING_CHAIN
+  iptables -t nat -F NAT_POSTROUTING_CHAIN
+  iptables -F POST_INPUT_DROP_CHAIN
+  iptables -F POST_INPUT_CHAIN
+  iptables -F POST_FORWARD_CHAIN
+  iptables -F POST_OUTPUT_CHAIN
+  iptables -t nat -F POST_NAT_PREROUTING_CHAIN
+  iptables -t nat -F POST_NAT_POSTROUTING_CHAIN
+
+  # Interface-2-interface chains
+  iptables -F DMZ_LAN_FORWARD_CHAIN
+  iptables -F INET_DMZ_FORWARD_CHAIN
+  iptables -F DMZ_INET_FORWARD_CHAIN
+  iptables -F LAN_INET_FORWARD_CHAIN
+
+  # Chains for the external interface
+  iptables -F EXT_ICMP_FLOOD_CHAIN
+  iptables -F EXT_INPUT_CHAIN
+  iptables -F EXT_FORWARD_IN_CHAIN
+  iptables -F EXT_FORWARD_OUT_CHAIN
+  iptables -F EXT_OUTPUT_CHAIN
+
+  # INT(LAN) chains
+  iptables -F INT_INPUT_CHAIN
+  iptables -F INT_FORWARD_IN_CHAIN
+  iptables -F INT_FORWARD_OUT_CHAIN
+  iptables -F INT_OUTPUT_CHAIN
+
+  # DMZ chains
+  iptables -F DMZ_INPUT_CHAIN
+  iptables -F DMZ_FORWARD_IN_CHAIN
+  iptables -F DMZ_FORWARD_OUT_CHAIN
+  iptables -F DMZ_OUTPUT_CHAIN
+}
+
+
+stop_firewall()
+{
+  # Set default policies
+  iptables -P INPUT ACCEPT
+  iptables -P FORWARD DROP
+  iptables -P OUTPUT ACCEPT
+
+  # Flush Built-in Rules
+  iptables -F INPUT
+  iptables -F OUTPUT
+  iptables -F FORWARD
+  iptables -t mangle -F
+  iptables -t mangle -X
+  iptables -t nat -F 2>/dev/null
+  iptables -t nat -X 2>/dev/null
+
+  # Attempt to flush all rules in filter table
+  iptables -F
+  iptables -X
+}
+
+
+reinit_firewall_chains()
+{
+  echo "Reinitializing firewall chains"
+
+  # Create chains, just in case
+  create_user_chains 2>/dev/null
+
+  # Flush our user chains
+  flush_user_chains;
+
+  # Flush Built-in Rules
+  iptables -F INPUT
+  iptables -F OUTPUT
+  iptables -F FORWARD
+  iptables -t nat -F 2>/dev/null
+  iptables -t mangle -F
+
+  # Restore our base chains (which weren't flushed so any
+  # running connections should be maintained
+  iptables -A INPUT -j BASE_INPUT_CHAIN
+  iptables -A FORWARD -j BASE_FORWARD_CHAIN
+  iptables -A OUTPUT -j BASE_OUTPUT_CHAIN
+}
+
+
+stop_block_firewall()
+{
+  # Temporarely set default policies to DROP, to don't even have a small
+  # window of opportunity
+  ######################################################################
+  iptables -P INPUT DROP
+  iptables -P FORWARD DROP
+  iptables -P OUTPUT DROP
+
+  # Flush Built-in Rules
+  iptables -F INPUT
+  iptables -F OUTPUT
+  iptables -F FORWARD
+  iptables -t nat -F 2>/dev/null
+  iptables -t nat -X 2>/dev/null
+  iptables -t mangle -F
+  iptables -t mangle -X
+
+  # Attempt to flush all rules in the filter table
+  iptables -F
+  iptables -X
+
+  # Deny traffic from our internet interfaces
+  IFS=' ,'
+  for interface in $EXT_IF; do
+    iptables -A INPUT -i $interface -j DROP
+  done
+
+  # Allow traffic from the loopback (localhost)
+  iptables -A INPUT -i lo -j ACCEPT
+  iptables -A FORWARD -i lo -j ACCEPT
+  iptables -A OUTPUT -o lo -j ACCEPT
+
+  # Set default policies
+  iptables -P INPUT ACCEPT
+  iptables -P FORWARD DROP
+  iptables -P OUTPUT ACCEPT
+}
+
+
+show_status()
+{
+  # Check if the user gave any parameters
+  if [ -z "$1" ]; then
+    iptables -xnvL
+
+    if [ "$NAT" = "1" ]; then
+      iptables -t nat -xnvL
+    fi
+
+    if [ "$MANGLE_TOS" = "1" ]; then
+      iptables -t mangle -nvL
+    fi
+  else
+    #iptables -nvL $2 $3 $4 $5
+    iptables -xnvL $*
+  fi
+
+  # Show plugin status
+  plugins_status;
+}
+
+
+show_start()
+{
+  DATE=`LC_ALL=C date +'%b %d %k:%M:%S'`
+  echo "$DATE ** Starting Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
+  echo "** Starting Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
+}
+
+
+show_restart()
+{
+  DATE=`LC_ALL=C date +'%b %d %k:%M:%S'`
+  echo "$DATE ** Restarting Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
+  echo "** Restarting Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
+}
+
+
+show_stop()
+{
+  DATE=`LC_ALL=C date +'%b %d %k:%M:%S'`
+  printf "$DATE \033[40m\033[1;32mStopping Arno's Iptables Firewall v$MY_VERSION\033[0m\n"
+  echo "$DATE ** Stopping Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
+  echo "** Stopping Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
+}
+
+
+show_stop_blocked()
+{
+  DATE=`LC_ALL=C date +'%b %d %k:%M:%S'`
+  printf "$DATE \033[40m\033[1;31mFIREWALL DISABLED & BLOCKING ALL INTERNET TRAFFIC!\033[0m\n" >&2
+}
+
+
+# Now show the final message
+show_applied()
+{
+  echo ""
+  DATE=`LC_ALL=C date +'%b %d %k:%M:%S'`
+
+  if [ "$IPTABLES_ERROR" = "1" ]; then
+    printf "$DATE \033[40m\033[1;31mWARNING: Not all firewall rules are applied.\033[0m\n" >&2
+    echo "$DATE ** WARNING: Not all firewall rules are applied **" >> $FIREWALL_LOG
+    echo "** WARNING: Not all firewall rules are applied **" |logger -t firewall -p kern.info
+  else
+    printf "$DATE \033[40m\033[1;32mAll firewall rules applied.\033[0m\n"
+    echo "$DATE ** All firewall rules applied **" >> $FIREWALL_LOG
+    echo "** All firewall rules applied **" |logger -t firewall -p kern.info
+  fi
+}
+
+
+show_disabled()
+{
+  DATE=`LC_ALL=C date +'%b %d %k:%M:%S'`
+  printf "$DATE \033[40m\033[1;31mFIREWALL DISABLED!\033[0m\n" >&2
+}
+
+
+show_help()
+{
+  echo "Usage: `basename $0` { start | stop | restart | force-reload | status }" >&2
+  echo "start                       = Start firewall" >&2
+  echo "stop                        = Stop firewall" >&2
+  echo "stop-block                  = Stop firewall & block all internet traffic" >&2
+  echo "restart                     = Restart firewall" >&2
+  echo "force-reload                = Reload blocked hosts (blackhole) file" >&2
+  echo "status [-t {table}] [chain] = View firewall ruleset ([chain] & [-t {table}] are optional)" >&2
+}
+
+
+main_start()
+{
+  load_modules;
+  setup_misc;
+  setup_kernel_settings;
+  init_firewall_chains;
+  setup_default_policies;
+  setup_hostblock_chain;
+  setup_firewall_rules;
+}
+
+
+main_restart()
+{
+  plugins_stop;
+  load_modules;
+#  setup_misc;
+  setup_kernel_settings;
+  reinit_firewall_chains;
+  setup_default_policies;
+  setup_hostblock_chain;
+  setup_firewall_rules;
+}
+
+
+# int main (char *argv)
+#######################
+
+# Check commandline supplied argument:
+case "$1" in
+  'start' )             show_start;
+                        sanity_check;
+                        main_start;
+                        show_applied;;
+  'restart' )           show_restart;
+                        sanity_check;
+                        # Check whether we are actually running
+                        if ! iptables -L BASE_INPUT_CHAIN >/dev/null 2>&1; then
+                          main_start;
+                        else
+                          main_restart;
+                        fi;
+                        show_applied;;
+  'force-reload' )      sanity_check;
+                        setup_hostblock_chain;
+                        show_applied;;
+  'stop' )              sanity_check;
+                        show_stop;
+                        plugins_stop;
+                        stop_firewall;
+                        show_disabled;;
+  'stop-block' )        sanity_check;
+                        show_stop;
+                        plugins_stop;
+                        stop_block_firewall;
+                        show_stop_blocked;;
+  'status' )            shift;
+                        show_status $*;;
+  'check-conf' )        sanity_check;;
+  * )                   printf "\033[40m\033[1;31mERROR: Bad or missing parameter(s)\033[0m\n" >&2;
+                        show_help;;
+esac
+
+
+if [ "$IPTABLES_ERROR" = "1" ]; then
+  exit 1
+else
+  # Return success:
+  exit 0
+fi

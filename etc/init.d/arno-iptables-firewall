@@ -1,0 +1,76 @@
+#!/bin/sh
+#
+# chkconfig: 2345 11 89
+# description: init.d script for Arno's iptables firewall
+
+### BEGIN INIT INFO
+# Provides:          arno-iptables-firewall
+# Required-Start:    $syslog $local_fs $network
+# Required-Stop:     $syslog $local_fs $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Setup iptables firewall configuration
+### END INIT INFO
+
+############################################################################################
+# You should put this script in eg. "/etc/init.d/" .                                       #
+# Furthermore make sure it's executable! -> "chmod 700" or "chmod +x" it                   #
+# If you want to run it upon boot, either add an entry in your "/etc/rc.d/rc.local" or 	   #
+# (for ie. Debian) in "/etc/rcS.d/" create a symlink to the arno-iptables-firewall script  #
+# ("ln -s /etc/init.d/arno-iptables-firewall script S99-arno-iptables-firewall script").   #
+############################################################################################
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+PROGRAM="/usr/local/sbin/arno-iptables-firewall"
+
+# Be verbose(1)?:
+VERBOSE=0
+
+test -x $PROGRAM || exit 0
+
+
+if [ "$VERBOSE" = "0" ]; then
+  case "$1" in
+    start)
+      echo -n "Starting Arno's Iptables Firewall..."
+    ;;
+
+    stop)
+      echo -n "Stopping Arno's Iptables Firewall..."
+    ;;
+
+    restart)
+      echo -n "Restarting Arno's Iptables Firewall..."
+    ;;
+
+    force-reload)
+      echo -n "(Forced) reloading Arno's Iptables Firewall..."
+    ;;
+
+    status)
+      $PROGRAM $*
+      exit $?
+    ;;
+
+    *)
+      $PROGRAM
+      exit 1
+    ;;
+  esac
+
+  # Call firewall script:
+  result=`$PROGRAM $*`
+  return_val=$?
+
+  if [ "$return_val" = "0" ]; then
+    echo "done."
+  else
+    echo "FAILED!"
+  fi
+else
+  $PROGRAM $*
+  return_val=$?
+fi
+
+# Return value:
+exit $return_val

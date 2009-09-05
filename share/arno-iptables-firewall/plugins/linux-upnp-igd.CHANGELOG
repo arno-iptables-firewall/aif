@@ -1,0 +1,20 @@
+Version 0.14BETA (August 4, 2008)
+---------------------------------
+* Plugin should be disabled by default (ENABLED=0)
+* Rename to "linux-upnp-igd"
+
+Version 0.13BETA (February 19, 2008)
+------------------------------------
+* Minor tweak for PLUGIN_RET_VAL
+
+Version 0.12BETA (February 13, 2008)
+------------------------------------
++ Updated according to the new plugin template
+
+Version 0.11 (January 30, 2008)
+-------------------------------
++ Updated for new config file location / detection
+
+Version 0.1 (September 5, 2007)
+-------------------------------
++ Creation of the first version
