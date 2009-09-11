@@ -1,3 +1,9 @@
+Version 1.8.8p-DEVEL (August 8, 2008)
+------------------------------
+* (Cosmetic) tweaks in the module_probe() function
++ Added $network to the Debian init.d headers
+* Misc. (cosmetic) tweaks
+
 Version 1.8.8o (March 4, 2008)
 ------------------------------
 - Removed LOCAL_CONF_SETTING, as I am not sure yet what the proper way is to implement it.

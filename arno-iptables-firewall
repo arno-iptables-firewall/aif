@@ -5,8 +5,8 @@
 
 ### BEGIN INIT INFO
 # Provides:          arno-iptables-firewall
-# Required-Start:    $syslog $local_fs
-# Required-Stop:     $syslog $local_fs
+# Required-Start:    $syslog $local_fs $network
+# Required-Stop:     $syslog $local_fs $network
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: Setup iptables firewall configuration
@@ -20,7 +20,7 @@
 # ("ln -s /etc/init.d/arno-iptables-firewall script S99-arno-iptables-firewall script").   #
 ############################################################################################
 
-MY_VERSION="1.8.8o"
+MY_VERSION="1.8.8p-DEVEL"
 
 # Location of the configuration file for this firewall:
 #######################################################
@@ -127,7 +127,9 @@ sanity_check()
       return_val=$?
       if [ "$return_val" != "0" ]; then
         printf "\033[40m\033[1;31mNOTE: External interface $interface does NOT exist (yet?)\033[0m\n"
-        printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
+        if [ -n "$result" ]; then
+          printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
+        fi
       fi
     fi
   done
@@ -139,7 +141,9 @@ sanity_check()
     return_val=$?
     if [ "$return_val" != "0" ]; then
       printf "\033[40m\033[1;31mNOTE: Modem interface $interface does NOT exist (yet?)\033[0m\n"
-      printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
+      if [ -n "$result" ]; then
+        printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
+      fi
     fi
   fi
 
@@ -164,7 +168,9 @@ sanity_check()
       return_val=$?
       if [ "$return_val" != "0" ]; then
         printf "\033[40m\033[1;31mNOTE: DMZ interface $interface does NOT exist (yet?)\033[0m\n"
-        printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
+        if [ -n "$result" ]; then
+          printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
+        fi
       fi
     fi
   done
@@ -177,7 +183,9 @@ sanity_check()
       return_val=$?
       if [ "$return_val" != "0" ]; then
         printf "\033[40m\033[1;31mNOTE: Trusted interface $interface does NOT exist (yet?)\033[0m\n"
-        printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
+        if [ -n "$result" ]; then
+          printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
+        fi
       fi
     fi
   done
@@ -289,6 +297,8 @@ module_probe()
 {
   # Module support available?
   if [ -e /proc/modules ]; then
+    # Make sure environment variable is not set
+    MODPROBE_OPTIONS=""
     if [ -x /sbin/modprobe ]; then
       result=`/sbin/modprobe $* 2>&1`
       return_val=$?
@@ -299,27 +309,27 @@ module_probe()
     fi
 
     if [ "$return_val" != "0" ]; then
-      if [ -z "$(echo "$result" |grep -e '^FATAL: Module .* not found')" ] ; then
+      if ! echo "$result" |grep -q -e '^FATAL: Module .* not found'; then
         # Show any (error) messages in red
-        printf "\033[40m\033[1;31mmodprobe $*: $result\033[0m\n" >&2
+        printf "\033[40m\033[1;31m modprobe $*: $result ($return_val)\033[0m\n" >&2
       else
         if [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-          echo "NOTE: Module \"$1\" not found. Assuming it is compiled in the kernel"
+          echo " NOTE: Module \"$1\" not found. Assuming it is compiled in the kernel"
         fi
       fi
     else
-      if [ -n "$(echo "$result" |grep -e '^WARNING:')" ]; then
+      if echo "$result" |grep -q -e '^WARNING:'; then
         # Show any (warning) messages in red
-        printf "\033[40m\033[1;31mmodprobe $*: $result\033[0m\n" >&2
+        printf "\033[40m\033[1;31m modprobe $*: $result\033[0m\n" >&2
       else
         if [ -n "$result" ]; then            # If result is not empty, show it
-          echo "$result"
+          echo " $result"
         fi
       fi
     fi
   else
     if [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-      echo "NOTE: Kernel has no module support. Assuming module \"$1\" is compiled in the kernel"
+      echo " NOTE: Kernel has no module support. Assuming module \"$1\" is compiled in the kernel"
     fi
   fi
 
@@ -420,24 +430,6 @@ setup_proc_settings()
 
   echo "Configuring /proc/.... settings:"
 
-  # Use /proc rp_filter values to drop connections from non-routable IPs
-  ######################################################################
-  if [ -e /proc/sys/net/ipv4/conf/all/rp_filter ]; then
-    if [ "$RP_FILTER" = "1" ]; then
-      echo " Enabling anti-spoof with rp_filter"
-    else
-      echo " Disabling anti-spoof with rp_filter"
-    fi
-
-    for i in /proc/sys/net/ipv4/conf/*/rp_filter; do
-#      if [ "$i" = "/proc/sys/net/ipv4/conf/$EXT_IF/rp_filter" ] || [ "$RP_FILTER" != "0" ]; then
-      if [ "$RP_FILTER" = "1" ]; then
-        echo 1 > $i
-      else
-        echo 0 > $i
-      fi
-    done
-  fi
 
   # Block ALL ICMP echo requests?
   ###############################
@@ -617,6 +609,7 @@ setup_proc_settings()
   # IP forwarding (need it to perform for example NAT)
   ####################################################
   if [ "$IP_FORWARDING" != "0" ]; then
+    echo " Enabling packet forwarding"
     if [ -e /proc/sys/net/ipv4/ip_forward ]; then
       echo 1 > /proc/sys/net/ipv4/ip_forward
     else
@@ -624,9 +617,29 @@ setup_proc_settings()
       printf "\033[40m\033[1;31m          NAT or any other type of forwarding this may be a problem.\033[0m\n" >&2
     fi
   else
+    echo " DISABLING packet forwarding"
     if [ -e /proc/sys/net/ipv4/ip_forward ]; then
       echo 0 > /proc/sys/net/ipv4/ip_forward
     fi
+  fi
+
+  # Use /proc rp_filter values to drop connections from non-routable IPs
+  ######################################################################
+  if [ -e /proc/sys/net/ipv4/conf/all/rp_filter ]; then
+    if [ "$RP_FILTER" = "1" ]; then
+      echo " Enabling anti-spoof with rp_filter"
+    else
+      echo " Disabling anti-spoof with rp_filter"
+    fi
+
+    for i in /proc/sys/net/ipv4/conf/*/rp_filter; do
+#      if [ "$i" = "/proc/sys/net/ipv4/conf/$EXT_IF/rp_filter" ] || [ "$RP_FILTER" != "0" ]; then
+      if [ "$RP_FILTER" = "1" ]; then
+        echo 1 > $i
+      else
+        echo 0 > $i
+      fi
+    done
   fi
 
   # Enable some general settings
@@ -4718,7 +4731,7 @@ show_status()
   fi
 
   # Show plugin status
-  plugins_status
+  plugins_status;
 
   # Unset IFS in case it was set by the plugins
   #############################################
