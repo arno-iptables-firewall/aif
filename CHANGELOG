@@ -1,4 +1,4 @@
-Version 1.9.2e-DEVEL (September 2, 2009)
+Version 1.9.2e-DEVEL (September 11, 2009)
 --------------------------------
 * We should explicitly enable net.netfilter.nf_conntrack_acct for kernel 2.6.27+
   to allow the use of traffic accounting and such (thank Lonnie)
