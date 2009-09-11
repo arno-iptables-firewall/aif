@@ -1,0 +1,9 @@
+Version 0.11BETA (February 13, 2008)
+------------------------------------
++ Updated according to the new plugin template
+! Config variable name mismatch (SIP_VOIP_PORTS vs. VOIP_SIP_PORTS. Changed it
+  to SIP_VOIP_PORTS.
+
+Version 0.1BETA (January 30, 2008)
+-----------------------------------
++ Initial version

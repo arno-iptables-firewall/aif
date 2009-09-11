@@ -1,0 +1,131 @@
+# ------------------------------------------------------------------------------------------
+#               -= Arno's iptables firewall - Racoon IPSEC (VPN) plugin =-
+#
+PLUGIN_NAME="Racoon IPSEC VPN plugin"
+PLUGIN_VERSION="0.24BETA (EXPERIMENTAL!)"
+PLUGIN_CONF_FILE="racoon-ipsec-vpn.conf"
+#
+# Last changed          : February 13, 2008
+# Requirements          : kernel 2.6 + ipt_mark + iptable_mangle + iptable_nat
+# Comments              : This plugin adds all required rules for using Racoon IPSEC.
+#
+# Author                : (C) Copyright 2006-2008 by Arno van Amersfoort
+# Homepage              : http://rocky.eld.leidenuniv.nl/
+# Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
+# Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------------------
+
+# Plugin start function
+plugin_start()
+{
+  # Show who we are:
+  echo " $PLUGIN_NAME v$PLUGIN_VERSION"
+
+  module_probe ipt_mark                # Allows use of mark match
+#  module_probe iptable_nat             # Module is already loaded by the main script
+#  module_probe iptable_mangle          # Module is already loaded by the main script
+
+  echo "  Allowing internet hosts $RACOON_ALLOWED_HOSTS to access the VPN service"
+  echo "  Applying rules for VPN nets $RACOON_VPN_NETS"
+
+  for host in $RACOON_ALLOWED_HOSTS; do
+    $IPTABLES -A EXT_INPUT_CHAIN -p udp --dport 500 -s $host -j ACCEPT
+    $IPTABLES -A EXT_INPUT_CHAIN -p esp -s $host -j ACCEPT
+  done
+
+  for eif in $EXT_IF; do
+    # Allow IPSEC packets in
+    $IPTABLES -t mangle -A PREROUTING -i $eif -p esp -j MARK --set-mark 1
+
+    $IPTABLES -A FORWARD -i $eif -m mark --mark 1 -j ACCEPT
+    $IPTABLES -A FORWARD -o $eif -m mark --mark 1 -j ACCEPT
+
+    for vnet1 in $RACOON_VPN_NETS; do
+      $IPTABLES -A INPUT -i $eif -d $vnet1 -m mark --mark 1 -j ACCEPT
+      for vnet2 in $RACOON_VPN_NETS; do
+        # Avoid the problem of LAN packets being NAT'ed/masqueraded:
+        $IPTABLES -t nat -A POSTROUTING -o $eif -s $vnet1 -d $vnet2 -j ACCEPT
+      done
+    done
+  done
+}
+
+
+# Plugin stop function
+plugin_stop()
+{
+  return 0
+}
+
+
+# Plugin status function
+plugin_status()
+{
+  return 0
+}
+
+
+# Check sanity of ie. environment
+plugin_sanity_check()
+{
+  # Sanity check
+  if [ -z "$RACOON_VPN_NETS" ] || [ -z "$RACOON_ALLOWED_HOSTS" ]; then
+    printf "\033[40m\033[1;31m  ERROR: The plugin config file is not properly set. Plugin NOT loaded!\n\033[0m" >&2
+    printf "\033[40m\033[1;31m  ERROR: The plugin config file is not properly set!\n          Plugin \"$PLUGIN_NAME\" not loaded!\033[0m\n" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+
+############
+# Mainline #
+############
+
+# Check where to find the config file
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+else
+  CONF_FILE="$PLUGIN_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Preset plugin return value (1=error)
+PLUGIN_RET_VAL=1
+
+# Check if the config file exists
+if [ ! -e "$CONF_FILE" ]; then
+  printf "\033[40m\033[1;31m WARNING: Config file \"$CONF_FILE\" not found!\n          Plugin \"$PLUGIN_NAME\" not loaded!\033[0m\n" >&2
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  if [ "$ENABLED" = "1" ]; then
+    # Only proceed if environment ok
+    if plugin_sanity_check; then
+      case $PLUGIN_CMD in
+        start|'') PLUGIN_RET_VAL=0; plugin_start;;
+        stop    ) PLUGIN_RET_VAL=0; plugin_stop;;
+        status  ) PLUGIN_RET_VAL=0; plugin_status;;
+        *       ) printf "\033[40m\033[1;31m ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\n          Plugin \"$PLUGIN_NAME\" not loaded!\033[0m\n" >&2;;
+      esac
+    fi
+  else
+    PLUGIN_RET_VAL=0
+  fi
+fi

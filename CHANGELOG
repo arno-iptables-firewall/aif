@@ -1,0 +1,500 @@
+Version 1.8.8o (March 4, 2008)
+------------------------------
+- Removed LOCAL_CONF_SETTING, as I am not sure yet what the proper way is to implement it.
+  This will be figured out for 1.9 but NOT backported to 1.8!
+! Fixed support for new-generation plugins
+! Misc. fixes & tweaks
+
+Version 1.8.8n (February 19, 2008)
+----------------------------------
++ Updated multiroute plugin
+! Misc. fixes & tweaks
+
+Version 1.8.8m (February 16, 2008)
+----------------------------------
++ Added $LOCAL_CONFIG_FILE variable to allow ie. certain user/global/local settings
+  to be sourced into the script
+* Moved plugin code from custom rules into the main script
++ Implemented plugin_status() support
++ Implemented plugin_stop() support
++ Updated several plugins. Multiroute now has a proper stop() section for example
+! Fix /proc/.../ conntrack set for newer kernels
+* All (user) chains are now created in the beginning to allow plugins/custom
+  rules to add rules to them.
+* Misc. tweaks & changes
+
+Version 1.8.8l (December 24, 2007)
+----------------------------------
+! Fixed several missing IFS=/unset IFS mainly causing port forwards "sometimes"
+  not to work
+
+Version 1.8.8k (December 17, 2007)
+----------------------------------
+* Renamed variable IPV6_SUPPORT to IPV6_OVER_IPV4 for consistency
+* Blocked hosts: count IP's in IP ranges instead of counting them as one
+* Host block now performed for ALL interfaces, not just the external one
+* ICMP flooding changed from 20/sec max to 60/sec max.
+! Fixes in the output logging rules
+! Fixed interface check in sanity_check()
+* Cosmetic changes
+
+Version 1.8.8j (December 5, 2007)
+---------------------------------
+* Antispoof for DMZ & INTERNAL net now only enabled when INT_IF / DMZ_IF set
++ Added DEFAULT_POLICY_DROP option to allow users to disable setting iptables
+  default policy to DROP. Mainly useful for people who boot from ie. NFS
+  (diskless client systems).
+! Explicit unset IFS after the source of custom rules to fix possible setting by
+  custom rules (or plugins)
++ DNAT plugin update. Switched from OUTPUT to PREROUTING for the DNAT rule.
+! Fixed INVALID rule for UDP
+! Fixed a minor bug in the NAT forwards: the FORWARD rule was missing the host destination
++ Added PLUGIN_CONF_PATH to the plugin code
+* Minor (cosmetic) fixes)
+
+Version 1.8.8i (July 2, 2007)
+---------------------------------
+! Fixed a nasty bug in the NAT forwarding rules which caused using subnets
+  as source restriction not to work
++ Several plugin updates
++ Added Racoon IPSEC VPN Plugin
++ Added transparent DNAT plugin
++ Added extra rule for the DHCP server section to allow packets from dhcp
+  servers in the same segment.
+
+Version 1.8.8h (February 6, 2007)
+---------------------------------
++ Now the custom-rules plugin code shows how many plugins were actually loaded
+  (not found, like in the previous versions)
+! Fixed a bug in the custom-rules plugin causing errors when more than one
+  plugin is used
+! Fixed the order of MODEM/LAN settings in the config file
+* Updates to the fwfilter man page (MH)
++ Added COMPILED_IN_KERNEL_MESSAGES-option to disable compiled-in-kernel 
+  messages during startup 
++ Added multiroute-plugin to the package
+  
+Version 1.8.8g (January 12, 2007)
+---------------------------------
+! Another bug-fix for the (new) module_probe function
+* Minor tweaks
+
+Version 1.8.8f (January 10, 2007)
+---------------------------------
+! Fixed module_probe for monolithic kernels
+! Fixed EOL trailing space in fwfilter
+* Minor cosmetic changes
+
+Version 1.8.8e (January 7, 2007)
+--------------------------------
+* Switched to the explicit terms of GPLv2 (!)
+- Removed (explicit) load of ipt_tos, ipt_ttl & ipt_tcpmss modules as they are
+  not use by the script
+* Warnings & errors are now send to stderr instead of stdout
++ Several improvements in custom-rules plugin code
++ Plugins now have seperate conf file. Also updated custom-rules to have
+  PLUGIN_PATH variable
++ Updated ssh brute force protection plugin to version 0.24BETA
+* Now the script will try to load ALL modules (also for monolithic kernels)
+* module_probe will now generate a note (instead of an error) when a module
+  is not found
+
+Version 1.8.8d (December 14, 2006) (Never publicly released)
+----------------------------------
+* Now only *.plugin files are considered plugins (to be loaded)
++ Updated SSH Brute Force protection plugin to 0.22BETA.
+- Deprecated IPCHAINS check
+* Replaced INVALID_PACKET_LOG variable with INVALID_TCP_LOG, INVALID_UDP_LOG &
+  INVALID_ICMP_LOG
++ Cosmetic enhancements
+
+Version 1.8.8c (October 29, 2006)
+---------------------------------
+! Fixed a bug in the MAC_FILTER (which rendered it completely useless since
+  1.8.7RC2)
+* Slightly changed MAC/blocked hosts rules
++ Now show number of MAC addresses / blocked hosts loaded
+* Minor changes
+
+Version 1.8.8b (October 20, 2006)
+---------------------------------
+* Added ICMP-request enable/disable for all DMZ/LAN rules. Deprecated
+  DMZ_HOST_OPEN_ICMP
+! Fixes in the README file
+! Fixes in the config file (examples)
++ Added $anyport & $anyhost macro/defines
+* (Cosmetic) changes/fixes
+
+Version 1.8.8a (October 10, 2006)
+---------------------------------
+! Fixed several LAN/DMZ rule bugs
+* Cosmetic changes/fixes
+
+Version 1.8.8-stable (October 6, 2006)
+--------------------------------------
+* More changes to the DMZ/LAN rules
++ A lot of updates/changes in the config-file
++ Updated arno-iptables-firewall man-page (MH)
+
+Version 1.8.7-RC3 (October 5, 2006)
+----------------------------------
+* Allowed ports in DMZ & LAN rules are no longer exclusive
++ Updated the README
+* A lot of changes + fixes for the DMZ & LAN rules
+* Moved all config files to /etc/arno-iptables-firewall/ (!)
+* Cosmetic changes + minor tweaks
+
+Version 1.8.7-RC2 (October 4, 2006)
+----------------------------------
+* Changed name of the default custom rules file to arno-firewall-custom-rules
++ Added Debian LSB3.1 header (MH)
+* Sanity check is no longer performed with --help (MH)
+- Deprecated Freeswan support in the main script. Code is now available via a
+  (new) plugin although not supported anymore (Freeswan itself is obsolete
+  anyway).
++ Added plugin support via iptables-custom-rules
+* Changed several things in the LAN->INET rules
+* MANGLE-table module is now always loaded
+! Fixed several bugs in the LAN->INET rules
++ Enhanced HOST_BLOCK & MAC_FILTER rules
+* Cosmetic changes
+
+Version 1.8.7-RC1 (August 8, 2006)
+----------------------------------
+- Deprecated MASQ_MULTI_ROUTE (not required anymore, see below)
+* Changed MASQUERADING/NAT_STATIC_IP code. Now uses the multirouting code by
+  default to fix issue's in some exotic cases (hopefully this doesn't break
+  anything)
++ Now route table is flushed at start
+! Fixed bug causing max queue length not to be set
++ Enhanced LAN_INET_HOST_OPEN_xxx variables. You can now also specify a
+  specific destination IP('s)
++ Added support for LAN INPUT rules (LAN_xxx variables)
+* Enhancements for the MAC & HOST BLOCK filter
++ Added rule to allow FORWARD packets from the local loopback
+* Tweaked DOS-reduction protection
+- Deprecated LOST_CONNECTION_LOG. Turns out that these packets are almost
+  always classified as INVALID, so now logging of these packets is should be
+  disabled by default (set INVALID_PACKET_LOG to 0)
+* Cleaned up VALID_CHK chain
+! Fixed bug in arno-fwfilter causing INVALID ICMP not to display all information
+* Packets for open TCP ports are no longer explicitly checked with --syn
++ (Re)enabled UDP DR-DOS protection (still needs testing)
+* Misc. tweaks & cleanups
+
+Version 1.8.6c (April 28, 2006)
+-------------------------------
++ Added DMZ_OPEN_xxx variables
++ Updated README for kernel 2.6.16
+! Fixed another bug in the (NAT) port/host helper functions causing some (exotic)
+  forwards not to work
+! Fixed LAN->DMZ traffic was blocked
+! Fixed TRUSTED_IF's didn't allow FORWARD traffic out
+* Misc. tweaks
+
+Version 1.8.6b (March 25, 2006)
+-------------------------------
+! Fixed trailing tab in the Debian syslog.conf file causing logrotate to fail
+! Fixed several stupid bugs in the (NAT) port/host helper functions causing some (exotic)
+  forwards not to work.
+
+Version 1.8.6a (March 6, 2006)
+------------------------------
+* Messages are now no longer directly logged to /var/log/messages
+  but instead fed to syslog via "logger -p kern.info" (thanks to Michael Hanke)
+* Now C locale is used for timestamps (thanks to Michael Hanke)
+* More changes required for the Debian package (thanks to Michael Hanke)
+* Minor cosmetic changes
+! Minor cosmetic fix in arno-fwfilter
+
+Version 1.8.6-stable (February 19, 2006)
+----------------------------------------
+* Changed full access host policy (again)
+! Fixed Gentoo files which were accidently DOS formatted
+! Fixed multiple LAN subnets on same network interface
+
+Version 1.8.5-RC6 (February 12, 2006)
+-------------------------------------
++ Misc. changes/tweaks for DMZ/LAN rules
+! DMZ_OUTPUT_DENY_LOG was missing in the config file
++ Added INET->DMZ rule support (check config file for appropriate variables)
+
+Version 1.8.5-RC5 (February 7, 2006)
+------------------------------------
++ Added Gentoo start scripts (Thanks to Reikinio)
++ Added (limited) range support for the blocked hosts file (works like w.x.y.z1-z2)
+* Changed interface detection
+
+Version 1.8.5-RC4 (December 27, 2005)
+-------------------------------------
+* (TOS) OUTPUT mangling is now only applied for external interfaces
+* Changed DMZ_LAN_OPEN_xxx-variables into DMZ_LAN_HOST_OPEN_xxx for better consistency (!)
+! Fixed DMZ INPUT rules
+
+Version 1.8.5-RC3 (December 22, 2005)
+-------------------------------------
++ Added option to disable PMTU discovery. This is only usefull in some rare cases
+  (broken ADSL modem's etc.).
++ Better error handling of modprobe
++ Added TTL-inc for the prerouting chain ($TTL_INC). This allows you to hide
+  the firewall, when eg. traceroutes are performed to internal hosts.
++ Added iptables TTL packet setting ($PACKET_TTL) (thanks to J. Black for the patch)
++ Finally added option to change default ttl ($DEFAULT_TTL) (thanks to J. Black for the patch)
+! Fixed several typo's
+! Fixed bug causing LAN rules not to work for multiple interfaces
+* Changed a lot of stuff concerning the LAN & DMZ rules/chains (more functions/chains). The
+  script now better readable and is even 3Kb smaller!
+* More changes to the DHCP server support
+* Now NAT_INTERNAL_NET no longer defaults INTERNAL_NET when not specified(!)
+* Changes to be more bash compatible
+* Changed "reload" command into "force-reload"
++ Updated versions of the man pages (Thanks Michael)
+* Minor changes
+
+Version 1.8.5-RC2 (December 9, 2005)
+------------------------------------
++ Added option DMESG_PANIC_ONLY, to disable logging of firewall logs to the console
+* Changed EXTERNAL OUTPUT chain. Now uses (like the input chain) a separate chain
+* Changed the order for some of the allow/deny/reject rules to be more consistent & fix problems
+  with full access hosts
+* Minor tweaks & cleanups
+
+Version 1.8.5-RC1 (December 2, 2005)
+------------------------------------
+* Changed/moved FULL_ACCESS_HOSTS rules. Also added them for
+  the OUTPUT chain. This fixes problems when using output blocking & NIS/NFS
++ Added option to disable source routing protection
+! Fixed a curious bug in the DHCP server support
++ Updated + fixed arno-fwfilter (thanks to my good friend Lex for the patches)
+* Changed LOST_CONNECTION_LOG & POSSIBLE_SCAN_LOG (still testing)
+* Minor (cosmetic) changes & tweaks
+
+Version 1.8.5-BETA1 (October 30, 2005)
+--------------------------------------
++ Enhanced sanity checking
+* Local output ports are now also configurable
++ New option "NMB_BROADCAST_FIX" to fix problems with nmblookup because of
+  the stupid way SMB nmb broadcasting was implemented
+* Changed some conntrack timings to fix false connection alarms (aka.
+  lost connections).
+- Deprecated DNS_SERVERS & ROOT_DNS_SERVER. I wanted to
+  get rid of this option for a long time. It shouldn't be neccesary anymore
+  as it should be solved by changing some of the netfilter's timeout settings.
+  Please contact me if the new settings cause problems (I think they still need
+  some tweaking).
+! Fixed sanity checking
+
+Version 1.8.4d (October 26, 2005)
+---------------------------------
+! Fixed several bugs in fwfilter
+! Fixed bug in MAC filter when INT_NET_BCAST_ADDRESS was used
++ Improved error checking
+* Better name resolving
++ Misc. tweaks & fixes
+
+Version 1.8.4c (October 2, 2005)
+--------------------------------
+* WARNING!!!!: Changed script names, config files etc. to "stream" with the
+  new Debian package requirements! Modify/rename your config file accordingly!
+* Misc. minor tweaks & cleanups
++ Added manpages for arno-fwfilter & arno-iptables-firewall (Thanks to Michael
+  Hanke for writing them)
++ Updated fwfilter. Now it also accepts all its options through the
+  command-line (Thanks to Michael Hanke for the patch)
+! Fixed syslog-ng.conf.debian file (DOS -> Unix format)
+
+Version 1.8.4b (September 14, 2005)
+-----------------------------------
+! Fixed multiroute script for the internal networks
+* Minor changes for the new Debian package
+
+Version 1.8.4a (September 8, 2005)
+----------------------------------
++ Added LOG_HOST_xxx_OUTPUT variables
+* Renamed LOG_HOST_xxx variables to LOG_HOST_xxx_INPUT
+! Fixed a bug in my sed regular expressions causing for example multiple source
+  IP's not to work in port forwards
+* Made fwfilter's lynx & dig silent -> no more error messages with unresolvable 
+  IP's.
+! Fixed FORWARD chain for multiple subnets on the same network interface
+
+Version 1.8.4-stable (August 24, 2005)
+--------------------------------------
++ Added multiroute setup script
+! Fixed INVALID packet checking/dropping
+* Changed INVALID packet checking. Now no longer performed for internal
+  interfaces to fix certain VLAN/kernel issue's
+! Fixed the "-j DENY"'s that should have been "-j DROP"'s
++ Comma seperators for hosts are now also allowed for ICMP related variables
+! Fixed bug in fwfilter causing part of the log text to be cut off
+* Color tweaks for fwfilter
+- Removed the default modprobing of ipt_iptrange as it isn't part of the default
+  Linux 2.4.
+
+Version 1.8.3-RC5 (June 14, 2005)
+---------------------------------
+! Fixed reloading of blocked hosts variable (thanks to Marcel for the patch)
+! Fixed default policies
+! Fixed HOST_DENY_xxx_OUTPUT variables
++ Added timeout for location lookup (fwfilter)
+! Fixed DMZ_LAN_OPEN_UDP
+! Fixed a lot of stuff concerning the IP protocol rules
+! Fixed a bug in fwfilter's resolving/location code
++ Tweaked the OUTPUT chain (better performance for large blocked hosts lists)
++ Added fwfilter html support (thanks to Jeffrey Fogel for the patch)
++ Added syslog-ng example (thanks to Michael Liebl)
+! Fixed IPv6 support (thanks to Geert Nijpels for the patch)
++ Now rc.iptables also checks if it can find modprobe in /sbin/
+
+Version 1.8.3-RC4 (May 29, 2005)
+--------------------------------
+* Misc. changes concerning the DMZ & LAN rules
++ Added DMZ_INET_OPEN_xxx, DMZ_INET_DENY_xxx, DMZ_INET_HOST_OPEN_xxx & 
+  DMZ_INET_HOST_DENY_xxx variables
++ Implemented INT_IF_BCAST_ADDRESS & EXT_IF_BAST_ADDRESS to specify special 
+  broadcast addresses
+! Forgot to flush the MAC/BLOCK hosts chains when reloading the lists
+! Fixed a lot of stuff concerning broadcasts (eg. DHPC & MAC filtering code)
+* Renamed (& fixed) $DMZ_LAN_xxx_FORWARD to $DMZ_LAN_OPEN_TCP
+* Renamed all LAN_xxxxxxxx variables to LAN_INET_xxxxxxx for better consistency
+- Deprecated $DHCP_BROADCAST_LOG. Use $BROADCAST_xxx_NOLOG variables instead
++ Now fwfilter handles incoming & outgoing packets differently
++ Added $HOST_DENY_TCP_OUTPUT, $HOST_DENY_UDP_OUTPUT, $HOST_DENY_IP_OUTPUT. 
+  With these variables you should now also be able to build a "virtual-DMZ".
+! Fixed NAT port forwarding
+* Changed fwfilter to first check whether the gawk-binary is available
++ Now multiple external subnets can be specified
+! Fixes/changes concerning NAT/DMZ forwarding
+* Split up script into functions (finally)
+! Fixed forwarding when using source port != target port
+* Fixed DMZ_HOST_OPEN_ICMP & IP
++ Added ICMP code/type resolving to fwfilter
+* Misc changes to fwfilter
++ Added geographical info patch to fwfilter (thanks to Jamie Jones for 
+  providing the patch)
++ Added Slackware syslog.conf example
++ Added LAN_HOST_OPEN_xxx & LAN_HOST_DENY_xx variables for hostwise 
+  allowing/denying
+* Renamed LAN_ALLOW_xxx variables to LAN_OPEN_xxx for consistency
++ Added support for HTTPs proxy
+! Fixed $BROADCAST_TCP_NOLOG & $BROADCAST_UDP_NOLOG
+
+Version 1.8.3-RC3 (April 4, 2005)
+---------------------------------
+* Slightly modified the config file for better consistency
++ Added $BROADCAST_TCP_NOLOG & $BROADCAST_UDP_NOLOG to drop certain broadcast
+  packets
++ Enhanced anti-spoof rules. Now the rules are much more intelligent.
+* Deprecated $DHCP_BOOTP_NET. Replaced by $EXTERNAL_NET & $EXTERNAL_DHCP_SERVER
++ Finally full support for DMZ's -> Added support for DMZ open ports on the 
+  server (You can now also use it to separate your wireless LAN from your wired 
+  LAN).
+* Moved RELATED,ESTABLISHED match up (before MAC / block hosts filtering) for 
+  improved performance
+! Fixed TOS Mangling / MSS set. Moved these rules to the beginning of the 
+  script to let MSS set also apply for eg. NAT traffic.
+* Enabled RP_FILTER again by default
+
+Version 1.8.3-RC2 (March 22, 2005)
+----------------------------------
++ Implemented $HOST_DENY_ICMP_NOLOG for consistency
+* Completely rewritten config file. Better layout & better readability,
+  especially on 80x25 TTY's.
+* Changed multiroute NAT (masquerading)
++ Added support for multiroute SNAT (load balancing with SNAT) :-D
+! Some fixes concerning DRDOS protection. Now only used for OPEN_xxx ports to 
+  fix problems with eg. NIS & NFS.
+* Disabled rp_filter by default because of potential problems with ie. 
+  multiple external interfaces
++ Added variables $LOG_HOST_INPUT & $LOG_HOST_OUTPUT to log incoming or 
+  outgoing packets to or from certain hosts
+! Fixed internal interface trusting ($INT_IF_TRUST)
++ Updated the INSTALL file. It now also contains info on how to configure your 
+  (own) kernel properly
++ Added an option to disable IP forwarding (kernel option)
+* Shortened long lines in rc.iptables (better readability)
+! Fixed portname lookup in fwfilter & no longer supports nawk (gawk is
+  required now)
+
+Version 1.8.3-RC1 (February 9, 2005)
+------------------------------------
++ Inline comments are now allowed in the MAC address / blocked hosts files
+* Removed IANA reserved net list from rc.iptables. It simply changes too often 
+  and I refuse to check/update the list every week. Instead you can add the 
+  addresses from IANA reserved nets to your BLOCK HOSTS file, if you really 
+  think this would make the world safer, but I doubt it.
++ Stricter FORWARD policy for the internal net + better logging of dropped 
+  FORWARD packets from the internal net.
+! Fixed bug for SNAT in combination with Freeswan
+* Changed the order of some rules for consistency
+
+Version 1.8.3-BETA5 (January 22, 2005)
+--------------------------------------
+*! All the fixes that really should have been in BETA4 ;-)
+! Fixed a bug in the MAC address filtering (now it should really work)
+
+Version 1.8.3-BETA4 (January 8, 2005)
+-------------------------------------
+! Fixed a random bug causing blocked hosts file / mac address file to be read 
+  even when disabled (#)
+* Changed external DHCP client support. This should fix problems with eg. Demon.nl
+! Fixed a bug in the the anti-spoof protection for the internal subnet
+* IANA reserved net dropping is now disabled by default as this list simply changes too often
+
+Version 1.8.3-BETA3 (June 19, 2004)
+-----------------------------------
++ Added support for MAC address filtering for internal hosts
+* Added base-directory inside the tgz-package
+! Fixed logging of invalid ICMP packets
+* Changed back the way what are considered to be "privileged" ports. Now they 
+  are <1024 again.
++ Added new variable MASQ_MULTI_ROUTE to enable/disable NAT (masquerading) 
+  routing via multiple external interfaces. Note that you should properly 
+  configure your route table to make this properly work. This option is 
+  therefor disabled by default.
+* Minor cleanups
+
+Version 1.8.3-BETA2 (May 19, 2004)
+----------------------------------
+! Fixed texts/rules for ICMP (flood) logging
+* Replaced ICMP_DROP_LOG-variable with ICMP_REQUEST_LOG-variable. Also added 
+  a new variable ICMP_OTHER_LOG to log misc. other ICMP packets
+! Fixed NAT internet interface parsing for multiple external interfaces
+* Rule order changed for better consistency
+! Fixed related state concerning ICMP packets for EXT_IF
+! Fixed (A)DSL modem management
+- Traffic shaper has been removed from the package (no longer supported)
+
+Version 1.8.3-BETA1 (May 12, 2004)
+----------------------------------
+* The default policy that internal subnets trust each other has been altered. 
+  Now (internal) interface-2-interface is NOT allowed (accepted) by default. 
+  You can change this behaviour by putting the interfaces that trust each other
+  in $INT_IF_TRUST.
++ Added support for DMZ-to-LAN (port-) forwards. This allows you to let a 
+  server in the DMZ to use specific services running on internal hosts (eg. 
+  SMTP). I implemented the new DMZ_LAN_xxx_FORWARD variables for this purpose.
++ Added support for IPv6. No filtering support though, only an option to 
+  enable protocol 41 for IPv6.
++ Added support for multiple external interfaces. Note that the FIRST one is 
+  used for NAT traffic!
+* By default DROP_PRIVATE_ADDRESSES is now disabled (0) in the configuration 
+  file. This is to fix the problems a lot of (unexperienced) people have when 
+  using my firewall on a machine inside a LAN. The security impact of this 
+  measure (in my opinion) is minor.
++ Better handling/consistency for nat / mangle tables
++ Added autodetection of the awk-binary type to fwfilter. Now you no longer 
+  have to explicitly set it in fwfilter manually :-).
++ Added new variable LAN_OUTPUT_DENY_LOG to enable/disable logging of dropped 
+  outgoing LAN connections.
+- DENY_LOG has been deprecated. It has been superseded by the "NOLOG" variables
++ Added HOST_REJECT_xxx_NOLOG variables. Because of this the REJECT_LOG 
+  variable has been deprecated.
+* Updated the IANA reserved net list -> The 83/8 and 84/8-nets were removed as 
+  they now belong to RIPE.
++ Added support for SMTP, FTP & POP3 transparent proxies (Thanks to Daniel 
+  Bartz for the patch). For this new variables $HTTP_PROXY_PORT,
+  $SMTP_PROXY_PORT, $FTP_PROXY_PORT & $POP3_PROXY_PORT are introduced. The old
+  $PROXY_PORT variable has been obsoleted.
+* Code / config-file cleanups
+* Cosmetic changes

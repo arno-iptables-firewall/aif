@@ -1,0 +1,16 @@
+Version 0.24BETA (February 13, 2008)
+------------------------------------
++ Updated according to the new plugin template
+
+Version 0.23BETA (January 30, 2008)
+------------------------------------
++ Updated for new config file location / detection
+
+Version 0.22BETA (May 25, 2007)
+------------------------------------
++ Added variable sanity check
+* Changed some variable names
+
+Version 0.21BETA (January 9, 2006)
+------------------------------------
++ Updated for new plugin system (seperate conf etc.)

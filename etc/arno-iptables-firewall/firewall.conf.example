@@ -1,0 +1,1120 @@
+------------------------- EXAMPLE(!) Configuration file -----------------------
+#                       -= Arno's iptables firewall =-
+#         Single- & multi-homed firewall script with DSL/ADSL support
+#
+# (C) Copyright 2001-2007 by Arno van Amersfoort
+# Homepage  : http://rocky.eld.leidenuniv.nl/
+# Freshmeat : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
+# Email     : arnova AT rocky DOT eld DOT leidenuniv DOT nl
+#             (note: you must remove all spaces and substitute the @ and the .
+#              at the proper locations!)
+# -----------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+# more details.
+
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation Inc., 59 Temple
+# Place - Suite 330, Boston, MA 02111-1307, USA.
+# -----------------------------------------------------------------------------
+
+
+# Location of the iptables-binary (use 'locate iptables' or 'whereis iptables'
+# to manually locate it).
+# -----------------------------------------------------------------------------
+IPTABLES="/sbin/iptables"
+
+###############################################################################
+# External (internet) interface settings                                      #
+###############################################################################
+
+# The external interface(s) that will be protected (and used as internet
+# connection). This is probably ppp+ or dsl+ for non-transparent(!) (A)DSL
+# modems otherwise it's probably "ethX" (eg. eth0). Multiple interfaces should
+# be space separated.
+# -----------------------------------------------------------------------------
+EXT_IF="ppp+"
+
+# Enable if THIS machines (dynamically) obtains its IP through DHCP (from your
+# ISP).
+# -----------------------------------------------------------------------------
+EXT_IF_DHCP_IP=0
+
+# (EXPERT SETTING!) Here you can specify your external(!) subnet(s). You should
+# only use this if you for example have a corporate network and/or running a
+# DHCP server on your external(!) interface. Home users should normally NOT
+# touch this setting. Multiple subnets should be space separated.
+# Don't forget to specify a proper subnet masker (eg. /24, /16 or /8)!
+# -----------------------------------------------------------------------------
+EXTERNAL_NET=""
+
+# (EXPERT SETTING!) Here you can specify the IP address used for broadcasts
+# on your external subnet. You only need to set this option if you want to use
+# the BROADCAST_XXX_NOLOG variables AND you use a non-standard broadcast
+# address (not *.255.255.255, *.*.255.255 or *.*.*.255)! So normally leaving
+# this empty should work fine. Multiple addresses (if you have more than one
+# external interface) should be space separated.
+# -----------------------------------------------------------------------------
+EXT_NET_BCAST_ADDRESS=""
+
+# Enable this if THIS MACHINE is running a DHCP(BOOTP) server for a subnet on
+# the external(!) interface. Note that you don't need this for internal
+# subnets, as for these nets everything is accepted by default. Don't forget to
+# configure the EXTERNAL_NET variable, to make this work.
+# -----------------------------------------------------------------------------
+EXTERNAL_DHCP_SERVER=0
+
+
+###############################################################################
+# (ADSL) Modem settings                                                       #
+#                                                                             #
+# The MODEM_xxx options should (only) be used when you have an ((A)DSL)       #
+# modem which works with a ppp-connection between the modem and the           #
+# host the modem is connected to.                                             #
+#                                                                             #
+# You can check whether this applies for your (hardware) setup with           #
+# 'ifconfig' (a 'ppp' device is shown).                                       #
+# This means that if your modem is bridging or an NAT router) or the          #
+# network interface the modem is connected to doesn't have an IP, you         #
+# should leave the MODEM_xxx options disabled (=default)!                     #
+###############################################################################
+
+# The physical(!) network interface your ADSL modem is connected to (this is
+# not ppp0!).
+# -----------------------------------------------------------------------------
+#MODEM_IF="eth1"
+
+# (optional) The IP of the network interface (MODEM_IF) your ADSL modem is
+# connected to (IP shown for the modem interface (MODEM_IF) in 'ifconfig').
+# -----------------------------------------------------------------------------
+#MODEM_IF_IP="10.0.0.150"
+
+# (optional) The IP of your (A)DSL modem itself.
+# -----------------------------------------------------------------------------
+#MODEM_IP="10.0.0.138"
+
+# (EXPERT SETTING!). Here you can specify the hosts/local net(s) that should
+# have access to the (A)DSL modem itself (manage modem settings, if supported
+# by your modem!). The default setting ("$INTERNAL_NET") allows access from
+# everybody on your LAN.
+# -----------------------------------------------------------------------------
+MODEM_INTERNAL_NET="$INTERNAL_NET"
+
+
+###############################################################################
+# Internal (LAN) interface settings                                           #
+###############################################################################
+
+# Specify here your internal network (LAN) interface(s). Multiple(!) interfaces
+# should be space separated. Remark this if you don't have any internal network
+# interfaces. Note that by default ALL traffic is accepted from these
+# interfaces.
+# -----------------------------------------------------------------------------
+INT_IF="eth0"
+
+# Specify here the internal subnet which is connected to the internal interface
+# (INT_IF). For multiple interfaces(!) you can either specify multiple subnets
+# here or specify one big subnet for all internal interfaces. Note that this
+# variable is mainly used for antispoofing.
+# -----------------------------------------------------------------------------
+INTERNAL_NET="192.168.0.0/24"
+
+# (EXPERT SETTING!) Here you can specify the IP address used for broadcasts
+# on your internal subnet. You only need to set this option if you want to use
+# the MAC filter AND you use a non-standard broadcast address
+# (not *.255.255.255, *.*.255.255 or *.*.*.255)! So normally leaving
+# this empty should work fine. Multiple addresses (if you have multiple
+# internal nets) should be space separated.
+# -----------------------------------------------------------------------------
+INT_NET_BCAST_ADDRESS=""
+
+# Uncomment & specify here the location of the file that contains the MAC
+# addresses of INTERNAL hosts that are allowed. The MAC addresses should be
+# written like 00:11:22:33:44:55
+# Note that the last line of this
+# file should always contain a carriage-return (enter)!
+# -----------------------------------------------------------------------------
+#MAC_ADDRESS_FILE=/etc/arno-iptables-firewall/mac-addresses
+
+
+###############################################################################
+# DMZ (aka DeMilitarized Zone) settings                                       #
+###############################################################################
+
+# Put in the following variable the network interfaces that are DMZ-classified.
+# You can also use this interface if you want to shield your Wireless network
+# from your LAN.
+# -----------------------------------------------------------------------------
+DMZ_IF=""
+
+# Specify here the subnet which is connected to the DMZ interface (DMZ_IF).
+# For multiple interfaces(!) you can either specify multiple subnets here or
+# specify one big subnet for all DMZ interfaces.
+# -----------------------------------------------------------------------------
+DMZ_NET=""
+
+
+###############################################################################
+# NAT (Masquerade, SNAT, DNAT) settings                                       #
+###############################################################################
+
+# Enable this if you want to perform NAT (masquerading) for your internal
+# network (LAN) (eg. share your internet connection with your internal
+# net(s) connected to eg. INT_IF).
+# -----------------------------------------------------------------------------
+NAT=1
+
+# (EXPERT SETTING!). In case you would like to use SNAT instead of
+# MASQUERADING then uncomment and set the IP or IP's here of your static
+# external address(es). Note that when multiple IP's are specified, SNAT
+# multiroute is enabled (load balancing over multiple external (internet)
+# interfaces, check the README file for more info). Note that the order of IP's
+# should match the order of interfaces (they belond to) in $EXT_IF!
+# -----------------------------------------------------------------------------
+#NAT_STATIC_IP="193.2.1.1"
+
+# (EXPERT SETTING!). Use this variable only if you want specific subnets or
+# hosts to be able to access the internet. When no value is specified, your
+# whole internal net will have access. In both cases it's obviously only
+# meaningful when NAT is enabled. Note that you can also use this variable if
+# you want to use NAT for your DMZ.
+# -----------------------------------------------------------------------------
+NAT_INTERNAL_NET="$INTERNAL_NET"
+
+# NAT TCP/UDP/IP forwards. Forward ports or protocols from the gateway to
+# an internal client through (D)NAT. Note that you can also use these
+# variables to forward ports to DMZ hosts.
+#
+# TCP/UDP form:
+#       "{SRCIP1,SRCIP2,...:}PORT1,PORT2-PORT3,...>DESTIP1{:port} \
+#        {SRCIP3,...:}PORT3,...>DESTIP2:port}"
+#
+# IP form:
+#       "{SRCIP1,SRCIP2,...:}PROTO1,PROTO2,...>DESTIP1 \
+#        {SRCIP3:}PROTO3,PROTO4,...>DESTIP2"
+#
+# TCP/UDP port forward examples:
+# Simple (forward port 80 to internal host 192.168.0.10):
+#       NAT_xxx_FORWARD="80>192.168.0.10"
+# Advanced (forward port 20 & 21 to 192.168.0.10 and
+#           forward from 1.2.3.4 port 81 to 192.168.0.11 port 80:
+#       NAT_xxx_FORWARD="20,21>192.168.0.10 1.2.3.4:81>192.168.0.11:80"
+#
+# IP protocol forward example:
+#        (forward protocols 47 & 48 to 192.168.0.10)
+#        NAT_IP_FORWARD="47,48>192.168.0.10"
+#
+# NOTE 1: {:port} is optional. Use it to redirect a specific port to a
+#         different port on the internal client.
+# NOTE 2: {SRCIPx} is optional. Use it to restrict access for specific source
+#         (inet) IP addresses.
+# -----------------------------------------------------------------------------
+NAT_TCP_FORWARD="81>192.168.0.10 1.2.3.4:80>192.168.0.11:9999"
+NAT_UDP_FORWARD=""
+NAT_IP_FORWARD=""
+
+
+
+
+###############################################################################
+# General settings                                                            #
+###############################################################################
+
+# Most people don't want to get any firewall logs being spit to the console.
+# This option makes the kernel ring buffer only log messages with level
+# "panic".
+# -----------------------------------------------------------------------------
+DMESG_PANIC_ONLY=1
+
+# Enable this if you want TOS mangling (RFC) (recommended).
+# -----------------------------------------------------------------------------
+MANGLE_TOS=1
+
+# Enable this if you want to set the maximum packet size via the
+# Maximum Segment Size(through MSS field) (recommended).
+# -----------------------------------------------------------------------------
+SET_MSS=1
+
+# Enable this if you want to increase the TTL value by one in the prerouting
+# chain. This hides the firewall when performing eg. traceroutes to internal
+# hosts.
+# -----------------------------------------------------------------------------
+TTL_INC=0
+
+# (EXPERT SETTING!) Enable this if you want to set the TTL value for packets in
+# the OUTPUT & FORWARD chain. Note that this only works with newer 2.6 kernels
+# (2.6.14 or better) or patched 2.4 kernels, which have netfilter TTL target
+# support. Don't mess with this unless you really know what you are doing!
+# -----------------------------------------------------------------------------
+#PACKET_TTL="64"
+
+# Enable this to resolve names of DNS IP's etc.
+# -----------------------------------------------------------------------------
+RESOLV_IPS=0
+
+# Enable this to support the IRC-protocol.
+# -----------------------------------------------------------------------------
+USE_IRC=0
+
+# (EXPERT SETTING!). Loosen the forward chain for the external interface(s).
+# Enable it to allow the use of protocols like UPnP. Note that it *could* be
+# less secure.
+# -----------------------------------------------------------------------------
+LOOSE_FORWARD=0
+
+# (EXPERT SETTING!). Enable this if you want to drop packets originating from a
+# private address.
+# -----------------------------------------------------------------------------
+DROP_PRIVATE_ADDRESSES=0
+
+# (EXPERT SETTING!). Protect this machine from being abused for a DRDOS-attack
+# ("Distributed Reflection Denial Of Service"-attack). (STILL EXPERIMENTAL!)
+# -----------------------------------------------------------------------------
+DRDOS_PROTECT=0
+
+# Enable this if you want to allow/enable IPv6 traffic. Note that my firewall
+# does NOT filter IPv6 traffic (yet), and thus NO checking is performed on it!
+# -----------------------------------------------------------------------------
+IPV6_OVER_IPV4=0
+
+# This option fixes problems with SMB broadcasts when using nmblookup
+# -----------------------------------------------------------------------------
+NMB_BROADCAST_FIX=1
+
+# (EXPERT SETTING!). (Other) trusted network interfaces for which ALL IP
+# traffic should be ACCEPTED. (multiple(!) interfaces should be space
+# separated). Be warned that anything TO and FROM these interfaces is allowed
+# (ACCEPTED) so make sure it's NOT routable(accessible) from the outside world
+# (internet)!
+# -----------------------------------------------------------------------------
+TRUSTED_IF=""
+
+# (EXPERT SETTING!). Put here the (internal) interfaces that should trust
+# (accept forward traffic) each other.
+# -----------------------------------------------------------------------------
+INT_IF_TRUST=""
+
+# Location of the custom iptables rules file (if any).
+# -----------------------------------------------------------------------------
+CUSTOM_RULES=/etc/arno-iptables-firewall/custom-rules
+
+
+###############################################################################
+# Logging options - All logging is rate limited to prevent log flooding       #
+###############################################################################
+
+# Enable logging for explicitly blocked hosts.
+# -----------------------------------------------------------------------------
+BLOCKED_HOST_LOG=1
+
+# Enable logging for various stealth scans (reliable).
+# -----------------------------------------------------------------------------
+SCAN_LOG=1
+
+# Enable logging for possible stealth scans (less reliable).
+# -----------------------------------------------------------------------------
+POSSIBLE_SCAN_LOG=1
+
+# Enable logging for TCP-packets with bad flags.
+# -----------------------------------------------------------------------------
+BAD_FLAGS_LOG=1
+
+# Enable logging of invalid TCP packets. Keep disabled (0) by default to reduce
+# INVALID packets being logged because of lost (legimate) connections. When
+# debugging any problems, you should enable it (temporarily)!
+# -----------------------------------------------------------------------------
+INVALID_TCP_LOG=0
+
+# Enable logging of invalid UDP packets. Keep disabled (0) by default to reduce
+# INVALID packets being logged because of lost (legimate) connections. When
+# debugging any problems, you should enable it (temporarily)!
+# -----------------------------------------------------------------------------
+INVALID_UDP_LOG=0
+
+# Enable logging of invalid ICMP packets. Keep disabled (0) by default to reduce
+# INVALID packets being logged because of lost (legimate) connections. When
+# debugging any problems, you should enable it (temporarily)!
+# -----------------------------------------------------------------------------
+INVALID_ICMP_LOG=0
+
+# Enable logging of source IP's with reserved addresses.
+# -----------------------------------------------------------------------------
+RESERVED_NET_LOG=1
+
+# Enable logging of fragmented packets.
+# -----------------------------------------------------------------------------
+FRAG_LOG=1
+
+# Enable logging of denied local (OUTPUT) connections.
+# -----------------------------------------------------------------------------
+OUTPUT_DENY_LOG=1
+
+# Enable logging of denied LAN output (FORWARD) connections.
+# -----------------------------------------------------------------------------
+LAN_OUTPUT_DENY_LOG=1
+
+# Enable logging of denied LAN INPUT connections.
+# -----------------------------------------------------------------------------
+LAN_INPUT_DENY_LOG=1
+
+# Enable logging of denied DMZ output (FORWARD) connections.
+# -----------------------------------------------------------------------------
+DMZ_OUTPUT_DENY_LOG=1
+
+# Enable logging of denied DMZ input (FORWARD) connections.
+# -----------------------------------------------------------------------------
+DMZ_INPUT_DENY_LOG=1
+
+# Enable logging of dropped ICMP-request packets (ping).
+# -----------------------------------------------------------------------------
+ICMP_REQUEST_LOG=1
+
+# Enable logging of dropped "other" ICMP packets.
+# -----------------------------------------------------------------------------
+ICMP_OTHER_LOG=1
+
+# Enable logging of normal connection attempts to privileged TCP ports.
+# -----------------------------------------------------------------------------
+PRIV_TCP_LOG=1
+
+# Enable logging of normal connection attempts to privileged UDP ports.
+# -----------------------------------------------------------------------------
+PRIV_UDP_LOG=1
+
+# Enable logging of normal connection attempts to unprivileged TCP ports.
+# -----------------------------------------------------------------------------
+UNPRIV_TCP_LOG=1
+
+# Enable logging of normal connection attempts to unprivileged UDP ports.
+# -----------------------------------------------------------------------------
+UNPRIV_UDP_LOG=1
+
+# Enable logging of normal connection attempts to "other-IP"-protocols (non
+# TCP/UDP/ICMP).
+# -----------------------------------------------------------------------------
+OTHER_IP_LOG=1
+
+# Enable logging for ICMP flooding.
+# -----------------------------------------------------------------------------
+ICMP_FLOOD_LOG=1
+
+# Enable logging for not-allowed MAC addresses (if used).
+# -----------------------------------------------------------------------------
+MAC_ADDRESS_LOG=1
+
+# (EXPERT SETTING!). The location of the dedicated firewall log file. When
+# enabled the firewall script will also log start/stop etc. info to this file
+# as well. Note that in order to make this work, you should also configure
+# syslogd to log firewall messages to this file (see LOGLEVEL below for further
+# info).
+# -----------------------------------------------------------------------------
+#FIREWALL_LOG=/var/log/firewall
+
+# (EXPERT SETTING!). Current log-level ("info": default kernel syslog level)
+# "debug": can be used to log to /var/log/firewall.log, but you have to configure
+# syslogd accordingly (see included syslogd.conf examples).
+# -----------------------------------------------------------------------------
+LOGLEVEL=info
+
+# Put in the following variables which hosts you want to log certain incoming
+# connection attempts for.
+# TCP/UDP port format (LOG_HOST_xxx_INPUT):
+#       "host1,host2>port1,port2 host3,host4>port3,port4 ..."
+#
+# IP protocol format (LOG_HOST_IP_INPUT):
+#       "host1,host2>proto1,proto2 host3,host4>proto4,proto4 ..."
+# -----------------------------------------------------------------------------
+LOG_HOST_TCP_INPUT=""
+LOG_HOST_UDP_INPUT=""
+LOG_HOST_IP_INPUT=""
+
+# Put in the following variables which hosts you want to log certain outgoing
+# connection attempts for.
+# TCP/UDP port format (LOG_HOST_xxx_OUTPUT):
+#       "host1,host2>port1,port2 host3,host4>port3,port4 ..."
+#
+# IP protocol format (LOG_HOST_IP_OUTPUT):
+#       "host1,host2>proto1,proto2 host3,host4>proto4,proto4 ..."
+# -----------------------------------------------------------------------------
+LOG_HOST_TCP_OUTPUT=""
+LOG_HOST_UDP_OUTPUT=""
+LOG_HOST_IP_OUTPUT=""
+
+# Put in the following variables which services you want to log incoming
+# connection attempts for.
+# -----------------------------------------------------------------------------
+LOG_TCP_INPUT=""
+LOG_UDP_INPUT=""
+LOG_IP_INPUT=""
+
+# Put in the following variables which services you want to log outgoing
+# connection attempts for.
+# -----------------------------------------------------------------------------
+LOG_TCP_OUTPUT=""
+LOG_UDP_OUTPUT=""
+LOG_IP_OUTPUT=""
+
+# Put in the following variable which hosts you want to log incoming connection
+# (attempts) for.
+# -----------------------------------------------------------------------------
+LOG_HOST_INPUT=""
+
+# Put in the following variable which hosts you want to log outgoing connection
+# (attempts) to.
+# -----------------------------------------------------------------------------
+LOG_HOST_OUTPUT=""
+
+
+###############################################################################
+# /proc based settings (EXPERT SETTINGS!)                                     #
+###############################################################################
+
+# Enable for synflood protection (through /proc/.../tcp_syncookies).
+# -----------------------------------------------------------------------------
+SYN_PROT=1
+
+# Enable this to reduce the ability of others DOS'ing your machine.
+# -----------------------------------------------------------------------------
+REDUCE_DOS_ABILITY=1
+
+# Enable to ignore all ICMP echo-requests (IPv4) on ALL interfaces.
+# -----------------------------------------------------------------------------
+ECHO_IGNORE=0
+
+# Enable to log packets with impossible addresses to the kernel log.
+# -----------------------------------------------------------------------------
+LOG_MARTIANS=0
+
+# Only disable this if you're NOT using forwarding (required for NAT etc.) for
+# increased security.
+# -----------------------------------------------------------------------------
+IP_FORWARDING=1
+
+# Enable if you want to accept ICMP redirect messages. Should be set to "0" in
+# case of a router.
+# -----------------------------------------------------------------------------
+ICMP_REDIRECT=0
+
+# Enable/modify this if you want to be a able to handle a larger (or smaller)
+# number of simultaneous connections. For high traffic machines I recommend to
+# use a value of at least 16384 (note that a higher value (obviously) also uses
+# more memory).
+# -----------------------------------------------------------------------------
+CONNTRACK=16384
+
+# You may need to enable this to get some internet games to work, but note that
+# it's *less* secure.
+# -----------------------------------------------------------------------------
+LOOSE_UDP_PATCH=0
+
+# Enable ECN (Explicit Congestion Notification) TCP flag. Disabled by default,
+# as some routers are still not compatible with this.
+# -----------------------------------------------------------------------------
+ECN=0
+
+# Enable to drop connections from non-routable IP's, eg. prevent source
+# routing. By default the firewall itself also provides rules against source
+# routing. Note than when you use eg. VPN (Freeswan), you should probably
+# disable this setting.
+# -----------------------------------------------------------------------------
+RP_FILTER=1
+
+# Protect against source routed packets. Attackers can use source routing to
+# generate traffic pretending to be from inside your network, but which is
+# routed back along the path from which it came, namely outside, so attackers
+# can compromise your network. Source routing is rarely used for legitimate
+# purposes, so normally you should always leave this enabled(1)!
+# -----------------------------------------------------------------------------
+SOURCE_ROUTE_PROTECTION=1
+
+# Here we set the local port range (ports from which connections are
+# initiated from our site). Don't mess with this unless you really know what
+# you are doing!
+# -----------------------------------------------------------------------------
+LOCAL_PORT_RANGE="32768 61000"
+
+# Here you can change the default TTL used for sending packets. The value
+# should be between 10 and 255. Don't mess with this unless you really know
+# what you are doing!
+# -----------------------------------------------------------------------------
+DEFAULT_TTL=64
+
+# In most cases pmtu discovery is ok, but in some rare cases (when having
+# problems) you might want to disable it.
+# -----------------------------------------------------------------------------
+NO_PMTU_DISCOVERY=0
+
+
+###############################################################################
+# (Transparent) proxy settings (EXPERT SETTINGS!)                             #
+###############################################################################
+#HTTP_PROXY_PORT="3128"
+HTTPS_PROXY_PORT=""
+FTP_PROXY_PORT=""
+SMTP_PROXY_PORT=""
+POP3_PROXY_PORT=""
+
+
+###############################################################################
+# Firewall policies for the LAN (EXPERT SETTINGS!)                            #
+###############################################################################
+
+###############################################################################
+# LAN_xxx = LAN->localhost(this machine) input access rules                   #
+#                                                                             #
+# Note that when both LAN_OPEN_xxx & LAN_HOST_OPEN_xxx are NOT used, the      #
+# default policy for this chain is accept (unless denied through              #
+# LAN_DENY_xxx and/or LAN_HOST_DENY_xxx)!                                     #
+###############################################################################
+
+# Enable this to allow for ICMP-requests(ping) from your LAN
+# -----------------------------------------------------------------------------
+LAN_OPEN_ICMP=1
+
+# Put in the following variables the TCP/UDP ports or IP protocols TO
+# (remote end-point) which the LAN hosts are permitted to connect to.
+# -----------------------------------------------------------------------------
+LAN_OPEN_TCP=""
+LAN_OPEN_UDP=""
+LAN_OPEN_IP=""
+
+# Put in the following variables the TCP/UDP ports or IP protocols TO (remote
+# end-point) which LAN hosts are NOT permitted to connect to.
+# -----------------------------------------------------------------------------
+LAN_DENY_TCP=""
+LAN_DENY_UDP=""
+LAN_DENY_IP=""
+
+# Put in the following variables the TCP/UDP ports or IP
+# protocols TO (remote end-point) which certain LAN hosts are
+# permitted to connect to.
+#
+# TCP/UDP port format (LAN_INPUT_HOST_OPEN_xxx):
+#       "host1,host2>port1,port2 host3,host4>port3,port4 ..."
+#
+# IP protocol format (LAN_INPUT_HOST_OPEN_xxx):
+#       "host1,host2>proto1,proto2 host3,host4>proto3,proto4 ..."
+# -----------------------------------------------------------------------------
+LAN_HOST_OPEN_TCP=""
+LAN_HOST_OPEN_UDP=""
+LAN_HOST_OPEN_IP=""
+
+# Put in the following variables the TCP/UDP ports or IP protocols TO (remote
+# end-point) which certain LAN hosts are NOT permitted to connect to.
+#
+# TCP/UDP port format (LAN_INPUT_HOST_DENY_xxx):
+#       "host1,host2>port1,port2 host3,host4>port3,port4 ..."
+#
+# IP protocol format (LAN_INPUT_HOST_DENY_xxx):
+#       "host1,host2>proto1,proto2 host3,host4>proto3,proto4 ..."
+# -----------------------------------------------------------------------------
+LAN_HOST_DENY_TCP=""
+LAN_HOST_DENY_UDP=""
+LAN_HOST_DENY_IP=""
+
+
+###############################################################################
+# LAN_INET_xxx = LAN->internet access rules (forward)                         #
+#                                                                             #
+# Note that when both LAN_INET_OPEN_xxx & LAN_INET_HOST_OPEN_xxx are NOT      #
+# used, the default policy for this chain is accept (unless denied            #
+# through LAN_INET_DENY_xxx and/or LAN_INET_HOST_DENY_xxx)!                   #
+###############################################################################
+
+# Enable this to allow for ICMP-requests(ping) for LAN->INET
+# -----------------------------------------------------------------------------
+LAN_INET_OPEN_ICMP=1
+
+# Put in the following variables the TCP/UDP ports or IP
+# protocols TO (remote end-point) which the LAN hosts are
+# permitted to connect to via the external (internet) interface.
+# -----------------------------------------------------------------------------
+LAN_INET_OPEN_TCP=""
+LAN_INET_OPEN_UDP=""
+LAN_INET_OPEN_IP=""
+
+# Put in the following variables the TCP/UDP ports or IP protocols TO (remote
+# end-point) which the LAN hosts are NOT permitted to connect to
+# via the external (internet) interface. Examples of usage are for blocking
+# IRC (TCP 6666:6669) for the internal network.
+# -----------------------------------------------------------------------------
+LAN_INET_DENY_TCP=""
+LAN_INET_DENY_UDP=""
+LAN_INET_DENY_IP=""
+
+# Put in the following variables which LAN hosts you want to allow to certain
+# hosts/services on the internet. By default all services are allowed.
+#
+# TCP/UDP form:
+#       "SRCIP1,SRCIP2,...>DESTIP1:port \
+#        SRCIP3,...>DESTIP2:port"
+#
+# IP form:
+#       "SRCIP1,SRCIP2,...>DESTIP1:protocol \
+#        SRCIP3,...>DESTIP2:protocol"
+#
+# TCP/UDP examples:
+# Simple:
+#       (Allow port 80 on INET host 1.2.3.4 for all LAN hosts(0/0)):
+#       LAN_INET_HOST_OPEN_xxx="0/0>1.2.3.4:80"
+# Advanced:
+#       (Allow port 20 & 21 on INET host 1.2.3.4 for all LAN hosts(0/0) and
+#        allow port 80 on INET host 1.2.3.4 for LAN host 192.168.0.10 (only)):
+#       LAN_INET_HOST_OPEN_xxx="0/0>1.2.3.4:20,21 192.168.0.10>80"
+#
+# IP protocol example:
+#       (Allow protocols 47 & 48 on INET host 1.2.3.4 for all LAN hosts(0/0))
+#       LAN_INET_HOST_OPEN_IP="0/0>1.2.3.4:47,48"
+#
+# NOTE 1: If no SRCIPx is specified, any source host is used
+# NOTE 2: If no DESTIPx is specified, any destination host is used
+# NOTE 3: If no port is specified, any port is used
+# -----------------------------------------------------------------------------
+LAN_INET_HOST_OPEN_TCP=""
+LAN_INET_HOST_OPEN_UDP=""
+LAN_INET_HOST_OPEN_IP=""
+
+# Put in the following variables which DMZ hosts you want to deny to certain
+# hosts/services on the internet.
+#
+# TCP/UDP form:
+#       "SRCIP1,SRCIP2,...>DESTIP1:port \
+#        SRCIP3,...>DESTIP2:port"
+#
+# IP form:
+#       "SRCIP1,SRCIP2,...>DESTIP1:protocol \
+#        SRCIP3,...>DESTIP2:protocol"
+#
+# TCP/UDP examples:
+# Simple (Deny port 80 on INET host 1.2.3.4 for all LAN hosts(0/0)):
+#       LAN_INET_HOST_DENY_xxx="0/0>1.2.3.4:80"
+# Advanced (Deny port 20 & 21 on INET host 1.2.3.4 for all LAN hosts(0/0) and
+#           deny port 80 on INET host 1.2.3.4 for LAN host 192.168.0.10 (only)):
+#       LAN_INET_HOST_DENY_xxx="0/0>1.2.3.4:20,21 192.168.0.10>1.2.3.4:80"
+#
+# IP protocol example:
+#       (Deny protocols 47 & 48 on INET host 1.2.3.4 for all LAN hosts(0/0)):
+#       LAN_INET_HOST_DENY_IP="0/0>1.2.3.4:47,48"
+#
+# NOTE 1: If no SRCIPx is specified, any source host is used
+# NOTE 2: If no DESTIPx is specified, any destination host is used
+# NOTE 3: If no port is specified, any port is used
+# -----------------------------------------------------------------------------
+LAN_INET_HOST_DENY_TCP=""
+LAN_INET_HOST_DENY_UDP=""
+LAN_INET_HOST_DENY_IP=""
+
+
+###############################################################################
+# Firewall policies for the DMZ (EXPERT SETTINGS!)                            #
+###############################################################################
+
+###############################################################################
+# DMZ_xxx      = DMZ->localhost(this machine) input access rules              #
+###############################################################################
+
+# Enable this to allow ICMP-requests(ping) from the DMZ
+# -----------------------------------------------------------------------------
+DMZ_OPEN_ICMP=1
+
+# Put in the following variables which DMZ hosts are permitted to connect to
+# certain the TCP/UDP ports, IP protocols or ICMP. By default all (local)
+# services are blocked for DMZ hosts.
+# -----------------------------------------------------------------------------
+DMZ_OPEN_TCP=""
+DMZ_OPEN_UDP=""
+DMZ_OPEN_IP=""
+
+# Put in the following variables which DMZ hosts you want to allow for certain
+# services. By default all (local) services are blocked for DMZ hosts.
+# TCP/UDP port format (DMZ_HOST_OPEN_TCP & DMZ_HOST_OPEN_UDP):
+#       "host1,host2>port1,port2 host3,host4>port3,port4 ..."
+#
+# IP protocol format (DMZ_HOST_OPEN_IP):
+#       "host1,host2>proto1,proto2 host3,host4>proto3,proto4 ..."
+# -----------------------------------------------------------------------------
+DMZ_HOST_OPEN_TCP=""
+DMZ_HOST_OPEN_UDP=""
+DMZ_HOST_OPEN_IP=""
+
+
+###############################################################################
+# INET_DMZ_xxx = Internet->DMZ access rules (forward)                         #
+#                                                                             #
+# Note that when both INET_DMZ_OPEN_xxx & INET_DMZ_HOST_OPEN_xxx are NOT      #
+# used, the default policy for this chain is accept (unless denied            #
+# through INET_DMZ_DENY_xxx and/or INET_DMZ_HOST_DENY_xxx)!                   #
+###############################################################################
+
+# Enable this to make the default policy allow for ICMP(ping) for INET->DMZ
+# -----------------------------------------------------------------------------
+INET_DMZ_OPEN_ICMP=0
+
+# Put in the following variables which INET hosts are permitted to connect to
+# certain the TCP/UDP ports or IP protocols in the DMZ.
+# -----------------------------------------------------------------------------
+INET_DMZ_OPEN_TCP=""
+INET_DMZ_OPEN_UDP=""
+INET_DMZ_OPEN_IP=""
+
+# Put in the following variables which INET hosts are NOT permitted to connect
+# to certain the TCP/UDP ports or IP protocols in the DMZ.
+# -----------------------------------------------------------------------------
+INET_DMZ_DENY_TCP=""
+INET_DMZ_DENY_UDP=""
+INET_DMZ_DENY_IP=""
+
+# Put in the following variables which INET hosts you want to allow to certain
+# hosts/services on the DMZ net. By default all services are allowed.
+#
+# TCP/UDP form:
+#       "SRCIP1,SRCIP2,...>DESTIP1:port \
+#        SRCIP3,...>DESTIP2:port"
+#
+# IP form:
+#       "SRCIP1,SRCIP2,...>DESTIP1:protocol \
+#        SRCIP3,...>DESTIP2:protocol"
+#
+# TCP/UDP examples:
+# Simple (Allow port 80 on DMZ host 1.2.3.4 for all INET hosts(0/0)):
+#       INET_DMZ_HOST_OPEN_xxx="0/0>1.2.3.4:80"
+# Advanced (Allow port 20 & 21 on DMZ host 1.2.3.4 for all INET hosts(0/0) and
+#           allow port 80 on DMZ host 1.2.3.4 for INET host 5.6.7.8 (only)):
+#       INET_DMZ_HOST_OPEN_xxx="0/0>1.2.3.4:20,21 5.6.7.8>1.2.3.4:80"
+#
+# IP protocol example:
+#       (Allow protocols 47 & 48 on INET host 1.2.3.4 for all DMZ hosts )
+#       INET_DMZ_HOST_OPEN_IP="0/0>1.2.3.4:47,48"
+#
+# NOTE 1: If no SRCIPx is specified, any source host is used
+# NOTE 2: If no DESTIPx is specified, any destination host is used
+# NOTE 3: If no port is specified, any port is used
+# -----------------------------------------------------------------------------
+INET_DMZ_HOST_OPEN_TCP=""
+INET_DMZ_HOST_OPEN_UDP=""
+INET_DMZ_HOST_OPEN_IP=""
+
+# Put in the following variables which INET hosts you want to deny to certain
+# hosts/services on the DMZ net.
+#
+# TCP/UDP form:
+#       "SRCIP1,SRCIP2,...>DESTIP1:port \
+#        SRCIP3,...>DESTIP2:port"
+#
+# IP form:
+#       "SRCIP1,SRCIP2,...>DESTIP1:protocol \
+#        SRCIP3,...>DESTIP2:protocol"
+#
+# TCP/UDP examples:
+# Simple (Deny port 80 on DMZ host 1.2.3.4 for all INET hosts(0/0)):
+#       INET_DMZ_HOST_DENY_xxx="0/0>1.2.3.4:80"
+# Advanced (Deny port 20 & 21 on DMZ host 1.2.3.4 for all INET hosts(0/0) and
+#           deny port 80 on DMZ host 1.2.3.4 for INET host 5.6.7.8 (only)):
+#       INET_DMZ_HOST_DENY_xxx="0/0>1.2.3.4:20,21 5.6.7.8>1.2.3.4:80"
+#
+# IP protocol example:
+#       (Deny protocols 47 & 48 on DMZ host 1.2.3.4 for all INET hosts):
+#       INET_DMZ_HOST_DENY_IP="0/0>1.2.3.4:47,48"
+#
+# NOTE 1: If no SRCIPx is specified, any source host is used
+# NOTE 2: If no DESTIPx is specified, any destination host is used
+# NOTE 3: If no port is specified, any port is used
+# -----------------------------------------------------------------------------
+INET_DMZ_HOST_DENY_TCP=""
+INET_DMZ_HOST_DENY_UDP=""
+INET_DMZ_HOST_DENY_IP=""
+
+
+###############################################################################
+# DMZ_INET_xxx = DMZ->internet access rules (forward)                         #
+#                                                                             #
+# Note that when both DMZ_INET_OPEN_xxx & DMZ_INET_HOST_OPEN_xxx are NOT      #
+# used, the default policy for this chain is accept (unless denied            #
+# through DMZ_INET_DENY_xxx and/or DMZ_INET_HOST_DENY_xxx)!                   #
+###############################################################################
+
+# Enable this to make the default policy allow for ICMP(ping) for DMZ->INET
+# -----------------------------------------------------------------------------
+DMZ_INET_OPEN_ICMP=1
+
+# Put in the following variables the TCP/UDP ports or IP
+# protocols TO (remote end-point) which the DMZ hosts are
+# permitted to connect to via the external (internet) interface.
+# -----------------------------------------------------------------------------
+DMZ_INET_OPEN_TCP=""
+DMZ_INET_OPEN_UDP=""
+DMZ_INET_OPEN_IP=""
+
+# Put in the following variables the TCP/UDP ports or IP protocols TO (remote
+# end-point) which the DMZ hosts are NOT permitted to connect to
+# via the external (internet) interface. Examples of usage are for blocking
+# IRC (TCP 6666:6669) for the internal network.
+# -----------------------------------------------------------------------------
+DMZ_INET_DENY_TCP=""
+DMZ_INET_DENY_UDP=""
+DMZ_INET_DENY_IP=""
+
+# Put in the following variables which DMZ hosts you want to allow to certain
+# hosts/services on the internet. By default all services are allowed.
+#
+# TCP/UDP form:
+#       "SRCIP1,SRCIP2,...>DESTIP1:port \
+#        SRCIP3,...>DESTIP2:port"
+#
+# IP form:
+#       "SRCIP1,SRCIP2,...>DESTIP1:protocol \
+#        SRCIP3,...>DESTIP2:protocol"
+#
+# TCP/UDP examples:
+# Simple (Allow port 80 on INET host 1.2.3.4 for all DMZ hosts(0/0)):
+#       DMZ_INET_HOST_OPEN_xxx="0/0>1.2.3.4:80"
+# Advanced (Allow port 20 & 21 on INET host 1.2.3.4 for all DMZ hosts(0/0) and
+#           allow port 80 on INET host 1.2.3.4 for DMZ host 5.6.7.8 (only)):
+#       DMZ_INET_HOST_OPEN_xxx="0/0>1.2.3.4:20,21 5.6.7.8>1.2.3.4:80"
+#
+# IP protocol example:
+#       (Allow protocols 47 & 48 on INET host 1.2.3.4 for all DMZ hosts):
+#       DMZ_INET_HOST_OPEN_IP="0/0>1.2.3.4:47,48"
+#
+# NOTE 1: If no SRCIPx is specified, any source host is used
+# NOTE 2: If no DESTIPx is specified, any destination host is used
+# NOTE 3: If no port is specified, any port is used
+# -----------------------------------------------------------------------------
+DMZ_INET_HOST_OPEN_TCP=""
+DMZ_INET_HOST_OPEN_UDP=""
+DMZ_INET_HOST_OPEN_IP=""
+
+# Put in the following variables which DMZ hosts you want to deny to certain
+# hosts/services on the internet.
+#
+# TCP/UDP form:
+#       "SRCIP1,SRCIP2,...>DESTIP1:port \
+#        SRCIP3,...>DESTIP2:port"
+#
+# IP form:
+#       "SRCIP1,SRCIP2,...>DESTIP1:protocol \
+#        SRCIP3,...>DESTIP2:protocol"
+#
+# TCP/UDP examples:
+# Simple (Deny port 80 on INET host 1.2.3.4 for all DMZ hosts(0/0)):
+#       DMZ_INET_HOST_DENY_xxx="0/0>1.2.3.4:80"
+# Advanced (Deny port 20 & 21 on INET host 1.2.3.4 for all DMZ hosts(0/0) and
+#           deny port 80 on INET host 1.2.3.4 for DMZ host 5.6.7.8 (only)):
+#       DMZ_INET_HOST_DENY_xxx="0/0>1.2.3.4:20,21 5.6.7.8>1.2.3.4:80"
+#
+# IP protocol example:
+#       (Deny protocols 47 & 48 on INET host 1.2.3.4 for all DMZ hosts(0/0)):
+#       DMZ_INET_HOST_DENY_IP="0/0>1.2.3.4:47,48"
+#
+# NOTE 1: If no SRCIPx is specified, any source host is used
+# NOTE 2: If no DESTIPx is specified, any destination host is used
+# NOTE 3: If no port is specified, any port is used
+# -----------------------------------------------------------------------------
+DMZ_INET_HOST_DENY_TCP=""
+DMZ_INET_HOST_DENY_UDP=""
+DMZ_INET_HOST_DENY_IP=""
+
+
+###############################################################################
+# DMZ_LAN_xxx  = DMZ->LAN access rules (forward)                              #
+###############################################################################
+
+# Enable this to make the default policy allow for ICMP(ping) for DMZ->LAN
+# -----------------------------------------------------------------------------
+DMZ_LAN_OPEN_ICMP=0
+
+# Put in the following variables which DMZ hosts you want to allow to certain
+# hosts/services on the LAN (net).
+#
+# TCP/UDP form:
+#       "SRCIP1,SRCIP2,...>DESTIP1:port \
+#        SRCIP3,...>DESTIP2:port"
+#
+# IP form:
+#       "SRCIP1,SRCIP2,...>DESTIP1:protocol \
+#        SRCIP3,...>DESTIP2:protocol"
+#
+# TCP/UDP examples:
+# Simple (Allow port 80 on LAN host 1.2.3.4 for all DMZ hosts(0/0)):
+#       DMZ_LAN_HOST_OPEN_xxx="0/0>1.2.3.4:80"
+# Advanced (Allow port 20 & 21 on LAN host 1.2.3.4 for all DMZ hosts (0/0) and
+#           allow port 80 for DMZ host 5.6.7.8 (only) on LAN host
+#           1.2.3.4):
+#       DMZ_LAN_HOST_OPEN_xxx="0/0>1.2.3.4:20,21 5.6.7.8>1.2.3.4:80"
+#
+# IP protocol example:
+#       (Allow protocols 47 & 48 on LAN host 1.2.3.4 for all DMZ hosts(0/0)):
+#       DMZ_LAN_HOST_OPEN_IP="0/0>1.2.3.4:47,48"
+#
+# NOTE 1: If no SRCIPx is specified, any source host is used
+# NOTE 2: If no DESTIPx is specified, any destination host is used
+# NOTE 3: If no port is specified, any port is used
+# -----------------------------------------------------------------------------
+DMZ_LAN_HOST_OPEN_TCP=""
+DMZ_LAN_HOST_OPEN_UDP=""
+DMZ_LAN_HOST_OPEN_IP=""
+
+
+###############################################################################
+# Firewall policies for the external (inet) interface (default policy = drop) #
+###############################################################################
+
+# Put in the following variable which hosts (subnets) you want have full access
+# via your internet (EXT_IF) connection(!). This is especially meant for
+# networks/servers which use NIS/NFS, as these protocols require all ports
+# to be open.
+# NOTE: Don't mistake this variable with the one used for internal nets.
+# -----------------------------------------------------------------------------
+FULL_ACCESS_HOSTS=""
+
+# Enable this to make the default policy allow for ICMP(ping) for INET access
+# -----------------------------------------------------------------------------
+OPEN_ICMP=0
+
+# Put in the following variables which ports or IP protocols you want to leave
+# open to the whole world.
+# -----------------------------------------------------------------------------
+OPEN_TCP="21 22"
+OPEN_UDP=""
+OPEN_IP=""
+
+# Put in the following variables the TCP/UDP ports you want to DENY(DROP) for
+# everyone (and logged). Also use these variables if you want to log connection
+# attempts to these ports from everyone (also trusted/full access hosts).
+# In principle you don't need these variables, as everything is already blocked
+# (denied) by default, but just exists for consistency.
+# -----------------------------------------------------------------------------
+DENY_TCP="23"
+DENY_UDP=""
+
+# Put in the following variables which ports you want to DENY(DROP) for
+# everyone but NOT logged. This is very useful if you have constant probes on
+# the same port(s) over and over again (code red worm) and don't want your logs
+# flooded with it.
+# -----------------------------------------------------------------------------
+DENY_TCP_NOLOG=""
+DENY_UDP_NOLOG=""
+
+# Put in the following variables the TCP/UDP ports you want to REJECT (instead
+# of DROP) for everyone (and logged).
+# -----------------------------------------------------------------------------
+REJECT_TCP=""
+REJECT_UDP=""
+
+# Put in the following variables the TCP/UDP ports you want to REJECT (instead
+# of DROP) for everyone but NOT logged.
+# -----------------------------------------------------------------------------
+REJECT_TCP_NOLOG=""
+REJECT_UDP_NOLOG=""
+
+# Put in the following variables which hosts you want to allow for certain
+# services.
+# TCP/UDP port format (HOST_OPEN_TCP & HOST_OPEN_UDP):
+#       "host1,host2>port1,port2 host3,host4>port3,port4 ..."
+#
+# IP protocol format (HOST_OPEN_IP):
+#       "host1,host2>proto1,proto2 host3,host4>proto4,proto4 ..."
+#
+# ICMP protocol format (HOST_OPEN_ICMP):
+#       "host1 host2 ...."
+# -----------------------------------------------------------------------------
+HOST_OPEN_TCP=""
+HOST_OPEN_UDP=""
+HOST_OPEN_IP=""
+HOST_OPEN_ICMP=""
+
+# Put in the following variables which hosts you want to DENY(DROP) for certain
+# services (and logged).
+# to DENY(DROP) for certain hosts.
+# TCP/UDP port format (HOST_DENY_TCP & HOST_DENY_UDP):
+#       "host1,host2>port1,port2 host3,host4>port3,port4 ..."
+#
+# IP protocol format (HOST_DENY_IP):
+#       "host1,host2>proto1,proto2 host3,host4>proto4,proto4 ..."
+#
+# ICMP protocol format (HOST_DENY_ICMP):
+#       "host1 host2 ...."
+# -----------------------------------------------------------------------------
+HOST_DENY_TCP=""
+HOST_DENY_UDP=""
+HOST_DENY_IP=""
+HOST_DENY_ICMP=""
+
+# Put in the following variables which hosts you want to DENY(DROP) for certain
+# services but NOT logged.
+# TCP/UDP port format (HOST_DENY_xxx_NOLOG):
+#       "host1,host2>port1,port2 host3,host4>port3,port4 ..."
+#
+# IP protocol format (HOST_DENY_IP_NOLOG):
+#       "host1,host2>proto1,proto2 host3,host4>proto4,proto4 ..."
+#
+# ICMP protocol format (HOST_DENY_ICMP_NOLOG):
+#       "host1 host2 ...."
+# -----------------------------------------------------------------------------
+HOST_DENY_TCP_NOLOG=""
+HOST_DENY_UDP_NOLOG=""
+HOST_DENY_IP_NOLOG=""
+HOST_DENY_ICMP_NOLOG=""
+
+# Put in the following variables which hosts you want to REJECT (instead of
+# DROP) for certain TCP/UDP ports.
+# TCP/UDP port format (HOST_REJECT_xxx):
+#       "host1,host2>port1,port2 host3,host4>port3,port4 ..."
+# -----------------------------------------------------------------------------
+HOST_REJECT_TCP=""
+HOST_REJECT_UDP=""
+
+# Put in the following variables which hosts you want to REJECT (instead of
+# DROP) for certain services but NOT logged.
+# TCP/UDP port format (HOST_REJECT_xxx_NOLOG):
+#       "host1,host2>port1,port2 host3,host4>port3,port4 ..."
+# -----------------------------------------------------------------------------
+HOST_REJECT_TCP_NOLOG=""
+HOST_REJECT_UDP_NOLOG=""
+
+# Put in the following variables which services THIS machine is NOT
+# permitted to connect TO (remote end-point) via the external (internet)
+# interface. For example for blocking IRC (tcp 6666:6669).
+# -----------------------------------------------------------------------------
+DENY_TCP_OUTPUT=""
+DENY_UDP_OUTPUT=""
+DENY_IP_OUTPUT=""
+
+# Put in the following variables to which hosts THIS machine is NOT
+# permitted to connect TO for certain services (remote end-point)
+# via the external (internet) interface. In principle you can also
+# use this to put your machine in a "virtual-DMZ" by blocking all traffic
+# to your local subnet.
+# TCP/UDP port format (HOST_DENY_TCP_OUTPUT & HOST_DENY_UDP_OUTPUT):
+#       "host1,host2>port1,port2 host3,host4>port3,port4 ..."
+#
+# IP protocol format (HOST_DENY_IP_OUTPUT):
+#       "host1,host2>proto1,proto2 host3,host4>proto4,proto4 ..."
+# -----------------------------------------------------------------------------
+HOST_DENY_TCP_OUTPUT=""
+HOST_DENY_UDP_OUTPUT=""
+HOST_DENY_IP_OUTPUT=""
+
+# Put in the following variable which TCP/UDP ports you don't want to
+# see broadcasts from (ie. DHCP (67/68) on your EXTERNAL interface. Note that
+# to make this properly work you also need to set "EXTERNAL_NET"!
+# -----------------------------------------------------------------------------
+BROADCAST_TCP_NOLOG=""
+#BROADCAST_UDP_NOLOG="67 68"
+
+# Put in the following variable which hosts you want to block (blackhole,
+# dropping every packet from the host).
+# -----------------------------------------------------------------------------
+BLOCK_HOSTS=""
+
+# Uncomment & specify here the location of the file that contains a list of
+# hosts(IP's) that should be BLOCKED. IP ranges can (only) be specified as
+# w.x.y.z1-z2 (ie. 192.168.1.10-15). Note that the last line of this file
+# should always contain a carriage-return (enter)!
+# -----------------------------------------------------------------------------
+#BLOCK_HOSTS_FILE=/etc/arno-iptables-firewall/blocked-hosts

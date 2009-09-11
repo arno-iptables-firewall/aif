@@ -1,0 +1,146 @@
+# ------------------------------------------------------------------------------------------
+#            -= Arno's iptables firewall - SSH Brute Force Protection plugin =-
+#
+PLUGIN_NAME="SSH Brute-Force Protection plugin"
+PLUGIN_VERSION="0.33BETA (EXPERIMENTAL!)"
+PLUGIN_CONF_FILE="ssh-brute-force-protection.conf"
+#
+# Last changed          : February 13, 2008
+# Requirements          : kernel 2.6 + ipt_recent
+# Comments              : This plugin protects port 22 (SSH) for brute force cracking by
+#                         limiting the amount of connection attempts for each source IP
+#                         in specific time slot
+#
+# Author                : (C) Copyright 2006-2008 by Arno van Amersfoort
+# Homepage              : http://rocky.eld.leidenuniv.nl/
+# Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
+# Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------------------
+
+# Plugin start function
+plugin_start()
+{
+  # Show who we are:
+  echo " $PLUGIN_NAME v$PLUGIN_VERSION"
+
+  # Probe module ipt_recent (Allows checking for recent packets):
+  module_probe ipt_recent
+
+  # Create new SSH_LOG_DROP chain for loggin' 'n droppin':
+  $IPTABLES -N SSH_LOG_DROP
+  $IPTABLES -A SSH_LOG_DROP -m limit --limit 1/m --limit-burst 1 -j LOG \
+    --log-level $LOGLEVEL --log-prefix "SSH Brute force attack?: "
+  $IPTABLES -A SSH_LOG_DROP -j DROP
+
+  # Create new SSH_CHK to insert SSH checker + whitelist:
+  $IPTABLES -N SSH_CHK
+
+  if [ -n "$SSH_BFP_TRUSTED_HOSTS" ]; then
+    # Create whitelist:
+    echo "  Allowing bypass of SSH protection checks for: $SSH_BFP_TRUSTED_HOSTS"
+    IFS=' ,'
+    for host in `echo "$SSH_BFP_TRUSTED_HOSTS" |sed s/','/' '/g`; do
+      $IPTABLES -A SSH_CHK -s $host -j RETURN
+    done
+  fi
+
+  # Create rate1 & rate2 checker:
+  $IPTABLES -A SSH_CHK -m recent --name sshchk --set
+  $IPTABLES -A SSH_CHK -m recent --name sshchk --update \
+    --seconds $SSH_BFP_MAX_TIME1 --hitcount $SSH_BFP_MAX_RATE1 -j SSH_LOG_DROP
+  $IPTABLES -A SSH_CHK -m recent --name sshchk --update \
+    --seconds $SSH_BFP_MAX_TIME2 --hitcount $SSH_BFP_MAX_RATE2 -j SSH_LOG_DROP
+
+  # If no ports were not configured, use default of 22
+  if [ -z "$SSH_BFP_PORTS" ]; then
+    SSH_BFP_PORTS="22"
+  fi
+
+  echo "  Protecting TCP port(s): $SSH_BFP_PORTS"
+  
+  # Insert rule into the EXTERNAL INPUT chain:
+  IFS=' ,'
+  for port in $SSH_BFP_PORTS; do
+    $IPTABLES -A EXT_INPUT_CHAIN -p tcp --dport $port -m state --state NEW -j SSH_CHK
+  done
+
+  return 0
+}
+
+
+# Plugin stop function
+plugin_stop()
+{
+  return 0
+}
+
+
+# Plugin status function
+plugin_status()
+{
+  return 0
+}
+
+
+# Check sanity of ie. environment
+plugin_sanity_check()
+{
+  if [ -z "$SSH_BFP_MAX_RATE1" ] || [ -z "$SSH_BFP_MAX_TIME1" ] || [ -z "$SSH_BFP_MAX_RATE2" ] || [ -z "$SSH_BFP_MAX_TIME2" ]; then
+    printf "\033[40m\033[1;31m  ERROR: The plugin config file is not properly set!\n          Plugin \"$PLUGIN_NAME\" not loaded!\033[0m\n" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+
+############
+# Mainline #
+############
+
+# Check where to find the config file
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+else
+  CONF_FILE="$PLUGIN_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Preset plugin return value (1=error)
+PLUGIN_RET_VAL=1
+
+# Check if the config file exists
+if [ ! -e "$CONF_FILE" ]; then
+  printf "\033[40m\033[1;31m WARNING: Config file \"$CONF_FILE\" not found!\n          Plugin \"$PLUGIN_NAME\" not loaded!\033[0m\n" >&2
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  if [ "$ENABLED" = "1" ]; then
+    # Only proceed if environment ok
+    if plugin_sanity_check; then
+      case $PLUGIN_CMD in
+        start|'') PLUGIN_RET_VAL=0; plugin_start;;
+        stop    ) PLUGIN_RET_VAL=0; plugin_stop;;
+        status  ) PLUGIN_RET_VAL=0; plugin_status;;
+        *       ) printf "\033[40m\033[1;31m ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\n          Plugin \"$PLUGIN_NAME\" not loaded!\033[0m\n" >&2;;
+      esac
+    fi
+  else
+    PLUGIN_RET_VAL=0
+  fi
+fi
