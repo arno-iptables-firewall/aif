@@ -2,7 +2,7 @@ Version 1.9.2e-DEVEL (September 2, 2009)
 --------------------------------
 * We should explicitly enable net.netfilter.nf_conntrack_acct for kernel 2.6.27+
   to allow the use of traffic accounting and such (thank Lonnie)
-+ Updated several plugins
+* Don't /dev/null iptables -t nat related stuff. We just need the nat module, and that's all there is to it
 
 Version 1.9.2d (August 24, 2009)
 --------------------------------

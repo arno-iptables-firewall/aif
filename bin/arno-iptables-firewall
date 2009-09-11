@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="1.9.2e-DEVEL"
+MY_VERSION="1.9.2d"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -630,8 +630,8 @@ init_firewall_chains()
   iptables -F INPUT
   iptables -F OUTPUT
   iptables -F FORWARD
-  iptables -t nat -F 2>/dev/null
-  iptables -t nat -X 2>/dev/null
+  iptables -t nat -F
+  iptables -t nat -X
   iptables -t mangle -F
   iptables -t mangle -X
 
@@ -674,7 +674,7 @@ init_firewall_chains()
 
   # Reset the iptables counters
   iptables -Z
-  iptables -t nat -Z 2>/dev/null
+  iptables -t nat -Z
   iptables -t mangle -Z
 }
 
@@ -4895,8 +4895,8 @@ stop_firewall()
   iptables -F FORWARD
   iptables -t mangle -F
   iptables -t mangle -X
-  iptables -t nat -F 2>/dev/null
-  iptables -t nat -X 2>/dev/null
+  iptables -t nat -F
+  iptables -t nat -X
 
   # Attempt to flush all rules in filter table
   iptables -F
@@ -4918,7 +4918,7 @@ reinit_firewall_chains()
   iptables -F INPUT
   iptables -F OUTPUT
   iptables -F FORWARD
-  iptables -t nat -F 2>/dev/null
+  iptables -t nat -F
   iptables -t mangle -F
 
   # Restore our base chains (which weren't flushed so any
@@ -4942,8 +4942,8 @@ stop_block_firewall()
   iptables -F INPUT
   iptables -F OUTPUT
   iptables -F FORWARD
-  iptables -t nat -F 2>/dev/null
-  iptables -t nat -X 2>/dev/null
+  iptables -t nat -F
+  iptables -t nat -X
   iptables -t mangle -F
   iptables -t mangle -X
 
