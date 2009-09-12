@@ -688,13 +688,13 @@ setup_default_policies()
     echo " Setting default INPUT/FORWARD policy to DROP"
     iptables -P INPUT DROP
     iptables -P FORWARD DROP
+    iptables -P OUTPUT DROP
   else
     echo " WARNING: Setting default INPUT/FORWARD policy to ACCEPT (during startup)"
     iptables -P INPUT ACCEPT
     iptables -P FORWARD ACCEPT
+    iptables -P OUTPUT ACCEPT
   fi
-
-  iptables -P OUTPUT ACCEPT
 
   # The POST_INPUT_DROP_CHAIN should temporarely DROP for now
   # We we'll change this once the rules are in place
@@ -4785,6 +4785,9 @@ setup_firewall_rules()
   
   # Remove the temp rule at the beginning of the POST_INPUT_DROP_CHAIN
   iptables -D POST_INPUT_DROP_CHAIN 1
+
+  # Set default Output policy
+  iptables -P OUTPUT ACCEPT
 }
 
 
