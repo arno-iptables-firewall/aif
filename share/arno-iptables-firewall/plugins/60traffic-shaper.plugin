@@ -232,7 +232,7 @@ plugin_start_htb()
   # Some required modules are already loaded by the main script:
   modprobe ip_nat
 
-  printf " Shaping as %d/%d kb/s using %s\n" $DOWNLINK $UPLINK 'hfsc'
+  printf " Shaping as %d/%d kb/s using %s\n" $DOWNLINK $UPLINK 'htb'
 
   iptables -t mangle -N SHAPER_CHAIN
 
