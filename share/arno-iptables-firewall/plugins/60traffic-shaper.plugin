@@ -2,10 +2,10 @@
 #      -= Arno's iptables firewall - HTB & HFSC traffic shaper plugin =-
 #
 PLUGIN_NAME="Traffic-Shaper plugin"
-PLUGIN_VERSION="1.2.01 (htb: well tested, hfsc: experimental)"
+PLUGIN_VERSION="1.2.02 (htb: well tested, hfsc: experimental)"
 PLUGIN_CONF_FILE="traffic-shaper.conf"
 #
-# Last changed          : August 23, 2009
+# Last changed          : September 11, 2009
 # Requirements          : kernel 2.6 + iproute
 # Comments              : This plugin will shape traffic. It borrows heavily on
 # 			  the logic of Maciej's original script (below), with
@@ -158,7 +158,7 @@ plugin_start_hfsc()
     return 1
   fi
 
-  printf " Shaping as %d/%dkb/s using %s\n" $UPLINK $DOWNLINK 'hfsc'
+  printf " Shaping as %d/%d kb/s using %s\n" $DOWNLINK $UPLINK 'hfsc'
 
   iptables -t mangle -N SHAPER_CHAIN
 
@@ -232,7 +232,7 @@ plugin_start_htb()
   # Some required modules are already loaded by the main script:
   modprobe ip_nat
 
-  printf " Shaping as %d/%dkb/s using %s\n" $UPLINK $DOWNLINK 'hfsc'
+  printf " Shaping as %d/%d kb/s using %s\n" $DOWNLINK $UPLINK 'hfsc'
 
   iptables -t mangle -N SHAPER_CHAIN
 
