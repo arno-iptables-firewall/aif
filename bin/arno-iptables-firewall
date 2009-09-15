@@ -4277,7 +4277,7 @@ setup_firewall_rules()
 
   # When IPv4 support is active, disable IPv6 traffic
   if [ "$IPV6_SUPPORT" = "1" ]; then
-      echo "NOTE: IPv6 support enabled, setting default policy for IPv4 to DROP"
+    echo "NOTE: IPv6 support enabled, setting default policy for IPv4 to DROP"
     ip4tables -P INPUT DROP
     ip4tables -P FORWARD DROP
     ip4tables -P OUTPUT DROP
