@@ -4443,8 +4443,8 @@ setup_firewall_rules()
   ##############################
   iptables -A INPUT -j POST_INPUT_CHAIN
   
-  # block everything else (just in case)...
-  #########################################
+  # Everything else is logged & dropped in INPUT (just in case)...
+  ################################################################
   iptables -A INPUT -m limit --limit 1/s -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Dropped INPUT packet: "
   iptables -A INPUT -j DROP
 
@@ -4762,7 +4762,7 @@ setup_firewall_rules()
   # Jump to the post forward chain
   iptables -A FORWARD -j POST_FORWARD_CHAIN
   
-  # Everything else is logged & dropped
+  # Everything else is logged & dropped in FORWARD
   iptables -A FORWARD -m limit --limit 1/m  --limit-burst 3 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Dropped FORWARD packet: "
   iptables -A FORWARD -j DROP
 
@@ -4780,14 +4780,14 @@ setup_firewall_rules()
   # Jump to the post output chain
   iptables -A OUTPUT -j POST_OUTPUT_CHAIN
   
+  # Everything else is accepted in OUTPUT
+  iptables -A OUTPUT -j ACCEPT
+
   # Drop all packets at the end of the POST_INPUT_DROP_CHAIN
   iptables -A POST_INPUT_DROP_CHAIN -j DROP
   
   # Remove the temp rule at the beginning of the POST_INPUT_DROP_CHAIN
   iptables -D POST_INPUT_DROP_CHAIN 1
-
-  # Set default Output policy
-  iptables -P OUTPUT ACCEPT
 }
 
 
