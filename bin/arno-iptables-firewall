@@ -685,12 +685,12 @@ setup_default_policies()
   # default for other chains (ie. OUTPUT) is always set to ACCEPT.
   #######################################################################
   if [ "$DEFAULT_POLICY_DROP" != "0" ]; then
-    echo " Setting default INPUT/FORWARD policy to DROP"
+    echo " Setting all default policies to DROP while \"setting up firewall rules\""
     iptables -P INPUT DROP
     iptables -P FORWARD DROP
     iptables -P OUTPUT DROP
   else
-    echo " WARNING: Setting default INPUT/FORWARD policy to ACCEPT (during startup)"
+    echo " WARNING: Setting all default policies to ACCEPT while \"setting up firewall rules\""
     iptables -P INPUT ACCEPT
     iptables -P FORWARD ACCEPT
     iptables -P OUTPUT ACCEPT
