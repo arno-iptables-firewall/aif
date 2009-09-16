@@ -3647,6 +3647,9 @@ setup_ext_output_chain()
       done
     done
   done
+
+  echo " Allowing all (other) ports/protocols"
+  iptables -A EXT_OUTPUT_CHAIN -j ACCEPT
 }
 
 

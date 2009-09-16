@@ -5,7 +5,6 @@ Version 1.9.2e-DEVEL (September 16, 2009)
 * Don't /dev/null iptables -t nat related stuff. We just need the nat module, and that's all there is to it
 ! DROP any new traffic while firewall rules are generated so improper states are not created during start/restart
 * The default OUTPUT policy no longer sees traffic after setting up the firewall rules in the chains
-! Removed an unconditional ACCEPT in the EXT_OUTPUT_CHAIN keeping the remaining OUTPUT chains from seeing traffic
 
 Version 1.9.2d (August 24, 2009)
 --------------------------------
