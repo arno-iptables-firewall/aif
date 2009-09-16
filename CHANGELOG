@@ -6,6 +6,8 @@ Version 1.9.2e-DEVEL (September 16, 2009)
 ! DROP any new traffic while firewall rules are generated so improper states are not created during start/restart
 * The default OUTPUT policy no longer sees traffic after setting up the firewall rules in the chains
 ! Removed an unconditional ACCEPT in the EXT_OUTPUT_CHAIN keeping the POST_OUTPUT_CHAIN from seeing EXT_IF traffic
+! Several fixes/changes for the POST_xxxx_CHAINs. This should make the POST stuff more
+  consistent among INPUT/FORWARD/OUTPUT
 
 Version 1.9.2d (August 24, 2009)
 --------------------------------
