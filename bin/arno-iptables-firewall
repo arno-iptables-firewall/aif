@@ -3647,9 +3647,6 @@ setup_ext_output_chain()
       done
     done
   done
-
-  echo " Allowing all (other) ports/protocols"
-  iptables -A EXT_OUTPUT_CHAIN -j ACCEPT
 }
 
 
@@ -4916,6 +4913,10 @@ reinit_firewall_chains()
 
   # Flush our user chains
   flush_user_chains;
+
+  # Temporarily set OUTPUT default policy to ACCEPT
+  # Without it, active states will be flushed.
+  iptables -P OUTPUT ACCEPT
 
   # Flush Built-in Rules
   iptables -F INPUT
