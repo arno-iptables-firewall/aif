@@ -3410,9 +3410,6 @@ setup_ext_input_chain()
   else
     echo " Logging of other IP protocols (non TCP/UDP/ICMP) connection attempts disabled"
   fi
-
-  # Jump into the post input chain, which will finally drop the packet
-  iptables -A EXT_INPUT_CHAIN -j POST_INPUT_CHAIN
 }
 
 
