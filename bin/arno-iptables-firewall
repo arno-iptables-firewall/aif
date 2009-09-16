@@ -4433,14 +4433,6 @@ setup_firewall_rules()
     done
   fi
 
-  # Jump to the POST INPUT chain
-  ##############################
-  iptables -A INPUT -j POST_INPUT_CHAIN
-  
-  # Everything else is logged & dropped in INPUT (just in case)...
-  ################################################################
-  iptables -A POST_INPUT_CHAIN -j POST_INPUT_DROP_CHAIN
-
   # Drop all packets at the end of the POST_INPUT_DROP_CHAIN
   iptables -A POST_INPUT_DROP_CHAIN -m limit --limit 1/s -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Dropped INPUT packet: "
   iptables -A POST_INPUT_DROP_CHAIN -j DROP
@@ -4448,6 +4440,14 @@ setup_firewall_rules()
   # Remove the temp rule at the beginning of the POST_INPUT_DROP_CHAIN
   iptables -D POST_INPUT_DROP_CHAIN 1
 
+  # Everything else is logged & dropped in POST_INPUT (just in case)...
+  ################################################################
+  iptables -A POST_INPUT_CHAIN -j POST_INPUT_DROP_CHAIN
+
+  # Jump to the POST INPUT chain
+  ##############################
+  iptables -A INPUT -j POST_INPUT_CHAIN
+  
   ###############################################################################################
   # FORWARD rules                                                                               #
   ###############################################################################################
@@ -4759,13 +4759,13 @@ setup_firewall_rules()
     echo "Security is ENFORCED for external interface(s) in the FORWARD chain"
   fi
 
-  # Jump to the post forward chain
-  iptables -A FORWARD -j POST_FORWARD_CHAIN
-  
-  # Everything else is logged & dropped in FORWARD
+  # Everything else is logged & dropped in POST_FORWARD
   iptables -A POST_FORWARD_CHAIN -m limit --limit 1/m  --limit-burst 3 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Dropped FORWARD packet: "
   iptables -A POST_FORWARD_CHAIN -j DROP
 
+  # Jump to the post forward chain
+  iptables -A FORWARD -j POST_FORWARD_CHAIN
+  
   # Post/pre routing post chains
   iptables -t nat -A PREROUTING -j POST_NAT_PREROUTING_CHAIN
   iptables -t nat -A POSTROUTING -j POST_NAT_POSTROUTING_CHAIN
