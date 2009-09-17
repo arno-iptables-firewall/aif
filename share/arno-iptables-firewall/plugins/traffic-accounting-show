@@ -13,16 +13,16 @@ show_human_size()
   fi
 
   if [ $1 -lt 10000000 ]; then
-    echo "$(($1 / 1000)) KBytes"
+    echo "$(($1 / 1024)) KiB"
     return 0
   fi
 
   if [ $1 -lt 10000000000 ]; then
-    echo "$(($1 / 1000000)) MBytes"
+    echo "$(($1 / (1024*1024))) MiB"
     return 0
   fi
 
-  echo "$(($1 / 1000000000)) GBytes"
+  echo "$(($1 / (1024*1024*1024))) GiB"
   return 0
 }
 
