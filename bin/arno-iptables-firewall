@@ -3391,10 +3391,6 @@ setup_ext_input_chain()
     echo "Logging of (other) connection attempts to UNPRIVILEGED UDP ports disabled"
   fi
 
-  # Allow all packets that have been locally redirected
-  #####################################################
-  iptables -A EXT_INPUT_CHAIN -m conntrack --ctstate DNAT -j ACCEPT
-
   # Drop all "standard" IP protcols
   #################################
   iptables -A EXT_INPUT_CHAIN -p tcp -j POST_INPUT_DROP_CHAIN
@@ -4741,9 +4737,10 @@ setup_firewall_rules()
     done
   done
 
-  # No need to keep this around, when we don't use it
-  if [ $local_fwds -eq 0 ]; then
-    iptables -D EXT_INPUT_CHAIN -m conntrack --ctstate DNAT -j ACCEPT
+  # Allow all packets that have been locally redirected
+  #####################################################
+  if [ "$local_fwds" != "0" ]; then
+    iptables -I EXT_INPUT_CHAIN -m conntrack --ctstate DNAT -j ACCEPT
   fi
 
   # Do we want to loose the forward chain to make use of protocols like UPnP possible?

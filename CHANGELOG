@@ -1,5 +1,7 @@
 Version 1.9.2e-DEVEL (September 16, 2009)
 --------------------------------
+* We should only apply the DNAT ctstate rule if we really need it in the first
+  place and not insert it and later on delete it again, if we don't need it
 * We should explicitly enable net.netfilter.nf_conntrack_acct for kernel 2.6.27+
   to allow the use of traffic accounting and such (thank Lonnie)
 * Don't /dev/null iptables -t nat related stuff. We just need the nat module, and that's all there is to it
