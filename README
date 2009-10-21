@@ -46,7 +46,7 @@ contact me and we can work something out.
 IMPORTANT NOTE:
 ---------------
 Before contacting me (by email), in case of problems, questions, etc., please
-first consult the FAQ's at my website and/or post your message on the
+first consult the FAQs at my website and/or post your message on the
 mailinglist, for which you can sign up on my website. Please use this way as
 I'm simply too busy to help everybody out with every (trivial) issue.
 
@@ -398,8 +398,6 @@ Notes on plugins:
 4) Plugins can have their own additional set of configuration variables, don't
    forget to set/review those too.
 
-Currently plugins exist that implement Racoon/IPSEC(VPN) support,
-Freeswan/IPSEC support, multirouting support and SSH-Brute Force Protection.
 Everyone is invited to write their own plugins to implement other things, and
 to submit them.
 
@@ -422,8 +420,8 @@ Notes on writing your own plugins:
    variables. It should at least contain the "ENABLED="-variable to
    enable/disable the plugin.
 4) Plugins should also have a separate file with their CHANGELOG (.CHANGELOG)
-5) Plugins should be POSIX shell compatible (ie. dash). So don't use stuff that
-   only works in Bash.
+5) Plugins should be POSIX shell compatible (ie. work with "Dash"). So don't use
+   stuff that only works in Bash.
 6) Plugins can use all variables/functions from the main-script and main
    configuration file. Plugin specific configuration variables should be put
    inside the plugin's configuration file (.conf).
@@ -431,8 +429,8 @@ Notes on writing your own plugins:
    with the main script or other plugins. The same goes for the iptables
    MARK-module, make sure that you use an unique MARK-number that doesn't
    conflict with other plugins.
-8) Plugins should cleanup the chains that they've previously created in
-   their stop-section.
+8) Plugins should in principle always cleanup up their own chains (and possibly
+   other stuff) they created at start when stopping.
 9) Submit plugins to me, if you think they can be of use to others, but note
    that I always reserve the right to decline the plugin (because it was ie.
    poorly written). Submitted plugins must be (at least) compatible with the
