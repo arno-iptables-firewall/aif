@@ -3391,6 +3391,13 @@ setup_ext_input_chain()
     echo "Logging of (other) connection attempts to UNPRIVILEGED UDP ports disabled"
   fi
 
+  # Allow all packets that have been locally redirected
+  #####################################################
+  if [ "$NAT_LOCAL_REDIRECT" = "1" ]; then
+    echo " Enabling support for NAT local redirect"
+    iptables -A EXT_INPUT_CHAIN -m conntrack --ctstate DNAT -j ACCEPT
+  fi
+
   # Drop all "standard" IP protcols
   #################################
   iptables -A EXT_INPUT_CHAIN -p tcp -j POST_INPUT_DROP_CHAIN
@@ -4633,7 +4640,6 @@ setup_firewall_rules()
 
   # Port / protocol forwarding. Forward ports or protocols on the internet-gateway to machines in our LAN
   #######################################################################################################
-  local_fwds=0
 
   # NAT TCP port forwards
   #######################
@@ -4661,8 +4667,6 @@ setup_firewall_rules()
             iptables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p tcp --dport $sport -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
             if [ -n "$dhost" ]; then
               iptables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p tcp --dport $dport -j ACCEPT
-            else
-              local_fwds=$(($local_fwds + 1))
             fi
           done
         done
@@ -4697,8 +4701,6 @@ setup_firewall_rules()
             iptables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p udp --dport $sport -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
             if [ -n "$dhost" ]; then
               iptables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p udp --dport $dport -j ACCEPT
-            else
-              local_fwds=$(($local_fwds + 1))
             fi
           done
         done
@@ -4728,20 +4730,12 @@ setup_firewall_rules()
             iptables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p $proto -j DNAT --to-destination $dhost
             if [ -n "$dhost" ]; then
               iptables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p $proto -j ACCEPT
-            else
-              local_fwds=$(($local_fwds + 1))
             fi
           done
         done
       done
     done
   done
-
-  # Allow all packets that have been locally redirected
-  #####################################################
-  if [ "$local_fwds" != "0" ]; then
-    iptables -I EXT_INPUT_CHAIN -m conntrack --ctstate DNAT -j ACCEPT
-  fi
 
   # Do we want to loose the forward chain to make use of protocols like UPnP possible?
   ####################################################################################
