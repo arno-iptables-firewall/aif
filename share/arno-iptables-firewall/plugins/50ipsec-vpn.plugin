@@ -119,9 +119,6 @@ plugin_stop()
     done
   done
 
-  modprobe -r iptable_nat
-  modprobe -r ipt_policy
-
   return 0
 }
 
