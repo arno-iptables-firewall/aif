@@ -1,5 +1,6 @@
-Version 1.9.2e-DEVEL (October 22, 2009)
+Version 1.9.2e-DEVEL (November 2, 2009)
 --------------------------------
+! Unify date format in the log (Debian bug #550222)
 * Only apply DNAT ctstate rule if explictly enabled from the config file
   (using the NAT_LOCAL_REDIRECT variable). The previous implementation was simply
   too much of a hack.
