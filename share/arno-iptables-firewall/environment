@@ -432,7 +432,7 @@ sysctl_multi()
       return 0
     fi
   done
-  printf "\033[40m\033[1;31mKernel variables $VARIABLES ALL FAILED to set! This may be a problem!\033[0m\n" >&2
+  printf "\033[40m\033[1;31mKernel variable(s) \"$VARIABLES"\" FAILED to set! This may be a problem!\033[0m\n" >&2
   return 1
 }
 
