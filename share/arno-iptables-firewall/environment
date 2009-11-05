@@ -347,7 +347,7 @@ modprobe_multi()
     # Make sure environment variable is not set
     MODPROBE_OPTIONS=""
     
-    printf " Try to loading one of module(s) $MODULES: "
+    printf " Try to load one of module(s) $MODULES: "
     IFS=' '
     for module in $MODULES; do
       result=`trace $MODPROBE $OPTIONS $module 2>&1`
