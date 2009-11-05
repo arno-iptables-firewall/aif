@@ -297,6 +297,7 @@ modprobe()
     # Make sure environment variable is not set
     MODPROBE_OPTIONS=""
 
+    printf " Loading module $1..."
     result=`trace $MODPROBE $@ 2>&1`
     retval=$?
 
@@ -305,22 +306,79 @@ modprobe()
         # Show any (error) messages in red
         printf "\033[40m\033[1;31m modprobe $@ ($retval): $result\033[0m\n" >&2
       elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-        echo " NOTE: Module \"$1\" not found. Assuming it is compiled in the kernel"
+        printf "\033[40m\033[1;31m WARNING: Module(s) \"$MODULES\" not found. Assuming it is compiled in the kernel\033[0m\n" >&2
       fi
+      return $retval
     else
       if echo "$result" |grep -q -e '^WARNING:'; then
         # Show any (warning) messages in red
         printf "\033[40m\033[1;31m modprobe $@: $result\033[0m\n" >&2
-      elif [ -n "$result" ]; then            # If result is not empty, show it
-        echo " $result"
       fi
+      
+      echo "$result"
+      return 0
     fi
   elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
     echo " NOTE: Kernel has no module support. Assuming module \"$1\" is compiled in the kernel"
   fi
 
-  return $retval
+  return 0
 }
+
+
+# Multi modprobe - Modprobe different modules until one succeeds
+modprobe_multi()
+{
+  OPTIONS=""
+  while [ -n "$1" ]; do
+    # Exit as soon as our current argument is a non-option
+    if ! echo "$1" |grep -q -e '^-'; then
+      break
+    fi
+
+    OPTIONS="$OPTIONS $1"
+    shift
+  done
+
+  MODULES="$*"
+
+  # Module support available?
+  if [ -e /proc/modules ]; then
+    # Make sure environment variable is not set
+    MODPROBE_OPTIONS=""
+    
+    printf " Try to loading one of module(s) $MODULES: "
+    IFS=' '
+    for module in $MODULES; do
+      result=`trace $MODPROBE $OPTIONS $module 2>&1`
+      retval=$?
+
+      if [ "$retval" != "0" ]; then
+        if ! echo "$result" |grep -q -e '^FATAL: Module .* not found'; then
+          # Show any (error) messages in red
+          printf "\033[40m\033[1;31m modprobe $@ ($retval): $result\033[0m\n" >&2
+        fi
+      else
+        if echo "$result" |grep -q -e '^WARNING:'; then
+          # Show any (warning) messages in red
+          printf "\033[40m\033[1;31m modprobe $@: $result\033[0m\n" >&2
+        fi
+        
+        echo "$module loaded...$result"
+        return 0
+      fi
+    done
+    if [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
+      printf "\033[40m\033[1;31m WARNING: Module(s) \"$MODULES\" not found. Assuming it is compiled in the kernel\033[0m\n" >&2
+      return 0
+    fi
+  elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
+    echo " NOTE: Kernel has no module support. Assuming module(s) \"$MODULES\" is compiled in the kernel"
+  fi
+  
+  return 0
+}
+
 
 
 # Legacy function

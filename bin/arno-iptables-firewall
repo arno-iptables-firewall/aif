@@ -247,17 +247,28 @@ load_modules()
 {
   if [ "$IPV6_SUPPORT" != "1" ]; then
     echo "Checking/probing IPv4 Iptables modules:"
+    
+    # Required; all IPv4 modules depend on this one
+    modprobe ip_tables
+    
+    # Allows connection tracking state match, which allows you to
+    # write rules matching the state of a connection
+    modprobe_multi nf_conntrack ip_conntrack
 
-    modprobe ip_tables               # Required; all ipv4 modules depend on this one
-    modprobe ip_conntrack            # Allows connection tracking state match, which allows you to
-                                         # write rules matching the state of a connection
-    modprobe ip_conntrack_ftp        # Permits active FTP; requires ip_conntrack
-
-    modprobe ipt_conntrack           # Allows tracking for various protocols, placing entries
-                                         # in the conntrack table etc.
-    modprobe ipt_limit               # Allows log limits
-    modprobe ipt_state               # Permits packet state checking (SYN, SYN-ACK, ACK, and so on).
-    modprobe ipt_multiport           # Allows packet specifications on multiple ports
+    # Permits active FTP; requires ip_conntrack 
+    modprobe_multi nf_conntrack_ftp ip_conntrack_ftp
+    
+    # Allows tracking for various protocols, placing entries in the conntrack table etc. 
+    modprobe_multi xt_conntrack ipt_conntrack
+    
+    # Allows log limits
+    modprobe_multi xt_limit ipt_limit
+    
+    # Permits packet state checking (SYN, SYN-ACK, ACK, and so on). 
+    modprobe_multi xt_state ipt_state
+    
+    # Allows packet specifications on multiple ports
+    modprobe_multi xt_multiport ipt_multiport
 
     modprobe iptable_filter          # Implements the filter table
     modprobe iptable_mangle          # Implements the mangle table
@@ -276,28 +287,31 @@ load_modules()
 
     if [ "$USE_IRC" = "1" ]; then
   #      echo "Enabling IRC DCC module support..."
-      modprobe ip_conntrack_irc        #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
+      modprobe_multi nf_conntrack_irc ip_conntrack_irc        #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
 
       if [ "$NAT" = "1" ]; then
-        modprobe ip_nat_irc            #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
+        modprobe_multi nf_nat_irc ip_nat_irc            #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
       fi
     fi
 
     if [ "$SET_MSS" != "0" ]; then
-      modprobe ipt_TCPMSS             # Load the TCPMSS target
+      modprobe_multi xt_TCPMSS ipt_TCPMSS             # Load the TCPMSS target
     fi
 
     if [ "$NAT" = "1" ]; then
-      modprobe ip_nat_ftp             # Permits active FTP via nat; requires ip_conntrack, iptables_nat
+      modprobe_multi nf_nat_ftp ip_nat_ftp             # Permits active FTP via nat; requires ip_conntrack, iptables_nat
     fi
     
     if [ "$NAT" = "1" ] || [ -n "$NAT_FORWARD_TCP" ] || [ -n "$NAT_FORWARD_UDP" ] || [ -n "$NAT_FORWARD_IP" ]; then
       modprobe iptable_nat            # Implements the NAT table
-      modprobe ipt_MASQUERADE         # Load the MASQUERADE target
+
+      if [ -n "$NAT_STATIC_IP" ]; then
+        modprobe ipt_MASQUERADE         # Load the MASQUERADE target
+      fi
     fi
 
     if [ "$MANGLE_TOS" != "0" ]; then
-      modprobe ipt_TOS                # Load the TOS target
+      modprobe_multi xt_DSCP ipt_TOS                # Load the TOS target
     fi
 
     if [ "$PACKET_TTL" = "1" ] || [ "$TTL_INC" = "1" ]; then
