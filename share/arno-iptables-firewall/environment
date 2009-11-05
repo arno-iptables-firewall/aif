@@ -297,7 +297,6 @@ modprobe()
     # Make sure environment variable is not set
     MODPROBE_OPTIONS=""
 
-    printf " Loading module $1..."
     result=`trace $MODPROBE $@ 2>&1`
     retval=$?
 
@@ -315,7 +314,7 @@ modprobe()
         printf "\033[40m\033[1;31m modprobe $@: $result\033[0m\n" >&2
       fi
       
-      echo "$result"
+      echo " Loaded kernel module $1...$result"
       return 0
     fi
   elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
@@ -347,7 +346,6 @@ modprobe_multi()
     # Make sure environment variable is not set
     MODPROBE_OPTIONS=""
     
-    printf " Try to load one of module(s) $MODULES: "
     IFS=' '
     for module in $MODULES; do
       result=`trace $MODPROBE $OPTIONS $module 2>&1`
@@ -364,16 +362,17 @@ modprobe_multi()
           printf "\033[40m\033[1;31m modprobe $@: $result\033[0m\n" >&2
         fi
         
-        echo "$module loaded...$result"
+        echo " Loaded kernel module $module. $result"
         return 0
       fi
     done
     if [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
       printf "\033[40m\033[1;31m WARNING: Module(s) \"$MODULES\" not found. Assuming it is compiled in the kernel\033[0m\n" >&2
-      return 0
+      return 1
     fi
   elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-    echo " NOTE: Kernel has no module support. Assuming module(s) \"$MODULES\" is compiled in the kernel"
+    echo " NOTE: Kernel has no module support. Assuming module(s) \"$MODULES\" are compiled in the kernel"
+    return 1
   fi
   
   return 0
@@ -400,9 +399,41 @@ sysctl()
   if [ "$retval" != "0" ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m sysctl $@ ($retval): $result\033[0m\n" >&2
+    return $retval
   fi
+  echo " Set kernel parameter $@"
+  return 0
+}
 
-  return $retval
+
+# Multi sysctl - Try sysctl-variables until one succeeds
+sysctl_multi()
+{
+  OPTIONS=""
+  while [ -n "$1" ]; do
+    # Exit as soon as our current argument is a non-option
+    if ! echo "$1" |grep -q -e '^-'; then
+      break
+    fi
+
+    OPTIONS="$OPTIONS $1"
+    shift
+  done
+
+  VARIABLES="$*"
+
+  IFS=' '
+  for variable in $VARIABLES; do
+    result=`trace $SYSCTL -w $OPTIONS $variable 2>&1`
+    retval=$?
+
+    if [ "$retval" = "0" ]; then
+      echo " Set kernel parameter $variable"
+      return 0
+    fi
+  done
+  printf "\033[40m\033[1;31mKernel variables $VARIABLES ALL FAILED to set! This may be a problem!\033[0m\n" >&2
+  return 1
 }
 
 
