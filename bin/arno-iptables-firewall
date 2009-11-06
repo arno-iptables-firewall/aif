@@ -245,6 +245,9 @@ sanity_check()
 
 load_modules()
 {
+  # Set indent for functions
+  INDENT='  '
+
   if [ "$IPV6_SUPPORT" != "1" ]; then
     echo "Checking/probing IPv4 Iptables modules:"
     
@@ -360,6 +363,9 @@ setup_kernel_settings()
   if [ -z "$CONNTRACK" ]; then
     CONNTRACK="4096"
   fi
+
+  # Set INDENT value for functions
+  INDENT='  '
 
   echo " Setting the max. amount of simultaneous connections to $CONNTRACK"
   sysctl_multi net.nf_conntrack_max=$CONNTRACK \
@@ -627,6 +633,9 @@ setup_kernel_settings()
 init_firewall_chains()
 {
   echo "Initializing firewall chains"
+
+  # Set INDENT for functions
+  INDENT='  '
 
   # Attempt to flush all rules in filter table
   ############################################
@@ -4903,6 +4912,9 @@ stop_firewall()
 reinit_firewall_chains()
 {
   echo "Reinitializing firewall chains"
+
+  # Set INDENT for functions
+  INDENT='  '
 
   # Create chains, just in case
   create_user_chains 2>/dev/null

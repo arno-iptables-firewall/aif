@@ -32,6 +32,7 @@ ANYPORT="0:65535"
 SEP="~"
 SEP2="#"
 SEP3="|"
+INDENT=""
 TAB="$(printf '\t')"
 EOL='
 '
@@ -168,8 +169,8 @@ trace()
 check_binary()
 {
   if ! which "$1" >/dev/null 2>&1; then
-    printf "\033[40m\033[1;31mERROR: Binary \"$1\" does not exist or is not executable!\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       Please, make sure that it is (properly) installed!\033[0m\n" >&2
+    printf "${INDENT}\033[40m\033[1;31mERROR: Binary \"$1\" does not exist or is not executable!\033[0m\n" >&2
+    printf "${INDENT}\033[40m\033[1;31m       Please, make sure that it is (properly) installed!\033[0m\n" >&2
     exit 2
   fi
 }
@@ -238,12 +239,12 @@ iptables()
 
   if [ "$retval" != "0" ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m($retval) $result\033[0m\n" >&2
+    printf "${INDENT}\033[40m\033[1;31m($retval) $result\033[0m\n" >&2
     if note_iptables_error "$@"; then
       IPTABLES_ERROR=1
     fi
   elif [ -n "$result" ]; then
-    echo "$result"
+    echo "${INDENT}$result"
   fi
 
   return $retval
@@ -257,12 +258,12 @@ ip4tables()
 
   if [ "$retval" != "0" ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m($retval) $result\033[0m\n" >&2
+    printf "${INDENT}\033[40m\033[1;31m($retval) $result\033[0m\n" >&2
     if note_iptables_error "$@"; then
       IPTABLES_ERROR=1
     fi
   elif [ -n "$result" ]; then
-    echo "$result"
+    echo "${INDENT}$result"
   fi
 
   return $retval
@@ -276,12 +277,12 @@ ip6tables()
 
   if [ "$retval" != "0" ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m($retval) $result\033[0m\n" >&2
+    printf "${INDENT}\033[40m\033[1;31m($retval) $result\033[0m\n" >&2
     if note_iptables_error "$@"; then
       IPTABLES_ERROR=1
     fi
   elif [ -n "$result" ]; then
-    echo "$result"
+    echo "${INDENT}$result"
   fi
 
   return $retval
@@ -305,20 +306,20 @@ modprobe()
         # Show any (error) messages in red
         printf "\033[40m\033[1;31m modprobe $@ ($retval): $result\033[0m\n" >&2
       elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-        printf "\033[40m\033[1;31m WARNING: Module(s) \"$MODULES\" not found. Assuming it is compiled in the kernel\033[0m\n" >&2
+        printf "${INDENT}\033[40m\033[1;31mWARNING: Module(s) \"$MODULES\" not found. Assuming it is compiled in the kernel\033[0m\n" >&2
       fi
       return $retval
     else
       if echo "$result" |grep -q -e '^WARNING:'; then
         # Show any (warning) messages in red
-        printf "\033[40m\033[1;31m modprobe $@: $result\033[0m\n" >&2
+        printf "${INDENT}\033[40m\033[1;31mmodprobe $@: $result\033[0m\n" >&2
       fi
       
-      echo " Loaded kernel module $1...$result"
+      echo "${INDENT}Loaded kernel module $1...$result"
       return 0
     fi
   elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-    echo " NOTE: Kernel has no module support. Assuming module \"$1\" is compiled in the kernel"
+    echo "${INDENT}NOTE: Kernel has no module support. Assuming module \"$1\" is compiled in the kernel"
   fi
 
   return 0
@@ -354,24 +355,24 @@ modprobe_multi()
       if [ "$retval" != "0" ]; then
         if ! echo "$result" |grep -q -e '^FATAL: Module .* not found'; then
           # Show any (error) messages in red
-          printf "\033[40m\033[1;31m modprobe $@ ($retval): $result\033[0m\n" >&2
+          printf "${INDENT}\033[40m\033[1;31mmodprobe $@ ($retval): $result\033[0m\n" >&2
         fi
       else
         if echo "$result" |grep -q -e '^WARNING:'; then
           # Show any (warning) messages in red
-          printf "\033[40m\033[1;31m modprobe $@: $result\033[0m\n" >&2
+          printf "${INDENT}\033[40m\033[1;31mmodprobe $@: $result\033[0m\n" >&2
         fi
         
-        echo " Loaded kernel module $module. $result"
+        echo "${INDENT}Loaded kernel module $module. $result"
         return 0
       fi
     done
     if [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-      printf "\033[40m\033[1;31m WARNING: Module(s) \"$MODULES\" not found. Assuming it is compiled in the kernel\033[0m\n" >&2
+      printf "${INDENT}\033[40m\033[1;31mWARNING: Module(s) \"$MODULES\" not found. Assuming it is compiled in the kernel\033[0m\n" >&2
       return 1
     fi
   elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-    echo " NOTE: Kernel has no module support. Assuming module(s) \"$MODULES\" are compiled in the kernel"
+    echo "${INDENT}NOTE: Kernel has no module support. Assuming module(s) \"$MODULES\" are compiled in the kernel"
     return 1
   fi
   
@@ -384,7 +385,7 @@ modprobe_multi()
 #################
 module_probe()
 {
-  printf "\033[40m\033[1;31mFunction module_probe() will soon be deprecated, please use modprobe() instead!\033[0m\n" >&2
+  printf "${INDENT}\033[40m\033[1;31mFunction module_probe() will soon be deprecated, please use modprobe() instead!\033[0m\n" >&2
   modprobe "$@"
 }
 
@@ -398,10 +399,10 @@ sysctl()
 
   if [ "$retval" != "0" ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m sysctl $@ ($retval): $result\033[0m\n" >&2
+    printf "${INDENT}\033[40m\033[1;31msysctl $@ ($retval): $result\033[0m\n" >&2
     return $retval
   fi
-  echo " Set kernel parameter $@"
+  echo "${INDENT}Set kernel parameter $@"
   return 0
 }
 
@@ -428,11 +429,11 @@ sysctl_multi()
     retval=$?
 
     if [ "$retval" = "0" ]; then
-      echo " Set kernel parameter $variable"
+      echo "${INDENT}Set kernel parameter $variable"
       return 0
     fi
   done
-  printf "\033[40m\033[1;31mKernel variable(s) \"$VARIABLES\" FAILED to set! This may be a problem!\033[0m\n" >&2
+  printf "${INDENT}\033[40m\033[1;31mKernel variable(s) \"$VARIABLES\" FAILED to set! This may be a problem!\033[0m\n" >&2
   return 1
 }
 
@@ -765,3 +766,4 @@ ip_range()
     fi
   done
 }
+

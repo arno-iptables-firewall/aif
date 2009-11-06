@@ -1,5 +1,6 @@
-Version 1.9.2e-DEVEL (November 5, 2009)
+Version 1.9.2e-DEVEL (November 6, 2009)
 --------------------------------
++ Implemented support to set INDENT(space) value for functions in environment
 + Added sysctl_multi() & modprobe_multi() functions to allow probing for several modules/variables at once
 ! Unify date format in the log (Debian bug #550222)
 * Only apply DNAT ctstate rule if explictly enabled from the config file
