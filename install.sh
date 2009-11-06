@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 
-MY_VERSION="1.0c"
+MY_VERSION="1.01"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -73,11 +73,11 @@ copy_ask_if_exist()
 
   unset IFS
   for source in `find "$1" -type f`; do
-    fn="$(echo "$source" |sed "s,^$1/,,")"
+    fn="$(echo "$source" |sed "s,^$1,,")"
     if [ -z "$fn" ]; then
-      target="$2/$(basename "$1")"
+      target="$2$(basename "$1")"
     else
-      target="$2/$fn"
+      target="$2$fn"
     fi
 
     if [ -e "$target" ]; then
@@ -85,7 +85,7 @@ copy_ask_if_exist()
       if ! diff "$source" "$target" >/dev/null; then
         printf "* File \"$target\" already exists. Overwrite(Y/N)? "
 
-        read C
+        read -s -n1 C
         if [ "$C" != "y" ] && [ "$C" != "Y" ]; then
           echo " No. Skipped..."
           continue;
@@ -119,11 +119,11 @@ copy_skip_if_exist()
 
   unset IFS
   for source in `find $1 -type f`; do
-    fn="$(echo "$source" |sed "s,^$1/,,")"
+    fn="$(echo "$source" |sed "s,^$1,,")"
     if [ -z "$fn" ]; then
-      target="$2/$(basename "$1")"
+      target="$2$(basename "$1")"
     else
-      target="$2/$fn"
+      target="$2$fn"
     fi
 
     if [ -e "$target" ]; then
@@ -152,11 +152,11 @@ copy_overwrite()
 
   unset IFS
   for source in `find $1 -type f`; do
-    fn="$(echo "$source" |sed "s,^$1/,,")"
+    fn="$(echo "$source" |sed "s,^$1,,")"
     if [ -z "$fn" ]; then
-      target="$2/$(basename "$1")"
+      target="$2$(basename "$1")"
     else
-      target="$2/$fn"
+      target="$2$fn"
     fi
 
     if ! cp -fv "$source" "$target"; then
@@ -201,7 +201,7 @@ get_user_yn()
 {
   printf "$1"
 
-  read answer
+  read -s -n1 answer
 
   if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
     echo " Yes"
@@ -276,13 +276,10 @@ sanity_check;
 # We want to run in the dir the install script is in
 cd "$(dirname $0)"
 
-printf "Continue install (Y/N)? "
-read C
-if [ "$C" != "y" ] && [ "$C" != "Y" ]; then
-  echo " No. Install aborted"
+if ! get_user_yn "Continue install (Y/N)? " "n"; then
+  echo "*Install aborted"
   exit 1
 fi
-echo " Yes"
 
 copy_overwrite ./bin/ /usr/local/sbin/
 

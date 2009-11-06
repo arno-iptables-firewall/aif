@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 
-MY_VERSION="0.11BETA"
+MY_VERSION="0.11"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -45,7 +45,7 @@ get_user_yn()
   printf "$1"
 
   while true; do
-    read answer
+    read -s -n1 answer
 
     # Fallback to default
     if [ -z "$answer" ]; then
@@ -75,13 +75,10 @@ echo "--------------------------------------------------------------------------
 
 sanity_check;
 
-printf "Continue uninstall (Y/N)? "
-read C
-if [ "$C" != "y" ] && [ "$C" != "Y" ]; then
-  echo " No. Uninstall aborted!"
+if get_user_yn "Continue uninstall (Y/N)? " "n"; then
+  echo "*Uninstall aborted!"
   exit 1
 fi
-echo " Yes"
 
 rm -fv /usr/local/sbin/arno-iptables-firewall
 rm -fv /usr/local/sbin/arno-fwfilter
