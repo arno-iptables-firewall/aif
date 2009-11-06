@@ -294,7 +294,6 @@ gzip -c -v ./share/man/man8/arno-iptables-firewall.8 >/usr/local/share/man/man8/
 gzip -c -v ./share/man/man1/arno-fwfilter.1 >/usr/local/share/man/man8/arno-fwfilter.1.gz
 
 mkdir -pv /etc/arno-iptables-firewall
-copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
 cp -fv ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf.dist
 copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
 #cp -fv ./etc/arno-iptables-firewall/firewall.conf.example /etc/arno-iptables-firewall/
@@ -322,6 +321,21 @@ if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/)? (Y
       ln -sv /etc/init.d/arno-iptables-firewall /etc/rc2.d/S38arno-iptables-firewall
     fi
   fi
+fi
+
+if [ -e "/etc/arno-iptables-firewall/firewall.conf" ]; then
+  if diff ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf >/dev/null; then
+    printf "Your local /etc/arno-iptables-firewall/firewall.conf already exists. Overwrite it(Y/N)?"
+    read -s -n1 C
+    if [ C = "y" ] || [ C = "Y" ]; then
+      echo " Yes"
+      cp -fv ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
+    else
+      echo " No. File skipped!"
+    fi
+  fi
+else
+  cp -v ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
 fi
 
 if diff ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf >/dev/null; then
