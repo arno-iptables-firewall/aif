@@ -73,11 +73,11 @@ copy_ask_if_exist()
 
   unset IFS
   for source in `find "$1" -type f`; do
-    target="$(echo "$source" |sed "s,^$1,,")"
-    if [ -z "$target" ]; then
+    fn="$(echo "$source" |sed "s,^$1/,,")"
+    if [ -z "$fn" ]; then
       target="$2/$(basename "$1")"
     else
-      target="$2/$target"
+      target="$2/$fn"
     fi
 
     if [ -e "$target" ]; then
@@ -87,9 +87,10 @@ copy_ask_if_exist()
 
         read C
         if [ "$C" != "y" ] && [ "$C" != "Y" ]; then
-          echo "*Skipped..."
+          echo " No. Skipped..."
           continue;
         fi
+        echo " Yes"
       else
         echo "Target file \"$target\" is the same as source. Skipping."
         continue;
@@ -118,11 +119,11 @@ copy_skip_if_exist()
 
   unset IFS
   for source in `find $1 -type f`; do
-    target="$(echo "$source" |sed "s,^$1,,")"
-    if [ -z "$target" ]; then
+    fn="$(echo "$source" |sed "s,^$1/,,")"
+    if [ -z "$fn" ]; then
       target="$2/$(basename "$1")"
     else
-      target="$2/$target"
+      target="$2/$fn"
     fi
 
     if [ -e "$target" ]; then
@@ -151,11 +152,11 @@ copy_overwrite()
 
   unset IFS
   for source in `find $1 -type f`; do
-    target="$(echo "$source" |sed "s,^$1,,")"
-    if [ -z "$target" ]; then
+    fn="$(echo "$source" |sed "s,^$1/,,")"
+    if [ -z "$fn" ]; then
       target="$2/$(basename "$1")"
     else
-      target="$2/$target"
+      target="$2/$fn"
     fi
 
     if ! cp -fv "$source" "$target"; then
@@ -186,6 +187,7 @@ get_conf_var()
   read answer
 
   if [ -z "$answer" ]; then
+    echo "$4"
     change_conf_var "$2" "$3" "$4"
   else
     change_conf_var "$2" "$3" "$answer"
@@ -202,17 +204,21 @@ get_user_yn()
   read answer
 
   if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
+    echo " Yes"
     return 0
   fi
 
   if [ "$answer" = "n" ] || [ "$answer" = "N" ]; then
+    echo " No"
     return 1
   fi
 
   # Fallback to default
   if [ "$2" = "y" ]; then
+    echo " Yes"
     return 0
   else
+    echo " No"
     return 1
   fi
 }
@@ -273,9 +279,10 @@ cd "$(dirname $0)"
 printf "Continue install (Y/N)? "
 read C
 if [ "$C" != "y" ] && [ "$C" != "Y" ]; then
-  echo "*Install aborted"
+  echo " No. Install aborted"
   exit 1
 fi
+echo " Yes"
 
 copy_overwrite ./bin/ /usr/local/sbin/
 
@@ -338,3 +345,4 @@ echo "**       It is recommended however to first review the settings in        
 echo "**       /etc/arno-iptables-firewall/firewall.conf!                          **"
 
 exit 0
+
