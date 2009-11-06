@@ -246,7 +246,7 @@ sanity_check()
 load_modules()
 {
   # Set indent for functions
-  INDENT='  '
+  INDENT=' '
 
   if [ "$IPV6_SUPPORT" != "1" ]; then
     echo "Checking/probing IPv4 Iptables modules:"
@@ -279,6 +279,18 @@ load_modules()
     # Explicitly load some targets
     modprobe ipt_REJECT              # Implements the REJECT target
     modprobe ipt_LOG                 # Implements the LOG target
+    
+    if [ "$SET_MSS" != "0" ]; then
+      modprobe_multi xt_TCPMSS ipt_TCPMSS             # Load the TCPMSS target
+    fi
+ 
+    if [ "$MANGLE_TOS" != "0" ]; then
+      modprobe_multi xt_DSCP ipt_DSCP ipt_TOS                # Load the TOS target
+    fi
+
+    if [ "$PACKET_TTL" = "1" ] || [ "$TTL_INC" = "1" ]; then
+      modprobe ipt_TTL                # Load the TTL target
+    fi
 
   # (Currently) unused modules:
   #    modprobe ipt_addrtype            # Allows matching src/dst address type (BROKEN!)
@@ -297,10 +309,6 @@ load_modules()
       fi
     fi
 
-    if [ "$SET_MSS" != "0" ]; then
-      modprobe_multi xt_TCPMSS ipt_TCPMSS             # Load the TCPMSS target
-    fi
-
     if [ "$NAT" = "1" ]; then
       modprobe_multi nf_nat_ftp ip_nat_ftp             # Permits active FTP via nat; requires ip_conntrack, iptables_nat
     fi
@@ -312,14 +320,6 @@ load_modules()
         modprobe ipt_MASQUERADE         # Load the MASQUERADE target
       fi
     fi
-
-    if [ "$MANGLE_TOS" != "0" ]; then
-      modprobe_multi xt_DSCP ipt_TOS                # Load the TOS target
-    fi
-
-    if [ "$PACKET_TTL" = "1" ] || [ "$TTL_INC" = "1" ]; then
-      modprobe ipt_TTL                # Load the TTL target
-    fi
   else
     echo "Checking/probing IPv6 Iptables modules:"
 
@@ -327,6 +327,18 @@ load_modules()
 
     modprobe nf_conntrack_ipv6       # Allows connection tracking state match, which allows you to
                                      # write rules matching the state of a connection
+    
+    # Allows tracking for various protocols, placing entries in the conntrack table etc.
+    modprobe_multi xt_conntrack ip6t_conntrack
+
+    # Allows log limits
+    modprobe_multi xt_limit ip6t_limit
+
+    # Permits packet state checking (SYN, SYN-ACK, ACK, and so on).
+    modprobe_multi xt_state ip6t_state
+
+    # Allows packet specifications on multiple ports
+    modprobe_multi xt_multiport ip6t_multiport
 
     modprobe ip6table_filter         # Implements the filter table
     modprobe ip6table_mangle         # Implements the mangle table
@@ -334,6 +346,14 @@ load_modules()
     # Explicitly load some targets
     modprobe ip6t_REJECT             # Implements the REJECT target
     modprobe ip6t_LOG                # Implements the LOG target
+  
+    if [ "$SET_MSS" != "0" ]; then
+      modprobe_multi xt_TCPMSS ip6t_TCPMSS             # Load the TCPMSS target
+    fi
+
+    if [ "$MANGLE_TOS" != "0" ]; then
+      modprobe_multi xt_DSCP ip6t_DSCP ip6t_TOS                # Load the TOS target
+    fi
   fi
 
   echo " Module check done..."
@@ -365,7 +385,7 @@ setup_kernel_settings()
   fi
 
   # Set INDENT value for functions
-  INDENT='  '
+  INDENT=' '
 
   echo " Setting the max. amount of simultaneous connections to $CONNTRACK"
   sysctl_multi net.nf_conntrack_max=$CONNTRACK \
