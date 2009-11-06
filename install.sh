@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="1.0b"
+MY_VERSION="1.0c"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -66,7 +66,7 @@ sanity_check()
 
 copy_ask_if_exist()
 {
-  if ! find "$1" -type f >/dev/null; then
+  if [ -z "$(find "$1" -type f)" ]; then
     echo "ERROR: Missing source file(s) \"$1\""
     exit 2
   fi
@@ -111,7 +111,7 @@ copy_ask_if_exist()
 
 copy_skip_if_exist()
 {
-  if ! find "$1" -type f >/dev/null; then
+  if [ -z "$(find "$1" -type f)" ]; then
     echo "ERROR: Missing source file(s) \"$1\""
     exit 2
   fi
@@ -144,7 +144,7 @@ copy_skip_if_exist()
 
 copy_overwrite()
 {
-  if ! find "$1" -type f >/dev/null; then
+  if [ -z "$(find "$1" -type f)" ]; then
     echo "ERROR: Missing source file(s) \"$1\""
     exit 2
   fi
@@ -261,7 +261,7 @@ setup_conf_file()
 # main line:
 AIF_VERSION="$(grep "MY_VERSION=" ./bin/arno-iptables-firewall |sed -e "s/^MY_VERSION=\"//" -e "s/\"$//")"
 
-printf "\033[40m\033[1;32mArno\'s Iptables Firewall Script v$AIF_VERSION\033[0m\n"
+printf "\033[40m\033[1;32mArno's Iptables Firewall Script v$AIF_VERSION\033[0m\n"
 printf "Install Script v$MY_VERSION\n"
 echo "-------------------------------------------------------------------------------"
 
@@ -306,13 +306,13 @@ echo ""
 
 if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/)? (Y/N) " "y"; then
   if [ -d /etc/rcS.d ]; then
-    if find /etc/rcS.d/ -name "*arno-iptables-firewall" >/dev/null; then
+    if [ -n "$(find /etc/rcS.d/ -name "*arno-iptables-firewall")" ]; then
       echo "Startup symlink seems to already exist in /etc/rcS.d so skipping that"
     else
       ln -sv /etc/init.d/arno-iptables-firewall /etc/rcS.d/S38arno-iptables-firewall
     fi
   else
-    if find /etc/rc2.d/ -name "*arno-iptables-firewall" >/dev/null; then
+    if [ -n "$(find /etc/rc2.d/ -name "*arno-iptables-firewall")" ]; then
       echo "Startup symlink seems to already exist in /etc/rc2.d so skipping that"
     else
       ln -sv /etc/init.d/arno-iptables-firewall /etc/rc2.d/S38arno-iptables-firewall
