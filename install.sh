@@ -118,7 +118,7 @@ copy_skip_if_exist()
   fi
 
   unset IFS
-  for source in `find $1 -type f`; do
+  for source in `find "$1" -type f`; do
     fn="$(echo "$source" |sed "s,^$1,,")"
     if [ -z "$fn" ]; then
       target="$2$(basename "$1")"
@@ -151,7 +151,7 @@ copy_overwrite()
   fi
 
   unset IFS
-  for source in `find $1 -type f`; do
+  for source in `find "$1" -type f`; do
     fn="$(echo "$source" |sed "s,^$1,,")"
     if [ -z "$fn" ]; then
       target="$2$(basename "$1")"
@@ -283,10 +283,8 @@ fi
 
 copy_overwrite ./bin/ /usr/local/sbin/
 
-mkdir -pv /usr/local/share/arno-iptables-firewall
 mkdir -pv /usr/local/share/arno-iptables-firewall/plugins
 copy_overwrite ./share/arno-iptables-firewall/ /usr/local/share/arno-iptables-firewall/
-#copy_overwrite ./share/arno-iptables-firewall/plugins/ /usr/local/share/arno-iptables-firewall/plugins/
 
 mkdir -pv /usr/local/share/man/man1
 mkdir -pv /usr/local/share/man/man8
@@ -296,7 +294,6 @@ gzip -c -v ./share/man/man1/arno-fwfilter.1 >/usr/local/share/man/man8/arno-fwfi
 mkdir -pv /etc/arno-iptables-firewall
 cp -fv ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf.dist
 copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
-#cp -fv ./etc/arno-iptables-firewall/firewall.conf.example /etc/arno-iptables-firewall/
 
 mkdir -pv /etc/arno-iptables-firewall/plugins
 copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/
