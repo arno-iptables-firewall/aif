@@ -253,9 +253,6 @@ setup_conf_file()
     fi
   fi
 
-  if get_user_yn "Do you want the init script to be verbose (print out what it's doing)? (Y/N) " "n"; then
-    change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "1"
-  fi
 
   # Set the correct permissions on the config file
   chmod 755 /etc/init.d/arno-iptables-firewall 
@@ -292,13 +289,14 @@ gzip -c -v ./share/man/man8/arno-iptables-firewall.8 >/usr/local/share/man/man8/
 gzip -c -v ./share/man/man1/arno-fwfilter.1 >/usr/local/share/man/man8/arno-fwfilter.1.gz
 
 mkdir -pv /etc/arno-iptables-firewall
-cp -fv ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf.dist
+copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
+copy_overwrite ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf.dist
 copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
 
 mkdir -pv /etc/arno-iptables-firewall/plugins
 copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/
 
-copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
+copy_overwrite ./etc/init.d/arno-iptables-firewall /etc/init.d/
 
 echo ""
 echo "** Install done **"
@@ -320,21 +318,6 @@ if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/)? (Y
   fi
 fi
 
-if [ -e "/etc/arno-iptables-firewall/firewall.conf" ]; then
-  if diff ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf >/dev/null; then
-    printf "Your local /etc/arno-iptables-firewall/firewall.conf already exists. Overwrite it(Y/N)?"
-    read -s -n1 C
-    if [ C = "y" ] || [ C = "Y" ]; then
-      echo " Yes"
-      cp -fv ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
-    else
-      echo " No. File skipped!"
-    fi
-  fi
-else
-  cp -v ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
-fi
-
 if diff ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf >/dev/null; then
   if get_user_yn "Your firewall.conf is not configured yet.\nDo you want me to help you setup a basic configuration? (Y/N) " "y"; then
     setup_conf_file;
@@ -345,6 +328,10 @@ else
   echo "Your firewall.conf looks already customized so skipping basic configuration..."
 fi
 
+if get_user_yn "Do you want the init script to be verbose (print out what it's doing)? (Y/N) " "n"; then
+  change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "1"
+fi
+ 
 echo ""
 echo "-------------------------------------------------------------------------------"
 echo "** NOTE: You can now (manually) start the firewall by executing              **"
