@@ -222,7 +222,7 @@ lc()
 note_iptables_error()
 {
   unset IFS
-  for arg in $*; do
+  for arg in $@; do
     if [ "$arg" = "-A" ] || [ "$arg" = "-I" ]; then
       return 0
     fi
@@ -315,7 +315,7 @@ modprobe()
         printf "${INDENT}\033[40m\033[1;31mmodprobe $@: $result\033[0m\n" >&2
       fi
       
-      echo "${INDENT}Loaded kernel module $1...$result"
+      echo "${INDENT}Loaded kernel module $1. $result"
       return 0
     fi
   elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
@@ -340,7 +340,7 @@ modprobe_multi()
     shift
   done
 
-  MODULES="$*"
+  MODULES="$@"
 
   # Module support available?
   if [ -e /proc/modules ]; then
@@ -421,7 +421,7 @@ sysctl_multi()
     shift
   done
 
-  VARIABLES="$*"
+  VARIABLES="$@"
 
   IFS=' '
   for variable in $VARIABLES; do
@@ -462,7 +462,7 @@ wildcard_ifs()
   expnd=""
 
   IFS=', '
-  for if0 in $*; do
+  for if0 in $@; do
     if1="$if0"
     case $if1 in
     *+)
@@ -740,7 +740,7 @@ ip_range()
 
   IFS=','
   # Get variable from commandline
-  for item in $*; do
+  for item in $@; do
     # Check whether an IP range was specified (only works like w.x.y.z1-z2!):
     start="$(echo "$item" |cut -s -d'-' -f1 |awk -F'.' '{ print $NF }' |grep -e '[0-9]')"
     host_base="$(echo "$item" |cut -s -d'-' -f1 |awk -F'.' '{ for (i=1; i<NF; i++) printf ("%s.",$i) }')"
