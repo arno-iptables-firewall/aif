@@ -5032,7 +5032,7 @@ show_status()
     fi
   else
     #iptables -nvL $2 $3 $4 $5
-    iptables -xnvL $*
+    iptables -xnvL $@
   fi
 
   # Show plugin status
@@ -5166,7 +5166,7 @@ case "$1" in
                         stop_block_firewall;
                         show_stop_blocked;;
   'status' )            shift;
-                        show_status $*;;
+                        show_status $@;;
   'check-conf' )        sanity_check;;
   * )                   printf "\033[40m\033[1;31mERROR: Bad or missing parameter(s)\033[0m\n" >&2;
                         show_help;;
