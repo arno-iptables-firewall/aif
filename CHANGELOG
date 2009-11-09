@@ -1,5 +1,5 @@
-Version 1.9.2e-DEVEL (November 6, 2009)
---------------------------------
+Version 1.9.2e (November 9, 2009)
+---------------------------------
 + Added some more DOS-prevention kernel settings (thanks Michiel Klaver)
 + IPv6 module updates
 + Implemented support to set INDENT(space) value for functions in environment
@@ -16,6 +16,7 @@ Version 1.9.2e-DEVEL (November 6, 2009)
 ! Removed an unconditional ACCEPT in the EXT_OUTPUT_CHAIN keeping the POST_OUTPUT_CHAIN from seeing EXT_IF traffic
 ! Several fixes/changes for the POST_xxxx_CHAINs. This should make the POST stuff more
   consistent among INPUT/FORWARD/OUTPUT
+* Misc. tweaks
 
 Version 1.9.2d (August 24, 2009)
 --------------------------------
