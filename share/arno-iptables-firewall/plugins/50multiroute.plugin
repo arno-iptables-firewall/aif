@@ -129,7 +129,7 @@ plugin_status()
 }
 
 
-# Check sanity of ie. environment
+# Check sanity of eg. environment
 plugin_sanity_check()
 {
   # Set default weight, if not specified

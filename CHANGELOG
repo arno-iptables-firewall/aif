@@ -75,9 +75,9 @@ Version 1.9.1-RC1 (May 20, 2009)
 ! Fixed NAT_FORWARD_IP not working
 ! Several fixes/changes in the rule parsers
 * Moved from using the $IPTABLES/$IP4TABLES/$IP6TABLES variables to functions
-  (Thanks Philip Prindeville). This should ie. allow proper tracing.
+  (Thanks Philip Prindeville). This should eg. allow proper tracing.
 + Iptables errors will now be shown in red, to better point them out
-+ Implemented some additional chains (for ie. plugin use)
++ Implemented some additional chains (for eg. plugin use)
 - Reverted flushing user chains before stopping plugins, it causes disconnections.
 * Several cleanups/optimizations (thanks to Philip Prindeville, Lonnie Abelbeck
   & Roy Lanek)
@@ -88,7 +88,7 @@ Version 1.9.1-BETA1 (April 5, 2009)
 * On a restart the "user_chains" are now flushed before the plugins are stopped
 + Implemented INPUT/FORWARD/OUTPUT_CHAIN. In this way we no longer have to clutter
   the builtin INPUT/FORWARD/OUTPUT chains.
-* !!!! Changed the seperator for interface restrictions to # (ie. eth0#.....)!!!
+* !!!! Changed the seperator for interface restrictions to # (eg. eth0#.....)!!!
   This code is now much cleaner and the way rules work is a lot more logical :)
 ! Fixed warnings with newer iptables versions
 + Plugin status & stop are now only called when the plugin is actually listed
@@ -128,7 +128,7 @@ Version 1.9.0 (January 7, 2009)
 ! Fixed LAN_INET_HOST_DENY_TCP/UDP (stupid typo)
 ! Trimmed too long log messages
 * Set timeout/retry values to default for dig functions in the env-file
-! Fixed sysctl for ie. busybox setups which don't support -q. Implemented sysctl
+! Fixed sysctl for eg. busybox setups which don't support -q. Implemented sysctl
   wrapper for this (like with module_probe())
 + Added new traffic shaper (thanks to Lonnie Abelbeck)
 - Removed old hfsc traffic shaper
@@ -179,7 +179,7 @@ Version 1.9.0-rc2 (September 3, 2008)
 + Basic install script added (install.sh). Probably can use a lot of improvements.
 * Moved a lot of functions/variables into a new separate "environment"-file.
   (located in /usr/share/arno-iptables-firewall/). This should make easier for
-  ie. helper-scripts to use AIF's functions & variables
+  eg. helper-scripts to use AIF's functions & variables
 * Minor changes/updates in the plugins (slighty modified skeleton for example)
 - Removed dsl ppp modem code and moved it into a separate plugin
 * (Cosmetic) tweaks in the module_probe() function
@@ -219,7 +219,7 @@ Version 1.9.0-beta2 (March 23, 2008)
 ------------------------------------
 ! Fixed echo output showing hosts that shouldn't be displayed
 * Now IPv4 traffic will have a default policy of DROP when IPv6 is enabled and visa versa
-+ Added LOCAL_CONFIG_FILE variable to allow ie. certain user/global/local settings
++ Added LOCAL_CONFIG_FILE variable to allow eg. certain user/global/local settings
   to be sourced into the script
 + Implemented plugin_status() support
 + Implemented plugin_stop() support
@@ -231,7 +231,7 @@ Version 1.9.0-beta1 (January 17, 2008)
 --------------------------------------
 ! Fix /proc/.../ conntrack set for newer kernels
 ! Fixed bug (typo) in $REJECT_TCP_NOLOG
-! Fixed DEFAULT value's in the helper parsing functions causing ie. simple portforwards
+! Fixed DEFAULT value's in the helper parsing functions causing eg. simple portforwards
   not to work
 ! Fixed missing default value's for the source hosts in the NAT portforwards
 ! Several (regression) fixes in the NAT forwarding rules
@@ -264,7 +264,7 @@ Version 1.9.0-ALPHA2 (December 18, 2007)
 Version 1.9.0-ALPHA1 (December 5, 2007)
 ---------------------------------------
 + Added DEFAULT_POLICY_DROP option to allow users to disable setting iptables
-  default policy to DROP. Mainly useful for people who boot from ie. NFS
+  default policy to DROP. Mainly useful for people who boot from eg. NFS
   (diskless client systems).
 + DNAT plugin update. Switched from OUTPUT to PREROUTING for the DNAT rule.
 ! Fixed a minor bug in the NAT forwards: the FORWARD rule was missing the host destination

@@ -50,7 +50,7 @@ resolvehost()
 }
 
 
-# Check sanity of ie. environment
+# Check sanity of eg. environment
 sanity_check()
 {
   if [ -z "$DYNDNS_HOST_OPEN_CRON" ]; then

@@ -257,12 +257,12 @@ setup_conf_file()
     change_conf_var /etc/arno-iptables-firewall/firewall.conf "OPEN_ICMP" "1"
   fi
 
-  get_conf_var "Which TCP ports do you want to allow from the internet? (ie. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" /etc/arno-iptables-firewall/firewall.conf "OPEN_TCP" ""
-  get_conf_var "Which UDP ports do you want to allow from the internet? (ie. 53=DNS, etc.)  (comma separate multiple ports)?" /etc/arno-iptables-firewall/firewall.conf "OPEN_UDP" ""
+  get_conf_var "Which TCP ports do you want to allow from the internet? (eg. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" /etc/arno-iptables-firewall/firewall.conf "OPEN_TCP" ""
+  get_conf_var "Which UDP ports do you want to allow from the internet? (eg. 53=DNS, etc.)  (comma separate multiple ports)?" /etc/arno-iptables-firewall/firewall.conf "OPEN_UDP" ""
 
   if get_user_yn "Do you have an internal(aka LAN) interface that you want to setup? (Y/N)" "n"; then
     get_conf_var "What is your internal interface (aka. LAN interface)?" /etc/arno-iptables-firewall/firewall.conf "INT_IF" ""
-    get_conf_var "What is your internal net? (ie. 192.168.1.0/24)?" /etc/arno-iptables-firewall/firewall.conf "INTERNAL_NET" ""
+    get_conf_var "What is your internal net? (eg. 192.168.1.0/24)?" /etc/arno-iptables-firewall/firewall.conf "INTERNAL_NET" ""
 
     if get_user_yn "Do you want to enable NAT for your internal net? (Y/N)" "y"; then
       change_conf_var /etc/arno-iptables-firewall/firewall.conf "NAT" "1"

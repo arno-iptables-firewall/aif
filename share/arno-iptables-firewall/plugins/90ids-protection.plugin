@@ -8,7 +8,7 @@ PLUGIN_CONF_FILE="ids-protection.conf"
 # Last changed          : July 28, 2009
 # Requirements          : kernel 2.6 + ipt_recent + AIF 1.9.1-beta1 (or better)
 # Comments              : This implements IDS protection aka Intrusion-Detection-System.
-#                         It will block remote hosts trying to ie. scan/access your
+#                         It will block remote hosts trying to eg. scan/access your
 #                         system on firewalled ports.
 #
 # Author                : (C) Copyright 2007-2009 by Arno van Amersfoort
@@ -117,7 +117,7 @@ plugin_status()
   return 0
 }
 
-# Check sanity of ie. environment
+# Check sanity of eg. environment
 plugin_sanity_check()
 {
   if [ -z "$IDS_MAX_RATE1" ] || [ -z "$IDS_MAX_TIME1" ] || [ -z "$IDS_MAX_RATE2" ] || [ -z "$IDS_MAX_TIME2" ]; then

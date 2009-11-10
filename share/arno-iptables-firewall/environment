@@ -177,7 +177,7 @@ check_binary()
 
 
 # Check if the current kernel is at least a certain version (or newer)
-# Arguments: major minor rev (ie. "2 6 25")
+# Arguments: major minor rev (eg. "2 6 25")
 # Return   : 0 = kernel is equal or newer, 1 = kernel is older
 ######################################################################
 kernel_ver_chk()

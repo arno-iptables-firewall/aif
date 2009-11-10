@@ -9,7 +9,7 @@ PLUGIN_CONF_FILE="mac-address-filter.conf"
 # Requirements          : ipt_mac module
 # Comments              : This plugin allows you to select the MAC addresses
 #                         that are allowed access for the specified interfaces
-#                         (ie. INT_IF)
+#                         (eg. INT_IF)
 #
 # Author                : (C) Copyright 2009 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
@@ -142,7 +142,7 @@ plugin_status()
 }
 
 
-# Check sanity of ie. environment
+# Check sanity of eg. environment
 plugin_sanity_check()
 {
   if [ -z "$MAC_ADDRESS_FILE" ] || [ ! -e "$MAC_ADDRESS_FILE" ]; then

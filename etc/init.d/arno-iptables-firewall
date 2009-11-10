@@ -16,7 +16,7 @@
 # You should put this script in eg. "/etc/init.d/" .                                       #
 # Furthermore make sure it's executable! -> "chmod 700" or "chmod +x" it                   #
 # If you want to run it upon boot, either add an entry in your "/etc/rc.d/rc.local" or 	   #
-# (for ie. Debian) in "/etc/rcS.d/" create a symlink to the arno-iptables-firewall script  #
+# (for eg. Debian) in "/etc/rcS.d/" create a symlink to the arno-iptables-firewall script  #
 # ("ln -s /etc/init.d/arno-iptables-firewall script S99-arno-iptables-firewall script").   #
 ############################################################################################
 

@@ -8,7 +8,7 @@ PLUGIN_CONF_FILE="transparent-proxy.conf"
 # Last changed          : September 8, 2008
 # Requirements          : kernel 2.6 + ip_nat + iptable_nat
 # Comments              : This plugin enables transparent DNAT for internal hosts for
-#                         certain ports. Meaning you can redirect certain TCP/UDP ports (ie. http)
+#                         certain ports. Meaning you can redirect certain TCP/UDP ports (eg. http)
 #                         which should be redirected from a certain INET address to an
 #                         internal address.
 #
@@ -101,7 +101,7 @@ plugin_status()
   return 0
 }
 
-# Check sanity of ie. environment
+# Check sanity of eg. environment
 plugin_sanity_check()
 {
 #  if [ -z "$FTP_PROXY_PORT" ] || [ -z "$SMTP_PROXY_PORT" ]; then

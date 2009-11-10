@@ -104,7 +104,7 @@ plugin_status()
 }
 
 
-# Check sanity of ie. environment
+# Check sanity of eg. environment
 plugin_sanity_check()
 {
   if [ -z "$TRAFFIC_ACCOUNTING_CRON" ]; then
