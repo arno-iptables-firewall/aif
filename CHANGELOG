@@ -1,6 +1,7 @@
 Version 1.9.2f (November 9, 2009)
 ---------------------------------
 ! Fixed modprobe errors. Always use $@ as $* might do things you don't expect! (Thanks Lonnie!)
+! Don't disable TCP sack when DoS-reducation is enabled since performance degrades from it
 
 Version 1.9.2e (November 9, 2009)
 ---------------------------------
