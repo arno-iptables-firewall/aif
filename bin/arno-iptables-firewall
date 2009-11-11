@@ -316,7 +316,7 @@ load_modules()
     if [ "$NAT" = "1" ] || [ -n "$NAT_FORWARD_TCP" ] || [ -n "$NAT_FORWARD_UDP" ] || [ -n "$NAT_FORWARD_IP" ]; then
       modprobe iptable_nat            # Implements the NAT table
 
-      if [ -n "$NAT_STATIC_IP" ]; then
+      if [ -z "$NAT_STATIC_IP" ]; then
         modprobe ipt_MASQUERADE         # Load the MASQUERADE target
       fi
     fi
