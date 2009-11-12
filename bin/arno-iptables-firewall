@@ -3448,8 +3448,11 @@ setup_ext_input_chain()
     iptables -A EXT_INPUT_CHAIN -m conntrack --ctstate DNAT -j ACCEPT
   fi
 
-  # Drop all "standard" IP protcols
-  #################################
+  # Jump into the POST_INPUT_CHAIN before we start to DROP
+  iptables -A EXT_INPUT_CHAIN -j POST_INPUT_CHAIN
+  
+  # Drop all "standard" IP protocols
+  ##################################
   iptables -A EXT_INPUT_CHAIN -p tcp -j POST_INPUT_DROP_CHAIN
   iptables -A EXT_INPUT_CHAIN -p udp -j POST_INPUT_DROP_CHAIN
   iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO -j POST_INPUT_DROP_CHAIN
@@ -3463,6 +3466,10 @@ setup_ext_input_chain()
   else
     echo " Logging of other IP protocols (non TCP/UDP/ICMP) connection attempts disabled"
   fi
+  
+  # Drop all remaining packets
+  ############################
+  iptables -A EXT_INPUT_CHAIN -j POST_INPUT_DROP_CHAIN
 }
 
 
