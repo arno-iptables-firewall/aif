@@ -1,5 +1,5 @@
-Version 1.9.2g-DEVEL (November 13, 2009)
-----------------------------------------
+Version 1.9.2g (November 17, 2009)
+----------------------------------
 - Removed incorrect comment in sip-voip.conf
 ! Fixed logging of packets in the INPUT chain because of incorrect use of the POST_INPUT_xxx chains
 ! Fixed dropping of packets in EXT_INPUT_CHAIN + we should jump into the POST_INPUT_CHAIN first before we DROP
