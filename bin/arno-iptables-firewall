@@ -3416,7 +3416,7 @@ setup_ext_input_chain()
   if [ "$PRIV_UDP_LOG" != "0" ]; then
     echo " Logging of (other) connection attempts to PRIVILEGED UDP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p udp --dport :1023 \
-      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV connect attempt: "
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV connect attempt: "
   else
     echo " Logging of (other) connection attempts to PRIVILEGED UDP ports disabled"
   fi
