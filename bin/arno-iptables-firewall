@@ -929,8 +929,6 @@ setup_valid_chk_chain()
 ################################################################################################################
 setup_reserved_net_chk_chain()
 {
-
-
   if [ "$IPV6_SUPPORT" != "1" ]; then
     # Log access from reserved addresses
     ####################################
@@ -947,6 +945,12 @@ setup_reserved_net_chk_chain()
 
       iptables -A RESERVED_NET_CHK -s 169.254.0.0/16 \
         -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class M$ address: "
+      
+      iptables -A RESERVED_NET_CHK -s 224.0.0.0/24 \
+        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Multicast address: "
+      
+      iptables -A RESERVED_NET_CHK -s 239.0.0.0/24 \
+        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Multicast address: "
     else
       echo "Logging of access from reserved addresses disabled"
     fi
@@ -958,6 +962,8 @@ setup_reserved_net_chk_chain()
     iptables -A RESERVED_NET_CHK -s 172.16.0.0/12 -j POST_INPUT_DROP_CHAIN
     iptables -A RESERVED_NET_CHK -s 192.168.0.0/16 -j POST_INPUT_DROP_CHAIN
     iptables -A RESERVED_NET_CHK -s 169.254.0.0/16 -j POST_INPUT_DROP_CHAIN
+    iptables -A RESERVED_NET_CHK -s 224.0.0.0/24 -j POST_INPUT_DROP_CHAIN
+    iptables -A RESERVED_NET_CHK -s 239.0.0.0/24 -j POST_INPUT_DROP_CHAIN
   else
     # Currently only 2000::/3 are unicast/internet routable for IPv6 (correct me if I am wrong)
     iptables -A RESERVED_NET_CHK ! -s 2000::/3 -j POST_INPUT_DROP_CHAIN
