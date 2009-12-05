@@ -4100,17 +4100,17 @@ setup_hostblock_chain()
             iptables -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
             iptables -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
 
-            # Display an activity count since this can take awhile                    
-            count=$(($count + 1))                                                     
-            if [ $(($count % 10)) -eq 0 ]; then                                       
-              if [ $(($count % 50)) -eq 0 ]; then                                     
-                echo "$count"                                                         
-              else                                                
-                printf "$count"                                   
-              fi                                                  
-            else                                                  
-              printf "."                                          
-            fi                                                                         
+            # Display an activity count since this can take awhile
+            count=$(($count + 1))
+            if [ $(($count % 10)) -eq 0 ]; then
+              if [ $(($count % 50)) -eq 0 ]; then
+                echo "$count"
+              else
+                printf "$count"
+              fi
+            else
+              printf "."
+            fi
           done
           unset IFS
         fi
