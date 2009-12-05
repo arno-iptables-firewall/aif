@@ -1,5 +1,6 @@
 Version 1.9.2f (December 4, 2009)
 ---------------------------------
++ Add a check for the '-' character in the ip_range() function for improved execution speed.
 * The "Blocked Host" feature now also matches the destination address for outbound traffic in addition to the
   previous matching of the source address for inbound traffic.
 * The "Blocked Host" logging is now implemented as one rule rather than a rule for each blocked host.

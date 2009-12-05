@@ -736,6 +736,12 @@ show_hosts_ports()
 # Helper function to translate host ranges from variable
 ip_range()
 {
+  # Return the args if there is no '-' for improved execution speed
+  if ! echo "$@" | grep -q '-'; then
+    echo "$@"
+    return
+  fi
+
   FIRST=1
 
   IFS=','
