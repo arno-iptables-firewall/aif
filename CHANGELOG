@@ -1,4 +1,4 @@
-Version 1.9.2f (December 5, 2009)
+Version 1.9.2h (December 5, 2009)
 ---------------------------------
 + Add a default DROP to the HOST_BLOCK_SRC and HOST_BLOCK_DST chains while they are being built,
   this is most important when using the 'force-reload' verb.  During the time the Blocked Hosts are
