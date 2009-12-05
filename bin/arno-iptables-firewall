@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="1.9.2g"
+MY_VERSION="1.9.2f-DEVEL"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -746,10 +746,17 @@ setup_default_policies()
     iptables -P OUTPUT ACCEPT
   fi
 
-  # The POST_INPUT_DROP_CHAIN should temporarely DROP for now
+  # The POST_INPUT_DROP_CHAIN should temporarily DROP for now
   # We we'll change this once the rules are in place
   ###########################################################
   iptables -A POST_INPUT_DROP_CHAIN -j DROP
+
+  # The HOST_BLOCK_DROP chain should always DROP
+  ###########################################################
+  if [ "$BLOCKED_HOST_LOG" != "0" ]; then
+    iptables -A HOST_BLOCK_DROP -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s): "
+  fi
+  iptables -A HOST_BLOCK_DROP -j DROP
 }
 
 
@@ -4054,7 +4061,8 @@ setup_output_log()
 ######################################
 setup_hostblock_chain()
 {
-  if iptables -F HOST_BLOCK 2>&1 |grep -q "No chain"; then
+  if iptables -F HOST_BLOCK_SRC 2>&1 |grep -q "No chain" || \
+     iptables -F HOST_BLOCK_DST 2>&1 |grep -q "No chain"; then
     printf "\033[40m\033[1;31mERROR: The firewall isn't running!\033[0m\n" >&2
     printf "\033[40m\033[1;31m       You should first run this script with the \"start\" command.\033[0m\n" >&2
     return 5
@@ -4068,11 +4076,8 @@ setup_hostblock_chain()
       printf "$hosts "
 
       for host in `ip_range "$hosts"`; do
-        if [ "$BLOCKED_HOST_LOG" != "0" ]; then
-          iptables -A HOST_BLOCK -s $host \
-            -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s): "
-        fi
-        iptables -A HOST_BLOCK -s $host -j POST_INPUT_DROP_CHAIN
+        iptables -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+        iptables -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
       done
     done
     echo ""
@@ -4082,31 +4087,35 @@ setup_hostblock_chain()
   # Setup the blocked hosts from our file
   if [ -n "$BLOCK_HOSTS_FILE" ]; then
     if [ -e "$BLOCK_HOSTS_FILE" ]; then
+      count=0
 
       echo "(Re)loading list of BLOCKED hosts from $BLOCK_HOSTS_FILE..."
 
-      HCOUNT=0
-      LCOUNT=0
-      IFS=$EOL
-      for hosts in `cat "$BLOCK_HOSTS_FILE" |sed -e 's|#.*||' -e 's| *$||'`; do
-        # Inc. line count
-        LCOUNT=$(($LCOUNT + 1))
-
+      # Support both a '#' and a ';' as a comment delimiter in BLOCK_HOSTS_FILE file
+      unset IFS
+      cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' | while read hosts; do
         if [ -n "$hosts" ]; then
           IFS=','
           for host in `ip_range "$hosts"`; do
-            HCOUNT=$(($HCOUNT + 1))
+            iptables -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+            iptables -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
 
-            if [ "$BLOCKED_HOST_LOG" = "1" ]; then
-              iptables -A HOST_BLOCK -s $host \
-                -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s): "
-            fi
-            iptables -A HOST_BLOCK -s $host -j POST_INPUT_DROP_CHAIN
+            # Display an activity count since this can take awhile                    
+            count=$(($count + 1))                                                     
+            if [ $(($count % 10)) -eq 0 ]; then                                       
+              if [ $(($count % 50)) -eq 0 ]; then                                     
+                echo "$count"                                                         
+              else                                                
+                printf "$count"                                   
+              fi                                                  
+            else                                                  
+              printf "."                                          
+            fi                                                                         
           done
           unset IFS
         fi
       done
-      echo " $LCOUNT line(s) read. $HCOUNT host(s) blocked."
+      echo ""
     else
       printf "\033[40m\033[1;31mNOTE: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
     fi
@@ -4374,9 +4383,10 @@ setup_firewall_rules()
 
   # Block all hosts in the custom blocked hosts file
   ##################################################
-  iptables -A INPUT -j HOST_BLOCK
-  iptables -A FORWARD -j HOST_BLOCK
-  iptables -A OUTPUT -j HOST_BLOCK
+  iptables -A INPUT -j HOST_BLOCK_SRC
+  iptables -A FORWARD -j HOST_BLOCK_SRC
+  iptables -A FORWARD -j HOST_BLOCK_DST
+  iptables -A OUTPUT -j HOST_BLOCK_DST
 
   # Setup global helper chains
   ############################
@@ -4843,7 +4853,9 @@ setup_firewall_rules()
 create_user_chains()
 {
   # General chains
-  iptables -N HOST_BLOCK
+  iptables -N HOST_BLOCK_SRC
+  iptables -N HOST_BLOCK_DST
+  iptables -N HOST_BLOCK_DROP
   iptables -N VALID_CHK
   iptables -N RESERVED_NET_CHK
   iptables -N SPOOF_CHK
@@ -4890,7 +4902,9 @@ create_user_chains()
 flush_user_chains()
 {
   # General chains
-  iptables -F HOST_BLOCK
+  iptables -F HOST_BLOCK_SRC
+  iptables -F HOST_BLOCK_DST
+  iptables -F HOST_BLOCK_DROP
   iptables -F VALID_CHK
   iptables -F RESERVED_NET_CHK
   iptables -F SPOOF_CHK

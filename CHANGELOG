@@ -1,3 +1,11 @@
+Version 1.9.2f (December 4, 2009)
+---------------------------------
+* The "Blocked Host" feature now also matches the destination address for outbound traffic in addition to the
+  previous matching of the source address for inbound traffic.
+* The "Blocked Host" logging is now implemented as one rule rather than a rule for each blocked host.
+* The "Blocked Host" file may now include a semicolon ';' as a comment delimiter, per the Spamhaus DROP list.
+* The "Blocked Host" file (re)load now displays an activity count since this can take awhile.
+
 Version 1.9.2g (November 17, 2009)
 ----------------------------------
 - Removed incorrect comment in sip-voip.conf
