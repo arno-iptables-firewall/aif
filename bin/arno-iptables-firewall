@@ -4068,6 +4068,15 @@ setup_hostblock_chain()
     return 5
   fi
 
+  # Return if no Blocked Hosts are defined
+  if [ -z "$BLOCK_HOSTS" ] && [ -z "$BLOCK_HOSTS_FILE" ]; then
+    return
+  fi
+
+  # Set default to DROP all while rules are added
+  iptables -A HOST_BLOCK_SRC -j DROP
+  iptables -A HOST_BLOCK_DST -j DROP
+
   if [ -n "$BLOCK_HOSTS" ]; then
     printf "Blocking (blackhole) host(s): "
 
@@ -4120,6 +4129,11 @@ setup_hostblock_chain()
       printf "\033[40m\033[1;31mNOTE: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
     fi
   fi
+
+  # All Blocked Host rules are applied
+  # Remove default rule at the beginning of the HOST_BLOCK_SRC and HOST_BLOCK_DST chains
+  iptables -D HOST_BLOCK_SRC 1
+  iptables -D HOST_BLOCK_DST 1
 }
 
 

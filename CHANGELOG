@@ -1,5 +1,8 @@
-Version 1.9.2f (December 4, 2009)
+Version 1.9.2f (December 5, 2009)
 ---------------------------------
++ Add a default DROP to the HOST_BLOCK_SRC and HOST_BLOCK_DST chains while they are being built,
+  this is most important when using the 'force-reload' verb.  During the time the Blocked Hosts are
+  being applied, no new traffic will be allowed in any direction.
 + Add a check for the '-' character in the ip_range() function for improved execution speed.
 * The "Blocked Host" feature now also matches the destination address for outbound traffic in addition to the
   previous matching of the source address for inbound traffic.
