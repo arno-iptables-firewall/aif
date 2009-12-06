@@ -25,6 +25,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
+# NOTE: When used in combination with firewall.conf. Load firewall.conf first before calling us!
+
 # Some predefined variables/macros:
 IPTABLES_ERROR=0
 ANYHOST="0/0"
@@ -37,121 +39,6 @@ TAB="$(printf '\t')"
 EOL='
 '
 
-# Set file to store which plugins are loaded
-PLUGIN_LOAD_FILE="/var/tmp/.aif_active_plugins"
-
-# Check whether we also need to drop messages in a dedicated firewall log file
-if [ -z "$FIREWALL_LOG" ]; then
-  FIREWALL_LOG="/dev/null"
-fi
-
-# Check for a local/global config file
-######################################
-if [ -e "$LOCAL_CONFIG_FILE" ]; then
-  . "$LOCAL_CONFIG_FILE"
-fi
-
-# if $LOGLEVEL is not set, default to "info"
-############################################
-if [ -z "$LOGLEVEL" ]; then
-  LOGLEVEL="info"
-fi
-
-
-# Detect all binaries
-#####################
-if [ -z "$IP6TABLES" ]; then
-  if [ -x /sbin/ip6tables ]; then
-    IP6TABLES="/sbin/ip6tables"
-  else
-    IP6TABLES=`which ip6tables 2>/dev/null`
-  fi
-fi
-  
-if [ -z "$IP4TABLES" ]; then
-  if [ -x /sbin/iptables ]; then
-    IP4TABLES="/sbin/iptables"
-  else
-    IP4TABLES=`which iptables 2>/dev/null`
-  fi
-fi
-
-if [ -x /sbin/ip ]; then
-  IP='/sbin/ip'
-else
-  IP=`which ip 2>/dev/null`
-fi
-
-if [ -x /sbin/tc ]; then
-  TC='/sbin/tc'
-else
-  TC=`which tc 2>/dev/null`
-fi
-
-if [ -x /sbin/sysctl ]; then
-  SYSCTL='/sbin/sysctl'
-else
-  SYSCTL=`which sysctl 2>/dev/null`
-fi
-
-if [ -x /sbin/modprobe ]; then
-  MODPROBE='/sbin/modprobe'
-else
-  MODPROBE=`which modprobe 2>/dev/null`
-fi
-
-if [ "$IPV6_SUPPORT" = "1" ]; then
-  IPTABLES="$IP6TABLES"
-  ICMP_PROTO="icmpv6"
-  ICMP_TYPE="--icmpv6-type"
-  
-  # If IPv6 support is enabled some options should be forced off as they
-  # are simply not supported (yet) by ip6tables
-  unset TTL_INC NAT PACKET_TTL NAT_FORWARD_TCP NAT_FORWARD_UDP NAT_FORWARD_IP
-else
-  IPTABLES="$IP4TABLES"
-  ICMP_PROTO="icmp"
-  ICMP_TYPE="--icmp-type"
-fi
-
-# check for tracing
-###################
-if [ "$TRACE" = "1" ]; then
-  TRACEFILE="/tmp/aif-trace.`date '+%Y%m%d-%H:%M:%S'`"
-  cp /dev/null $TRACEFILE
-fi
-
-
-# Check plugin bin path and fallback in case it's empty
-#######################################################
-if [ -z "$PLUGIN_BIN_PATH" ]; then
-  if [ -d "/usr/local/share/arno-iptables-firewall/plugins" ]; then
-    PLUGIN_BIN_PATH="/usr/local/share/arno-iptables-firewall/plugins"
-  else
-    if [ -d "/usr/share/arno-iptables-firewall/plugins" ]; then
-      PLUGIN_BIN_PATH="/usr/share/arno-iptables-firewall/plugins"
-    else
-      printf "\033[40m\033[1;31mERROR: The plugin binary path (PLUGIN_BIN_PATH) has not been specified\033[0m\n" >&2
-      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
-      exit 2
-    fi
-  fi
-fi
-
-# Required for legacy plugins:
-PLUGIN_PATH="$PLUGIN_BIN_PATH"
-
-# Check plugin bin path and fallback in case it's empty
-#######################################################
-if [ -z "$PLUGIN_CONF_PATH" ]; then
-  if [ -d "/etc/arno-iptables-firewall/plugins" ]; then
-    PLUGIN_CONF_PATH="/etc/arno-iptables-firewall/plugins"
-  else
-    printf "\033[40m\033[1;31mERROR: The plugin config path (PLUGIN_CONF_PATH) has not been specified\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
-    exit 2
-  fi
-fi
 
 ################################# Functions ####################################
 
@@ -385,7 +272,7 @@ modprobe_multi()
 #################
 module_probe()
 {
-  printf "$\033[40m\033[1;31m{INDENT}Function module_probe() will soon be deprecated, please use modprobe() instead!\033[0m\n" >&2
+  printf "\033[40m\033[1;31m${INDENT}Function module_probe() will soon be deprecated, please use modprobe() instead!\033[0m\n" >&2
   modprobe "$@"
 }
 
@@ -772,4 +659,201 @@ ip_range()
     fi
   done
 }
+
+
+get_network_info()
+{
+  CUR_IF=""
+  IP_SET=""
+
+  IFS=$EOL
+  for LINE in $(ifconfig -a 2>/dev/null); do
+    if echo "$LINE" |grep -q -i 'Link encap'; then
+      CUR_IF="$(echo "$LINE" |grep -i 'Link encap:ethernet' |grep -v -e '^dummy0' -e '^bond0' -e '^lo' |cut -f1 -d' ')"
+    elif echo "$LINE" |grep -q -i 'inet addr:.*Bcast.*Mask.*' && [ "$CUR_IF" = "$1" ]; then
+      IP_SET="$LINE"
+      echo "$IP_SET" |sed -e s/" *inet addr:"// -e s/" Bcast:"// -e s/" Mask:"//
+      break
+    fi
+  done
+}
+
+
+# Get IP address of the specified network interface
+get_network_ip()
+{
+  get_network_info $1 |awk '{ print $1 }'
+}
+
+# Get broadcast address of the specified network interface 
+get_network_broadcast()
+{
+  get_network_info $1 |awk '{ print $2 }'
+}
+
+# Get netmask of the specified network interface 
+get_network_mask()
+{
+  get_network_info $1 |awk '{ print $3 }'
+}
+
+
+################################# Main ####################################
+
+# Set file to store which plugins are loaded
+PLUGIN_LOAD_FILE="/var/tmp/.aif_active_plugins"
+
+# Check whether we also need to drop messages in a dedicated firewall log file
+if [ -z "$FIREWALL_LOG" ]; then
+  FIREWALL_LOG="/dev/null"
+fi
+
+# Check for a local/global config file
+######################################
+if [ -e "$LOCAL_CONFIG_FILE" ]; then
+  . "$LOCAL_CONFIG_FILE"
+fi
+
+# if $LOGLEVEL is not set, default to "info"
+############################################
+if [ -z "$LOGLEVEL" ]; then
+  LOGLEVEL="info"
+fi
+
+# Detect all binaries
+#####################
+if [ -z "$IP6TABLES" ]; then
+  if [ -x /sbin/ip6tables ]; then
+    IP6TABLES="/sbin/ip6tables"
+  else
+    IP6TABLES=`which ip6tables 2>/dev/null`
+  fi
+fi
+
+if [ -z "$IP4TABLES" ]; then
+  if [ -x /sbin/iptables ]; then
+    IP4TABLES="/sbin/iptables"
+  else
+    IP4TABLES=`which iptables 2>/dev/null`
+  fi
+fi
+
+if [ -x /sbin/ip ]; then
+  IP='/sbin/ip'
+else
+  IP=`which ip 2>/dev/null`
+fi
+
+if [ -x /sbin/tc ]; then
+  TC='/sbin/tc'
+else
+  TC=`which tc 2>/dev/null`
+fi
+
+if [ -x /sbin/sysctl ]; then
+  SYSCTL='/sbin/sysctl'
+else
+  SYSCTL=`which sysctl 2>/dev/null`
+fi
+
+if [ -x /sbin/modprobe ]; then
+  MODPROBE='/sbin/modprobe'
+else
+  MODPROBE=`which modprobe 2>/dev/null`
+fi
+
+if [ "$IPV6_SUPPORT" = "1" ]; then
+  IPTABLES="$IP6TABLES"
+  ICMP_PROTO="icmpv6"
+  ICMP_TYPE="--icmpv6-type"
+  
+  # If IPv6 support is enabled some options should be forced off as they
+  # are simply not supported (yet) by ip6tables
+  unset TTL_INC NAT PACKET_TTL NAT_FORWARD_TCP NAT_FORWARD_UDP NAT_FORWARD_IP
+else
+  IPTABLES="$IP4TABLES"
+  ICMP_PROTO="icmp"
+  ICMP_TYPE="--icmp-type"
+fi
+
+# check for tracing
+###################
+if [ "$TRACE" = "1" ]; then
+  TRACEFILE="/tmp/aif-trace.`date '+%Y%m%d-%H:%M:%S'`"
+  cp /dev/null $TRACEFILE
+fi
+
+
+# Check plugin bin path and fallback in case it's empty
+#######################################################
+if [ -z "$PLUGIN_BIN_PATH" ]; then
+  if [ -d "/usr/local/share/arno-iptables-firewall/plugins" ]; then
+    PLUGIN_BIN_PATH="/usr/local/share/arno-iptables-firewall/plugins"
+  else
+    if [ -d "/usr/share/arno-iptables-firewall/plugins" ]; then
+      PLUGIN_BIN_PATH="/usr/share/arno-iptables-firewall/plugins"
+    else
+      printf "\033[40m\033[1;31mERROR: The plugin binary path (PLUGIN_BIN_PATH) has not been specified\033[0m\n" >&2
+      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+      exit 2
+    fi
+  fi
+fi
+
+# Required for legacy plugins:
+PLUGIN_PATH="$PLUGIN_BIN_PATH"
+
+# Check plugin bin path and fallback in case it's empty
+#######################################################
+if [ -z "$PLUGIN_CONF_PATH" ]; then
+  if [ -d "/etc/arno-iptables-firewall/plugins" ]; then
+    PLUGIN_CONF_PATH="/etc/arno-iptables-firewall/plugins"
+  else
+    printf "\033[40m\033[1;31mERROR: The plugin config path (PLUGIN_CONF_PATH) has not been specified\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+    exit 2
+  fi
+fi
+
+
+if [ -n "$EXT_IF" ]; then
+  # Setup EXTERNAL_NET
+  if [ -z "$EXTERNAL_NET" ]; then
+    IFS=' ,'
+    for interface in $EXT_IF; do
+      EXTERNAL_NET="$EXTERNAL_NET""$(get_network_ip $interface)""/""$(get_network_mask $interface) "
+    done
+  fi
+
+  # Setup EXT_NET_BCAST_ADDRESS
+  if [ -z "$EXT_NET_BCAST_ADDRESS" ]; then
+    IFS=' ,'
+    for interface in $EXT_IF; do
+      EXT_NET_BCAST_ADDRESS="$EXT_NET_BCAST_ADDRESS""$(get_network_broadcast $interface)"
+    done
+  fi
+fi
+
+
+if [ -n "$INT_IF" ]; then
+  # Setup INTERNAL_NET
+  if [ -z "$INTERNAL_NET" ]; then
+    IFS=' ,'
+    for interface in $INT_IF; do
+      INTERNAL_NET="$INTERNAL_NET""$(get_network_ip $interface)""/""$(get_network_mask $interface) "
+    done
+  fi
+  
+  # Setup INT_NET_BCAST_ADDRESS
+  if [ -z "$INT_NET_BCAST_ADDRESS" ]; then
+    IFS=' ,'
+    for interface in $INT_IF; do
+      INT_NET_BCAST_ADDRESS="$INT_NET_BCAST_ADDRESS""$(get_network_broadcast $interface)"
+    done
+  fi
+
+  if [ -z "$NAT_INTERNAL_NET" ]; then
+    NAT_INTERNAL_NET="$INTERNAL_NET"
+  fi
+fi
 

@@ -1,5 +1,7 @@
-Version 1.9.2h (December 5, 2009)
+Version 1.9.2h (December 6, 2009)
 ---------------------------------
+! Fixed typo in module_probe deprecation warning
++ Autodetect netmask & broadcast addresses for INT_IF & EXT_IF
 + Add a default DROP to the HOST_BLOCK_SRC and HOST_BLOCK_DST chains while they are being built,
   this is most important when using the 'force-reload' verb.  During the time the Blocked Hosts are
   being applied, no new traffic will be allowed in any direction.

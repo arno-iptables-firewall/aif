@@ -262,7 +262,6 @@ setup_conf_file()
 
   if get_user_yn "Do you have an internal(aka LAN) interface that you want to setup? (Y/N)" "n"; then
     get_conf_var "What is your internal interface (aka. LAN interface)?" /etc/arno-iptables-firewall/firewall.conf "INT_IF" ""
-    get_conf_var "What is your internal net? (eg. 192.168.1.0/24)?" /etc/arno-iptables-firewall/firewall.conf "INTERNAL_NET" ""
 
     if get_user_yn "Do you want to enable NAT for your internal net? (Y/N)" "y"; then
       change_conf_var /etc/arno-iptables-firewall/firewall.conf "NAT" "1"
