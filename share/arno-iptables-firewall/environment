@@ -737,10 +737,10 @@ show_hosts_ports()
 ip_range()
 {
   # Return the args if there is no '-' for improved execution speed
-  if ! echo "$@" | grep -q '-'; then
-    echo "$@"
-    return
-  fi
+  case "$@" in
+    *-*) ;;
+      *) echo "$@"; return;;
+  esac
 
   FIRST=1
 
