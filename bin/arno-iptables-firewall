@@ -83,7 +83,7 @@ sanity_check()
   ##############################################################
   check_binary awk
   check_binary tr
-  check_binary ifconfig
+  check_binary ip
   check_binary cut
   check_binary uname
   check_binary sed
@@ -110,7 +110,7 @@ sanity_check()
   IFS=' ,'
   for interface in $EXT_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ifconfig $interface >/dev/null 2>&1`
+      result=`ip link show $interface >/dev/null 2>&1`
       return_val=$?
       if [ "$return_val" != "0" ]; then
         printf "\033[40m\033[1;31mNOTE: External interface $interface does NOT exist (yet?)\033[0m\n"
@@ -126,7 +126,7 @@ sanity_check()
   IFS=' ,'
   for interface in $INT_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ifconfig $interface >/dev/null 2>&1`
+      result=`ip link show $interface >/dev/null 2>&1`
       return_val=$?
       if [ "$return_val" != "0" ]; then
         printf "\033[40m\033[1;31mNOTE: Internal interface $interface does NOT exist (yet?)\033[0m\n"
@@ -142,7 +142,7 @@ sanity_check()
   IFS=' ,'
   for interface in $DMZ_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ifconfig $interface >/dev/null 2>&1`
+      result=`ip link show $interface >/dev/null 2>&1`
       return_val=$?
       if [ "$return_val" != "0" ]; then
         printf "\033[40m\033[1;31mNOTE: DMZ interface $interface does NOT exist (yet?)\033[0m\n"
@@ -158,7 +158,7 @@ sanity_check()
   IFS=' ,'
   for interface in $TRUSTED_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ifconfig $interface >/dev/null 2>&1`
+      result=`ip link show $interface >/dev/null 2>&1`
       return_val=$?
       if [ "$return_val" != "0" ]; then
         printf "\033[40m\033[1;31mNOTE: Trusted interface $interface does NOT exist (yet?)\033[0m\n"
