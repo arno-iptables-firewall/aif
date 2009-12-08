@@ -744,41 +744,25 @@ iptables_batch()
   return $RESULT
 }
 
-
-get_network_info()
-{
-  CUR_IF=""
-  IP_SET=""
-
-  IFS=$EOL
-  for LINE in $(ifconfig -a 2>/dev/null); do
-    if echo "$LINE" |grep -q -i 'Link encap'; then
-      CUR_IF="$(echo "$LINE" |grep -i 'Link encap:ethernet' |grep -v -e '^dummy0' -e '^bond0' -e '^lo' |cut -f1 -d' ')"
-    elif echo "$LINE" |grep -q -i 'inet addr:.*Bcast.*Mask.*' && [ "$CUR_IF" = "$1" ]; then
-      IP_SET="$LINE"
-      echo "$IP_SET" |sed -e s/" *inet addr:"// -e s/" Bcast:"// -e s/" Mask:"//
-      break
-    fi
-  done
-}
-
-
 # Get IP address of the specified network interface
 get_network_ip()
 {
-  get_network_info $1 |awk '{ print $1 }'
+  ip -o addr show dev "$1" 2>/dev/null \
+    | awk '$3 == "inet" { split($4, field, "/"); print field[1]; exit; }'
 }
 
 # Get broadcast address of the specified network interface 
 get_network_broadcast()
 {
-  get_network_info $1 |awk '{ print $2 }'
+  ip -o addr show dev "$1" 2>/dev/null \
+    | awk '$3 == "inet" && $5 == "brd" { print $6; exit; }'
 }
 
 # Get netmask of the specified network interface 
 get_network_mask()
 {
-  get_network_info $1 |awk '{ print $3 }'
+  ip -o addr show dev "$1" 2>/dev/null \
+    | awk '$3 == "inet" { split($4, field, "/"); print field[2]; exit; }'
 }
 
 
@@ -918,7 +902,7 @@ if [ -n "$EXT_IF" ]; then
   if [ -z "$EXTERNAL_NET" ]; then
     IFS=' ,'
     for interface in $EXT_IF; do
-      EXTERNAL_NET="$EXTERNAL_NET""$(get_network_ip $interface)""/""$(get_network_mask $interface) "
+      EXTERNAL_NET="$EXTERNAL_NET${EXTERNAL_NET:+ }$(get_network_ip $interface)/$(get_network_mask $interface)"
     done
   fi
 
@@ -926,7 +910,7 @@ if [ -n "$EXT_IF" ]; then
   if [ -z "$EXT_NET_BCAST_ADDRESS" ]; then
     IFS=' ,'
     for interface in $EXT_IF; do
-      EXT_NET_BCAST_ADDRESS="$EXT_NET_BCAST_ADDRESS""$(get_network_broadcast $interface)"
+      EXT_NET_BCAST_ADDRESS="$EXT_NET_BCAST_ADDRESS${EXT_NET_BCAST_ADDRESS:+ }$(get_network_broadcast $interface)"
     done
   fi
 fi
@@ -937,7 +921,7 @@ if [ -n "$INT_IF" ]; then
   if [ -z "$INTERNAL_NET" ]; then
     IFS=' ,'
     for interface in $INT_IF; do
-      INTERNAL_NET="$INTERNAL_NET""$(get_network_ip $interface)""/""$(get_network_mask $interface) "
+      INTERNAL_NET="$INTERNAL_NET${INTERNAL_NET:+ }$(get_network_ip $interface)/$(get_network_mask $interface)"
     done
   fi
   
@@ -945,7 +929,7 @@ if [ -n "$INT_IF" ]; then
   if [ -z "$INT_NET_BCAST_ADDRESS" ]; then
     IFS=' ,'
     for interface in $INT_IF; do
-      INT_NET_BCAST_ADDRESS="$INT_NET_BCAST_ADDRESS""$(get_network_broadcast $interface)"
+      INT_NET_BCAST_ADDRESS="$INT_NET_BCAST_ADDRESS${INT_NET_BCAST_ADDRESS:+ }$(get_network_broadcast $interface)"
     done
   fi
 
