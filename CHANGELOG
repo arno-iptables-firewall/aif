@@ -1,5 +1,8 @@
-Version 1.9.2h (December 6, 2009)
+Version 1.9.2h (December 8, 2009)
 ---------------------------------
++ Add iptables_batch() function to greatly decrease the time to add the "Blocked Host" rules.
+  iptables_batch() uses iptables-save and iptables-restore to add rules in batch rather than one-by-one.
+  This feature may be disabled by setting DISABLE_IPTABLES_BATCH=1
 ! Fixed typo in module_probe deprecation warning
 + Autodetect netmask & broadcast addresses for INT_IF & EXT_IF
 + Add a default DROP to the HOST_BLOCK_SRC and HOST_BLOCK_DST chains while they are being built,

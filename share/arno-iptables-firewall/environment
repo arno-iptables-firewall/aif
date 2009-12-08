@@ -176,6 +176,38 @@ ip6tables()
 }
 
 
+iptables_save()
+{
+  $IPTABLES_SAVE "$@"
+  retval=$?
+
+  if [ "$retval" != "0" ]; then
+    # Show any (error) messages in red
+    printf "\033[40m\033[1;31m${INDENT}$IPTABLES_SAVE: Error ($retval) \033[0m\n" >&2
+    IPTABLES_ERROR=1
+  fi
+
+  return $retval
+}
+
+
+iptables_restore()
+{
+  result=`$IPTABLES_RESTORE "$@" 2>&1`
+  retval=$?
+
+  if [ "$retval" != "0" ]; then
+    # Show any (error) messages in red
+    printf "\033[40m\033[1;31m${INDENT}$IPTABLES_RESTORE: ($retval) $result\033[0m\n" >&2
+    IPTABLES_ERROR=1
+  elif [ -n "$result" ]; then
+    echo "${INDENT}$result"
+  fi
+
+  return $retval
+}
+
+
 # Wrapper function for modprobe
 ###############################
 modprobe()
@@ -660,6 +692,58 @@ ip_range()
   done
 }
 
+iptables_batch()
+{
+  local ARGS CHAIN CHAINFILE RESULT=0
+  
+  # Args must be of the form and called in this order:
+  #   start
+  #   init CHAIN
+  #   -A CHAIN ...
+  #   apply CHAIN
+  #   stop
+  #
+  # Note: the added rules will be placed after a required
+  #       pre-existing rule in CHAIN.
+  #
+  ARGS="$@"
+  CHAIN="$2"
+  
+  if [ "$DISABLE_IPTABLES_BATCH" = "1" ]; then
+    if [ "$1" = "-A" ]; then
+      iptables "$@"
+    fi
+    return
+  fi
+  
+  if [ -n "$CHAIN" ]; then
+    CHAINFILE="$IPTABLES_BATCH_FILE"_"$CHAIN"
+    if [ "$1" = "-A" ]; then
+      echo "$ARGS" >> $CHAINFILE
+    elif [ "$1" = "init" ]; then
+      rm -f $CHAINFILE
+    elif [ "$1" = "apply" ]; then
+      sed -i "/^-A $CHAIN / r $CHAINFILE" $IPTABLES_BATCH_FILE
+      iptables_restore < $IPTABLES_BATCH_FILE
+      RESULT=$?
+      rm -f $CHAINFILE
+    else
+      RESULT=1
+    fi
+  else
+    if [ "$1" = "start" ]; then
+      iptables_save -t filter > $IPTABLES_BATCH_FILE
+      RESULT=$?
+    elif [ "$1" = "stop" ]; then
+      rm -f $IPTABLES_BATCH_FILE
+    else
+      RESULT=1
+    fi
+  fi
+  
+  return $RESULT
+}
+
 
 get_network_info()
 {
@@ -699,6 +783,9 @@ get_network_mask()
 
 
 ################################# Main ####################################
+
+# Set base file for iptables_batch
+IPTABLES_BATCH_FILE="/var/tmp/aif_iptables_batch"
 
 # Set file to store which plugins are loaded
 PLUGIN_LOAD_FILE="/var/tmp/.aif_active_plugins"
@@ -774,6 +861,16 @@ else
   IPTABLES="$IP4TABLES"
   ICMP_PROTO="icmp"
   ICMP_TYPE="--icmp-type"
+fi
+
+IPTABLES_SAVE="$IPTABLES"-save
+if [ ! -x "$IPTABLES_SAVE" ]; then
+  IPTABLES_SAVE=$(which $(basename "$IPTABLES_SAVE") 2>/dev/null)
+fi
+
+IPTABLES_RESTORE="$IPTABLES"-restore
+if [ ! -x "$IPTABLES_RESTORE" ]; then
+  IPTABLES_RESTORE=$(which $(basename "$IPTABLES_RESTORE") 2>/dev/null)
 fi
 
 # check for tracing

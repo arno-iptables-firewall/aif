@@ -4077,6 +4077,10 @@ setup_hostblock_chain()
   iptables -A HOST_BLOCK_SRC -j DROP
   iptables -A HOST_BLOCK_DST -j DROP
 
+  iptables_batch start
+  iptables_batch init HOST_BLOCK_SRC
+  iptables_batch init HOST_BLOCK_DST
+
   if [ -n "$BLOCK_HOSTS" ]; then
     printf "Blocking (blackhole) host(s): "
 
@@ -4085,8 +4089,8 @@ setup_hostblock_chain()
       printf "$hosts "
 
       for host in `ip_range "$hosts"`; do
-        iptables -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
-        iptables -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+        iptables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+        iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
       done
     done
     echo ""
@@ -4106,8 +4110,8 @@ setup_hostblock_chain()
         if [ -n "$hosts" ]; then
           IFS=','
           for host in `ip_range "$hosts"`; do
-            iptables -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
-            iptables -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+            iptables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+            iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
 
             # Display an activity count since this can take awhile
             count=$(($count + 1))
@@ -4130,6 +4134,10 @@ setup_hostblock_chain()
     fi
   fi
 
+  iptables_batch apply HOST_BLOCK_SRC
+  iptables_batch apply HOST_BLOCK_DST
+  iptables_batch stop
+  
   # All Blocked Host rules are applied
   # Remove default rule at the beginning of the HOST_BLOCK_SRC and HOST_BLOCK_DST chains
   iptables -D HOST_BLOCK_SRC 1
