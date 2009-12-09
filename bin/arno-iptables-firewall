@@ -4100,30 +4100,23 @@ setup_hostblock_chain()
   # Setup the blocked hosts from our file
   if [ -n "$BLOCK_HOSTS_FILE" ]; then
     if [ -e "$BLOCK_HOSTS_FILE" ]; then
-      count=0
+      local cur_cnt=0 total_cnt
+      total_cnt=$(( $(cat "$BLOCK_HOSTS_FILE" |wc -l) ))
 
       echo "(Re)loading list of BLOCKED hosts from $BLOCK_HOSTS_FILE..."
+      progress_bar $cur_cnt $total_cnt
 
       # Support both a '#' and a ';' as a comment delimiter in BLOCK_HOSTS_FILE file
       unset IFS
       cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' | while read hosts; do
+        cur_cnt=$(($cur_cnt + 100))
+        progress_bar $cur_cnt $total_cnt
+
         if [ -n "$hosts" ]; then
           IFS=','
           for host in `ip_range "$hosts"`; do
             iptables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
             iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
-
-            # Display an activity count since this can take awhile
-            count=$(($count + 1))
-            if [ $(($count % 10)) -eq 0 ]; then
-              if [ $(($count % 50)) -eq 0 ]; then
-                echo "$count"
-              else
-                printf "$count"
-              fi
-            else
-              printf "."
-            fi
           done
           unset IFS
         fi

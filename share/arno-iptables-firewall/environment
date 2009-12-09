@@ -701,6 +701,7 @@ ip_range()
   done
 }
 
+# Add iptables rules in batch using iptables-save and iptables-restore
 iptables_batch()
 {
   local ARGS CHAIN CHAINFILE RESULT=0
@@ -751,6 +752,36 @@ iptables_batch()
   fi
   
   return $RESULT
+}
+
+# Display progress bar, 0% to 100% in 2% increments
+progress_bar()
+{
+ # Args: cur_cnt total_cnt
+ local prev
+ 
+ if [ $2 -gt 0 ]; then
+   if [ $1 -eq 0 ]; then
+     progress_percent=0
+     printf "0%%"
+   else
+     cur=$(($1 / $2))
+     if [ $progress_percent -lt $cur ]; then
+       prev=$progress_percent
+       while [ $prev -le $cur ]; do
+         if [ $progress_percent -lt $prev ]; then
+           progress_percent=$prev
+           if [ $(($progress_percent % 20)) -eq 0 ]; then
+             printf "$progress_percent%%"
+           else
+             printf "."
+           fi
+         fi
+         prev=$(($prev + 2))
+       done
+     fi
+   fi
+ fi
 }
 
 # Get IP address of the specified network interface
