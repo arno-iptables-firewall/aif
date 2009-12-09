@@ -349,7 +349,7 @@ sysctl_multi()
 
   IFS=' '
   for variable in $VARIABLES; do
-    if $SYSCTL $variable 2>/dev/null 2>&1; then
+    if $SYSCTL $(echo "$variable" |cut -d'=' -f1) >/dev/null 2>&1; then
       result=`trace $SYSCTL -w $OPTIONS $variable 2>&1`
       retval=$?
 
