@@ -223,22 +223,22 @@ modprobe()
     if [ "$retval" != "0" ]; then
       if ! echo "$result" |grep -q -e '^FATAL: Module .* not found'; then
         # Show any (error) messages in red
-        printf "\033[40m\033[1;31m${INDENT}modprobe $@: ($retval) $result\033[0m\n" >&2
+        printf "\033[40m\033[1;31m${INDENT}$MODPROBE $@: ($retval) $result\033[0m\n" >&2
       elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-        printf "\033[40m\033[1;31m${INDENT}modprobe $@: Module(s) \"$MODULES\" not found! Assuming it is compiled in the kernel\033[0m\n" >&2
+        printf "\033[40m\033[1;31m${INDENT}$MODPROBE $@: Module not found! Assuming compiled-in-kernel!\033[0m\n" >&2
       fi
       return $retval
     else
       if echo "$result" |grep -q -e '^WARNING:'; then
         # Show any (warning) messages in red
         printf "\033[40m\033[1;31m${INDENT}modprobe $@: $result\033[0m\n" >&2
+      else
+        echo "${INDENT}Loaded kernel module $1. $result"
       fi
-      
-      echo "${INDENT}Loaded kernel module $1. $result"
       return 0
     fi
   elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-    echo "${INDENT}NOTE: Kernel has no module support. Assuming module \"$1\" is compiled in the kernel"
+    echo "${INDENT}NOTE: Kernel has no module support. Assuming compiled-in-kernel for module \"$1\""
   fi
 
   return 0
@@ -261,6 +261,9 @@ modprobe_multi()
 
   MODULES="$@"
 
+  local retval
+  local result
+
   # Module support available?
   if [ -e /proc/modules ]; then
     # Make sure environment variable is not set
@@ -280,19 +283,18 @@ modprobe_multi()
         if echo "$result" |grep -q -e '^WARNING:'; then
           # Show any (warning) messages in red
           printf "\033[40m\033[1;31m${INDENT}modprobe $@: $result\033[0m\n" >&2
+        else
+          echo "${INDENT}Loaded kernel module $module. $result"
         fi
-        
-        echo "${INDENT}Loaded kernel module $module. $result"
         return 0
       fi
     done
     if [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-      printf "${INDENT}\033[40m\033[1;31mWARNING: Module(s) \"$MODULES\" not found. Assuming it is compiled in the kernel\033[0m\n" >&2
+      printf "\033[40m\033[1;31m${INDENT}WARNING: ($retval) Module(s) \"$MODULES\" failed to load. Assuming compiled-in-kernel!\033[0m\n" >&2
       return 1
     fi
   elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-    echo "${INDENT}NOTE: Kernel has no module support. Assuming module(s) \"$MODULES\" are compiled in the kernel"
-    return 1
+    echo "${INDENT}NOTE: Kernel has no module support. Assuming compiled-in-kerel for module(s) \"$MODULES\""
   fi
   
   return 0
@@ -318,7 +320,7 @@ sysctl()
 
   if [ "$retval" != "0" ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m${INDENT}sysctl $@: ($retval) $result\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}sysctl -w $@: ($retval) $result\033[0m\n" >&2
     return $retval
   fi
   echo "${INDENT}Set kernel parameter $@"
@@ -341,18 +343,25 @@ sysctl_multi()
   done
 
   VARIABLES="$@"
+  
+  local retval
+  local result
 
   IFS=' '
   for variable in $VARIABLES; do
-    result=`trace $SYSCTL -w $OPTIONS $variable 2>&1`
-    retval=$?
+    if $SYSCTL $variable 2>/dev/null 2>&1; then
+      result=`trace $SYSCTL -w $OPTIONS $variable 2>&1`
+      retval=$?
 
-    if [ "$retval" = "0" ]; then
-      echo "${INDENT}Set kernel parameter $variable"
-      return 0
+      if [ "$retval" = "0" ]; then
+        echo "${INDENT}Set kernel parameter $variable"
+        return 0
+      else
+        printf "\033[40m\033[1;31m${INDENT}sysctl -w $OPTIONS $variable: ($retval) $result\033[0m\n" >&2
+      fi
     fi
   done
-  printf "\033[40m\033[1;31m${INDENT}Kernel variable(s) \"$VARIABLES\" FAILED to set! This may be a problem!\033[0m\n" >&2
+  printf "\033[40m\033[1;31m${INDENT}ERROR: ($retval) Unable to set kernel variable(s) \"$VARIABLES\". This may be a problem!\033[0m\n" >&2
   return 1
 }
 

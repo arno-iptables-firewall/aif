@@ -28,7 +28,6 @@ VERBOSE=0
 
 test -x $PROGRAM || exit 0
 
-
 if [ "$VERBOSE" = "0" ]; then
   case "$1" in
     start)
@@ -74,3 +73,4 @@ fi
 
 # Return value:
 exit $return_val
+

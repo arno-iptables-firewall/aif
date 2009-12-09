@@ -1,5 +1,6 @@
-Version 1.9.2h (December 8, 2009)
+Version 1.9.2h (December 9, 2009)
 ---------------------------------
+* Cleaned up/tweaked sysctl & modprobe functions
 * Consistently use 'ip' instead of 'ifconfig' to obtain interface attributes.
 + Add iptables_batch() function to greatly decrease the time to add the "Blocked Host" rules.
   iptables_batch() uses iptables-save and iptables-restore to add rules in batch rather than one-by-one.
