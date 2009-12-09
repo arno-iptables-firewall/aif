@@ -48,7 +48,7 @@ sanity_check()
 
   check_binary awk
   check_binary tr
-  check_binary ifconfig
+  check_binary ip
   check_binary cut
   check_binary uname
   check_binary sed
