@@ -4122,6 +4122,7 @@ setup_hostblock_chain()
         fi
       done
       echo ""
+      echo "  $total_cnt line(s) read."
     else
       printf "\033[40m\033[1;31mNOTE: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
     fi
