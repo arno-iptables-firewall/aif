@@ -1,5 +1,8 @@
-Version 1.9.2h (December 9, 2009)
+Version 1.9.2h (December 31, 2009)
 ---------------------------------
+! fixed: Init script for newer Debian/Ubuntu version. Start on system startup,
+  only stop on system shutdown. Moreover, do not wait for syslog, but start
+  whenever there is network.
 * Cleaned up/tweaked sysctl & modprobe functions
 * Consistently use 'ip' instead of 'ifconfig' to obtain interface attributes.
 + Add iptables_batch() function to greatly decrease the time to add the "Blocked Host" rules.
