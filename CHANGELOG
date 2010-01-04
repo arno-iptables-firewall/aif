@@ -1,6 +1,6 @@
 Version 1.9.2h (December 31, 2009)
----------------------------------
-! fixed: Init script for newer Debian/Ubuntu version. Start on system startup,
+----------------------------------
+! Init script for newer Debian/Ubuntu version. Start on system startup,
   only stop on system shutdown. Moreover, do not wait for syslog, but start
   whenever there is network (thanks downstream/Michael Hanke)
 * Cleaned up/tweaked sysctl & modprobe functions
