@@ -60,7 +60,7 @@ plugin_status()
   return 0
 }
 
-# Check sanity of ie. environment
+# Check sanity of eg. environment
 plugin_sanity_check()
 {
   if [ -z "$IPV6_OVER_IPV4_IF" ]; then

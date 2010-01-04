@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="1.9.2e-DEVEL"
+MY_VERSION="1.9.2h"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -83,7 +83,7 @@ sanity_check()
   ##############################################################
   check_binary awk
   check_binary tr
-  check_binary ifconfig
+  check_binary ip
   check_binary cut
   check_binary uname
   check_binary sed
@@ -110,7 +110,7 @@ sanity_check()
   IFS=' ,'
   for interface in $EXT_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ifconfig $interface >/dev/null 2>&1`
+      result=`ip link show $interface >/dev/null 2>&1`
       return_val=$?
       if [ "$return_val" != "0" ]; then
         printf "\033[40m\033[1;31mNOTE: External interface $interface does NOT exist (yet?)\033[0m\n"
@@ -126,7 +126,7 @@ sanity_check()
   IFS=' ,'
   for interface in $INT_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ifconfig $interface >/dev/null 2>&1`
+      result=`ip link show $interface >/dev/null 2>&1`
       return_val=$?
       if [ "$return_val" != "0" ]; then
         printf "\033[40m\033[1;31mNOTE: Internal interface $interface does NOT exist (yet?)\033[0m\n"
@@ -142,7 +142,7 @@ sanity_check()
   IFS=' ,'
   for interface in $DMZ_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ifconfig $interface >/dev/null 2>&1`
+      result=`ip link show $interface >/dev/null 2>&1`
       return_val=$?
       if [ "$return_val" != "0" ]; then
         printf "\033[40m\033[1;31mNOTE: DMZ interface $interface does NOT exist (yet?)\033[0m\n"
@@ -158,7 +158,7 @@ sanity_check()
   IFS=' ,'
   for interface in $TRUSTED_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ifconfig $interface >/dev/null 2>&1`
+      result=`ip link show $interface >/dev/null 2>&1`
       return_val=$?
       if [ "$return_val" != "0" ]; then
         printf "\033[40m\033[1;31mNOTE: Trusted interface $interface does NOT exist (yet?)\033[0m\n"
@@ -245,19 +245,33 @@ sanity_check()
 
 load_modules()
 {
+  # Set indent for functions
+  INDENT=' '
+
   if [ "$IPV6_SUPPORT" != "1" ]; then
     echo "Checking/probing IPv4 Iptables modules:"
+    
+    # Required; all IPv4 modules depend on this one
+    modprobe ip_tables
+    
+    # Allows connection tracking state match, which allows you to
+    # write rules matching the state of a connection
+    modprobe_multi nf_conntrack ip_conntrack
 
-    modprobe ip_tables               # Required; all ipv4 modules depend on this one
-    modprobe ip_conntrack            # Allows connection tracking state match, which allows you to
-                                         # write rules matching the state of a connection
-    modprobe ip_conntrack_ftp        # Permits active FTP; requires ip_conntrack
-
-    modprobe ipt_conntrack           # Allows tracking for various protocols, placing entries
-                                         # in the conntrack table etc.
-    modprobe ipt_limit               # Allows log limits
-    modprobe ipt_state               # Permits packet state checking (SYN, SYN-ACK, ACK, and so on).
-    modprobe ipt_multiport           # Allows packet specifications on multiple ports
+    # Permits active FTP; requires ip_conntrack 
+    modprobe_multi nf_conntrack_ftp ip_conntrack_ftp
+    
+    # Allows tracking for various protocols, placing entries in the conntrack table etc. 
+    modprobe_multi xt_conntrack ipt_conntrack
+    
+    # Allows log limits
+    modprobe_multi xt_limit ipt_limit
+    
+    # Permits packet state checking (SYN, SYN-ACK, ACK, and so on). 
+    modprobe_multi xt_state ipt_state
+    
+    # Allows packet specifications on multiple ports
+    modprobe_multi xt_multiport ipt_multiport
 
     modprobe iptable_filter          # Implements the filter table
     modprobe iptable_mangle          # Implements the mangle table
@@ -265,6 +279,18 @@ load_modules()
     # Explicitly load some targets
     modprobe ipt_REJECT              # Implements the REJECT target
     modprobe ipt_LOG                 # Implements the LOG target
+    
+    if [ "$SET_MSS" != "0" ]; then
+      modprobe_multi xt_TCPMSS ipt_TCPMSS             # Load the TCPMSS target
+    fi
+ 
+    if [ "$MANGLE_TOS" != "0" ]; then
+      modprobe_multi xt_DSCP ipt_DSCP ipt_TOS                # Load the TOS target
+    fi
+
+    if [ "$PACKET_TTL" = "1" ] || [ "$TTL_INC" = "1" ]; then
+      modprobe ipt_TTL                # Load the TTL target
+    fi
 
   # (Currently) unused modules:
   #    modprobe ipt_addrtype            # Allows matching src/dst address type (BROKEN!)
@@ -276,32 +302,23 @@ load_modules()
 
     if [ "$USE_IRC" = "1" ]; then
   #      echo "Enabling IRC DCC module support..."
-      modprobe ip_conntrack_irc        #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
+      modprobe_multi nf_conntrack_irc ip_conntrack_irc        #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
 
       if [ "$NAT" = "1" ]; then
-        modprobe ip_nat_irc            #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
+        modprobe_multi nf_nat_irc ip_nat_irc            #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
       fi
     fi
 
-    if [ "$SET_MSS" != "0" ]; then
-      modprobe ipt_TCPMSS             # Load the TCPMSS target
-    fi
-
     if [ "$NAT" = "1" ]; then
-      modprobe ip_nat_ftp             # Permits active FTP via nat; requires ip_conntrack, iptables_nat
+      modprobe_multi nf_nat_ftp ip_nat_ftp             # Permits active FTP via nat; requires ip_conntrack, iptables_nat
     fi
     
     if [ "$NAT" = "1" ] || [ -n "$NAT_FORWARD_TCP" ] || [ -n "$NAT_FORWARD_UDP" ] || [ -n "$NAT_FORWARD_IP" ]; then
       modprobe iptable_nat            # Implements the NAT table
-      modprobe ipt_MASQUERADE         # Load the MASQUERADE target
-    fi
 
-    if [ "$MANGLE_TOS" != "0" ]; then
-      modprobe ipt_TOS                # Load the TOS target
-    fi
-
-    if [ "$PACKET_TTL" = "1" ] || [ "$TTL_INC" = "1" ]; then
-      modprobe ipt_TTL                # Load the TTL target
+      if [ -z "$NAT_STATIC_IP" ]; then
+        modprobe ipt_MASQUERADE         # Load the MASQUERADE target
+      fi
     fi
   else
     echo "Checking/probing IPv6 Iptables modules:"
@@ -310,6 +327,18 @@ load_modules()
 
     modprobe nf_conntrack_ipv6       # Allows connection tracking state match, which allows you to
                                      # write rules matching the state of a connection
+    
+    # Allows tracking for various protocols, placing entries in the conntrack table etc.
+    modprobe_multi xt_conntrack ip6t_conntrack
+
+    # Allows log limits
+    modprobe_multi xt_limit ip6t_limit
+
+    # Permits packet state checking (SYN, SYN-ACK, ACK, and so on).
+    modprobe_multi xt_state ip6t_state
+
+    # Allows packet specifications on multiple ports
+    modprobe_multi xt_multiport ip6t_multiport
 
     modprobe ip6table_filter         # Implements the filter table
     modprobe ip6table_mangle         # Implements the mangle table
@@ -317,6 +346,14 @@ load_modules()
     # Explicitly load some targets
     modprobe ip6t_REJECT             # Implements the REJECT target
     modprobe ip6t_LOG                # Implements the LOG target
+  
+    if [ "$SET_MSS" != "0" ]; then
+      modprobe_multi xt_TCPMSS ip6t_TCPMSS             # Load the TCPMSS target
+    fi
+
+    if [ "$MANGLE_TOS" != "0" ]; then
+      modprobe_multi xt_DSCP ip6t_DSCP ip6t_TOS                # Load the TOS target
+    fi
   fi
 
   echo " Module check done..."
@@ -337,24 +374,21 @@ setup_misc()
 
 setup_kernel_settings()
 {
+  # Set INDENT value for functions
+  INDENT='  '
+  
   echo "Setup kernel settings:"
 
   # Set the maximum number of connections to track.
   # The kernel "default" depends on the available amount of RAM, 128 MB of RAM -> 8192
   # possible entries, 256 MB of RAM --> 16376 possible entries, etc...
   #######################################################################################
-  if [ -z "$CONNTRACK" ]; then
-    CONNTRACK="4096"
+  if [ -n "$CONNTRACK" ] && [ "$CONNTRACK" != "0" ]; then
+    echo " Setting the max. amount of simultaneous connections to $CONNTRACK"
+    sysctl_multi net.nf_conntrack_max=$CONNTRACK \
+                 net.ipv4.netfilter.ip_conntrack_max=$CONNTRACK \
+                 net.ipv4.ip_conntrack_max=$CONNTRACK
   fi
-
-  echo " Setting the max. amount of simultaneous connections to $CONNTRACK"
-  sysctl net.nf_conntrack_max=$CONNTRACK 2>/dev/null || \
-    sysctl net.ipv4.netfilter.ip_conntrack_max=$CONNTRACK 2>/dev/null || \
-    sysctl net.ipv4.ip_conntrack_max=$CONNTRACK 2>/dev/null || \
-    {
-      printf "\033[40m\033[1;31m WARNING: ...ip_conntrack_max could NOT be set. This may be a problem!\033[0m\n" >&2
-#      exit 20
-    }
 
   # Change some default timings to fix false logs generated by "lost connections"
   # Defaults:
@@ -374,13 +408,11 @@ setup_kernel_settings()
   echo " Setting default conntrack timeouts"
 
   # This is to fix issues with DNS:
-  sysctl net.netfilter.nf_conntrack_udp_timeout=60 2>/dev/null || \
-    sysctl net.ipv4.netfilter.ip_conntrack_udp_timeout=60 2>/dev/null || \
-    printf "\033[40m\033[1;31m WARNING: ...conntrack_udp_timeout could NOT be set. This may be a problem!\033[0m\n" >&2
+  sysctl_multi net.netfilter.nf_conntrack_udp_timeout=60 \
+               net.ipv4.netfilter.ip_conntrack_udp_timeout=60
 
-  sysctl net.netfilter.nf_conntrack_udp_timeout_stream=180 2>/dev/null || \
-    sysctl net.ipv4.netfilter.ip_conntrack_udp_timeout_stream=180 2>/dev/null || \
-    printf "\033[40m\033[1;31m WARNING: ...conntrack_udp_timeout_stream could NOT be set. This may be a problem!\033[0m\n" >&2
+  sysctl_multi net.netfilter.nf_conntrack_udp_timeout_stream=180 \
+               net.ipv4.netfilter.ip_conntrack_udp_timeout_stream=180
 
   # Enable Conntrack Accounting (kernel config CONFIG_NF_CT_ACCT)
   # CONFIG_NF_CT_ACCT is deprecated and will be removed sometime after kernel 2.6.27
@@ -434,24 +466,39 @@ setup_kernel_settings()
 
     # Enable some general settings
     ##############################
-  #  echo 1 > /proc/sys/net/ipv4/tcp_window_scaling
-  #  echo 1024 > /proc/sys/net/ipv4/tcp_max_syn_backlog
+    echo " Setting some kernel performance options"
+    sysctl net.ipv4.tcp_window_scaling=1
+    sysctl net.ipv4.tcp_timestamps=1
+    sysctl net.ipv4.tcp_sack=1
+    sysctl net.ipv4.tcp_dsack=1
+    sysctl net.ipv4.tcp_fack=1
+    sysctl net.ipv4.tcp_low_latency=0
 
     # Reduce DoS'ing ability by reducing timeouts
     #############################################################
     if [ "$REDUCE_DOS_ABILITY" = "1" ]; then
       echo " Enabling reduction of the DoS'ing ability"
 
-#      sysctl net.ipv4.tcp_sack=0
       sysctl net.ipv4.tcp_fin_timeout=30
       sysctl net.ipv4.tcp_keepalive_time=1800
+
+      # Set number of times to retry SYN in a new connection
+      sysctl net.ipv4.tcp_syn_retries=3
+
+      # Set number of times to retry a SYN-ACK in a half-open new connections
+      sysctl net.ipv4.tcp_synack_retries=2
+
+      # Enable a fix for RFC1337 - time-wait assassination hazards in TCP
+      sysctl net.ipv4.tcp_rfc1337=1
     else
       echo " Disabling reduction of the DoS'ing ability"
 
       # Defaults:
-#      sysctl net.ipv4.tcp_sack=1
       sysctl net.ipv4.tcp_fin_timeout=60
       sysctl net.ipv4.tcp_keepalive_time=7200
+      sysctl net.ipv4.tcp_syn_retries=5
+      sysctl net.ipv4.tcp_synack_retries=5
+      sysctl net.ipv4.tcp_rfc1337=0
     fi
 
     # Set out local port range. Kernel default = "1024 4999"
@@ -620,6 +667,9 @@ init_firewall_chains()
 {
   echo "Initializing firewall chains"
 
+  # Set INDENT for functions
+  INDENT='  '
+
   # Attempt to flush all rules in filter table
   ############################################
   iptables -F
@@ -630,8 +680,8 @@ init_firewall_chains()
   iptables -F INPUT
   iptables -F OUTPUT
   iptables -F FORWARD
-  iptables -t nat -F 2>/dev/null
-  iptables -t nat -X 2>/dev/null
+  iptables -t nat -F
+  iptables -t nat -X
   iptables -t mangle -F
   iptables -t mangle -X
 
@@ -674,7 +724,7 @@ init_firewall_chains()
 
   # Reset the iptables counters
   iptables -Z
-  iptables -t nat -Z 2>/dev/null
+  iptables -t nat -Z
   iptables -t mangle -Z
 }
 
@@ -682,24 +732,31 @@ init_firewall_chains()
 setup_default_policies()
 {
   # Set the default policies for the built-in INPUT & FORWARD tables. The
-  # default for other chains (ie. OUTPUT) is always set to ACCEPT.
+  # default for other chains (eg. OUTPUT) is always set to ACCEPT.
   #######################################################################
   if [ "$DEFAULT_POLICY_DROP" != "0" ]; then
-    echo " Setting default INPUT/FORWARD policy to DROP"
+    echo " Setting all default policies to DROP while \"setting up firewall rules\""
     iptables -P INPUT DROP
     iptables -P FORWARD DROP
+    iptables -P OUTPUT DROP
   else
-    echo " WARNING: Setting default INPUT/FORWARD policy to ACCEPT (during startup)"
+    echo " WARNING: Setting all default policies to ACCEPT while \"setting up firewall rules\""
     iptables -P INPUT ACCEPT
     iptables -P FORWARD ACCEPT
+    iptables -P OUTPUT ACCEPT
   fi
 
-  iptables -P OUTPUT ACCEPT
-
-  # The POST_INPUT_DROP_CHAIN should temporarely DROP for now
+  # The POST_INPUT_DROP_CHAIN should temporarily DROP for now
   # We we'll change this once the rules are in place
   ###########################################################
   iptables -A POST_INPUT_DROP_CHAIN -j DROP
+
+  # The HOST_BLOCK_DROP chain should always DROP
+  ###########################################################
+  if [ "$BLOCKED_HOST_LOG" != "0" ]; then
+    iptables -A HOST_BLOCK_DROP -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s): "
+  fi
+  iptables -A HOST_BLOCK_DROP -j DROP
 }
 
 
@@ -879,8 +936,6 @@ setup_valid_chk_chain()
 ################################################################################################################
 setup_reserved_net_chk_chain()
 {
-
-
   if [ "$IPV6_SUPPORT" != "1" ]; then
     # Log access from reserved addresses
     ####################################
@@ -897,6 +952,12 @@ setup_reserved_net_chk_chain()
 
       iptables -A RESERVED_NET_CHK -s 169.254.0.0/16 \
         -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class M$ address: "
+      
+      iptables -A RESERVED_NET_CHK -s 224.0.0.0/24 \
+        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Multicast address: "
+      
+      iptables -A RESERVED_NET_CHK -s 239.0.0.0/24 \
+        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Multicast address: "
     else
       echo "Logging of access from reserved addresses disabled"
     fi
@@ -908,6 +969,8 @@ setup_reserved_net_chk_chain()
     iptables -A RESERVED_NET_CHK -s 172.16.0.0/12 -j POST_INPUT_DROP_CHAIN
     iptables -A RESERVED_NET_CHK -s 192.168.0.0/16 -j POST_INPUT_DROP_CHAIN
     iptables -A RESERVED_NET_CHK -s 169.254.0.0/16 -j POST_INPUT_DROP_CHAIN
+    iptables -A RESERVED_NET_CHK -s 224.0.0.0/24 -j POST_INPUT_DROP_CHAIN
+    iptables -A RESERVED_NET_CHK -s 239.0.0.0/24 -j POST_INPUT_DROP_CHAIN
   else
     # Currently only 2000::/3 are unicast/internet routable for IPv6 (correct me if I am wrong)
     iptables -A RESERVED_NET_CHK ! -s 2000::/3 -j POST_INPUT_DROP_CHAIN
@@ -3366,7 +3429,7 @@ setup_ext_input_chain()
   if [ "$PRIV_UDP_LOG" != "0" ]; then
     echo " Logging of (other) connection attempts to PRIVILEGED UDP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p udp --dport :1023 \
-      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV connect attempt: "
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV connect attempt: "
   else
     echo " Logging of (other) connection attempts to PRIVILEGED UDP ports disabled"
   fi
@@ -3393,10 +3456,16 @@ setup_ext_input_chain()
 
   # Allow all packets that have been locally redirected
   #####################################################
-  iptables -A EXT_INPUT_CHAIN -m conntrack --ctstate DNAT -j ACCEPT
+  if [ "$NAT_LOCAL_REDIRECT" = "1" ]; then
+    echo " Enabling support for NAT local redirect"
+    iptables -A EXT_INPUT_CHAIN -m conntrack --ctstate DNAT -j ACCEPT
+  fi
 
-  # Drop all "standard" IP protcols
-  #################################
+  # Jump into the POST_INPUT_CHAIN before we start to DROP
+  iptables -A EXT_INPUT_CHAIN -j POST_INPUT_CHAIN
+  
+  # Drop all "standard" IP protocols
+  ##################################
   iptables -A EXT_INPUT_CHAIN -p tcp -j POST_INPUT_DROP_CHAIN
   iptables -A EXT_INPUT_CHAIN -p udp -j POST_INPUT_DROP_CHAIN
   iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO -j POST_INPUT_DROP_CHAIN
@@ -3410,8 +3479,9 @@ setup_ext_input_chain()
   else
     echo " Logging of other IP protocols (non TCP/UDP/ICMP) connection attempts disabled"
   fi
-
-  # Jump into the post input chain, which will finally drop the packet
+  
+  # Drop all remaining packets
+  ############################
   iptables -A EXT_INPUT_CHAIN -j POST_INPUT_DROP_CHAIN
 }
 
@@ -3647,9 +3717,6 @@ setup_ext_output_chain()
       done
     done
   done
-
-  echo " Allowing all (other) ports/protocols"
-  iptables -A EXT_OUTPUT_CHAIN -j ACCEPT
 }
 
 
@@ -3994,11 +4061,25 @@ setup_output_log()
 ######################################
 setup_hostblock_chain()
 {
-  if iptables -F HOST_BLOCK 2>&1 |grep -q "No chain"; then
+  if iptables -F HOST_BLOCK_SRC 2>&1 |grep -q "No chain" || \
+     iptables -F HOST_BLOCK_DST 2>&1 |grep -q "No chain"; then
     printf "\033[40m\033[1;31mERROR: The firewall isn't running!\033[0m\n" >&2
     printf "\033[40m\033[1;31m       You should first run this script with the \"start\" command.\033[0m\n" >&2
     return 5
   fi
+
+  # Return if no Blocked Hosts are defined
+  if [ -z "$BLOCK_HOSTS" ] && [ -z "$BLOCK_HOSTS_FILE" ]; then
+    return
+  fi
+
+  # Set default to DROP all while rules are added
+  iptables -A HOST_BLOCK_SRC -j DROP
+  iptables -A HOST_BLOCK_DST -j DROP
+
+  iptables_batch start
+  iptables_batch init HOST_BLOCK_SRC
+  iptables_batch init HOST_BLOCK_DST
 
   if [ -n "$BLOCK_HOSTS" ]; then
     printf "Blocking (blackhole) host(s): "
@@ -4008,11 +4089,8 @@ setup_hostblock_chain()
       printf "$hosts "
 
       for host in `ip_range "$hosts"`; do
-        if [ "$BLOCKED_HOST_LOG" != "0" ]; then
-          iptables -A HOST_BLOCK -s $host \
-            -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s): "
-        fi
-        iptables -A HOST_BLOCK -s $host -j POST_INPUT_DROP_CHAIN
+        iptables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+        iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
       done
     done
     echo ""
@@ -4022,35 +4100,42 @@ setup_hostblock_chain()
   # Setup the blocked hosts from our file
   if [ -n "$BLOCK_HOSTS_FILE" ]; then
     if [ -e "$BLOCK_HOSTS_FILE" ]; then
+      local cur_cnt=0 total_cnt
+      total_cnt=$(( $(cat "$BLOCK_HOSTS_FILE" |wc -l) ))
 
       echo "(Re)loading list of BLOCKED hosts from $BLOCK_HOSTS_FILE..."
+      progress_bar $cur_cnt $total_cnt
 
-      HCOUNT=0
-      LCOUNT=0
-      IFS=$EOL
-      for hosts in `cat "$BLOCK_HOSTS_FILE" |sed -e 's|#.*||' -e 's| *$||'`; do
-        # Inc. line count
-        LCOUNT=$(($LCOUNT + 1))
+      # Support both a '#' and a ';' as a comment delimiter in BLOCK_HOSTS_FILE file
+      unset IFS
+      cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' | while read hosts; do
+        cur_cnt=$(($cur_cnt + 100))
+        progress_bar $cur_cnt $total_cnt
 
         if [ -n "$hosts" ]; then
           IFS=','
           for host in `ip_range "$hosts"`; do
-            HCOUNT=$(($HCOUNT + 1))
-
-            if [ "$BLOCKED_HOST_LOG" = "1" ]; then
-              iptables -A HOST_BLOCK -s $host \
-                -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s): "
-            fi
-            iptables -A HOST_BLOCK -s $host -j POST_INPUT_DROP_CHAIN
+            iptables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+            iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
           done
           unset IFS
         fi
       done
-      echo " $LCOUNT line(s) read. $HCOUNT host(s) blocked."
+      echo ""
+      echo "  $total_cnt line(s) read."
     else
       printf "\033[40m\033[1;31mNOTE: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
     fi
   fi
+
+  iptables_batch apply HOST_BLOCK_SRC
+  iptables_batch apply HOST_BLOCK_DST
+  iptables_batch stop
+  
+  # All Blocked Host rules are applied
+  # Remove default rule at the beginning of the HOST_BLOCK_SRC and HOST_BLOCK_DST chains
+  iptables -D HOST_BLOCK_SRC 1
+  iptables -D HOST_BLOCK_DST 1
 }
 
 
@@ -4277,7 +4362,7 @@ setup_firewall_rules()
 
   # When IPv4 support is active, disable IPv6 traffic
   if [ "$IPV6_SUPPORT" = "1" ]; then
-      echo "NOTE: IPv6 support enabled, setting default policy for IPv4 to DROP"
+    echo "NOTE: IPv6 support enabled, setting default policy for IPv4 to DROP"
     ip4tables -P INPUT DROP
     ip4tables -P FORWARD DROP
     ip4tables -P OUTPUT DROP
@@ -4314,9 +4399,10 @@ setup_firewall_rules()
 
   # Block all hosts in the custom blocked hosts file
   ##################################################
-  iptables -A INPUT -j HOST_BLOCK
-  iptables -A FORWARD -j HOST_BLOCK
-  iptables -A OUTPUT -j HOST_BLOCK
+  iptables -A INPUT -j HOST_BLOCK_SRC
+  iptables -A FORWARD -j HOST_BLOCK_SRC
+  iptables -A FORWARD -j HOST_BLOCK_DST
+  iptables -A OUTPUT -j HOST_BLOCK_DST
 
   # Setup global helper chains
   ############################
@@ -4443,10 +4529,16 @@ setup_firewall_rules()
   ##############################
   iptables -A INPUT -j POST_INPUT_CHAIN
   
-  # block everything else (just in case)...
-  #########################################
+  # Everything else is logged & dropped in INPUT (just in case)...
+  ################################################################
   iptables -A INPUT -m limit --limit 1/s -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Dropped INPUT packet: "
   iptables -A INPUT -j DROP
+
+  # Drop all packets at the end of the POST_INPUT_DROP_CHAIN
+  iptables -A POST_INPUT_DROP_CHAIN -j DROP
+
+  # Remove the temp rule at the beginning of the POST_INPUT_DROP_CHAIN
+  iptables -D POST_INPUT_DROP_CHAIN 1
 
   ###############################################################################################
   # FORWARD rules                                                                               #
@@ -4637,7 +4729,6 @@ setup_firewall_rules()
 
   # Port / protocol forwarding. Forward ports or protocols on the internet-gateway to machines in our LAN
   #######################################################################################################
-  local_fwds=0
 
   # NAT TCP port forwards
   #######################
@@ -4665,8 +4756,6 @@ setup_firewall_rules()
             iptables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p tcp --dport $sport -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
             if [ -n "$dhost" ]; then
               iptables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p tcp --dport $dport -j ACCEPT
-            else
-              local_fwds=$(($local_fwds + 1))
             fi
           done
         done
@@ -4701,8 +4790,6 @@ setup_firewall_rules()
             iptables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p udp --dport $sport -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
             if [ -n "$dhost" ]; then
               iptables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p udp --dport $dport -j ACCEPT
-            else
-              local_fwds=$(($local_fwds + 1))
             fi
           done
         done
@@ -4732,19 +4819,12 @@ setup_firewall_rules()
             iptables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p $proto -j DNAT --to-destination $dhost
             if [ -n "$dhost" ]; then
               iptables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p $proto -j ACCEPT
-            else
-              local_fwds=$(($local_fwds + 1))
             fi
           done
         done
       done
     done
   done
-
-  # No need to keep this around, when we don't use it
-  if [ $local_fwds -eq 0 ]; then
-    iptables -D EXT_INPUT_CHAIN -m conntrack --ctstate DNAT -j ACCEPT
-  fi
 
   # Do we want to loose the forward chain to make use of protocols like UPnP possible?
   ####################################################################################
@@ -4762,7 +4842,7 @@ setup_firewall_rules()
   # Jump to the post forward chain
   iptables -A FORWARD -j POST_FORWARD_CHAIN
   
-  # Everything else is logged & dropped
+  # Everything else is logged & dropped in FORWARD
   iptables -A FORWARD -m limit --limit 1/m  --limit-burst 3 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Dropped FORWARD packet: "
   iptables -A FORWARD -j DROP
 
@@ -4780,11 +4860,8 @@ setup_firewall_rules()
   # Jump to the post output chain
   iptables -A OUTPUT -j POST_OUTPUT_CHAIN
   
-  # Drop all packets at the end of the POST_INPUT_DROP_CHAIN
-  iptables -A POST_INPUT_DROP_CHAIN -j DROP
-  
-  # Remove the temp rule at the beginning of the POST_INPUT_DROP_CHAIN
-  iptables -D POST_INPUT_DROP_CHAIN 1
+  # Everything else is accepted in OUTPUT
+  iptables -A OUTPUT -j ACCEPT
 }
 
 
@@ -4792,7 +4869,9 @@ setup_firewall_rules()
 create_user_chains()
 {
   # General chains
-  iptables -N HOST_BLOCK
+  iptables -N HOST_BLOCK_SRC
+  iptables -N HOST_BLOCK_DST
+  iptables -N HOST_BLOCK_DROP
   iptables -N VALID_CHK
   iptables -N RESERVED_NET_CHK
   iptables -N SPOOF_CHK
@@ -4839,7 +4918,9 @@ create_user_chains()
 flush_user_chains()
 {
   # General chains
-  iptables -F HOST_BLOCK
+  iptables -F HOST_BLOCK_SRC
+  iptables -F HOST_BLOCK_DST
+  iptables -F HOST_BLOCK_DROP
   iptables -F VALID_CHK
   iptables -F RESERVED_NET_CHK
   iptables -F SPOOF_CHK
@@ -4895,8 +4976,8 @@ stop_firewall()
   iptables -F FORWARD
   iptables -t mangle -F
   iptables -t mangle -X
-  iptables -t nat -F 2>/dev/null
-  iptables -t nat -X 2>/dev/null
+  iptables -t nat -F
+  iptables -t nat -X
 
   # Attempt to flush all rules in filter table
   iptables -F
@@ -4908,17 +4989,24 @@ reinit_firewall_chains()
 {
   echo "Reinitializing firewall chains"
 
+  # Set INDENT for functions
+  INDENT='  '
+
   # Create chains, just in case
   create_user_chains 2>/dev/null
 
   # Flush our user chains
   flush_user_chains;
 
+  # Temporarily set OUTPUT default policy to ACCEPT
+  # Without it, active states will be flushed.
+  iptables -P OUTPUT ACCEPT
+
   # Flush Built-in Rules
   iptables -F INPUT
   iptables -F OUTPUT
   iptables -F FORWARD
-  iptables -t nat -F 2>/dev/null
+  iptables -t nat -F
   iptables -t mangle -F
 
   # Restore our base chains (which weren't flushed so any
@@ -4942,8 +5030,8 @@ stop_block_firewall()
   iptables -F INPUT
   iptables -F OUTPUT
   iptables -F FORWARD
-  iptables -t nat -F 2>/dev/null
-  iptables -t nat -X 2>/dev/null
+  iptables -t nat -F
+  iptables -t nat -X
   iptables -t mangle -F
   iptables -t mangle -X
 
@@ -4984,7 +5072,7 @@ show_status()
     fi
   else
     #iptables -nvL $2 $3 $4 $5
-    iptables -xnvL $*
+    iptables -xnvL $@
   fi
 
   # Show plugin status
@@ -4994,7 +5082,7 @@ show_status()
 
 show_start()
 {
-  DATE=`LC_ALL=C date +'%b %d %k:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
   echo "$DATE ** Starting Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
   echo "** Starting Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
 }
@@ -5002,7 +5090,7 @@ show_start()
 
 show_restart()
 {
-  DATE=`LC_ALL=C date +'%b %d %k:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
   echo "$DATE ** Restarting Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
   echo "** Restarting Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
 }
@@ -5010,7 +5098,7 @@ show_restart()
 
 show_stop()
 {
-  DATE=`LC_ALL=C date +'%b %d %k:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
   printf "$DATE \033[40m\033[1;32mStopping Arno's Iptables Firewall v$MY_VERSION\033[0m\n"
   echo "$DATE ** Stopping Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
   echo "** Stopping Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
@@ -5019,7 +5107,7 @@ show_stop()
 
 show_stop_blocked()
 {
-  DATE=`LC_ALL=C date +'%b %d %k:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
   printf "$DATE \033[40m\033[1;31mFIREWALL DISABLED & BLOCKING ALL INTERNET TRAFFIC!\033[0m\n" >&2
 }
 
@@ -5028,7 +5116,7 @@ show_stop_blocked()
 show_applied()
 {
   echo ""
-  DATE=`LC_ALL=C date +'%b %d %k:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
 
   if [ "$IPTABLES_ERROR" = "1" ]; then
     printf "$DATE \033[40m\033[1;31mWARNING: Not all firewall rules are applied.\033[0m\n" >&2
@@ -5044,7 +5132,7 @@ show_applied()
 
 show_disabled()
 {
-  DATE=`LC_ALL=C date +'%b %d %k:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
   printf "$DATE \033[40m\033[1;31mFIREWALL DISABLED!\033[0m\n" >&2
 }
 
@@ -5118,7 +5206,7 @@ case "$1" in
                         stop_block_firewall;
                         show_stop_blocked;;
   'status' )            shift;
-                        show_status $*;;
+                        show_status $@;;
   'check-conf' )        sanity_check;;
   * )                   printf "\033[40m\033[1;31mERROR: Bad or missing parameter(s)\033[0m\n" >&2;
                         show_help;;

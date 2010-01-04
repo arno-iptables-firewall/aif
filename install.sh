@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 
-MY_VERSION="1.0b"
+MY_VERSION="1.01a"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -48,7 +48,7 @@ sanity_check()
 
   check_binary awk
   check_binary tr
-  check_binary ifconfig
+  check_binary ip
   check_binary cut
   check_binary uname
   check_binary sed
@@ -66,18 +66,22 @@ sanity_check()
 
 copy_ask_if_exist()
 {
-  if ! find "$1" -type f >/dev/null; then
+  if [ -z "$(find "$1" -type f)" ]; then
     echo "ERROR: Missing source file(s) \"$1\""
     exit 2
   fi
 
   unset IFS
   for source in `find "$1" -type f`; do
-    target="$(echo "$source" |sed "s,^$1,,")"
-    if [ -z "$target" ]; then
-      target="$2/$(basename "$1")"
+    if [ -d "$2" ]; then
+      fn="$(echo "$source" |sed "s,^$1,,")"
+      if [ -z "$fn" ]; then
+        target="$2$(basename "$1")"
+      else
+        target="$2$fn"
+      fi
     else
-      target="$2/$target"
+      target="$2"
     fi
 
     if [ -e "$target" ]; then
@@ -85,11 +89,12 @@ copy_ask_if_exist()
       if ! diff "$source" "$target" >/dev/null; then
         printf "* File \"$target\" already exists. Overwrite(Y/N)? "
 
-        read C
+        read -s -n1 C
         if [ "$C" != "y" ] && [ "$C" != "Y" ]; then
-          echo "*Skipped..."
+          echo " No. Skipped..."
           continue;
         fi
+        echo " Yes"
       else
         echo "Target file \"$target\" is the same as source. Skipping."
         continue;
@@ -111,18 +116,22 @@ copy_ask_if_exist()
 
 copy_skip_if_exist()
 {
-  if ! find "$1" -type f >/dev/null; then
+  if [ -z "$(find "$1" -type f)" ]; then
     echo "ERROR: Missing source file(s) \"$1\""
     exit 2
   fi
 
   unset IFS
-  for source in `find $1 -type f`; do
-    target="$(echo "$source" |sed "s,^$1,,")"
-    if [ -z "$target" ]; then
-      target="$2/$(basename "$1")"
+  for source in `find "$1" -type f`; do
+    if [ -d "$2" ]; then
+      fn="$(echo "$source" |sed "s,^$1,,")"
+      if [ -z "$fn" ]; then
+        target="$2$(basename "$1")"
+      else
+        target="$2$fn"
+      fi
     else
-      target="$2/$target"
+      target="$2"
     fi
 
     if [ -e "$target" ]; then
@@ -144,18 +153,22 @@ copy_skip_if_exist()
 
 copy_overwrite()
 {
-  if ! find "$1" -type f >/dev/null; then
+  if [ -z "$(find "$1" -type f)" ]; then
     echo "ERROR: Missing source file(s) \"$1\""
     exit 2
   fi
 
   unset IFS
-  for source in `find $1 -type f`; do
-    target="$(echo "$source" |sed "s,^$1,,")"
-    if [ -z "$target" ]; then
-      target="$2/$(basename "$1")"
+  for source in `find "$1" -type f`; do
+    if [ -d "$2" ]; then
+      fn="$(echo "$source" |sed "s,^$1,,")"
+      if [ -z "$fn" ]; then
+        target="$2$(basename "$1")"
+      else
+        target="$2$fn"
+      fi
     else
-      target="$2/$target"
+      target="$2"
     fi
 
     if ! cp -fv "$source" "$target"; then
@@ -181,12 +194,17 @@ change_conf_var()
 
 get_conf_var()
 {
-  printf "$1"
+  printf "$1 "
 
   read answer
 
   if [ -z "$answer" ]; then
-    change_conf_var "$2" "$3" "$4"
+    if [ -n "$4" ]; then
+      echo "$4"
+      change_conf_var "$2" "$3" "$4"
+    else
+      echo "(None)"
+    fi
   else
     change_conf_var "$2" "$3" "$answer"
   fi
@@ -197,22 +215,26 @@ get_conf_var()
 
 get_user_yn()
 {
-  printf "$1"
+  printf "$1 "
 
-  read answer
+  read -s -n1 answer
 
   if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
+    echo " Yes"
     return 0
   fi
 
   if [ "$answer" = "n" ] || [ "$answer" = "N" ]; then
+    echo " No"
     return 1
   fi
 
   # Fallback to default
   if [ "$2" = "y" ]; then
+    echo " Yes"
     return 0
   else
+    echo " No"
     return 1
   fi
 }
@@ -225,7 +247,7 @@ setup_conf_file()
 
   printf "We will now setup the most basic settings of the firewall\n\n"
 
-  get_conf_var "What is your external interface (aka. internet interface) (multiple interfaces should be comma separated)? " /etc/arno-iptables-firewall/firewall.conf "EXT_IF" ""
+  get_conf_var "What is your external interface (aka. internet interface) (multiple interfaces should be comma separated)?" /etc/arno-iptables-firewall/firewall.conf "EXT_IF" ""
 
   if get_user_yn "Does your external interface get its IP through DHCP? (Y/N) " "y"; then
     change_conf_var /etc/arno-iptables-firewall/firewall.conf "EXT_IF_DHCP_IP" "1"
@@ -235,21 +257,17 @@ setup_conf_file()
     change_conf_var /etc/arno-iptables-firewall/firewall.conf "OPEN_ICMP" "1"
   fi
 
-  get_conf_var "Which TCP ports do you want to allow from the internet? (ie. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)? " /etc/arno-iptables-firewall/firewall.conf "OPEN_TCP" ""
-  get_conf_var "Which UDP ports do you want to allow from the internet? (ie. 53=DNS, etc.)  (comma separate multiple ports)? " /etc/arno-iptables-firewall/firewall.conf "OPEN_UDP" ""
+  get_conf_var "Which TCP ports do you want to allow from the internet? (eg. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" /etc/arno-iptables-firewall/firewall.conf "OPEN_TCP" ""
+  get_conf_var "Which UDP ports do you want to allow from the internet? (eg. 53=DNS, etc.)  (comma separate multiple ports)?" /etc/arno-iptables-firewall/firewall.conf "OPEN_UDP" ""
 
-  if get_user_yn "Do you have an internal(aka LAN) interface that you want to setup? (Y/N) " "n"; then
-    get_conf_var "What is your internal interface (aka. LAN interface)? " /etc/arno-iptables-firewall/firewall.conf "INT_IF" ""
-    get_conf_var "What is your internal net? (ie. 192.168.1.0/24)? " /etc/arno-iptables-firewall/firewall.conf "INTERNAL_NET" ""
+  if get_user_yn "Do you have an internal(aka LAN) interface that you want to setup? (Y/N)" "n"; then
+    get_conf_var "What is your internal interface (aka. LAN interface)?" /etc/arno-iptables-firewall/firewall.conf "INT_IF" ""
 
-    if get_user_yn "Do you want to enable NAT for your internal net? (Y/N) " "y"; then
+    if get_user_yn "Do you want to enable NAT for your internal net? (Y/N)" "y"; then
       change_conf_var /etc/arno-iptables-firewall/firewall.conf "NAT" "1"
     fi
   fi
 
-  if get_user_yn "Do you want the init script to be verbose (print out what it's doing)? (Y/N) " "n"; then
-    change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "1"
-  fi
 
   # Set the correct permissions on the config file
   chmod 755 /etc/init.d/arno-iptables-firewall 
@@ -261,7 +279,7 @@ setup_conf_file()
 # main line:
 AIF_VERSION="$(grep "MY_VERSION=" ./bin/arno-iptables-firewall |sed -e "s/^MY_VERSION=\"//" -e "s/\"$//")"
 
-printf "\033[40m\033[1;32mArno\'s Iptables Firewall Script v$AIF_VERSION\033[0m\n"
+printf "\033[40m\033[1;32mArno's Iptables Firewall Script v$AIF_VERSION\033[0m\n"
 printf "Install Script v$MY_VERSION\n"
 echo "-------------------------------------------------------------------------------"
 
@@ -270,49 +288,43 @@ sanity_check;
 # We want to run in the dir the install script is in
 cd "$(dirname $0)"
 
-printf "Continue install (Y/N)? "
-read C
-if [ "$C" != "y" ] && [ "$C" != "Y" ]; then
+if ! get_user_yn "Continue install (Y/N)? " "n"; then
   echo "*Install aborted"
   exit 1
 fi
 
 copy_overwrite ./bin/ /usr/local/sbin/
 
-mkdir -pv /usr/local/share/arno-iptables-firewall
 mkdir -pv /usr/local/share/arno-iptables-firewall/plugins
 copy_overwrite ./share/arno-iptables-firewall/ /usr/local/share/arno-iptables-firewall/
-#copy_overwrite ./share/arno-iptables-firewall/plugins/ /usr/local/share/arno-iptables-firewall/plugins/
 
 mkdir -pv /usr/local/share/man/man1
 mkdir -pv /usr/local/share/man/man8
 gzip -c -v ./share/man/man8/arno-iptables-firewall.8 >/usr/local/share/man/man8/arno-iptables-firewall.8.gz
 gzip -c -v ./share/man/man1/arno-fwfilter.1 >/usr/local/share/man/man8/arno-fwfilter.1.gz
 
-mkdir -pv /etc/arno-iptables-firewall
-copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
-cp -fv ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf.dist
-copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
-#cp -fv ./etc/arno-iptables-firewall/firewall.conf.example /etc/arno-iptables-firewall/
-
 mkdir -pv /etc/arno-iptables-firewall/plugins
 copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/
 
-copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
+copy_overwrite ./etc/init.d/arno-iptables-firewall /etc/init.d/
+
+copy_overwrite ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf.dist
+copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
+copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
 
 echo ""
 echo "** Install done **"
 echo ""
 
-if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/)? (Y/N) " "y"; then
+if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/)? (Y/N)" "y"; then
   if [ -d /etc/rcS.d ]; then
-    if find /etc/rcS.d/ -name "*arno-iptables-firewall" >/dev/null; then
+    if [ -n "$(find /etc/rcS.d/ -name "*arno-iptables-firewall")" ]; then
       echo "Startup symlink seems to already exist in /etc/rcS.d so skipping that"
     else
       ln -sv /etc/init.d/arno-iptables-firewall /etc/rcS.d/S38arno-iptables-firewall
     fi
   else
-    if find /etc/rc2.d/ -name "*arno-iptables-firewall" >/dev/null; then
+    if [ -n "$(find /etc/rc2.d/ -name "*arno-iptables-firewall")" ]; then
       echo "Startup symlink seems to already exist in /etc/rc2.d so skipping that"
     else
       ln -sv /etc/init.d/arno-iptables-firewall /etc/rc2.d/S38arno-iptables-firewall
@@ -321,7 +333,7 @@ if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/)? (Y
 fi
 
 if diff ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf >/dev/null; then
-  if get_user_yn "Your firewall.conf is not configured yet.\nDo you want me to help you setup a basic configuration? (Y/N) " "y"; then
+  if get_user_yn "Your firewall.conf is not configured yet.\nDo you want me to help you setup a basic configuration? (Y/N)" "y"; then
     setup_conf_file;
   else
     echo "*Skipped"
@@ -330,6 +342,10 @@ else
   echo "Your firewall.conf looks already customized so skipping basic configuration..."
 fi
 
+if get_user_yn "Do you want the init script to be verbose (print out what it's doing)? (Y/N)" "n"; then
+  change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "1"
+fi
+ 
 echo ""
 echo "-------------------------------------------------------------------------------"
 echo "** NOTE: You can now (manually) start the firewall by executing              **"
@@ -338,3 +354,4 @@ echo "**       It is recommended however to first review the settings in        
 echo "**       /etc/arno-iptables-firewall/firewall.conf!                          **"
 
 exit 0
+

@@ -76,11 +76,6 @@ plugin_start()
 # Plugin stop function
 plugin_stop()
 {
-  if [ "$NAT" = "1" ]; then
-    modprobe -r ip_nat_sip
-  fi
-
-  modprobe -r ip_conntrack_sip
   return 0
 }
 

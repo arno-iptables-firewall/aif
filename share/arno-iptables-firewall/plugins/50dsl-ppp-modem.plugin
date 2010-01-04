@@ -135,7 +135,7 @@ plugin_status()
 }
 
 
-# Check sanity of ie. environment
+# Check sanity of eg. environment
 plugin_sanity_check()
 {
   if [ -z "$MODEM_IF" ]; then
@@ -146,7 +146,7 @@ plugin_sanity_check()
   # Check whether MODEM_IF exists
   ###############################
   if ! echo $MODEM_IF |grep -q '\+'; then
-    result=`ifconfig $MODEM_IF >/dev/null 2>&1`
+    result=`ip link show $MODEM_IF >/dev/null 2>&1`
     return_val=$?
     if [ "$return_val" != "0" ]; then
       printf "\033[40m\033[1;31m  NOTE: Modem interface $interface does NOT exist (yet?)\033[0m\n"

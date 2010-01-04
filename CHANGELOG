@@ -1,7 +1,56 @@
-Version 1.9.2e-DEVEL (September 2, 2009)
---------------------------------
+Version 1.9.2h (December 31, 2009)
+----------------------------------
+! Init script for newer Debian/Ubuntu version. Start on system startup,
+  only stop on system shutdown. Moreover, do not wait for syslog, but start
+  whenever there is network (thanks downstream/Michael Hanke)
+* Cleaned up/tweaked sysctl & modprobe functions
+* Consistently use 'ip' instead of 'ifconfig' to obtain interface attributes.
++ Add iptables_batch() function to greatly decrease the time to add the "Blocked Host" rules.
+  iptables_batch() uses iptables-save and iptables-restore to add rules in batch rather than one-by-one.
+  This feature may be disabled by setting DISABLE_IPTABLES_BATCH=1
+! Fixed typo in module_probe deprecation warning
++ Autodetect netmask & broadcast addresses for INT_IF & EXT_IF
++ Add a default DROP to the HOST_BLOCK_SRC and HOST_BLOCK_DST chains while they are being built,
+  this is most important when using the 'force-reload' verb.  During the time the Blocked Hosts are
+  being applied, no new traffic will be allowed in any direction.
++ Add a check for the '-' character in the ip_range() function for improved execution speed.
+* The "Blocked Host" feature now also matches the destination address for outbound traffic in addition to the
+  previous matching of the source address for inbound traffic.
+* The "Blocked Host" logging is now implemented as one rule rather than a rule for each blocked host.
+* The "Blocked Host" file may now include a semicolon ';' as a comment delimiter, per the Spamhaus DROP list.
+* The "Blocked Host" file (re)load now displays an activity count since this can take awhile.
+
+Version 1.9.2g (November 17, 2009)
+----------------------------------
+- Removed incorrect comment in sip-voip.conf
+! Fixed logging of packets in the INPUT chain because of incorrect use of the POST_INPUT_xxx chains
+! Fixed dropping of packets in EXT_INPUT_CHAIN + we should jump into the POST_INPUT_CHAIN first before we DROP
+
+Version 1.9.2f (November 10, 2009)
+----------------------------------
+* Tweaked some kernel settings
+! Fixed modprobe errors. Always use $@ as $* might do things you don't expect! (Thanks Lonnie!)
+! Don't disable TCP sack when DoS-reducation is enabled since performance degrades from it
+
+Version 1.9.2e (November 9, 2009)
+---------------------------------
++ Added some more DOS-prevention kernel settings (thanks Michiel Klaver)
++ IPv6 module updates
++ Implemented support to set INDENT(space) value for functions in environment
++ Added sysctl_multi() & modprobe_multi() functions to allow probing for several modules/variables at once
+! Unify date format in the log (Debian bug #550222)
+* Only apply DNAT ctstate rule if explictly enabled from the config file
+  (using the NAT_LOCAL_REDIRECT variable). The previous implementation was simply
+  too much of a hack.
 * We should explicitly enable net.netfilter.nf_conntrack_acct for kernel 2.6.27+
   to allow the use of traffic accounting and such (thank Lonnie)
+* Don't /dev/null iptables -t nat related stuff. We just need the nat module, and that's all there is to it
+! DROP any new traffic while firewall rules are generated so improper states are not created during start/restart
+* The default OUTPUT policy no longer sees traffic after setting up the firewall rules in the chains
+! Removed an unconditional ACCEPT in the EXT_OUTPUT_CHAIN keeping the POST_OUTPUT_CHAIN from seeing EXT_IF traffic
+! Several fixes/changes for the POST_xxxx_CHAINs. This should make the POST stuff more
+  consistent among INPUT/FORWARD/OUTPUT
+* Misc. tweaks
 
 Version 1.9.2d (August 24, 2009)
 --------------------------------
@@ -56,9 +105,9 @@ Version 1.9.1-RC1 (May 20, 2009)
 ! Fixed NAT_FORWARD_IP not working
 ! Several fixes/changes in the rule parsers
 * Moved from using the $IPTABLES/$IP4TABLES/$IP6TABLES variables to functions
-  (Thanks Philip Prindeville). This should ie. allow proper tracing.
+  (Thanks Philip Prindeville). This should eg. allow proper tracing.
 + Iptables errors will now be shown in red, to better point them out
-+ Implemented some additional chains (for ie. plugin use)
++ Implemented some additional chains (for eg. plugin use)
 - Reverted flushing user chains before stopping plugins, it causes disconnections.
 * Several cleanups/optimizations (thanks to Philip Prindeville, Lonnie Abelbeck
   & Roy Lanek)
@@ -69,7 +118,7 @@ Version 1.9.1-BETA1 (April 5, 2009)
 * On a restart the "user_chains" are now flushed before the plugins are stopped
 + Implemented INPUT/FORWARD/OUTPUT_CHAIN. In this way we no longer have to clutter
   the builtin INPUT/FORWARD/OUTPUT chains.
-* !!!! Changed the seperator for interface restrictions to # (ie. eth0#.....)!!!
+* !!!! Changed the seperator for interface restrictions to # (eg. eth0#.....)!!!
   This code is now much cleaner and the way rules work is a lot more logical :)
 ! Fixed warnings with newer iptables versions
 + Plugin status & stop are now only called when the plugin is actually listed
@@ -109,7 +158,7 @@ Version 1.9.0 (January 7, 2009)
 ! Fixed LAN_INET_HOST_DENY_TCP/UDP (stupid typo)
 ! Trimmed too long log messages
 * Set timeout/retry values to default for dig functions in the env-file
-! Fixed sysctl for ie. busybox setups which don't support -q. Implemented sysctl
+! Fixed sysctl for eg. busybox setups which don't support -q. Implemented sysctl
   wrapper for this (like with module_probe())
 + Added new traffic shaper (thanks to Lonnie Abelbeck)
 - Removed old hfsc traffic shaper
@@ -160,7 +209,7 @@ Version 1.9.0-rc2 (September 3, 2008)
 + Basic install script added (install.sh). Probably can use a lot of improvements.
 * Moved a lot of functions/variables into a new separate "environment"-file.
   (located in /usr/share/arno-iptables-firewall/). This should make easier for
-  ie. helper-scripts to use AIF's functions & variables
+  eg. helper-scripts to use AIF's functions & variables
 * Minor changes/updates in the plugins (slighty modified skeleton for example)
 - Removed dsl ppp modem code and moved it into a separate plugin
 * (Cosmetic) tweaks in the module_probe() function
@@ -200,7 +249,7 @@ Version 1.9.0-beta2 (March 23, 2008)
 ------------------------------------
 ! Fixed echo output showing hosts that shouldn't be displayed
 * Now IPv4 traffic will have a default policy of DROP when IPv6 is enabled and visa versa
-+ Added LOCAL_CONFIG_FILE variable to allow ie. certain user/global/local settings
++ Added LOCAL_CONFIG_FILE variable to allow eg. certain user/global/local settings
   to be sourced into the script
 + Implemented plugin_status() support
 + Implemented plugin_stop() support
@@ -212,7 +261,7 @@ Version 1.9.0-beta1 (January 17, 2008)
 --------------------------------------
 ! Fix /proc/.../ conntrack set for newer kernels
 ! Fixed bug (typo) in $REJECT_TCP_NOLOG
-! Fixed DEFAULT value's in the helper parsing functions causing ie. simple portforwards
+! Fixed DEFAULT value's in the helper parsing functions causing eg. simple portforwards
   not to work
 ! Fixed missing default value's for the source hosts in the NAT portforwards
 ! Several (regression) fixes in the NAT forwarding rules
@@ -245,7 +294,7 @@ Version 1.9.0-ALPHA2 (December 18, 2007)
 Version 1.9.0-ALPHA1 (December 5, 2007)
 ---------------------------------------
 + Added DEFAULT_POLICY_DROP option to allow users to disable setting iptables
-  default policy to DROP. Mainly useful for people who boot from ie. NFS
+  default policy to DROP. Mainly useful for people who boot from eg. NFS
   (diskless client systems).
 + DNAT plugin update. Switched from OUTPUT to PREROUTING for the DNAT rule.
 ! Fixed a minor bug in the NAT forwards: the FORWARD rule was missing the host destination

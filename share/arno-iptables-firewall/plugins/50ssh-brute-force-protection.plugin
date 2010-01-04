@@ -102,7 +102,7 @@ plugin_status()
 }
 
 
-# Check sanity of ie. environment
+# Check sanity of eg. environment
 plugin_sanity_check()
 {
   if [ -z "$SSH_BFP_MAX_RATE1" ] || [ -z "$SSH_BFP_MAX_TIME1" ] || [ -z "$SSH_BFP_MAX_RATE2" ] || [ -z "$SSH_BFP_MAX_TIME2" ]; then

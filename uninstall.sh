@@ -1,6 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 
-MY_VERSION="0.1BETA"
+MY_VERSION="0.11"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -45,7 +45,7 @@ get_user_yn()
   printf "$1"
 
   while true; do
-    read answer
+    read -s -n1 answer
 
     # Fallback to default
     if [ -z "$answer" ]; then
@@ -53,12 +53,12 @@ get_user_yn()
     fi
 
     if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
-#      echo "y"
+      echo " Yes"
       return 0
     fi
 
     if [ "$answer" = "n" ] || [ "$answer" = "N" ]; then
-#      echo "n"
+      echo " No"
       return 1
     fi
   done
@@ -69,16 +69,14 @@ get_user_yn()
 # main line:
 AIF_VERSION="$(grep "MY_VERSION=" ./bin/arno-iptables-firewall |sed -e "s/^MY_VERSION=\"//" -e "s/\"$//")"
 
-printf "\033[40m\033[1;32mArno\'s Iptables Firewall Script v$AIF_VERSION\033[0m\n"
+printf "\033[40m\033[1;32mArno's Iptables Firewall Script v$AIF_VERSION\033[0m\n"
 printf "Uninstall Script v$MY_VERSION\n"
 echo "-------------------------------------------------------------------------------"
 
 sanity_check;
 
-printf "Continue uninstall (Y/N)? "
-read C
-if [ "$C" != "y" ] && [ "$C" != "Y" ]; then
-  echo "*Uninstall aborted"
+if get_user_yn "Continue uninstall (Y/N)? " "n"; then
+  echo "*Uninstall aborted!"
   exit 1
 fi
 

@@ -46,7 +46,7 @@ contact me and we can work something out.
 IMPORTANT NOTE:
 ---------------
 Before contacting me (by email), in case of problems, questions, etc., please
-first consult the FAQ's at my website and/or post your message on the
+first consult the FAQs at my website and/or post your message on the
 mailinglist, for which you can sign up on my website. Please use this way as
 I'm simply too busy to help everybody out with every (trivial) issue.
 
@@ -90,7 +90,7 @@ An explanation of the files in the package:
         distributions you may need to put it in /etc/rc.d/ (instead of
         /etc/init.d).  You should make sure it's executable (use "chmod 700 or
         chmod +x). Inside this script you can also enable VERBOSE(=1) logging
-        for ie. debugging purposes.
+        for eg. debugging purposes.
 
 /share/arno-iptables-firewall/environment:
         This is the environment-file required by the firewall and some plugins.
@@ -135,16 +135,16 @@ An explanation of the files in the package:
 3) I get a lot of emails from people complaining that their webserver etc.
    stopped working after installing my firewall. This is the CORRECT
    behaviour for a firewall: BLOCKING ALL incoming traffic by default! Configure
-   your ie. OPEN_TCP accordingly!
+   your eg. OPEN_TCP accordingly!
 
 
 -----------------
 | General hints |
 -----------------
 1) For IPv4 addresses you can use IP ranges in all variables by specifying it as
-   ie. "192.168.1.10-50" (which would make the range start with 192.168.1.10
+   eg. "192.168.1.10-50" (which would make the range start with 192.168.1.10
    and end at 192.168.1.50). Note that this only works for Class-C(/24) ranges,
-   so specifying ie. 192.168.1.1-192.168.2.1 does NOT work!
+   so specifying eg. 192.168.1.1-192.168.2.1 does NOT work!
 
 2) My firewall has (experimental) IPv6 support. I haven't been able to test it
    myself as I don't have the appropriate environment. You can switch from
@@ -181,7 +181,7 @@ An explanation of the files in the package:
                 IP 1.2.3.4;
               - {internal_host} is the host the port should be forwarded to.
 
-6) Port ranges should be written as port_start:port_end, ie. "137:139" would select ports
+6) Port ranges should be written as port_start:port_end, eg. "137:139" would select ports
    137,138 and 139
 
 -----------------------------------------
@@ -398,8 +398,6 @@ Notes on plugins:
 4) Plugins can have their own additional set of configuration variables, don't
    forget to set/review those too.
 
-Currently plugins exist that implement Racoon/IPSEC(VPN) support,
-Freeswan/IPSEC support, multirouting support and SSH-Brute Force Protection.
 Everyone is invited to write their own plugins to implement other things, and
 to submit them.
 
@@ -422,8 +420,8 @@ Notes on writing your own plugins:
    variables. It should at least contain the "ENABLED="-variable to
    enable/disable the plugin.
 4) Plugins should also have a separate file with their CHANGELOG (.CHANGELOG)
-5) Plugins should be POSIX shell compatible (ie. dash). So don't use stuff that
-   only works in Bash.
+5) Plugins should be POSIX shell compatible (eg. work with "Dash"). So don't use
+   stuff that only works in Bash.
 6) Plugins can use all variables/functions from the main-script and main
    configuration file. Plugin specific configuration variables should be put
    inside the plugin's configuration file (.conf).
@@ -431,10 +429,10 @@ Notes on writing your own plugins:
    with the main script or other plugins. The same goes for the iptables
    MARK-module, make sure that you use an unique MARK-number that doesn't
    conflict with other plugins.
-8) Plugins should cleanup the chains that they've previously created in
-   their stop-section.
+8) Plugins should in principle always cleanup up their own chains (and possibly
+   other stuff) they created at start when stopping.
 9) Submit plugins to me, if you think they can be of use to others, but note
-   that I always reserve the right to decline the plugin (because it was ie.
+   that I always reserve the right to decline the plugin (because it was eg.
    poorly written). Submitted plugins must be (at least) compatible with the
    GPLv2 license.
 
@@ -449,7 +447,7 @@ haven't found a way (yet) to make this work with dynamic external(internet)
 IP's, meaning you need static IP's from your ISP.
 
 First of all, if you want to use multirouting, make sure that your
-(vanilla)-kernel has the following network features enabled (ie. when
+(vanilla)-kernel has the following network features enabled (eg. when
 building from source):
 - CONFIG_IP_ADVANCED_ROUTER=y
 - CONFIG_IP_MULTIPLE_TABLES=y
@@ -479,9 +477,9 @@ modules or compiled in your kernel):
                 - "IP: Multicasting"
                 - "IP: advanced router"
                         - "IP: policy routing" (If you want to use load
-                           balancing, ie. multiroute masquerading)
+                           balancing, eg. multiroute masquerading)
                         - "IP: equal cost multipath" (If you want to use load
-                           balancing, ie. multiroute masquerading)
+                           balancing, eg. multiroute masquerading)
                 - "IP: TCP syncookie support"
         - ("Network packet filtering")
                 - "Core Netfilter Configuration" (For kernel =>2.6.16)

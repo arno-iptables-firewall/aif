@@ -13,8 +13,8 @@ CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
 if [ -e "$CONFIG_FILE" ]; then
   . $CONFIG_FILE
 else
-  echo "ERROR: Could not read configuration file $CONFIG_FILE!" >&2
-  echo "       Please, check the file's location and (root) rights." >&2
+  echo "** ERROR: Could not read configuration file $CONFIG_FILE!" >&2
+  echo "**        Please, check the file's location and (root) rights." >&2
   exit 2
 fi
 
@@ -29,32 +29,19 @@ else
     if [ -f /usr/share/arno-iptables-firewall/environment ]; then
       . /usr/share/arno-iptables-firewall/environment
     else
-      printf "\033[40m\033[1;31mERROR: The environment file (ENV_FILE) has not been specified\033[0m\n" >&2
-      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+      echo "** ERROR: The environment file (ENV_FILE) has not been specified" >&2
+      echo "**        in the configuration file. Try upgrading your config-file!" >&2
       exit 2
     fi
   fi
 fi
 
 
-# Function to first try to resolve @DynDNS else use the system default NS server
-resolvehost()
-{
-#  local result="$(gethostbyname "$1" "@ns.dyndns.org")"
-
-#  if [ -z "$result" ]; then
-    result="$(gethostbyname "$1")"
-#  fi
-
-  echo "$result"
-}
-
-
-# Check sanity of ie. environment
+# Check sanity of eg. environment
 sanity_check()
 {
   if [ -z "$DYNDNS_HOST_OPEN_CRON" ]; then
-    echo "** ERROR: The plugin config file is not properly set! **" >&2
+    echo "** ERROR: The plugin config file is not properly set!" >&2
     return 1
   fi
 
@@ -70,8 +57,8 @@ sanity_check()
 
     IFS=','
     for host in $hosts; do
-      if [ -z "$(resolvehost "$host")" ]; then
-        echo "** ERROR: Unresolvable host \"$host\", refusing to (re)start! **" >&2
+      if [ -z "$(gethostbyname "$host")" ]; then
+        echo "** ERROR: Unresolvable host \"$host\", refusing to (re)start!" >&2
         return 1
       fi
     done
@@ -83,8 +70,8 @@ sanity_check()
 
     IFS=','
     for host in $hosts; do
-      if [ -z "$(resolvehost "$host")" ]; then
-        echo "** ERROR: Unresolvable host \"$host\", refusing to (re)start! **" >&2
+      if [ -z "$(gethostbyname "$host")" ]; then
+        echo "** ERROR: Unresolvable host \"$host\", refusing to (re)start!" >&2
         return 1
       fi
     done
@@ -96,8 +83,8 @@ sanity_check()
 
     IFS=','
     for host in $hosts; do
-      if [ -z "$(resolvehost "$host")" ]; then
-        echo "** ERROR: Unresolvable host \"$host\", refusing to (re)start! **" >&2
+      if [ -z "$(gethostbyname "$host")" ]; then
+        echo "** ERROR: Unresolvable host \"$host\", refusing to (re)start!" >&2
         return 1
       fi
     done
@@ -109,8 +96,8 @@ sanity_check()
 
     IFS=','
     for host in $hosts; do
-      if [ -z "$(resolvehost "$host")" ]; then
-        echo "** ERROR: Unresolvable host \"$host\", refusing to (re)start! **" >&2
+      if [ -z "$(gethostbyname "$host")" ]; then
+        echo "** ERROR: Unresolvable host \"$host\", refusing to (re)start!" >&2
         return 1
       fi
     done
@@ -134,14 +121,14 @@ dyndns_host_open()
     hosts=`get_hosts_ihp "$rule"`
     ports=`get_ports_ihp "$rule"`
 
-    echo "  $(show_if_ip "$interfaces" "$destips")Allowing $hosts for TCP port(s): $ports"
+    echo "$(show_if_ip "$interfaces" "$destips")Allowing $hosts for TCP port(s): $ports"
 
     IFS=','
     for host in $hosts; do
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A DYNDNS_CHAIN -i $interface -s $(resolvehost "$host") -d $destip -p tcp --dport $port -j ACCEPT
+            iptables -A DYNDNS_CHAIN -i $interface -s $(gethostbyname "$host") -d $destip -p tcp --dport $port -j ACCEPT
           done
         done
       done
@@ -158,14 +145,14 @@ dyndns_host_open()
     hosts=`get_hosts_ihp "$rule"`
     ports=`get_ports_ihp "$rule"`
 
-    echo "  $(show_if_ip "$interfaces" "$destips")Allowing $hosts for UDP port(s): $ports"
+    echo "$(show_if_ip "$interfaces" "$destips")Allowing $hosts for UDP port(s): $ports"
 
     IFS=','
     for host in $hosts; do
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A DYNDNS_CHAIN -i $interface -s $(resolvehost "$host") -d $destip -p udp --dport $port -j ACCEPT
+            iptables -A DYNDNS_CHAIN -i $interface -s $(gethostbyname "$host") -d $destip -p udp --dport $port -j ACCEPT
           done
         done
       done
@@ -182,7 +169,7 @@ dyndns_host_open()
     hosts=`get_hosts_ihp "$rule"`
     protos=`get_ports_ihp "$rule"`
 
-    echo "  $(show_if_ip "$interfaces" "$destips")Allowing $hosts for IP protocol(s): $protos"
+    echo "$(show_if_ip "$interfaces" "$destips")Allowing $hosts for IP protocol(s): $protos"
 
     IFS=','
     for host in $hosts; do
@@ -190,7 +177,7 @@ dyndns_host_open()
       for proto in $protos; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A DYNDNS_CHAIN -i $interface -s $(resolvehost "$host") -d $destip -p $proto -j ACCEPT
+            iptables -A DYNDNS_CHAIN -i $interface -s $(gethostbyname "$host") -d $destip -p $proto -j ACCEPT
           done
         done
       done
@@ -206,13 +193,13 @@ dyndns_host_open()
     destips=`get_ips "$rule"`
     hosts=`get_hosts_ih "$rule"`
 
-    echo "  $(show_if_ip "$interfaces" "$destips")Allowing $hosts for ICMP-requests(ping)"
+    echo "$(show_if_ip "$interfaces" "$destips")Allowing $hosts for ICMP-requests(ping)"
 
     IFS=','
     for host in $hosts; do
       for destip in $destips; do
         for interface in $interfaces; do
-          iptables -A DYNDNS_CHAIN -i $interface -s $(resolvehost "$host") -d $destip -p $ICMP_PROTO $ICMP_TYPE echo-request -j ACCEPT
+          iptables -A DYNDNS_CHAIN -i $interface -s $(gethostbyname "$host") -d $destip -p $ICMP_PROTO $ICMP_TYPE echo-request -j ACCEPT
         done
       done
     done
@@ -237,7 +224,7 @@ fi
 
 # Check if the config file exists
 if [ ! -e "$CONF_FILE" ]; then
-  printf "  ** ERROR: Config file \"$CONF_FILE\" not found! **\n" >&2
+  echo "** ERROR: Config file \"$CONF_FILE\" not found!" >&2
   exit 1
 else
   # Source the plugin config file

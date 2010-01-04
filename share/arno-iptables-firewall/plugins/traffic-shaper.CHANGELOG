@@ -1,3 +1,7 @@
+Version 1.2.02 (September 11, 2009)
+--------------------------------
++ Reformat informational message about down- and up-load speeds.
+
 Version 1.2.01 (Augest 23, 2009)
 --------------------------------
 + Call 'modprobe' directly and not module_probe as before.
