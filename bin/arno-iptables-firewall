@@ -12,7 +12,7 @@ CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2009 by Arno van Amersfoort
+# (C) Copyright 2001-2010 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
@@ -5082,7 +5082,7 @@ show_status()
 
 show_start()
 {
-  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
   echo "$DATE ** Starting Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
   echo "** Starting Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
 }
@@ -5090,7 +5090,7 @@ show_start()
 
 show_restart()
 {
-  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
   echo "$DATE ** Restarting Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
   echo "** Restarting Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
 }
@@ -5098,7 +5098,7 @@ show_restart()
 
 show_stop()
 {
-  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
   printf "$DATE \033[40m\033[1;32mStopping Arno's Iptables Firewall v$MY_VERSION\033[0m\n"
   echo "$DATE ** Stopping Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
   echo "** Stopping Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
@@ -5107,7 +5107,7 @@ show_stop()
 
 show_stop_blocked()
 {
-  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
   printf "$DATE \033[40m\033[1;31mFIREWALL DISABLED & BLOCKING ALL INTERNET TRAFFIC!\033[0m\n" >&2
 }
 
@@ -5116,7 +5116,7 @@ show_stop_blocked()
 show_applied()
 {
   echo ""
-  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
 
   if [ "$IPTABLES_ERROR" = "1" ]; then
     printf "$DATE \033[40m\033[1;31mWARNING: Not all firewall rules are applied.\033[0m\n" >&2
@@ -5132,7 +5132,7 @@ show_applied()
 
 show_disabled()
 {
-  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
   printf "$DATE \033[40m\033[1;31mFIREWALL DISABLED!\033[0m\n" >&2
 }
 

@@ -1,5 +1,6 @@
-Version 1.9.2h (December 31, 2009)
-----------------------------------
+Version 1.9.2h (January 5, 2010)
+--------------------------------
+! %0d in the date format is not supported by busybox so replace it with %d (thanks Lonnie)
 ! Init script for newer Debian/Ubuntu version. Start on system startup,
   only stop on system shutdown. Moreover, do not wait for syslog, but start
   whenever there is network (thanks downstream/Michael Hanke)
