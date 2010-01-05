@@ -8,7 +8,7 @@ MY_VERSION="0.11"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2008 by Arno van Amersfoort
+# (C) Copyright 2001-2010 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l

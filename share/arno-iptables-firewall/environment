@@ -25,6 +25,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
+# NOTE: When used in combination with firewall.conf. Load firewall.conf first before calling us!
+
 # Some predefined variables/macros:
 IPTABLES_ERROR=0
 ANYHOST="0/0"
@@ -37,121 +39,6 @@ TAB="$(printf '\t')"
 EOL='
 '
 
-# Set file to store which plugins are loaded
-PLUGIN_LOAD_FILE="/var/tmp/.aif_active_plugins"
-
-# Check whether we also need to drop messages in a dedicated firewall log file
-if [ -z "$FIREWALL_LOG" ]; then
-  FIREWALL_LOG="/dev/null"
-fi
-
-# Check for a local/global config file
-######################################
-if [ -e "$LOCAL_CONFIG_FILE" ]; then
-  . "$LOCAL_CONFIG_FILE"
-fi
-
-# if $LOGLEVEL is not set, default to "info"
-############################################
-if [ -z "$LOGLEVEL" ]; then
-  LOGLEVEL="info"
-fi
-
-
-# Detect all binaries
-#####################
-if [ -z "$IP6TABLES" ]; then
-  if [ -x /sbin/ip6tables ]; then
-    IP6TABLES="/sbin/ip6tables"
-  else
-    IP6TABLES=`which ip6tables 2>/dev/null`
-  fi
-fi
-  
-if [ -z "$IP4TABLES" ]; then
-  if [ -x /sbin/iptables ]; then
-    IP4TABLES="/sbin/iptables"
-  else
-    IP4TABLES=`which iptables 2>/dev/null`
-  fi
-fi
-
-if [ -x /sbin/ip ]; then
-  IP='/sbin/ip'
-else
-  IP=`which ip 2>/dev/null`
-fi
-
-if [ -x /sbin/tc ]; then
-  TC='/sbin/tc'
-else
-  TC=`which tc 2>/dev/null`
-fi
-
-if [ -x /sbin/sysctl ]; then
-  SYSCTL='/sbin/sysctl'
-else
-  SYSCTL=`which sysctl 2>/dev/null`
-fi
-
-if [ -x /sbin/modprobe ]; then
-  MODPROBE='/sbin/modprobe'
-else
-  MODPROBE=`which modprobe 2>/dev/null`
-fi
-
-if [ "$IPV6_SUPPORT" = "1" ]; then
-  IPTABLES="$IP6TABLES"
-  ICMP_PROTO="icmpv6"
-  ICMP_TYPE="--icmpv6-type"
-  
-  # If IPv6 support is enabled some options should be forced off as they
-  # are simply not supported (yet) by ip6tables
-  unset TTL_INC NAT PACKET_TTL NAT_FORWARD_TCP NAT_FORWARD_UDP NAT_FORWARD_IP
-else
-  IPTABLES="$IP4TABLES"
-  ICMP_PROTO="icmp"
-  ICMP_TYPE="--icmp-type"
-fi
-
-# check for tracing
-###################
-if [ "$TRACE" = "1" ]; then
-  TRACEFILE="/tmp/aif-trace.`date '+%Y%m%d-%H:%M:%S'`"
-  cp /dev/null $TRACEFILE
-fi
-
-
-# Check plugin bin path and fallback in case it's empty
-#######################################################
-if [ -z "$PLUGIN_BIN_PATH" ]; then
-  if [ -d "/usr/local/share/arno-iptables-firewall/plugins" ]; then
-    PLUGIN_BIN_PATH="/usr/local/share/arno-iptables-firewall/plugins"
-  else
-    if [ -d "/usr/share/arno-iptables-firewall/plugins" ]; then
-      PLUGIN_BIN_PATH="/usr/share/arno-iptables-firewall/plugins"
-    else
-      printf "\033[40m\033[1;31mERROR: The plugin binary path (PLUGIN_BIN_PATH) has not been specified\033[0m\n" >&2
-      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
-      exit 2
-    fi
-  fi
-fi
-
-# Required for legacy plugins:
-PLUGIN_PATH="$PLUGIN_BIN_PATH"
-
-# Check plugin bin path and fallback in case it's empty
-#######################################################
-if [ -z "$PLUGIN_CONF_PATH" ]; then
-  if [ -d "/etc/arno-iptables-firewall/plugins" ]; then
-    PLUGIN_CONF_PATH="/etc/arno-iptables-firewall/plugins"
-  else
-    printf "\033[40m\033[1;31mERROR: The plugin config path (PLUGIN_CONF_PATH) has not been specified\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
-    exit 2
-  fi
-fi
 
 ################################# Functions ####################################
 
@@ -289,6 +176,38 @@ ip6tables()
 }
 
 
+iptables_save()
+{
+  $IPTABLES_SAVE "$@"
+  retval=$?
+
+  if [ "$retval" != "0" ]; then
+    # Show any (error) messages in red
+    printf "\033[40m\033[1;31m${INDENT}$IPTABLES_SAVE: Error ($retval) \033[0m\n" >&2
+    IPTABLES_ERROR=1
+  fi
+
+  return $retval
+}
+
+
+iptables_restore()
+{
+  result=`$IPTABLES_RESTORE "$@" 2>&1`
+  retval=$?
+
+  if [ "$retval" != "0" ]; then
+    # Show any (error) messages in red
+    printf "\033[40m\033[1;31m${INDENT}$IPTABLES_RESTORE: ($retval) $result\033[0m\n" >&2
+    IPTABLES_ERROR=1
+  elif [ -n "$result" ]; then
+    echo "${INDENT}$result"
+  fi
+
+  return $retval
+}
+
+
 # Wrapper function for modprobe
 ###############################
 modprobe()
@@ -304,22 +223,22 @@ modprobe()
     if [ "$retval" != "0" ]; then
       if ! echo "$result" |grep -q -e '^FATAL: Module .* not found'; then
         # Show any (error) messages in red
-        printf "\033[40m\033[1;31m${INDENT}modprobe $@: ($retval) $result\033[0m\n" >&2
+        printf "\033[40m\033[1;31m${INDENT}$MODPROBE $@: ($retval) $result\033[0m\n" >&2
       elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-        printf "\033[40m\033[1;31m${INDENT}modprobe $@: Module(s) \"$MODULES\" not found! Assuming it is compiled in the kernel\033[0m\n" >&2
+        printf "\033[40m\033[1;31m${INDENT}$MODPROBE $@: Module not found! Assuming compiled-in-kernel!\033[0m\n" >&2
       fi
       return $retval
     else
       if echo "$result" |grep -q -e '^WARNING:'; then
         # Show any (warning) messages in red
         printf "\033[40m\033[1;31m${INDENT}modprobe $@: $result\033[0m\n" >&2
+      else
+        echo "${INDENT}Loaded kernel module $1. $result"
       fi
-      
-      echo "${INDENT}Loaded kernel module $1. $result"
       return 0
     fi
   elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-    echo "${INDENT}NOTE: Kernel has no module support. Assuming module \"$1\" is compiled in the kernel"
+    echo "${INDENT}NOTE: Kernel has no module support. Assuming compiled-in-kernel for module \"$1\""
   fi
 
   return 0
@@ -331,16 +250,17 @@ modprobe_multi()
 {
   OPTIONS=""
   while [ -n "$1" ]; do
-    # Exit as soon as our current argument is a non-option
-    if ! echo "$1" |grep -q -e '^-'; then
-      break
-    fi
-
-    OPTIONS="$OPTIONS $1"
-    shift
+    # Combine options and exit on first non-option
+    case "$1" in
+      -*) OPTIONS="$OPTIONS${OPTIONS:+ }$1"; shift;;
+      *) break;;
+    esac
   done
 
   MODULES="$@"
+
+  local retval
+  local result
 
   # Module support available?
   if [ -e /proc/modules ]; then
@@ -361,19 +281,18 @@ modprobe_multi()
         if echo "$result" |grep -q -e '^WARNING:'; then
           # Show any (warning) messages in red
           printf "\033[40m\033[1;31m${INDENT}modprobe $@: $result\033[0m\n" >&2
+        else
+          echo "${INDENT}Loaded kernel module $module. $result"
         fi
-        
-        echo "${INDENT}Loaded kernel module $module. $result"
         return 0
       fi
     done
     if [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-      printf "${INDENT}\033[40m\033[1;31mWARNING: Module(s) \"$MODULES\" not found. Assuming it is compiled in the kernel\033[0m\n" >&2
+      printf "\033[40m\033[1;31m${INDENT}WARNING: ($retval) Module(s) \"$MODULES\" failed to load. Assuming compiled-in-kernel!\033[0m\n" >&2
       return 1
     fi
   elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-    echo "${INDENT}NOTE: Kernel has no module support. Assuming module(s) \"$MODULES\" are compiled in the kernel"
-    return 1
+    echo "${INDENT}NOTE: Kernel has no module support. Assuming compiled-in-kerel for module(s) \"$MODULES\""
   fi
   
   return 0
@@ -385,7 +304,7 @@ modprobe_multi()
 #################
 module_probe()
 {
-  printf "$\033[40m\033[1;31m{INDENT}Function module_probe() will soon be deprecated, please use modprobe() instead!\033[0m\n" >&2
+  printf "\033[40m\033[1;31m${INDENT}Function module_probe() will soon be deprecated, please use modprobe() instead!\033[0m\n" >&2
   modprobe "$@"
 }
 
@@ -399,7 +318,7 @@ sysctl()
 
   if [ "$retval" != "0" ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m${INDENT}sysctl $@: ($retval) $result\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}sysctl -w $@: ($retval) $result\033[0m\n" >&2
     return $retval
   fi
   echo "${INDENT}Set kernel parameter $@"
@@ -412,28 +331,33 @@ sysctl_multi()
 {
   OPTIONS=""
   while [ -n "$1" ]; do
-    # Exit as soon as our current argument is a non-option
-    if ! echo "$1" |grep -q -e '^-'; then
-      break
-    fi
-
-    OPTIONS="$OPTIONS $1"
-    shift
+    # Combine options and exit on first non-option
+    case "$1" in
+      -*) OPTIONS="$OPTIONS${OPTIONS:+ }$1"; shift;;
+      *) break;;
+    esac
   done
 
   VARIABLES="$@"
+  
+  local retval
+  local result
 
   IFS=' '
   for variable in $VARIABLES; do
-    result=`trace $SYSCTL -w $OPTIONS $variable 2>&1`
-    retval=$?
+    if $SYSCTL $(echo "$variable" |cut -d'=' -f1) >/dev/null 2>&1; then
+      result=`trace $SYSCTL -w $OPTIONS $variable 2>&1`
+      retval=$?
 
-    if [ "$retval" = "0" ]; then
-      echo "${INDENT}Set kernel parameter $variable"
-      return 0
+      if [ "$retval" = "0" ]; then
+        echo "${INDENT}Set kernel parameter $variable"
+        return 0
+      else
+        printf "\033[40m\033[1;31m${INDENT}sysctl -w $OPTIONS $variable: ($retval) $result\033[0m\n" >&2
+      fi
     fi
   done
-  printf "\033[40m\033[1;31m${INDENT}Kernel variable(s) \"$VARIABLES\" FAILED to set! This may be a problem!\033[0m\n" >&2
+  printf "\033[40m\033[1;31m${INDENT}ERROR: ($retval) Unable to set kernel variable(s) \"$VARIABLES\". This may be a problem!\033[0m\n" >&2
   return 1
 }
 
@@ -736,6 +660,12 @@ show_hosts_ports()
 # Helper function to translate host ranges from variable
 ip_range()
 {
+  # Return the args if there is no '-' for improved execution speed
+  case "$@" in
+    *-*) ;;
+      *) echo "$@"; return;;
+  esac
+
   FIRST=1
 
   IFS=','
@@ -766,4 +696,281 @@ ip_range()
     fi
   done
 }
+
+# Add iptables rules in batch using iptables-save and iptables-restore
+iptables_batch()
+{
+  local ARGS CHAIN CHAINFILE RESULT=0
+  
+  # Args must be of the form and called in this order:
+  #   start
+  #   init CHAIN
+  #   -A CHAIN ...
+  #   apply CHAIN
+  #   stop
+  #
+  # Note: the added rules will be placed after a required
+  #       pre-existing rule in CHAIN.
+  #
+  ARGS="$@"
+  CHAIN="$2"
+  
+  if [ "$DISABLE_IPTABLES_BATCH" = "1" ]; then
+    if [ "$1" = "-A" ]; then
+      iptables "$@"
+    fi
+    return
+  fi
+  
+  if [ -n "$CHAIN" ]; then
+    CHAINFILE="$IPTABLES_BATCH_FILE"_"$CHAIN"
+    if [ "$1" = "-A" ]; then
+      echo "$ARGS" >> $CHAINFILE
+    elif [ "$1" = "init" ]; then
+      rm -f $CHAINFILE
+    elif [ "$1" = "apply" ]; then
+      sed -i "/^-A $CHAIN / r $CHAINFILE" $IPTABLES_BATCH_FILE
+      iptables_restore < $IPTABLES_BATCH_FILE
+      RESULT=$?
+      rm -f $CHAINFILE
+    else
+      RESULT=1
+    fi
+  else
+    if [ "$1" = "start" ]; then
+      iptables_save -t filter > $IPTABLES_BATCH_FILE
+      RESULT=$?
+    elif [ "$1" = "stop" ]; then
+      rm -f $IPTABLES_BATCH_FILE
+    else
+      RESULT=1
+    fi
+  fi
+  
+  return $RESULT
+}
+
+# Display progress bar, 0% to 100% in 2% increments
+progress_bar()
+{
+  # Args: cur_cnt total_cnt
+  local prev
+
+  if [ $2 -gt 0 ]; then
+    if [ $1 -eq 0 ]; then
+      progress_percent=0
+      printf " 0%%"
+    else
+      cur=$(($1 / $2))
+      if [ $progress_percent -lt $cur ]; then
+        prev=$progress_percent
+        while [ $prev -le $cur ]; do
+          if [ $progress_percent -lt $prev ]; then
+            progress_percent=$prev
+            if [ $(($progress_percent % 20)) -eq 0 ]; then
+              printf "$progress_percent%%"
+            else
+              printf "."
+            fi
+          fi
+          prev=$(($prev + 2))
+        done
+      fi
+    fi
+  fi
+}
+
+# Get IP address of the specified network interface
+get_network_ip()
+{
+  ip -o addr show dev "$1" 2>/dev/null \
+    | awk '$3 == "inet" { split($4, field, "/"); print field[1]; exit; }'
+}
+
+# Get broadcast address of the specified network interface 
+get_network_broadcast()
+{
+  ip -o addr show dev "$1" 2>/dev/null \
+    | awk '$3 == "inet" && $5 == "brd" { print $6; exit; }'
+}
+
+# Get netmask of the specified network interface 
+get_network_mask()
+{
+  ip -o addr show dev "$1" 2>/dev/null \
+    | awk '$3 == "inet" { split($4, field, "/"); print field[2]; exit; }'
+}
+
+
+################################# Main ####################################
+
+# Set base file for iptables_batch
+IPTABLES_BATCH_FILE="/var/tmp/aif_iptables_batch"
+
+# Set file to store which plugins are loaded
+PLUGIN_LOAD_FILE="/var/tmp/.aif_active_plugins"
+
+# Check whether we also need to drop messages in a dedicated firewall log file
+if [ -z "$FIREWALL_LOG" ]; then
+  FIREWALL_LOG="/dev/null"
+fi
+
+# Check for a local/global config file
+######################################
+if [ -e "$LOCAL_CONFIG_FILE" ]; then
+  . "$LOCAL_CONFIG_FILE"
+fi
+
+# if $LOGLEVEL is not set, default to "info"
+############################################
+if [ -z "$LOGLEVEL" ]; then
+  LOGLEVEL="info"
+fi
+
+# Detect all binaries
+#####################
+if [ -z "$IP6TABLES" ]; then
+  if [ -x /sbin/ip6tables ]; then
+    IP6TABLES="/sbin/ip6tables"
+  else
+    IP6TABLES=`which ip6tables 2>/dev/null`
+  fi
+fi
+
+if [ -z "$IP4TABLES" ]; then
+  if [ -x /sbin/iptables ]; then
+    IP4TABLES="/sbin/iptables"
+  else
+    IP4TABLES=`which iptables 2>/dev/null`
+  fi
+fi
+
+if [ -x /sbin/ip ]; then
+  IP='/sbin/ip'
+else
+  IP=`which ip 2>/dev/null`
+fi
+
+if [ -x /sbin/tc ]; then
+  TC='/sbin/tc'
+else
+  TC=`which tc 2>/dev/null`
+fi
+
+if [ -x /sbin/sysctl ]; then
+  SYSCTL='/sbin/sysctl'
+else
+  SYSCTL=`which sysctl 2>/dev/null`
+fi
+
+if [ -x /sbin/modprobe ]; then
+  MODPROBE='/sbin/modprobe'
+else
+  MODPROBE=`which modprobe 2>/dev/null`
+fi
+
+if [ "$IPV6_SUPPORT" = "1" ]; then
+  IPTABLES="$IP6TABLES"
+  ICMP_PROTO="icmpv6"
+  ICMP_TYPE="--icmpv6-type"
+  
+  # If IPv6 support is enabled some options should be forced off as they
+  # are simply not supported (yet) by ip6tables
+  unset TTL_INC NAT PACKET_TTL NAT_FORWARD_TCP NAT_FORWARD_UDP NAT_FORWARD_IP
+else
+  IPTABLES="$IP4TABLES"
+  ICMP_PROTO="icmp"
+  ICMP_TYPE="--icmp-type"
+fi
+
+IPTABLES_SAVE="$IPTABLES"-save
+if [ ! -x "$IPTABLES_SAVE" ]; then
+  IPTABLES_SAVE=$(which $(basename "$IPTABLES_SAVE") 2>/dev/null)
+fi
+
+IPTABLES_RESTORE="$IPTABLES"-restore
+if [ ! -x "$IPTABLES_RESTORE" ]; then
+  IPTABLES_RESTORE=$(which $(basename "$IPTABLES_RESTORE") 2>/dev/null)
+fi
+
+# check for tracing
+###################
+if [ "$TRACE" = "1" ]; then
+  TRACEFILE="/tmp/aif-trace.`date '+%Y%m%d-%H:%M:%S'`"
+  cp /dev/null $TRACEFILE
+fi
+
+
+# Check plugin bin path and fallback in case it's empty
+#######################################################
+if [ -z "$PLUGIN_BIN_PATH" ]; then
+  if [ -d "/usr/local/share/arno-iptables-firewall/plugins" ]; then
+    PLUGIN_BIN_PATH="/usr/local/share/arno-iptables-firewall/plugins"
+  else
+    if [ -d "/usr/share/arno-iptables-firewall/plugins" ]; then
+      PLUGIN_BIN_PATH="/usr/share/arno-iptables-firewall/plugins"
+    else
+      printf "\033[40m\033[1;31mERROR: The plugin binary path (PLUGIN_BIN_PATH) has not been specified\033[0m\n" >&2
+      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+      exit 2
+    fi
+  fi
+fi
+
+# Required for legacy plugins:
+PLUGIN_PATH="$PLUGIN_BIN_PATH"
+
+# Check plugin bin path and fallback in case it's empty
+#######################################################
+if [ -z "$PLUGIN_CONF_PATH" ]; then
+  if [ -d "/etc/arno-iptables-firewall/plugins" ]; then
+    PLUGIN_CONF_PATH="/etc/arno-iptables-firewall/plugins"
+  else
+    printf "\033[40m\033[1;31mERROR: The plugin config path (PLUGIN_CONF_PATH) has not been specified\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+    exit 2
+  fi
+fi
+
+
+if [ -n "$EXT_IF" ]; then
+  # Setup EXTERNAL_NET
+  if [ -z "$EXTERNAL_NET" ]; then
+    IFS=' ,'
+    for interface in $EXT_IF; do
+      EXTERNAL_NET="$EXTERNAL_NET${EXTERNAL_NET:+ }$(get_network_ip $interface)/$(get_network_mask $interface)"
+    done
+  fi
+
+  # Setup EXT_NET_BCAST_ADDRESS
+  if [ -z "$EXT_NET_BCAST_ADDRESS" ]; then
+    IFS=' ,'
+    for interface in $EXT_IF; do
+      EXT_NET_BCAST_ADDRESS="$EXT_NET_BCAST_ADDRESS${EXT_NET_BCAST_ADDRESS:+ }$(get_network_broadcast $interface)"
+    done
+  fi
+fi
+
+
+if [ -n "$INT_IF" ]; then
+  # Setup INTERNAL_NET
+  if [ -z "$INTERNAL_NET" ]; then
+    IFS=' ,'
+    for interface in $INT_IF; do
+      INTERNAL_NET="$INTERNAL_NET${INTERNAL_NET:+ }$(get_network_ip $interface)/$(get_network_mask $interface)"
+    done
+  fi
+  
+  # Setup INT_NET_BCAST_ADDRESS
+  if [ -z "$INT_NET_BCAST_ADDRESS" ]; then
+    IFS=' ,'
+    for interface in $INT_IF; do
+      INT_NET_BCAST_ADDRESS="$INT_NET_BCAST_ADDRESS${INT_NET_BCAST_ADDRESS:+ }$(get_network_broadcast $interface)"
+    done
+  fi
+
+  if [ -z "$NAT_INTERNAL_NET" ]; then
+    NAT_INTERNAL_NET="$INTERNAL_NET"
+  fi
+fi
 

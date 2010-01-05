@@ -5,10 +5,10 @@
 
 ### BEGIN INIT INFO
 # Provides:          arno-iptables-firewall
-# Required-Start:    $syslog $local_fs $network
-# Required-Stop:     $syslog $local_fs $network
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
+# Required-Start:    $local_fs $network
+# Required-Stop:     $local_fs $network
+# Default-Start:     S
+# Default-Stop:      0 6
 # Short-Description: Setup iptables firewall configuration
 ### END INIT INFO
 
@@ -27,7 +27,6 @@ PROGRAM="/usr/local/sbin/arno-iptables-firewall"
 VERBOSE=0
 
 test -x $PROGRAM || exit 0
-
 
 if [ "$VERBOSE" = "0" ]; then
   case "$1" in
@@ -74,3 +73,4 @@ fi
 
 # Return value:
 exit $return_val
+

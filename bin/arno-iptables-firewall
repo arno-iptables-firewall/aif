@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="1.9.2g"
+MY_VERSION="1.9.2h"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -12,7 +12,7 @@ CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2009 by Arno van Amersfoort
+# (C) Copyright 2001-2010 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
@@ -83,7 +83,7 @@ sanity_check()
   ##############################################################
   check_binary awk
   check_binary tr
-  check_binary ifconfig
+  check_binary ip
   check_binary cut
   check_binary uname
   check_binary sed
@@ -110,7 +110,7 @@ sanity_check()
   IFS=' ,'
   for interface in $EXT_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ifconfig $interface >/dev/null 2>&1`
+      result=`ip link show $interface >/dev/null 2>&1`
       return_val=$?
       if [ "$return_val" != "0" ]; then
         printf "\033[40m\033[1;31mNOTE: External interface $interface does NOT exist (yet?)\033[0m\n"
@@ -126,7 +126,7 @@ sanity_check()
   IFS=' ,'
   for interface in $INT_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ifconfig $interface >/dev/null 2>&1`
+      result=`ip link show $interface >/dev/null 2>&1`
       return_val=$?
       if [ "$return_val" != "0" ]; then
         printf "\033[40m\033[1;31mNOTE: Internal interface $interface does NOT exist (yet?)\033[0m\n"
@@ -142,7 +142,7 @@ sanity_check()
   IFS=' ,'
   for interface in $DMZ_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ifconfig $interface >/dev/null 2>&1`
+      result=`ip link show $interface >/dev/null 2>&1`
       return_val=$?
       if [ "$return_val" != "0" ]; then
         printf "\033[40m\033[1;31mNOTE: DMZ interface $interface does NOT exist (yet?)\033[0m\n"
@@ -158,7 +158,7 @@ sanity_check()
   IFS=' ,'
   for interface in $TRUSTED_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ifconfig $interface >/dev/null 2>&1`
+      result=`ip link show $interface >/dev/null 2>&1`
       return_val=$?
       if [ "$return_val" != "0" ]; then
         printf "\033[40m\033[1;31mNOTE: Trusted interface $interface does NOT exist (yet?)\033[0m\n"
@@ -746,10 +746,17 @@ setup_default_policies()
     iptables -P OUTPUT ACCEPT
   fi
 
-  # The POST_INPUT_DROP_CHAIN should temporarely DROP for now
+  # The POST_INPUT_DROP_CHAIN should temporarily DROP for now
   # We we'll change this once the rules are in place
   ###########################################################
   iptables -A POST_INPUT_DROP_CHAIN -j DROP
+
+  # The HOST_BLOCK_DROP chain should always DROP
+  ###########################################################
+  if [ "$BLOCKED_HOST_LOG" != "0" ]; then
+    iptables -A HOST_BLOCK_DROP -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s): "
+  fi
+  iptables -A HOST_BLOCK_DROP -j DROP
 }
 
 
@@ -929,8 +936,6 @@ setup_valid_chk_chain()
 ################################################################################################################
 setup_reserved_net_chk_chain()
 {
-
-
   if [ "$IPV6_SUPPORT" != "1" ]; then
     # Log access from reserved addresses
     ####################################
@@ -947,6 +952,12 @@ setup_reserved_net_chk_chain()
 
       iptables -A RESERVED_NET_CHK -s 169.254.0.0/16 \
         -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class M$ address: "
+      
+      iptables -A RESERVED_NET_CHK -s 224.0.0.0/24 \
+        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Multicast address: "
+      
+      iptables -A RESERVED_NET_CHK -s 239.0.0.0/24 \
+        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Multicast address: "
     else
       echo "Logging of access from reserved addresses disabled"
     fi
@@ -958,6 +969,8 @@ setup_reserved_net_chk_chain()
     iptables -A RESERVED_NET_CHK -s 172.16.0.0/12 -j POST_INPUT_DROP_CHAIN
     iptables -A RESERVED_NET_CHK -s 192.168.0.0/16 -j POST_INPUT_DROP_CHAIN
     iptables -A RESERVED_NET_CHK -s 169.254.0.0/16 -j POST_INPUT_DROP_CHAIN
+    iptables -A RESERVED_NET_CHK -s 224.0.0.0/24 -j POST_INPUT_DROP_CHAIN
+    iptables -A RESERVED_NET_CHK -s 239.0.0.0/24 -j POST_INPUT_DROP_CHAIN
   else
     # Currently only 2000::/3 are unicast/internet routable for IPv6 (correct me if I am wrong)
     iptables -A RESERVED_NET_CHK ! -s 2000::/3 -j POST_INPUT_DROP_CHAIN
@@ -3416,7 +3429,7 @@ setup_ext_input_chain()
   if [ "$PRIV_UDP_LOG" != "0" ]; then
     echo " Logging of (other) connection attempts to PRIVILEGED UDP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p udp --dport :1023 \
-      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV connect attempt: "
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV connect attempt: "
   else
     echo " Logging of (other) connection attempts to PRIVILEGED UDP ports disabled"
   fi
@@ -4048,11 +4061,25 @@ setup_output_log()
 ######################################
 setup_hostblock_chain()
 {
-  if iptables -F HOST_BLOCK 2>&1 |grep -q "No chain"; then
+  if iptables -F HOST_BLOCK_SRC 2>&1 |grep -q "No chain" || \
+     iptables -F HOST_BLOCK_DST 2>&1 |grep -q "No chain"; then
     printf "\033[40m\033[1;31mERROR: The firewall isn't running!\033[0m\n" >&2
     printf "\033[40m\033[1;31m       You should first run this script with the \"start\" command.\033[0m\n" >&2
     return 5
   fi
+
+  # Return if no Blocked Hosts are defined
+  if [ -z "$BLOCK_HOSTS" ] && [ -z "$BLOCK_HOSTS_FILE" ]; then
+    return
+  fi
+
+  # Set default to DROP all while rules are added
+  iptables -A HOST_BLOCK_SRC -j DROP
+  iptables -A HOST_BLOCK_DST -j DROP
+
+  iptables_batch start
+  iptables_batch init HOST_BLOCK_SRC
+  iptables_batch init HOST_BLOCK_DST
 
   if [ -n "$BLOCK_HOSTS" ]; then
     printf "Blocking (blackhole) host(s): "
@@ -4062,11 +4089,8 @@ setup_hostblock_chain()
       printf "$hosts "
 
       for host in `ip_range "$hosts"`; do
-        if [ "$BLOCKED_HOST_LOG" != "0" ]; then
-          iptables -A HOST_BLOCK -s $host \
-            -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s): "
-        fi
-        iptables -A HOST_BLOCK -s $host -j POST_INPUT_DROP_CHAIN
+        iptables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+        iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
       done
     done
     echo ""
@@ -4076,35 +4100,42 @@ setup_hostblock_chain()
   # Setup the blocked hosts from our file
   if [ -n "$BLOCK_HOSTS_FILE" ]; then
     if [ -e "$BLOCK_HOSTS_FILE" ]; then
+      local cur_cnt=0 total_cnt
+      total_cnt=$(( $(cat "$BLOCK_HOSTS_FILE" |wc -l) ))
 
       echo "(Re)loading list of BLOCKED hosts from $BLOCK_HOSTS_FILE..."
+      progress_bar $cur_cnt $total_cnt
 
-      HCOUNT=0
-      LCOUNT=0
-      IFS=$EOL
-      for hosts in `cat "$BLOCK_HOSTS_FILE" |sed -e 's|#.*||' -e 's| *$||'`; do
-        # Inc. line count
-        LCOUNT=$(($LCOUNT + 1))
+      # Support both a '#' and a ';' as a comment delimiter in BLOCK_HOSTS_FILE file
+      unset IFS
+      cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' | while read hosts; do
+        cur_cnt=$(($cur_cnt + 100))
+        progress_bar $cur_cnt $total_cnt
 
         if [ -n "$hosts" ]; then
           IFS=','
           for host in `ip_range "$hosts"`; do
-            HCOUNT=$(($HCOUNT + 1))
-
-            if [ "$BLOCKED_HOST_LOG" = "1" ]; then
-              iptables -A HOST_BLOCK -s $host \
-                -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s): "
-            fi
-            iptables -A HOST_BLOCK -s $host -j POST_INPUT_DROP_CHAIN
+            iptables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+            iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
           done
           unset IFS
         fi
       done
-      echo " $LCOUNT line(s) read. $HCOUNT host(s) blocked."
+      echo ""
+      echo "  $total_cnt line(s) read."
     else
       printf "\033[40m\033[1;31mNOTE: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
     fi
   fi
+
+  iptables_batch apply HOST_BLOCK_SRC
+  iptables_batch apply HOST_BLOCK_DST
+  iptables_batch stop
+  
+  # All Blocked Host rules are applied
+  # Remove default rule at the beginning of the HOST_BLOCK_SRC and HOST_BLOCK_DST chains
+  iptables -D HOST_BLOCK_SRC 1
+  iptables -D HOST_BLOCK_DST 1
 }
 
 
@@ -4368,9 +4399,10 @@ setup_firewall_rules()
 
   # Block all hosts in the custom blocked hosts file
   ##################################################
-  iptables -A INPUT -j HOST_BLOCK
-  iptables -A FORWARD -j HOST_BLOCK
-  iptables -A OUTPUT -j HOST_BLOCK
+  iptables -A INPUT -j HOST_BLOCK_SRC
+  iptables -A FORWARD -j HOST_BLOCK_SRC
+  iptables -A FORWARD -j HOST_BLOCK_DST
+  iptables -A OUTPUT -j HOST_BLOCK_DST
 
   # Setup global helper chains
   ############################
@@ -4837,7 +4869,9 @@ setup_firewall_rules()
 create_user_chains()
 {
   # General chains
-  iptables -N HOST_BLOCK
+  iptables -N HOST_BLOCK_SRC
+  iptables -N HOST_BLOCK_DST
+  iptables -N HOST_BLOCK_DROP
   iptables -N VALID_CHK
   iptables -N RESERVED_NET_CHK
   iptables -N SPOOF_CHK
@@ -4884,7 +4918,9 @@ create_user_chains()
 flush_user_chains()
 {
   # General chains
-  iptables -F HOST_BLOCK
+  iptables -F HOST_BLOCK_SRC
+  iptables -F HOST_BLOCK_DST
+  iptables -F HOST_BLOCK_DROP
   iptables -F VALID_CHK
   iptables -F RESERVED_NET_CHK
   iptables -F SPOOF_CHK
@@ -5046,7 +5082,7 @@ show_status()
 
 show_start()
 {
-  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
   echo "$DATE ** Starting Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
   echo "** Starting Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
 }
@@ -5054,7 +5090,7 @@ show_start()
 
 show_restart()
 {
-  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
   echo "$DATE ** Restarting Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
   echo "** Restarting Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
 }
@@ -5062,7 +5098,7 @@ show_restart()
 
 show_stop()
 {
-  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
   printf "$DATE \033[40m\033[1;32mStopping Arno's Iptables Firewall v$MY_VERSION\033[0m\n"
   echo "$DATE ** Stopping Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
   echo "** Stopping Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
@@ -5071,7 +5107,7 @@ show_stop()
 
 show_stop_blocked()
 {
-  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
   printf "$DATE \033[40m\033[1;31mFIREWALL DISABLED & BLOCKING ALL INTERNET TRAFFIC!\033[0m\n" >&2
 }
 
@@ -5080,7 +5116,7 @@ show_stop_blocked()
 show_applied()
 {
   echo ""
-  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
 
   if [ "$IPTABLES_ERROR" = "1" ]; then
     printf "$DATE \033[40m\033[1;31mWARNING: Not all firewall rules are applied.\033[0m\n" >&2
@@ -5096,7 +5132,7 @@ show_applied()
 
 show_disabled()
 {
-  DATE=`LC_ALL=C date +'%b %0d %H:%M:%S'`
+  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
   printf "$DATE \033[40m\033[1;31mFIREWALL DISABLED!\033[0m\n" >&2
 }
 
