@@ -410,7 +410,7 @@ get_ifs()
   local result=""
   
   if echo "$1" |grep -q -e "$SEP2"; then
-    result=`echo "$1" |cut -s -d"$SEP2" -f1 |grep -v -e '\.' -e '0/0' |tr ' ' ','`
+    result=`echo "$1" |cut -s -d"$SEP2" -f1 |grep -v -e '\.' -e "$ANYHOST" |tr ' ' ','`
   fi
 
   if [ -n "$result" ]; then
@@ -433,7 +433,7 @@ get_ips()
   local result=""
 
   if echo "$1" |grep -q -e "$SEP2"; then
-    result=`echo "$1" |cut -s -d"$SEP2" -f1 |grep -e '\.' -e '0/0' |tr ' ' ','`
+    result=`echo "$1" |cut -s -d"$SEP2" -f1 |grep -e '\.' -e "$ANYHOST" |tr ' ' ','`
   fi
 
   if [ -n "$result" ]; then
@@ -443,7 +443,7 @@ get_ips()
     if [ -n "$2" ]; then
       echo "$2"
     else
-      echo "0/0"
+      echo "$ANYHOST"
     fi
     return 1
   fi
@@ -564,15 +564,17 @@ gethostbyaddr()
 
   if [ -z "$1" ]; then
     result="$(dig +short -x $host 2>/dev/null)"
-    retval=$?
   else
     result="$(dig $@ +short -x $host 2>/dev/null)"
-    retval=$?
   fi
 
-  echo "$result" |grep -v -e "^;;" |head -n1 |sed -e 's!.$!!'
-
-  return $retval
+  if [ -n "$result" ]; then
+    echo "$result" |grep -v -e "^;;" |head -n1 |sed -e 's!.$!!'
+    return 0
+  else
+    echo ""
+    return 1
+  fi
 }
 
 
@@ -585,15 +587,17 @@ gethostbyname()
 
   if [ -z "$1" ]; then
     result="$(dig +short $host 2>/dev/null)"
-    retval=$?
   else
     result="$(dig $@ +short $host 2>/dev/null)"
-    retval=$?
   fi
 
-  echo "$result" |grep -v -e "^;;" |head -n1
-
-  return $retval
+  if [ -n "$result" ]; then
+    echo "$result" |grep -v -e "^;;" |head -n1
+    return 0
+  else
+    echo ""
+    return 1
+  fi
 }
 
 
@@ -638,7 +642,7 @@ show_if_ip()
   fi
 
   # Only show destination IPs if not empty:
-  if [ -n "$2" ] && [ "$2" != "0/0" ]; then
+  if [ -n "$2" ] && [ "$2" != "$ANYHOST" ]; then
     printf "($2) "
   fi
 }
