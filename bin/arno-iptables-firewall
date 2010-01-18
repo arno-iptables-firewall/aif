@@ -2696,8 +2696,8 @@ setup_ext_input_chain()
   for rule in $HOST_REJECT_TCP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
-    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
 
     echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for TCP port(s) (NO LOG): $ports"
 
@@ -2720,8 +2720,8 @@ setup_ext_input_chain()
   for rule in $HOST_REJECT_UDP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
-    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
 
     echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for UDP port(s) (NO LOG): $ports"
 
@@ -2744,8 +2744,8 @@ setup_ext_input_chain()
   for rule in $HOST_REJECT_TCP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
-    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
 
     echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for TCP port(s): $ports"
 
@@ -2771,8 +2771,8 @@ setup_ext_input_chain()
   for rule in $HOST_REJECT_UDP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
-    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
 
     echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for UDP port(s): $ports"
 
@@ -2798,8 +2798,8 @@ setup_ext_input_chain()
   for rule in $HOST_DENY_TCP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
-    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
 
     echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for TCP port(s) (NO LOG): $ports"
 
@@ -2822,8 +2822,8 @@ setup_ext_input_chain()
   for rule in $HOST_DENY_UDP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
-    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
 
     echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for UDP port(s) (NO LOG): $ports"
 
@@ -2845,8 +2845,8 @@ setup_ext_input_chain()
   for rule in $HOST_DENY_IP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
-    protos=`get_ports_ihp "$rule" "$ANYPORT"`
+    hosts=`get_hosts_ihp "$rule"`
+    protos=`get_ports_ihp "$rule"`
 
     echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for IP protocol(s) (NO LOG): $protos"
 
@@ -2889,8 +2889,8 @@ setup_ext_input_chain()
   for rule in $HOST_DENY_TCP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
-    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
 
     echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for TCP port(s): $ports"
 
@@ -2916,8 +2916,8 @@ setup_ext_input_chain()
   for rule in $HOST_DENY_UDP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
-    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
 
     echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for UDP port(s): $ports"
 
@@ -2943,8 +2943,8 @@ setup_ext_input_chain()
   for rule in $HOST_DENY_IP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
-    protos=`get_ports_ihp "$rule" "$ANYPORT"`
+    hosts=`get_hosts_ihp "$rule"`
+    protos=`get_ports_ihp "$rule"`
 
     echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for IP protocol(s): $protos"
 
@@ -3551,8 +3551,8 @@ setup_ext_output_chain()
   for rule in $HOST_DENY_TCP_OUTPUT; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
-    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
 
     echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for TCP port(s): $ports"
 
@@ -3578,8 +3578,8 @@ setup_ext_output_chain()
   for rule in $HOST_DENY_UDP_OUTPUT; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
-    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+    hosts=`get_hosts_ihp "$rule"`
+    ports=`get_ports_ihp "$rule"`
 
     echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for UDP port(s): $ports"
 
@@ -3605,7 +3605,7 @@ setup_ext_output_chain()
   for rule in $HOST_DENY_IP_OUTPUT; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
+    hosts=`get_hosts_ihp "$rule"`
     protos=`get_ports_ihp "$rule"`
 
     echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for IP protocol(s): $protos"
