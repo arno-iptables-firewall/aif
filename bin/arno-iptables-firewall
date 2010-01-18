@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="1.9.2h"
+MY_VERSION="1.9.2i-DEVEL"
 
 # Location of the main configuration file for the firewall
 ##########################################################

@@ -1,3 +1,8 @@
+Version 1.9.2i-DEVEL (January 18, 2010)
+---------------------------------------
+* We shouldn't just default (too much) to ANYHOST and/or ANYPORT, if not specified. This is too user error-sensitive (including myself)
+! Can't have defaults for protocols
+
 Version 1.9.2h (January 5, 2010)
 --------------------------------
 ! %0d in the date format is not supported by busybox so replace it with %d (thanks Lonnie)
