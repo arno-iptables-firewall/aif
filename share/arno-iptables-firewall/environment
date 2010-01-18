@@ -585,6 +585,13 @@ gethostbyname()
   host="$1"
   shift
 
+  # Don't try to resolve IPs:
+  if ! echo "$host" |grep -q -i '[a-z]'; then
+    # It's an IP already, so just return it
+    echo "$host"
+    return 0
+  fi
+  
   if [ -z "$1" ]; then
     result="$(dig +short $host 2>/dev/null)"
   else

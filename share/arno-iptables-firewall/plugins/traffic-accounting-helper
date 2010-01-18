@@ -37,19 +37,6 @@ else
 fi
 
 
-# Function to first try to resolve @DynDNS else use the system default NS server
-resolvehost()
-{
-#  result="$(gethostbyname "$1" "@ns.dyndns.org")"
-
-#  if [ -z "$result" ]; then
-    result="$(gethostbyname "$1")"
-#  fi
-
-  echo "$result"
-}
-
-
 # Check sanity of eg. environment
 sanity_check()
 {
@@ -59,12 +46,12 @@ sanity_check()
   fi
 
   # Check whether chains exists
-  if ! iptables -nL ACCOUNTING_INPUT_CHAIN 2>&1 >/dev/null; then
+  if ! iptables -nL ACCOUNTING_INPUT_CHAIN >/dev/null 2>&1; then
     echo "  ** ERROR: ACCOUNTING_INPUT_CHAIN does not exist! **" >&2
     return 1
   fi
 
-  if ! iptables -nL ACCOUNTING_OUTPUT_CHAIN 2>&1 >/dev/null; then
+  if ! iptables -nL ACCOUNTING_OUTPUT_CHAIN >/dev/null 2>&1; then
     echo "  ** ERROR: ACCOUNTING_OUTPUT_CHAIN does not exist! **" >&2
     return 1
   fi
@@ -114,13 +101,8 @@ traffic_accounting()
       old_out_value=0
     fi
 
-    # Only try to resolve actual hostnames
-    if echo "$host" |grep -q -i '[a-z]'; then
-      # Get hostname
-      new_ip=`resolvehost "$host"`
-    else
-      new_ip="$host"
-    fi
+    # Get host ip
+    new_ip=`gethostbyname "$host"`
 
     # If it fails use old IP
     if [ -z "$new_ip" ]; then
