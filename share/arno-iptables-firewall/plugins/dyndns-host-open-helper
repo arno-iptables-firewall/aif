@@ -87,11 +87,13 @@ dyndns_host_to_cache()
 {
   local host="$1"
   
-  # Check whether we already have it in our cache
+  # Check whether we already have it in our (new) cache
   if ! grep -q "^$host " "$DYNDNS_HOST_CACHE".new; then
     printf "${INDENT}Resolving host \"$host\"..."
-    # TODO: detect DNS server fail + shorter timeout/retry for dig?
+    # Set short timeout(1) and only retry once(1), else it could ages to process
+    # in case of errors
     host_ip=`gethostbyname "$host" +tries=1 +time=1`
+    retval=$?
     
     if [ -z "$host_ip" ]; then
       # Try to get from (old) cache, if allowed
@@ -102,13 +104,13 @@ dyndns_host_to_cache()
       # (Re)check $host_ip
       if [ -z "$host_ip" ]; then
         printf "\033[40m\033[1;31mFAILED!\033[0m\n"
-        echo "** ERROR: Unresolvable host \"$host\", and no old IP to fallback on! **" >&2 
+        echo "** ERROR($retval): Unresolvable host \"$host\", and no old IP to fallback on! **" >&2 
       
         # Create dummy entry, so the others know we failed
         echo "$host " >>"$DYNDNS_HOST_CACHE".new
-        return 1
+        return $retval
       else
-        echo "** ERROR: Unresolvable host \"$host\". Re-using old IP ($host_ip)! **" >&2 
+        echo "** ERROR($retval): Unresolvable host \"$host\". Re-using old IP ($host_ip)! **" >&2 
       fi
     fi
     echo "$host_ip"
