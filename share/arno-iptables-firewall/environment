@@ -588,7 +588,7 @@ gethostbyaddr()
     return 1
   fi
 
-  if [ -z "$1" ]; then
+  if [ -z "$@" ]; then
     result="$(dig +short -x $host 2>/dev/null)"
     retval=$?
   else
@@ -622,7 +622,7 @@ gethostbyname()
     return 0
   fi
   
-  if [ -z "$1" ]; then
+  if [ -z "$@" ]; then
     result="$(dig +short $host 2>/dev/null)"
     retval=$?
   else
