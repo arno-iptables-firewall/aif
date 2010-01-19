@@ -550,6 +550,30 @@ get_ports_ip()
 }
 
 
+# Is IPv4 numeric?
+is_numeric_ipv4()
+{
+  if [ "$(echo "$1" |tr -d '0123456789')" = "..." ]; then
+    return 0
+  fi
+
+  return 1
+}
+
+
+# Is IPv6 numeric?
+is_numeric_ipv6()
+{
+  case $(echo "$1" |tr -d '0123456789aAbBcCdDeEfF') in
+   ::|:::|::::|:::::|::::::|:::::::)
+     return 0
+     ;;
+  esac
+
+  return 1
+}
+
+
 # Helper function to resolve an IP to a DNS name
 # $1 = IP. $2 (optional) = Additional arguments for dig. stdout = DNS name
 gethostbyaddr()
@@ -572,7 +596,7 @@ gethostbyaddr()
     echo "$result" |grep -v -e "^;;" |head -n1 |sed -e 's!.$!!'
     return 0
   else
-    echo ""
+    printf ""
     return 1
   fi
 }
@@ -586,7 +610,7 @@ gethostbyname()
   shift
 
   # Don't try to resolve IPs:
-  if ! echo "$host" |grep -q -i '[a-z]'; then
+  if is_numeric_ipv4 "$host" || is_numeric_ipv6 "$host"; then
     # It's an IP already, so just return it
     echo "$host"
     return 0
@@ -602,7 +626,7 @@ gethostbyname()
     echo "$result" |grep -v -e "^;;" |head -n1
     return 0
   else
-    echo ""
+    printf ""
     return 1
   fi
 }
@@ -640,7 +664,6 @@ show_hostname()
 
 # Helper function to show interfaces / ips in front of verbose line
 # $1 =  interfaces. $2 = ips
-
 show_if_ip()
 {
   # Only show interfaces if not empty:
