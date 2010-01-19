@@ -578,6 +578,7 @@ is_numeric_ipv6()
 # $1 = IP. $2 (optional) = Additional arguments for dig. stdout = DNS name
 gethostbyaddr()
 {
+  local retval=0
   host="$1"
   shift
 
@@ -588,16 +589,18 @@ gethostbyaddr()
 
   if [ -z "$1" ]; then
     result="$(dig +short -x $host 2>/dev/null)"
+    retval=$?
   else
     result="$(dig $@ +short -x $host 2>/dev/null)"
+    retval=$?
   fi
 
   if [ -n "$result" ]; then
     echo "$result" |grep -v -e "^;;" |head -n1 |sed -e 's!.$!!'
-    return 0
+    return $retval
   else
     printf ""
-    return 1
+    return $retval
   fi
 }
 
@@ -606,6 +609,8 @@ gethostbyaddr()
 # $1 = Hostname. $2 (optional) = Additional arguments for dig. stdout = IP
 gethostbyname()
 {
+  local retval=0
+
   host="$1"
   shift
 
@@ -618,16 +623,18 @@ gethostbyname()
   
   if [ -z "$1" ]; then
     result="$(dig +short $host 2>/dev/null)"
+    retval=$?
   else
     result="$(dig $@ +short $host 2>/dev/null)"
+    retval=$?
   fi
 
   if [ -n "$result" ]; then
     echo "$result" |grep -v -e "^;;" |head -n1
-    return 0
+    return $retval
   else
     printf ""
-    return 1
+    return $retval
   fi
 }
 
@@ -1007,4 +1014,3 @@ if [ -n "$INT_IF" ]; then
     NAT_INTERNAL_NET="$INTERNAL_NET"
   fi
 fi
-
