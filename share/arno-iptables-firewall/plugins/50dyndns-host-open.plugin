@@ -5,7 +5,7 @@ PLUGIN_NAME="DynDNS Host Open plugin"
 PLUGIN_VERSION="1.1"
 PLUGIN_CONF_FILE="dyndns-host-open.conf"
 #
-# Last changed          : January 13, 2010
+# Last changed          : January 19, 2010
 # Requirements          : kernel 2.6 + AIF 1.9.1-BETA2 or better
 # Comments              : This implements support to open ports for DynDNS hosts
 #
@@ -43,8 +43,10 @@ plugin_start()
   # Insert rule into the main chain:
   iptables -A EXT_INPUT_CHAIN -j DYNDNS_CHAIN
 
+  # TODO: Future versions (which properly implement restart()) should probably remove the cache file here 
+  
   # Create cron job
-  echo "$DYNDNS_HOST_OPEN_CRON        root    $PLUGIN_BIN_PATH/dyndns-host-open-helper >/dev/null" >|/etc/cron.d/dyndns-host-open
+  echo "$DYNDNS_HOST_OPEN_CRON        root    $PLUGIN_BIN_PATH/dyndns-host-open-helper >/dev/null" >/etc/cron.d/dyndns-host-open
 
   # Call the DynDNS script?
   if [ "$DYNDNS_RUN_AT_START" = "1" ]; then
@@ -60,6 +62,8 @@ plugin_stop()
 {
   # Remove cron job
   rm -f /etc/cron.d/dyndns-host-open
+  
+  # TODO: Future versions (which properly implement restart()) should probably remove the cache file here 
   
   iptables -D EXT_INPUT_CHAIN -j DYNDNS_CHAIN 2>/dev/null
 

@@ -39,7 +39,7 @@ fi
 # Define our host cache file
 DYNDNS_HOST_CACHE="/tmp/.dyndns-host-cache"
 
-# Check sanity of eg. environment
+# Check sanity of environment
 sanity_check()
 {
   if [ -z "$DYNDNS_HOST_OPEN_CRON" ]; then
@@ -62,42 +62,8 @@ sanity_check()
 }
 
 
-# 
-dyndns_gethostbyname_update_cache()
-{
-  if [ ! -e "$DYNDNS_HOST_CACHE" ]; then
-    # Create new empty file
-    printf "" >"$DYNDNS_HOST_CACHE"
-  fi
-  
-  host_ip=`gethostbyname $1`
-  if [ -n "$host_ip" ]; then
-    if ! grep -q "$1 " "$DYNDNS_HOST_CACHE"; then
-      # No entry yet
-      echo "$1 $host_ip" >>"$DYNDNS_HOST_CACHE"
-    else
-      # Alter old entry
-      sed -i "s!^$1 *!$1 $host_ip!" "$DYNDNS_HOST_CACHE"
-    fi
-    return 0
-  elif [ "$DYNDNS_ALLOW_FALLBACK" = "1" ]; then
-    # Check old cache, since we can't resolve
-    host_ip=`grep "^$1 " |sed "s!$1 !!" "$DYNDNS_HOST_CACHE"`
-    if [ -n "$host_ip" ]; then
-      echo "** ERROR: Unresolvable host \"$1\". Re-using old IP! **" >&2
-      return 0
-    fi
-  fi
-        
-  echo "** ERROR: Unresolvable host \"$1\", and no old IP to fallback on! **" >&2     
-  
-  # Return error
-  return 1
-}
-
-
 # Resolve a hostname using our cache
-dyndns_gethostbyname()
+dyndns_get_cached_host()
 {
   if [ -e "$DYNDNS_HOST_CACHE" ]; then
     local host_ip=`grep "^$1 " "$DYNDNS_HOST_CACHE" |head -n1 |sed "s!$1 !!"`
@@ -113,12 +79,43 @@ dyndns_gethostbyname()
 }
 
 
+# Resolve hostname to IP and store both in our (new) cache
+dyndns_host_to_cache()
+{
+  # Check whether we already have it in our cache
+  if ! grep -q "^$host " "$DYNDNS_HOST_CACHE".new; then
+    # TODO: detect DNS server fail + shorter timeout/retry for dig?
+    host_ip=`gethostbyname "$host"`; then
+    
+    if [ -z "$host_ip" ]; then
+      # Try to get from (old) cache, if allowed
+      if [ "$DYNDNS_OLD_CACHE_FALLBACK" ]; then
+        host_ip=`dyndns_get_cached_host $host`
+      fi
+      
+      # (Re)check $host_ip
+      if [ -z "$host_ip" ]; then
+        echo "** ERROR: Unresolvable host \"$host\", and no old IP to fallback on! **" >&2 
+      
+        # Create dummy entry, so the others know we failed
+        echo "$host " >>"$DYNDNS_HOST_CACHE".new
+        return 1
+      else
+        echo "** ERROR: Unresolvable host \"$host\". Re-using old IP ($host_ip)! **" >&2 
+      fi
+    fi
+    echo "$host $host_ip" >>"$DYNDNS_HOST_CACHE".new 
+  fi
+  
+  return 0
+}      
+
+
 # Setup host->ip cache
 dyndns_setup_cache()
 {
-  # TODO: detect DNS server fail + shorter timeout/retry for dig?
-
-  rm -f "$DYNDNS_HOST_CACHE".new 2>/dev/null
+  # Create new empty file
+  printf "" >"$DYNDNS_HOST_CACHE".new
   
   unset IFS
   # TODO: Combine TCP/UDP/IP into one loop???
@@ -127,31 +124,7 @@ dyndns_setup_cache()
     
     IFS=','
     for host in $hosts; do
-      # Check whether we already have it in our cache
-      if ! grep -q "^$host " "$DYNDNS_HOST_CACHE".new; then
-        host_ip=`gethostbyname_update_cache "$host"`; then
-        
-        if [ -z "$host_ip" ]; then
-          # Try to get from (old) cache, if allowed
-          if [ "$DYNDNS_ALLOW_FALLBACK" ]; then
-            host_ip=`dyndns_gethostbyname $host`
-          fi
-          
-          # (Re)check
-          if [ -z "$host_ip" ]; then
-            echo "** ERROR: Unresolvable host \"$host\", and no old IP to fallback on! **" >&2 
-          
-            # Create dummy entry, so the others know we failed
-            echo "$host " >>"$DYNDNS_HOST_CACHE".new
-          else
-            echo "** ERROR: Unresolvable host \"$host\". Re-using old IP ($host_ip)! **" >&2 
-            #FIXME!, see one downstairs
-            echo "$host $host_ip" >>"$DYNDNS_HOST_CACHE".new
-          fi
-        fi
-      fi
-      
-      echo "$host $host_ip" >>"$DYNDNS_HOST_CACHE".new
+      dyndns_host_to_cache "$host"
     done
   done
 
@@ -161,10 +134,7 @@ dyndns_setup_cache()
    
     IFS=','
     for host in $hosts; do
-      if ! gethostbyname_update_cache "$host"; then
-        echo "** ERROR: Unresolvable host \"$host\", refusing to (re)start!" >&2
-        return 1
-      fi
+      dyndns_host_to_cache "$host"
     done
   done
 
@@ -174,10 +144,7 @@ dyndns_setup_cache()
 
     IFS=','    
     for host in $hosts; do
-      if ! gethostbyname_update_cache "$host"; then
-        echo "** ERROR: Unresolvable host \"$host\", refusing to (re)start!" >&2
-        return 1
-      fi
+      dyndns_host_to_cache "$host"
     done
   done
 
@@ -187,17 +154,14 @@ dyndns_setup_cache()
 
     IFS=','
     for host in $hosts; do
-      if ! gethostbyname_update_cache "$host"; then
-        echo "** ERROR: Unresolvable host \"$host\", refusing to (re)start!" >&2
-        return 1
-      fi
+      dyndns_host_to_cache "$host"
     done
   done
 
   # Remove old cache file
   rm -f "$DYNDNS_HOST_CACHE" 2>/dev/null
   
-  # Rename our new cache file
+  # Make our new cache file active
   mv "$DYNDNS_HOST_CACHE".new "$DYNDNS_HOST_CACHE"
   
   return 0
@@ -225,7 +189,7 @@ dyndns_host_open()
       for destip in $destips; do
         for host in $hosts; do
           for port in $ports; do
-            host_ip=`dyndns_gethostbyname $host`
+            host_ip=`dyndns_get_cached_host $host`
             if [ -n "$host_ip" ]; then
               iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p tcp --dport $port -j ACCEPT
             fi
@@ -252,7 +216,7 @@ dyndns_host_open()
       for destip in $destips; do
         for host in $hosts; do
           for port in $ports; do
-            host_ip=`dyndns_gethostbyname $host`
+            host_ip=`dyndns_get_cached_host $host`
             if [ -n "$host_ip" ]; then
               iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p udp --dport $port -j ACCEPT
             fi
@@ -279,7 +243,7 @@ dyndns_host_open()
       for destip in $destips; do
         for host in $hosts; do
           for proto in $protos; do
-            host_ip=`dyndns_gethostbyname $host`
+            host_ip=`dyndns_get_cached_host $host`
             if [ -n "$host_ip" ]; then
               iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p $proto -j ACCEPT
             fi
@@ -304,7 +268,7 @@ dyndns_host_open()
     for interface in $interfaces; do
       for destip in $destips; do
         for host in $hosts; do
-          host_ip=`dyndns_gethostbyname $host`
+          host_ip=`dyndns_get_cached_host $host`
           if [ -n "$host_ip" ]; then
             iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p $ICMP_PROTO $ICMP_TYPE echo-request -j ACCEPT
           fi
@@ -336,11 +300,10 @@ else
 
   if [ "$ENABLED" = "1" ]; then
     # Only proceed if environment ok
-    if sanity_check; then
-      dyndns_setup_cache && dyndns_host_open && exit 0;
-    else
-#      printf "  ** ERROR: Sanity check failed! **" >&2
-    fi
+    sanity_check       &&
+    dyndns_setup_cache &&
+    dyndns_host_open   &&
+    exit 0;
   fi
 fi
 
