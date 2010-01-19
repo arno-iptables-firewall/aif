@@ -582,7 +582,8 @@ gethostbyaddr()
   host="$1"
   shift
 
-  if [ -n "$(echo "$host" |grep '/')" ]; then
+  # We can't resolve addressen with a subnet masker
+  if echo "$host" |grep -q '/'; then
     printf ""
     return 1
   fi
