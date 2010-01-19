@@ -38,6 +38,7 @@ fi
 
 # Define our host cache file
 DYNDNS_HOST_CACHE="/tmp/.dyndns-host-cache"
+INDENT='  '
 
 # Check sanity of environment
 sanity_check()
@@ -65,8 +66,10 @@ sanity_check()
 # Resolve a hostname using our cache
 dyndns_get_cached_host()
 {
+  local host="$1"
+  
   if [ -e "$DYNDNS_HOST_CACHE" ]; then
-    local host_ip=`grep "^$1 " "$DYNDNS_HOST_CACHE" |head -n1 |sed "s!$1 !!"`
+    local host_ip=`grep "^$host " -m1 "$DYNDNS_HOST_CACHE" |cut -s -f2 -d' '`
     if [ -n "$host_ip" ]; then
       echo "$host_ip"
       return 0
@@ -82,19 +85,23 @@ dyndns_get_cached_host()
 # Resolve hostname to IP and store both in our (new) cache
 dyndns_host_to_cache()
 {
+  local host="$1"
+  
   # Check whether we already have it in our cache
   if ! grep -q "^$host " "$DYNDNS_HOST_CACHE".new; then
+    printf "${INDENT}Resolving host \"$host\"..."
     # TODO: detect DNS server fail + shorter timeout/retry for dig?
-    host_ip=`gethostbyname "$host"`; then
+    host_ip=`gethostbyname "$host" +tries=1 +time=1`
     
     if [ -z "$host_ip" ]; then
       # Try to get from (old) cache, if allowed
-      if [ "$DYNDNS_OLD_CACHE_FALLBACK" ]; then
+      if [ "$DYNDNS_OLD_CACHE_FALLBACK" = "1" ]; then
         host_ip=`dyndns_get_cached_host $host`
       fi
       
       # (Re)check $host_ip
       if [ -z "$host_ip" ]; then
+        printf "\033[40m\033[1;31mFAILED!\033[0m\n"
         echo "** ERROR: Unresolvable host \"$host\", and no old IP to fallback on! **" >&2 
       
         # Create dummy entry, so the others know we failed
@@ -104,6 +111,7 @@ dyndns_host_to_cache()
         echo "** ERROR: Unresolvable host \"$host\". Re-using old IP ($host_ip)! **" >&2 
       fi
     fi
+    echo "$host_ip"
     echo "$host $host_ip" >>"$DYNDNS_HOST_CACHE".new 
   fi
   
@@ -118,7 +126,6 @@ dyndns_setup_cache()
   printf "" >"$DYNDNS_HOST_CACHE".new
   
   unset IFS
-  # TODO: Combine TCP/UDP/IP into one loop???
   for rule in $DYNDNS_HOST_OPEN_TCP; do
     hosts=`get_hosts_ihp "$rule"`
     
@@ -182,7 +189,7 @@ dyndns_host_open()
     hosts=`get_hosts_ihp "$rule"`
     ports=`get_ports_ihp "$rule"`
 
-    echo "$(show_if_ip "$interfaces" "$destips")Allowing $hosts for TCP port(s): $ports"
+    echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for TCP port(s): $ports"
     
     IFS=','
     for interface in $interfaces; do
@@ -209,7 +216,7 @@ dyndns_host_open()
     hosts=`get_hosts_ihp "$rule"`
     ports=`get_ports_ihp "$rule"`
 
-    echo "$(show_if_ip "$interfaces" "$destips")Allowing $hosts for UDP port(s): $ports"
+    echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for UDP port(s): $ports"
     
     IFS=','
     for interface in $interfaces; do
@@ -236,7 +243,7 @@ dyndns_host_open()
     hosts=`get_hosts_ihp "$rule"`
     protos=`get_ports_ihp "$rule"`
 
-    echo "$(show_if_ip "$interfaces" "$destips")Allowing $hosts for IP protocol(s): $protos"
+    echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for IP protocol(s): $protos"
     
     IFS=','
     for interface in $interfaces; do
@@ -262,7 +269,7 @@ dyndns_host_open()
     destips=`get_ips "$rule"`
     hosts=`get_hosts_ih "$rule"`
 
-    echo "$(show_if_ip "$interfaces" "$destips")Allowing $hosts for ICMP-requests(ping)"
+    echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for ICMP-requests(ping)"
     
     IFS=','
     for interface in $interfaces; do

@@ -2,7 +2,7 @@
 #            -= Arno's iptables firewall - DynDNS Host Open plugin =-
 #
 PLUGIN_NAME="DynDNS Host Open plugin"
-PLUGIN_VERSION="1.1"
+PLUGIN_VERSION="1.1BETA (EXPERIMENTAL!)"
 PLUGIN_CONF_FILE="dyndns-host-open.conf"
 #
 # Last changed          : January 19, 2010
