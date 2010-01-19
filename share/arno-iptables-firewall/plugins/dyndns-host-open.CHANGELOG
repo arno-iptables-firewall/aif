@@ -1,3 +1,8 @@
+Version 1.1 (January 13, 2010)
+------------------------------
++ Improved sanity check
+* Pre-resolve all hostnames first before updating the rules in our helper script
+
 Version 1.0 (March 7, 2009)
 ---------------------------
 * Tell gethostbyname() which nameserver to use (ns.dyndns.org)
