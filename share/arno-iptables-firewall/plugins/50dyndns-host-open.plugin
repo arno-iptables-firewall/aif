@@ -31,7 +31,7 @@ PLUGIN_CONF_FILE="dyndns-host-open.conf"
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
-DYNDNS_HOST_CACHE="/tmp/.dyndns-host-cache"
+DYNDNS_HOST_CACHE="/var/tmp/aif-dyndns-host-cache"
 
 # Plugin start function
 plugin_start()

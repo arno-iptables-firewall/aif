@@ -37,7 +37,7 @@ else
 fi
 
 # Define our host cache file
-DYNDNS_HOST_CACHE="/tmp/.dyndns-host-cache"
+DYNDNS_HOST_CACHE="/var/tmp/aif-dyndns-host-cache"
 INDENT='  '
 
 # Check sanity of environment
