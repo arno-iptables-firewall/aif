@@ -86,9 +86,9 @@ plugin_start()
 # Plugin stop function
 plugin_stop()
 {
-  iptables -F SSH_CHK
+  iptables -F SSH_CHK 2>/dev/null
   iptables -X SSH_CHK 2>/dev/null
-  iptables -F SSH_LOG_DROP
+  iptables -F SSH_LOG_DROP 2>/dev/null
   iptables -X SSH_LOG_DROP 2>/dev/null
 
   return 0

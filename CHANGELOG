@@ -1,5 +1,6 @@
-Version 1.9.2i-DEVEL (January 18, 2010)
+Version 1.9.2i-DEVEL (January 20, 2010)
 ---------------------------------------
+! DNS failed during startup
 * We shouldn't just default (too much) to ANYHOST and/or ANYPORT, if not specified. This is too user error-sensitive (including myself)
 ! Can't have defaults for protocols
 
