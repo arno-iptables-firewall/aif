@@ -81,6 +81,8 @@ sanity_check()
 
   # Check whether the required binaries exist and are executable
   ##############################################################
+  check_binary $IPTABLES
+  check_binary $IP4TABLES
   check_binary awk
   check_binary tr
   check_binary ip
@@ -94,8 +96,7 @@ sanity_check()
   check_binary head
   check_binary tail
   check_binary wc
-  check_binary $IPTABLES
-  check_binary $IP4TABLES
+  check_binary logger
 
   # Make sure EXT_IF != ""
   ########################

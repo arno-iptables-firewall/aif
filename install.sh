@@ -46,6 +46,7 @@ sanity_check()
     exit 1
   fi
 
+  check_binary iptables
   check_binary awk
   check_binary tr
   check_binary ip
@@ -60,7 +61,7 @@ sanity_check()
   check_binary tail
   check_binary wc
   check_binary gzip
-  check_binary iptables
+  check_binary logger
 }
 
 

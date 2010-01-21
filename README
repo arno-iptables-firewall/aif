@@ -218,19 +218,13 @@ features are enabled by default to protect you from hostile attacks.
 
 1) First we've to check whether your Linux setup is OK in order to make the
    script work correctly:
-        - It of course requires iptables to be installed. It's recommended to
-          get the latest version (package), if possible. This prevents any
-          incompatibilities or bugs my script might have with older versions
-          and the latest version contains all known (security) fixes, which
-          strengthens the firewall itself.
-        - Make sure that you have a kernel with iptables compiled into it or a
-          module-based kernel with the iptables modules installed. This is NOT
-          possible when ipchains is still installed. If ipchains is installed
-          (default for RedHat 7.1) you need to do "rmmod ipchains" first before
-          running this script.
-        - It requires /bin/sh (should live on any Unix system by default)
-        - My scripts need the following binaries in your path: ifconfig,
-          modprobe, logger, grep, uname, sed, date, cut & awk.
+        - It needs iptables and iproute(2) to be installed (probably come 
+          as packages with your distro).
+        - It requires a POSIX compliant /bin/sh (should live on any UNIX system
+          by default)
+        - My scripts need the following binaries (in your path): 
+          awk, ifconfig, tr, ip, sysctl, modprobe, logger, grep, uname, sed,
+          date, cut, date, head, tail, wc & cat.
         - If you want to enable resolving of IPs ($RESOLV_IPS) then the command
           'dig' should also be available.
 
