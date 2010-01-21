@@ -877,7 +877,7 @@ get_network_mask()
 IPTABLES_BATCH_FILE="/var/tmp/aif_iptables_batch"
 
 # Set file to store which plugins are loaded
-PLUGIN_LOAD_FILE="/var/tmp/.aif_active_plugins"
+PLUGIN_LOAD_FILE="/var/tmp/aif_active_plugins"
 
 # Check whether we also need to drop messages in a dedicated firewall log file
 if [ -z "$FIREWALL_LOG" ]; then
