@@ -1,7 +1,9 @@
-Version 1.1 (January 13, 2010)
-------------------------------
+Version 1.1BETA (January 21, 2010)
+----------------------------------
++ Adding proper caches + additional (tweak) settings for the config file
 + Improved sanity check
 * Pre-resolve all hostnames first before updating the rules in our helper script
+* Numerous tweaks + fixes
 
 Version 1.0 (March 7, 2009)
 ---------------------------
