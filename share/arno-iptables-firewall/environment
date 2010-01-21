@@ -588,17 +588,34 @@ gethostbyaddr()
     return 1
   fi
 
+  # Don't try to resolve DNS names:
+  if ! is_numeric_ipv4 "$host" && ! is_numeric_ipv6 "$host"; then
+    # It's an DNS name already, so just return it
+    echo "$host"
+    return 0
+  fi
+
   if [ -z "$*" ]; then
-    result="$(dig +short -x $host 2>/dev/null)"
-    retval=$?
+    if [ "$DNS_FAST_FAIL" = "1" ]; then
+      result="$(dig +short +tries=1 +time=1 -x $host 2>/dev/null)"
+      retval=$?
+    else
+      result="$(dig +short -x $host 2>/dev/null)"
+      retval=$?
+    fi
   else
     result="$(dig $* +short -x $host 2>/dev/null)"
     retval=$?
   fi
 
-  if [ -n "$result" ] && [ "$retval" = "0" ]; then
-    echo "$result" |grep -v -e "^;;" |head -n1 |sed -e 's!.$!!'
-    return 0
+  if [ "$retval" = "0" ]; then
+    if [ -n "$result" ]; then
+      echo "$result" |grep -v -e "^;;" |head -n1
+      return 0
+    else
+      printf ""
+      return 1
+    fi
   else
     printf ""
     return $retval
@@ -623,16 +640,26 @@ gethostbyname()
   fi
   
   if [ -z "$*" ]; then
-    result="$(dig +short $host 2>/dev/null)"
-    retval=$?
+    if [ "$DNS_FAST_FAIL" = "1" ]; then
+      result="$(dig +short +tries=1 +time=1 $host 2>/dev/null)"
+      retval=$?
+    else
+      result="$(dig +short $host 2>/dev/null)"
+      retval=$?
+    fi
   else
     result="$(dig $* +short $host 2>/dev/null)"
     retval=$?
   fi
 
-  if [ -n "$result" ] && [ "$retval" = "0" ]; then
-    echo "$result" |grep -v -e "^;;" |head -n1
-    return 0
+  if [ "$retval" = "0" ]; then
+    if [ -n "$result" ]; then
+      echo "$result" |grep -v -e "^;;" |head -n1
+      return 0
+    else
+      printf ""
+      return 1
+    fi
   else
     printf ""
     return $retval
