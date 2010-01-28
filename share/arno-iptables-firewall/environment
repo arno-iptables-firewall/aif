@@ -288,11 +288,11 @@ modprobe_multi()
       fi
     done
     if [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-      printf "\033[40m\033[1;31m${INDENT}WARNING: ($retval) Module(s) \"$MODULES\" failed to load. Assuming compiled-in-kernel!\033[0m\n" >&2
+      printf "\033[40m\033[1;31m${INDENT}WARNING: ($retval) Module(s) \"$(echo "$MODULES" |tr ' ' '|')\" failed to load. Assuming compiled-in-kernel!\033[0m\n" >&2
       return 1
     fi
   elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-    echo "${INDENT}NOTE: Kernel has no module support. Assuming compiled-in-kerel for module(s) \"$MODULES\""
+    echo "${INDENT}NOTE: Kernel has no module support. Assuming compiled-in-kerel for module(s) \"$(echo "$MODULES" |tr ' ' '|')\""
   fi
   
   return 0
@@ -357,7 +357,7 @@ sysctl_multi()
       fi
     fi
   done
-  printf "\033[40m\033[1;31m${INDENT}ERROR: ($retval) Unable to set kernel variable(s) \"$VARIABLES\". This may be a problem!\033[0m\n" >&2
+  printf "\033[40m\033[1;31m${INDENT}ERROR: ($retval) Unable to set kernel variable(s) \"$(echo "$VARIABLES" |tr ' ' '|')\". This may be a problem!\033[0m\n" >&2
   return 1
 }
 
