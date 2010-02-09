@@ -1007,7 +1007,11 @@ if [ -n "$EXT_IF" ]; then
   if [ -z "$EXTERNAL_NET" ]; then
     IFS=' ,'
     for interface in $EXT_IF; do
-      EXTERNAL_NET="$EXTERNAL_NET${EXTERNAL_NET:+ }$(get_network_ip $interface)/$(get_network_mask $interface)"
+      if_ip="$(get_network_ip $interface)"
+      if_mask="$(get_network_mask $interface)"
+      if [ -n "$if_ip" ] && [ -n "$if_mask" ]; then
+        EXTERNAL_NET="$EXTERNAL_NET${EXTERNAL_NET:+ }$if_ip/$if_mask"
+      fi
     done
   fi
 
@@ -1015,7 +1019,10 @@ if [ -n "$EXT_IF" ]; then
   if [ -z "$EXT_NET_BCAST_ADDRESS" ]; then
     IFS=' ,'
     for interface in $EXT_IF; do
-      EXT_NET_BCAST_ADDRESS="$EXT_NET_BCAST_ADDRESS${EXT_NET_BCAST_ADDRESS:+ }$(get_network_broadcast $interface)"
+      if_bcast="$(get_network_broadcast $interface)"
+      if [ -n "$if_bcast" ]; then
+        EXT_NET_BCAST_ADDRESS="$EXT_NET_BCAST_ADDRESS${EXT_NET_BCAST_ADDRESS:+ }$if_bcast"
+      fi
     done
   fi
 fi
@@ -1026,7 +1033,11 @@ if [ -n "$INT_IF" ]; then
   if [ -z "$INTERNAL_NET" ]; then
     IFS=' ,'
     for interface in $INT_IF; do
-      INTERNAL_NET="$INTERNAL_NET${INTERNAL_NET:+ }$(get_network_ip $interface)/$(get_network_mask $interface)"
+      if_ip="$(get_network_ip $interface)"
+      if_mask="$(get_network_mask $interface)"
+      if [ -n "$if_ip" ] && [ -n "$if_mask" ]; then
+        INTERNAL_NET="$INTERNAL_NET${INTERNAL_NET:+ }$if_ip/$if_mask"
+      fi
     done
   fi
   
@@ -1034,7 +1045,10 @@ if [ -n "$INT_IF" ]; then
   if [ -z "$INT_NET_BCAST_ADDRESS" ]; then
     IFS=' ,'
     for interface in $INT_IF; do
-      INT_NET_BCAST_ADDRESS="$INT_NET_BCAST_ADDRESS${INT_NET_BCAST_ADDRESS:+ }$(get_network_broadcast $interface)"
+      if_bcast="$(get_network_broadcast $interface)"
+      if [ -n "$if_bcast" ]; then
+        INT_NET_BCAST_ADDRESS="$INT_NET_BCAST_ADDRESS${INT_NET_BCAST_ADDRESS:+ }$if_bcast"
+      fi
     done
   fi
 
