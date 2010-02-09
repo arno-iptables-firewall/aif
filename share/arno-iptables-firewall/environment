@@ -313,12 +313,12 @@ module_probe()
 #######################
 sysctl()
 {
-  result=`trace $SYSCTL -w "$@" 2>&1`
+  result=`trace $SYSCTL "$@" 2>&1`
   retval=$?
 
   if [ "$retval" != "0" ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m${INDENT}sysctl -w $@: ($retval) $result\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}sysctl $@: ($retval) $result\033[0m\n" >&2
     return $retval
   fi
   echo "${INDENT}Set kernel parameter $@"
@@ -346,14 +346,14 @@ sysctl_multi()
   IFS=' '
   for variable in $VARIABLES; do
     if $SYSCTL $(echo "$variable" |cut -d'=' -f1) >/dev/null 2>&1; then
-      result=`trace $SYSCTL -w $OPTIONS $variable 2>&1`
+      result=`trace $SYSCTL $OPTIONS $variable 2>&1`
       retval=$?
 
       if [ "$retval" = "0" ]; then
         echo "${INDENT}Set kernel parameter $variable"
         return 0
       else
-        printf "\033[40m\033[1;31m${INDENT}sysctl -w $OPTIONS $variable: ($retval) $result\033[0m\n" >&2
+        printf "\033[40m\033[1;31m${INDENT}sysctl $OPTIONS $variable: ($retval) $result\033[0m\n" >&2
       fi
     fi
   done

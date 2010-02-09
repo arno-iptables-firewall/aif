@@ -1,5 +1,6 @@
-Version 1.9.2i-DEVEL (January 20, 2010)
+Version 1.9.2i-DEVEL (February 9, 2010)
 ---------------------------------------
+! sysctl() always applied the -w argument which it shouldn't
 ! DNS failed during startup
 * We shouldn't just default (too much) to ANYHOST and/or ANYPORT, if not specified. This is too user error-sensitive (including myself)
 ! Can't have defaults for protocols
