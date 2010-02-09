@@ -2,16 +2,15 @@
 #            -= Arno's iptables firewall - Traffic Accounting plugin =-
 #
 PLUGIN_NAME="Traffic Accounting plugin"
-PLUGIN_VERSION="0.33BETA (EXPERIMENTAL!)"
+PLUGIN_VERSION="0.34BETA (EXPERIMENTAL!)"
 PLUGIN_CONF_FILE="traffic-accounting.conf"
 #
-# Last changed          : September 2, 2009
-# Requirements          : AIF 1.9.0-rc4+
+# Last changed          : February 9, 2010
+# Requirements          : AIF 1.9.2i+
 # Comments              : This implements support for traffic accounting. It is
 #                         compatible with DynDNS.
 #
-#
-# Author                : (C) Copyright 2008-2009 by Arno van Amersfoort
+# Author                : (C) Copyright 2008-2010 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
@@ -37,7 +36,7 @@ plugin_start()
 {
   # Enable Conntrack Accounting (kernel config CONFIG_NF_CT_ACCT)
   # CONFIG_NF_CT_ACCT is deprecated and will be removed sometime after kernel 2.6.27
-  sysctl net.netfilter.nf_conntrack_acct=1 2>/dev/null
+  sysctl -w net.netfilter.nf_conntrack_acct=1 2>/dev/null
 
   iptables -N ACCOUNTING_INPUT_CHAIN 2>/dev/null
   iptables -F ACCOUNTING_INPUT_CHAIN
