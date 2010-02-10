@@ -111,7 +111,7 @@ sanity_check()
   IFS=' ,'
   for interface in $EXT_IF; do
     if ! echo $interface |grep -q '\+'; then
-      if ! check_interface $interface`; then
+      if ! check_interface $interface; then
         printf "\033[40m\033[1;31mNOTE: External interface $interface does NOT exist (yet?)\033[0m\n"
       fi
     fi
@@ -122,7 +122,7 @@ sanity_check()
   IFS=' ,'
   for interface in $INT_IF; do
     if ! echo $interface |grep -q '\+'; then
-      if ! check_interface $interface`; then
+      if ! check_interface $interface; then
         printf "\033[40m\033[1;31mNOTE: Internal interface $interface does NOT exist (yet?)\033[0m\n"
       fi
     fi
@@ -133,7 +133,7 @@ sanity_check()
   IFS=' ,'
   for interface in $DMZ_IF; do
     if ! echo $interface |grep -q '\+'; then
-      if ! check_interface $interface`; then
+      if ! check_interface $interface; then
         printf "\033[40m\033[1;31mNOTE: DMZ interface $interface does NOT exist (yet?)\033[0m\n"
       fi
     fi
@@ -144,7 +144,7 @@ sanity_check()
   IFS=' ,'
   for interface in $TRUSTED_IF; do
     if ! echo $interface |grep -q '\+'; then
-      if ! check_interface $interface`; then
+      if ! check_interface $interface; then
         printf "\033[40m\033[1;31mNOTE: Trusted interface $interface does NOT exist (yet?)\033[0m\n"
       fi
     fi

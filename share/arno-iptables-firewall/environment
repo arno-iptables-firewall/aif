@@ -848,7 +848,7 @@ progress_bar()
 
 
 # Check existance of an interface
-check_interface
+check_interface()
 {
   ip link show $1 >/dev/null 2>&1
   return $?
@@ -869,14 +869,12 @@ get_network_ipv4_address()
   return $?
 }
 
-
 # Get netmask of the specified network interface 
 get_network_ipv4_mask()
 {
   get_network_ip_mask |cut -f2 -d'/'
   return $?
 }
-
 
 # Get broadcast address of the specified network interface 
 get_network_ipv4_broadcast()
