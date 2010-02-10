@@ -374,9 +374,9 @@ copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firew
 
 copy_overwrite ./etc/init.d/arno-iptables-firewall /etc/init.d/
 
-copy_overwrite ."$FIREWALL_CONF" "$FIREWALL_CONF".dist
+copy_overwrite ./etc/arno-iptables-firewall/firewall.conf ./etc/arno-iptables-firewall/firewall.conf.dist
 copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
-copy_ask_if_exist ."$FIREWALL_CONF" /etc/arno-iptables-firewall/
+copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
 
 echo ""
 echo "** Install done **"
@@ -398,7 +398,7 @@ if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/)? (Y
   fi
 fi
 
-if diff ."$FIREWALL_CONF" "$FIREWALL_CONF" >/dev/null; then
+if diff ./etc/arno-iptables-firewall/firewall.conf "$FIREWALL_CONF" >/dev/null; then
   if get_user_yn "Your firewall.conf is not configured yet.\nDo you want me to help you setup a basic configuration? (Y/N)" "y"; then
     setup_conf_file;
   else
@@ -417,6 +417,6 @@ echo "--------------------------------------------------------------------------
 echo "** NOTE: You can now (manually) start the firewall by executing              **"
 echo "**       \"/etc/init.d/arno-iptables-firewall start\"                          **"
 echo "**       It is recommended however to first review the settings in           **"
-echo "**       "$FIREWALL_CONF"!                          **"
+echo "**       /etc/arno-iptables-firewall/firewall.conf!                          **"
 
 exit 0
