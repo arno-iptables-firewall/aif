@@ -5118,7 +5118,7 @@ show_stop()
 show_stop_blocked()
 {
   DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
-  printf "$DATE \033[40m\033[1;31mFIREWALL DISABLED & BLOCKING ALL INTERNET TRAFFIC!\033[0m\n" >&2
+  printf "$DATE \033[40m\033[1;31mFIREWALL DISABLED & BLOCKING ALL INTERNET TRAFFIC!\033[0m\n"
 }
 
 
@@ -5143,7 +5143,7 @@ show_applied()
 show_disabled()
 {
   DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
-  printf "$DATE \033[40m\033[1;31mFIREWALL DISABLED!\033[0m\n" >&2
+  printf "$DATE \033[40m\033[1;31mFIREWALL DISABLED!\033[0m\n"
 }
 
 

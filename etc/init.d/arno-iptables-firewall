@@ -31,19 +31,19 @@ test -x $PROGRAM || exit 0
 if [ "$VERBOSE" = "0" ]; then
   case "$1" in
     start)
-      echo -n "Starting Arno's Iptables Firewall..."
+      echo "Starting Arno's Iptables Firewall..."
     ;;
 
     stop)
-      echo -n "Stopping Arno's Iptables Firewall..."
+      echo "Stopping Arno's Iptables Firewall..."
     ;;
 
     restart)
-      echo -n "Restarting Arno's Iptables Firewall..."
+      echo "Restarting Arno's Iptables Firewall..."
     ;;
 
     force-reload)
-      echo -n "(Forced) reloading Arno's Iptables Firewall..."
+      echo "(Forced) reloading Arno's Iptables Firewall..."
     ;;
 
     status)
@@ -73,4 +73,3 @@ fi
 
 # Return value:
 exit $return_val
-
