@@ -847,6 +847,13 @@ progress_bar()
 }
 
 
+# Check existance of an interface
+check_interface
+{
+  ip link show $1 >/dev/null 2>&1
+  return $?
+}
+
 # Get IP address/mask of specified network interface
 get_network_ipv4_address_mask()
 {

@@ -111,13 +111,8 @@ sanity_check()
   IFS=' ,'
   for interface in $EXT_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ip link show $interface >/dev/null 2>&1`
-      return_val=$?
-      if [ "$return_val" != "0" ]; then
+      if ! check_interface $interface`; then
         printf "\033[40m\033[1;31mNOTE: External interface $interface does NOT exist (yet?)\033[0m\n"
-        if [ -n "$result" ]; then
-          printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
-        fi
       fi
     fi
   done
@@ -127,13 +122,8 @@ sanity_check()
   IFS=' ,'
   for interface in $INT_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ip link show $interface >/dev/null 2>&1`
-      return_val=$?
-      if [ "$return_val" != "0" ]; then
+      if ! check_interface $interface`; then
         printf "\033[40m\033[1;31mNOTE: Internal interface $interface does NOT exist (yet?)\033[0m\n"
-        if [ -n "$result" ]; then
-          printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
-        fi
       fi
     fi
   done
@@ -143,13 +133,8 @@ sanity_check()
   IFS=' ,'
   for interface in $DMZ_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ip link show $interface >/dev/null 2>&1`
-      return_val=$?
-      if [ "$return_val" != "0" ]; then
+      if ! check_interface $interface`; then
         printf "\033[40m\033[1;31mNOTE: DMZ interface $interface does NOT exist (yet?)\033[0m\n"
-        if [ -n "$result" ]; then
-          printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
-        fi
       fi
     fi
   done
@@ -159,13 +144,8 @@ sanity_check()
   IFS=' ,'
   for interface in $TRUSTED_IF; do
     if ! echo $interface |grep -q '\+'; then
-      result=`ip link show $interface >/dev/null 2>&1`
-      return_val=$?
-      if [ "$return_val" != "0" ]; then
+      if ! check_interface $interface`; then
         printf "\033[40m\033[1;31mNOTE: Trusted interface $interface does NOT exist (yet?)\033[0m\n"
-        if [ -n "$result" ]; then
-          printf "\033[40m\033[1;31mResult was: $result\033[0m\n"
-        fi
       fi
     fi
   done
