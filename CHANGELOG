@@ -1,5 +1,7 @@
 Version 1.9.2i (February 10, 2010)
 ----------------------------------
++ Have the install script detect interfaces and their properties
+* Better (wildcard) interface detection in the main script
 * Don't autodetect interface addresses etc. in the main script, instead do it during install
 ! sysctl() always applied the -w argument which it shouldn't
 ! DNS failed during startup

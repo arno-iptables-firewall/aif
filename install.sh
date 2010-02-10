@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.01a"
+MY_VERSION="1.02"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -29,14 +29,21 @@ MY_VERSION="1.01a"
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------------------
 
-check_binary()
-{
-  if ! which "$1" >/dev/null 2>&1; then
-    printf "\033[40m\033[1;31mERROR: Binary \"$1\" does not exist or is not executable!\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       Please, make sure that it is (properly) installed!\033[0m\n" >&2
-    exit 2
-  fi
-}
+# Check if the environment file exists and if so, load it
+#########################################################
+if [ -f ./share/arno-iptables-firewall/environment ]; then
+  . ./share/arno-iptables-firewall/environment
+else
+  printf "\033[40m\033[1;31mERROR: Could not read environment file ./share/arno-iptables-firewall/environment!\033[0m\n" >&2
+  exit 2
+fi
+
+# Allow user to override firewall.conf location (undocumented)
+if [ -n "$1" ]; then
+  FIREWALL_CONF="$1"
+else
+  FIREWALL_CONF="/etc/arno-iptables-firewall/firewall.conf"
+fi
 
 sanity_check()
 {
@@ -187,8 +194,7 @@ copy_overwrite()
 change_conf_var()
 {
   if [ -n "$3" ]; then
-    cat "$1" |sed -e "s~^$2=.*$~$2=\"$3\"~" -e "s~^#$2=.*$~$2=\"$3\"~" >|/tmp/aif_conf.tmp
-    mv -f /tmp/aif_conf.tmp "$1"
+    sed -i -e "s~^$2=.*$~$2=\"$3\"~" -e "s~^#$2=.*$~$2=\"$3\"~" "$1"
   fi
 }
 
@@ -240,40 +246,99 @@ get_user_yn()
   fi
 }
 
+verify_interfaces()
+{
+  if [ -z "$1" ]; then
+    if ! get_user_yn "No interface(s) specified. These are required! Continue(Y/N)? " "n"; then
+      return 1
+    fi
+  fi
+    
+  IFS=' ,'
+  for interface in $1; do
+    if ! check_interface $interface; then
+      if ! get_user_yn "Interface \"$interface\" does not exist (yet). Continue(Y/N)? " "y"; then 
+        return 1
+      fi
+    fi
+  done
+        
+  return 0
+}
 
 setup_conf_file()
 {
   # Create backup of old config
-  cp -fvb /etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall.conf.bak
+  cp -fvb "$FIREWALL_CONF" /etc/arno-iptables-firewall.conf.bak
 
   printf "We will now setup the most basic settings of the firewall\n\n"
 
-  get_conf_var "What is your external interface (aka. internet interface) (multiple interfaces should be comma separated)?" /etc/arno-iptables-firewall/firewall.conf "EXT_IF" ""
+  while true; do
+    printf "What is your external (aka. internet) interface (multiple interfaces should be comma separated)? "
+    read EXT_IF
+    
+    if verify_interfaces $EXT_IF; then
+      if [ -n "$EXT_IF" ]; then
+        change_conf_var "$FIREWALL_CONF" "EXT_IF" "$EXT_IF"
+      
+        local EXTERNAL_NET=""
+        IFS=' ,'
+        for interface in $EXT_IF; do
+          EXTERNAL_NET="$EXTERNAL_NET${EXTERNAL_NET:+ }$(get_network_ipv4_address_mask $interface)"
+        done
+      
+        if [ -n "$EXTERNAL_NET" ]; then
+          change_conf_var "$FIREWALL_CONF" "EXTERNAL_NET" "$EXTERNAL_NET"
+        fi
+      fi
 
+      break
+    fi
+  done  
+  
   if get_user_yn "Does your external interface get its IP through DHCP? (Y/N) " "y"; then
-    change_conf_var /etc/arno-iptables-firewall/firewall.conf "EXT_IF_DHCP_IP" "1"
+    change_conf_var "$FIREWALL_CONF" "EXT_IF_DHCP_IP" "1"
   fi
 
   if get_user_yn "Do you want to be pingable from the internet? (Y/N) "; then
-    change_conf_var /etc/arno-iptables-firewall/firewall.conf "OPEN_ICMP" "1"
+    change_conf_var "$FIREWALL_CONF" "OPEN_ICMP" "1"
   fi
 
-  get_conf_var "Which TCP ports do you want to allow from the internet? (eg. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" /etc/arno-iptables-firewall/firewall.conf "OPEN_TCP" ""
-  get_conf_var "Which UDP ports do you want to allow from the internet? (eg. 53=DNS, etc.)  (comma separate multiple ports)?" /etc/arno-iptables-firewall/firewall.conf "OPEN_UDP" ""
+  get_conf_var "Which TCP ports do you want to allow from the internet? (eg. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_TCP" ""
+  get_conf_var "Which UDP ports do you want to allow from the internet? (eg. 53=DNS, etc.)  (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_UDP" ""
 
   if get_user_yn "Do you have an internal(aka LAN) interface that you want to setup? (Y/N)" "n"; then
-    get_conf_var "What is your internal interface (aka. LAN interface)?" /etc/arno-iptables-firewall/firewall.conf "INT_IF" ""
-
-    if get_user_yn "Do you want to enable NAT for your internal net? (Y/N)" "y"; then
-      change_conf_var /etc/arno-iptables-firewall/firewall.conf "NAT" "1"
-    fi
+    while true; do
+      printf "What is your internal interface (aka. LAN interface)? "
+      read INT_IF
+      
+      if verify_interfaces $INT_IF; then
+        if [ -n "$INT_IF" ]; then
+          change_conf_var "$FIREWALL_CONF" "INT_IF" "$INT_IF"
+        
+          local INTERNAL_NET=""
+          IFS=' ,'
+          for interface in $INT_IF; do
+            INTERNAL_NET="$INTERNAL_NET${INTERNAL_NET:+ }$(get_network_ipv4_address_mask $interface)"
+          done
+        
+          if [ -n "$INTERNAL_NET" ]; then
+            change_conf_var "$FIREWALL_CONF" "INTERNAL_NET" "$INTERNAL_NET"
+          fi
+        fi
+        break
+      fi
+    done  
   fi
-
+    
+  if get_user_yn "Do you want to enable NAT/masquerading? (Y/N)" "n"; then
+    change_conf_var "$FIREWALL_CONF" "NAT" "1"
+  fi
 
   # Set the correct permissions on the config file
   chmod 755 /etc/init.d/arno-iptables-firewall 
-  chown 0:0 /etc/arno-iptables-firewall/firewall.conf /etc/init.d/arno-iptables-firewall
-  chmod 600 /etc/arno-iptables-firewall/firewall.conf
+  chown 0:0 "$FIREWALL_CONF" /etc/init.d/arno-iptables-firewall
+  chmod 600 "$FIREWALL_CONF"
 }
 
 
@@ -309,9 +374,9 @@ copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firew
 
 copy_overwrite ./etc/init.d/arno-iptables-firewall /etc/init.d/
 
-copy_overwrite ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf.dist
+copy_overwrite ."$FIREWALL_CONF" "$FIREWALL_CONF".dist
 copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
-copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
+copy_ask_if_exist ."$FIREWALL_CONF" /etc/arno-iptables-firewall/
 
 echo ""
 echo "** Install done **"
@@ -333,7 +398,7 @@ if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/)? (Y
   fi
 fi
 
-if diff ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf >/dev/null; then
+if diff ."$FIREWALL_CONF" "$FIREWALL_CONF" >/dev/null; then
   if get_user_yn "Your firewall.conf is not configured yet.\nDo you want me to help you setup a basic configuration? (Y/N)" "y"; then
     setup_conf_file;
   else
@@ -352,7 +417,6 @@ echo "--------------------------------------------------------------------------
 echo "** NOTE: You can now (manually) start the firewall by executing              **"
 echo "**       \"/etc/init.d/arno-iptables-firewall start\"                          **"
 echo "**       It is recommended however to first review the settings in           **"
-echo "**       /etc/arno-iptables-firewall/firewall.conf!                          **"
+echo "**       "$FIREWALL_CONF"!                          **"
 
 exit 0
-
