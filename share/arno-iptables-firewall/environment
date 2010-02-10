@@ -846,27 +846,61 @@ progress_bar()
   fi
 }
 
-# Get IP address of the specified network interface
-get_network_ip()
+
+# Get IP address/mask of specified network interface
+get_network_ipv4_address_mask()
 {
   ip -o addr show dev "$1" 2>/dev/null \
-    | awk '$3 == "inet" { split($4, field, "/"); print field[1]; exit; }'
+    |awk '$3 == "inet" { print $4; exit; }'
+  return $?
 }
 
-# Get broadcast address of the specified network interface 
-get_network_broadcast()
+# Get IP address of the specified network interface
+get_network_ipv4_address()
 {
-  ip -o addr show dev "$1" 2>/dev/null \
-    | awk '$3 == "inet" && $5 == "brd" { print $6; exit; }'
+  get_network_ip_mask |cut -f1 -d'/'
+  return $?
 }
+
 
 # Get netmask of the specified network interface 
-get_network_mask()
+get_network_ipv4_mask()
 {
-  ip -o addr show dev "$1" 2>/dev/null \
-    | awk '$3 == "inet" { split($4, field, "/"); print field[2]; exit; }'
+  get_network_ip_mask |cut -f2 -d'/'
+  return $?
 }
 
+
+# Get broadcast address of the specified network interface 
+get_network_ipv4_broadcast()
+{
+  ip -o addr show dev "$1" 2>/dev/null \
+    |awk '$3 == "inet" && $5 == "brd" { print $6; exit; }'
+  return $?
+}
+
+# Get IPv6 address/mask of specified network interface
+get_network_ipv6_address_mask()
+{
+  ip -o addr show dev "$1" 2>/dev/null \
+    |awk '$3 == "inet6" { print $4; exit; }'
+  return $?
+}
+
+# Get IPv6 address of the specified network interface
+get_network_ipv6_address()
+{
+  get_network_ipv6_address_mask |cut -f1 -d'/'
+  return $?
+}
+
+
+# Get IPv6 netmask of the specified network interface 
+get_network_ipv6_mask()
+{
+  get_network_ipv6_address_mask |cut -f2 -d'/'
+  return $?
+}
 
 ################################# Main ####################################
 
@@ -995,61 +1029,5 @@ if [ -z "$PLUGIN_CONF_PATH" ]; then
     printf "\033[40m\033[1;31mERROR: The plugin config path (PLUGIN_CONF_PATH) has not been specified\033[0m\n" >&2
     printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
     exit 2
-  fi
-fi
-
-
-if [ -n "$EXT_IF" ]; then
-  # Setup EXTERNAL_NET
-  if [ -z "$EXTERNAL_NET" ]; then
-    IFS=' ,'
-    for interface in $EXT_IF; do
-      if_ip="$(get_network_ip $interface)"
-      if_mask="$(get_network_mask $interface)"
-      if [ -n "$if_ip" ] && [ -n "$if_mask" ]; then
-        EXTERNAL_NET="$EXTERNAL_NET${EXTERNAL_NET:+ }$if_ip/$if_mask"
-      fi
-    done
-  fi
-
-  # Setup EXT_NET_BCAST_ADDRESS
-  if [ -z "$EXT_NET_BCAST_ADDRESS" ]; then
-    IFS=' ,'
-    for interface in $EXT_IF; do
-      if_bcast="$(get_network_broadcast $interface)"
-      if [ -n "$if_bcast" ]; then
-        EXT_NET_BCAST_ADDRESS="$EXT_NET_BCAST_ADDRESS${EXT_NET_BCAST_ADDRESS:+ }$if_bcast"
-      fi
-    done
-  fi
-fi
-
-
-if [ -n "$INT_IF" ]; then
-  # Setup INTERNAL_NET
-  if [ -z "$INTERNAL_NET" ]; then
-    IFS=' ,'
-    for interface in $INT_IF; do
-      if_ip="$(get_network_ip $interface)"
-      if_mask="$(get_network_mask $interface)"
-      if [ -n "$if_ip" ] && [ -n "$if_mask" ]; then
-        INTERNAL_NET="$INTERNAL_NET${INTERNAL_NET:+ }$if_ip/$if_mask"
-      fi
-    done
-  fi
-  
-  # Setup INT_NET_BCAST_ADDRESS
-  if [ -z "$INT_NET_BCAST_ADDRESS" ]; then
-    IFS=' ,'
-    for interface in $INT_IF; do
-      if_bcast="$(get_network_broadcast $interface)"
-      if [ -n "$if_bcast" ]; then
-        INT_NET_BCAST_ADDRESS="$INT_NET_BCAST_ADDRESS${INT_NET_BCAST_ADDRESS:+ }$if_bcast"
-      fi
-    done
-  fi
-
-  if [ -z "$NAT_INTERNAL_NET" ]; then
-    NAT_INTERNAL_NET="$INTERNAL_NET"
   fi
 fi
