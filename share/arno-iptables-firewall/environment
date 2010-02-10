@@ -340,9 +340,6 @@ sysctl_multi()
 
   VARIABLES="$@"
   
-  local retval
-  local result
-
   IFS=' '
   for variable in $VARIABLES; do
     if $SYSCTL $(echo "$variable" |cut -d'=' -f1) >/dev/null 2>&1; then
@@ -357,7 +354,7 @@ sysctl_multi()
       fi
     fi
   done
-  printf "\033[40m\033[1;31m${INDENT}ERROR: ($retval) Unable to set kernel variable(s) \"$(echo "$VARIABLES" |tr ' ' '|')\". This may be a problem!\033[0m\n" >&2
+  printf "\033[40m\033[1;31m${INDENT}ERROR: Unable to find kernel parameters \"$(echo "$VARIABLES" |tr ' ' '|')\"!\033[0m\n" >&2
   return 1
 }
 
