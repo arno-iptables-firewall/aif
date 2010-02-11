@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="0.11"
+MY_VERSION="0.12"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -42,7 +42,7 @@ sanity_check()
 
 get_user_yn()
 {
-  printf "$1"
+  printf "$1 "
 
   while true; do
     read -s -n1 answer
@@ -53,12 +53,12 @@ get_user_yn()
     fi
 
     if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
-      echo " Yes"
+      echo "Yes"
       return 0
     fi
 
     if [ "$answer" = "n" ] || [ "$answer" = "N" ]; then
-      echo " No"
+      echo "No"
       return 1
     fi
   done
@@ -92,13 +92,12 @@ rm -fv /usr/share/man/man8/arno-iptables-firewall.8.gz
 rm -fv /usr/share/man/man8/arno-fwfilter.1.gz
 
 rm -fv /etc/init.d/arno-iptables-firewall
-rm -fv /etc/rcS.d/S38arno-iptables-firewall
-rm -fv /etc/rc2.d/S38arno-iptables-firewall
+rm -fv /etc/rc*.d/*arno-iptables-firewall
 
-if get_user_yn "Also remove ALL configuration files from /etc/arno-iptables-firewall/ ? (Y/N) " "n"; then
+if get_user_yn "Also remove ALL configuration files from /etc/arno-iptables-firewall/ (Y/N)?" "n"; then
   rm -rfv /etc/arno-iptables-firewall
 else
-  echo "*Skipped"
+  echo "* Skipped"
 fi
 
 echo ""

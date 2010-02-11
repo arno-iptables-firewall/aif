@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.02"
+MY_VERSION="1.02a"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -416,19 +416,14 @@ echo ""
 echo "** Install done **"
 echo ""
 
+# Remove any symlinks in rc*.d out of the way
+rm -f /etc/rc*.d/*arno-iptables-firewall 2>/dev/null
+
 if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/) (Y/N)?" "y"; then
   if [ -d /etc/rcS.d ]; then
-    if [ -n "$(find /etc/rcS.d/ -name "*arno-iptables-firewall")" ]; then
-      echo "Startup symlink seems to already exist in /etc/rcS.d so skipping that"
-    else
-      ln -sv /etc/init.d/arno-iptables-firewall /etc/rcS.d/S38arno-iptables-firewall
-    fi
+    ln -sv /etc/init.d/arno-iptables-firewall /etc/rcS.d/S41arno-iptables-firewall
   else
-    if [ -n "$(find /etc/rc2.d/ -name "*arno-iptables-firewall")" ]; then
-      echo "Startup symlink seems to already exist in /etc/rc2.d so skipping that"
-    else
-      ln -sv /etc/init.d/arno-iptables-firewall /etc/rc2.d/S38arno-iptables-firewall
-    fi
+    ln -sv /etc/init.d/arno-iptables-firewall /etc/rc2.d/S41arno-iptables-firewall
   fi
 fi
 
@@ -454,3 +449,4 @@ echo "**       It is recommended however to first review the settings in        
 echo "**       /etc/arno-iptables-firewall/firewall.conf!                          **"
 
 exit 0
+
