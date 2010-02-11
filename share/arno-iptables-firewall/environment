@@ -550,7 +550,7 @@ get_ports_ip()
 # Is IPv4 numeric?
 is_numeric_ipv4()
 {
-  if [ "$(echo "$1" |tr -d '0123456789')" = "..." ]; then
+  if [ "$(echo "$1" |tr -d '0123456789/')" = "..." ]; then
     return 0
   fi
 
@@ -561,7 +561,7 @@ is_numeric_ipv4()
 # Is IPv6 numeric?
 is_numeric_ipv6()
 {
-  case $(echo "$1" |tr -d '0123456789aAbBcCdDeEfF') in
+  case $(echo "$1" |tr -d '0123456789aAbBcCdDeEfF/') in
    ::|:::|::::|:::::|::::::|:::::::)
      return 0
      ;;
