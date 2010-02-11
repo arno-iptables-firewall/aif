@@ -356,16 +356,18 @@ setup_conf_file()
             echo "* Auto-detected external broadcast address(es): $INT_NET_BCAST_ADDRESS"
             change_conf_var "$FIREWALL_CONF" "INT_NET_BCAST_ADDRESS" "$INT_NET_BCAST_ADDRESS"
           fi
+          
+          if [ -n "$INTERNAL_NET" ]; then
+            if get_user_yn "Do you want to enable NAT/masquerading (Y/N) for your internal net?" "n"; then
+              change_conf_var "$FIREWALL_CONF" "NAT" "1"
+            fi
+          fi
         fi
         break
       fi
     done
   fi
-    
-  if get_user_yn "Do you want to enable NAT/masquerading (Y/N)?" "n"; then
-    change_conf_var "$FIREWALL_CONF" "NAT" "1"
-  fi
-
+  
   # Set the correct permissions on the config file
   chmod 755 /etc/init.d/arno-iptables-firewall 
   chown 0:0 "$FIREWALL_CONF" /etc/init.d/arno-iptables-firewall
