@@ -98,6 +98,14 @@ sanity_check()
   check_binary wc
   check_binary logger
 
+  # Passed all sanity checks :-)
+  ##############################
+  echo "Sanity checks passed...OK"
+}
+
+
+config_check()
+{
   # Make sure EXT_IF != ""
   ########################
   if [ -z "$EXT_IF" ]; then
@@ -208,10 +216,6 @@ sanity_check()
       printf "\033[40m\033[1;31m         have NOT been defined!\033[0m\n" >&2
     fi
   fi
-
-  # Passed all sanity checks :-)
-  ##############################
-  echo "Sanity checks passed...OK"
 }
 
 
@@ -5162,10 +5166,12 @@ main_restart()
 case "$1" in
   'start' )             show_start;
                         sanity_check;
+                        config_check;
                         main_start;
                         show_applied;;
   'restart' )           show_restart;
                         sanity_check;
+                        config_check;
                         # Check whether we are actually running
                         if ! iptables -L BASE_INPUT_CHAIN >/dev/null 2>&1; then
                           main_start;
@@ -5174,6 +5180,7 @@ case "$1" in
                         fi;
                         show_applied;;
   'force-reload' )      sanity_check;
+                        config_check;
                         setup_hostblock_chain;
                         show_applied;;
   'stop' )              sanity_check;
@@ -5188,7 +5195,8 @@ case "$1" in
                         show_stop_blocked;;
   'status' )            shift;
                         show_status $@;;
-  'check-conf' )        sanity_check;;
+  'check-conf' )        sanity_check;
+                        config_check;;
   * )                   printf "\033[40m\033[1;31mERROR: Bad or missing parameter(s)\033[0m\n" >&2;
                         show_help;;
 esac
