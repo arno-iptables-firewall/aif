@@ -100,7 +100,7 @@ copy_ask_if_exist()
     if [ -e "$target" ]; then
       # Ignore files that are the same in the target
       if ! diff "$source" "$target" >/dev/null; then
-        printf "* File \"$target\" already exists. Overwrite (Y/N)? "
+        printf "File \"$target\" already exists. Overwrite (Y/N)? "
 
         read -s -n1 C
         if [ "$C" != "y" ] && [ "$C" != "Y" ]; then
@@ -358,8 +358,9 @@ setup_conf_file()
           fi
           
           if [ -n "$INTERNAL_NET" ]; then
-            if get_user_yn "Do you want to enable NAT/masquerading (Y/N) for your internal net?" "n"; then
+            if get_user_yn "Do you want to enable NAT/masquerading for your internal net (Y/N)?" "n"; then
               change_conf_var "$FIREWALL_CONF" "NAT" "1"
+              change_conf_var "$FIREWALL_CONF" "NAT_INTERNAL_NET" '\$INTERNAL_NET'
             fi
           fi
         fi
@@ -415,7 +416,7 @@ echo ""
 echo "** Install done **"
 echo ""
 
-if get_user_yn "* Do you want to start the firewall at boot (via /etc/init.d/) (Y/N)?" "y"; then
+if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/) (Y/N)?" "y"; then
   if [ -d /etc/rcS.d ]; then
     if [ -n "$(find /etc/rcS.d/ -name "*arno-iptables-firewall")" ]; then
       echo "Startup symlink seems to already exist in /etc/rcS.d so skipping that"
@@ -432,7 +433,7 @@ if get_user_yn "* Do you want to start the firewall at boot (via /etc/init.d/) (
 fi
 
 if diff ./etc/arno-iptables-firewall/firewall.conf "$FIREWALL_CONF" >/dev/null; then
-  if get_user_yn "* Your firewall.conf is not configured yet.\nDo you want me to help you setup a basic configuration (Y/N)?" "y"; then
+  if get_user_yn "Your firewall.conf is not configured yet.\nDo you want me to help you setup a basic configuration (Y/N)?" "y"; then
     setup_conf_file;
   else
     echo "* Skipped"
@@ -441,7 +442,7 @@ else
   echo "* Your firewall.conf looks already customized so skipping basic configuration..."
 fi
 
-if get_user_yn "* Do you want the init script to be verbose (print out what it's doing) (Y/N)?" "n"; then
+if get_user_yn "Do you want the init script to be verbose (print out what it's doing) (Y/N)?" "n"; then
   change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "1"
 fi
  
