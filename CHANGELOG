@@ -1,4 +1,4 @@
-Version 1.9.2i (February 10, 2010)
+Version 1.9.2i (February 11, 2010)
 ----------------------------------
 + Have the install script detect interfaces and their properties
 * Better (wildcard) interface detection in the main script
