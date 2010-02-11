@@ -91,27 +91,32 @@ copy_ask_if_exist()
     else
       target="$2"
     fi
-
+    
+    if [ ! -d "$(dirname $target)" ]; then
+      echo "* Target directory $(dirname "$target") does not exist. Skipping copy of $1..."
+      return 0
+    fi
+ 
     if [ -e "$target" ]; then
       # Ignore files that are the same in the target
       if ! diff "$source" "$target" >/dev/null; then
-        printf "* File \"$target\" already exists. Overwrite(Y/N)? "
+        printf "* File \"$target\" already exists. Overwrite (Y/N)? "
 
         read -s -n1 C
         if [ "$C" != "y" ] && [ "$C" != "Y" ]; then
-          echo " No. Skipped..."
+          echo "No. Skipped..."
           continue;
         fi
-        echo " Yes"
+        echo "Yes"
       else
-        echo "Target file \"$target\" is the same as source. Skipping."
+        echo "* Target file \"$target\" is the same as source. Skipping copy of $1..."
         continue;
       fi
     fi
 
     # copy file & create backup of old file if exists
     if ! cp -bv "$source" "$target"; then
-      echo "ERROR: Copy error of \"$source\" to \"$target\"!"
+      echo "ERROR: Copy error of \"$source\" to \"$target\"!" >&2
       exit 3
     fi
 
@@ -125,7 +130,7 @@ copy_ask_if_exist()
 copy_skip_if_exist()
 {
   if [ -z "$(find "$1" -type f)" ]; then
-    echo "ERROR: Missing source file(s) \"$1\""
+    echo "ERROR: Missing source file(s) \"$1\"" >&2
     exit 2
   fi
 
@@ -141,14 +146,19 @@ copy_skip_if_exist()
     else
       target="$2"
     fi
-
+    
+    if [ ! -d "$(dirname $target)" ]; then
+      echo "* Target directory $(dirname "$target") does not exist. Skipping copy of $1..."
+      return 0
+    fi
+ 
     if [ -e "$target" ]; then
-      echo "* File \"$target\" already exists. Skipping..."
+      echo "* File \"$target\" already exists. Skipping copy of $1..."
       return 1
     fi
 
     if ! cp -v "$source" "$target"; then
-      echo "ERROR: Copy error of \"$source\" to \"$target!\""
+      echo "ERROR: Copy error of \"$source\" to \"$target!\"" >&2
       exit 3
     fi
 
@@ -162,7 +172,7 @@ copy_skip_if_exist()
 copy_overwrite()
 {
   if [ -z "$(find "$1" -type f)" ]; then
-    echo "ERROR: Missing source file(s) \"$1\""
+    echo "ERROR: Missing source file(s) \"$1\"" >&2
     exit 2
   fi
 
@@ -179,8 +189,13 @@ copy_overwrite()
       target="$2"
     fi
 
+    if [ ! -d "$(dirname $target)" ]; then
+      echo "* Target directory $(dirname "$target") does not exist. Skipping copy of $1..."
+      return 0
+    fi
+
     if ! cp -fv "$source" "$target"; then
-      echo "ERROR: Copy error of \"$source\" to \"$target\"!"
+      echo "ERROR: Copy error of \"$source\" to \"$target\"!" >&2
       exit 3
     fi
 
@@ -207,10 +222,10 @@ get_conf_var()
 
   if [ -z "$answer" ]; then
     if [ -n "$4" ]; then
-      echo "$4"
+#      echo "$4"
       change_conf_var "$2" "$3" "$4"
-    else
-      echo "(None)"
+#    else
+#      echo "(None)"
     fi
   else
     change_conf_var "$2" "$3" "$answer"
@@ -227,21 +242,21 @@ get_user_yn()
   read -s -n1 answer
 
   if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
-    echo " Yes"
+    echo "Yes"
     return 0
   fi
 
   if [ "$answer" = "n" ] || [ "$answer" = "N" ]; then
-    echo " No"
+    echo "No"
     return 1
   fi
 
   # Fallback to default
   if [ "$2" = "y" ]; then
-    echo " Yes"
+    echo "Yes"
     return 0
   else
-    echo " No"
+    echo "No"
     return 1
   fi
 }
@@ -249,20 +264,20 @@ get_user_yn()
 verify_interfaces()
 {
   if [ -z "$1" ]; then
-    if ! get_user_yn "No interface(s) specified. These are required! Continue(Y/N)? " "n"; then
+    if ! get_user_yn "No interface(s) specified. These are required! Continue anyway(Y/N)?" "n"; then
       return 1
     fi
   fi
-    
+  
   IFS=' ,'
   for interface in $1; do
     if ! check_interface $interface; then
-      if ! get_user_yn "Interface \"$interface\" does not exist (yet). Continue(Y/N)? " "y"; then 
+      if ! get_user_yn "Interface \"$interface\" does not exist (yet). Continue anyway(Y/N)?" "n"; then
         return 1
       fi
     fi
   done
-        
+  
   return 0
 }
 
@@ -282,13 +297,21 @@ setup_conf_file()
         change_conf_var "$FIREWALL_CONF" "EXT_IF" "$EXT_IF"
       
         local EXTERNAL_NET=""
+        local EXT_NET_BCAST_ADDRESS=""
         IFS=' ,'
         for interface in $EXT_IF; do
           EXTERNAL_NET="$EXTERNAL_NET${EXTERNAL_NET:+ }$(get_network_ipv4_address_mask $interface)"
+          EXT_NET_BCAST_ADDRESS="$EXT_NET_BCAST_ADDRESS${EXT_NET_BCAST_ADDRESS:+ }$(get_network_ipv4_broadcast $interface)"
         done
       
         if [ -n "$EXTERNAL_NET" ]; then
+          echo "* Auto-detected external net(s): $EXTERNAL_NET"
           change_conf_var "$FIREWALL_CONF" "EXTERNAL_NET" "$EXTERNAL_NET"
+        fi
+        
+        if [ -n "$EXT_NET_BCAST_ADDRESS" ]; then
+          echo "* Auto-detected external broadcast address(es): $EXT_NET_BCAST_ADDRESS"
+          change_conf_var "$FIREWALL_CONF" "EXT_NET_BCAST_ADDRESS" "$EXT_NET_BCAST_ADDRESS"
         fi
       fi
 
@@ -296,18 +319,18 @@ setup_conf_file()
     fi
   done  
   
-  if get_user_yn "Does your external interface get its IP through DHCP? (Y/N) " "y"; then
+  if get_user_yn "Does your external interface get its IP through DHCP (Y/N)?" "y"; then
     change_conf_var "$FIREWALL_CONF" "EXT_IF_DHCP_IP" "1"
   fi
 
-  if get_user_yn "Do you want to be pingable from the internet? (Y/N) "; then
+  if get_user_yn "Do you want to be pingable from the internet (Y/N)?"; then
     change_conf_var "$FIREWALL_CONF" "OPEN_ICMP" "1"
   fi
 
   get_conf_var "Which TCP ports do you want to allow from the internet? (eg. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_TCP" ""
-  get_conf_var "Which UDP ports do you want to allow from the internet? (eg. 53=DNS, etc.)  (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_UDP" ""
+  get_conf_var "Which UDP ports do you want to allow from the internet? (eg. 53=DNS, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_UDP" ""
 
-  if get_user_yn "Do you have an internal(aka LAN) interface that you want to setup? (Y/N)" "n"; then
+  if get_user_yn "Do you have an internal(aka LAN) interface that you want to setup (Y/N)?" "n"; then
     while true; do
       printf "What is your internal interface (aka. LAN interface)? "
       read INT_IF
@@ -317,21 +340,29 @@ setup_conf_file()
           change_conf_var "$FIREWALL_CONF" "INT_IF" "$INT_IF"
         
           local INTERNAL_NET=""
+          local INT_NET_BCAST_ADDRESS=""
           IFS=' ,'
           for interface in $INT_IF; do
             INTERNAL_NET="$INTERNAL_NET${INTERNAL_NET:+ }$(get_network_ipv4_address_mask $interface)"
+            INT_NET_BCAST_ADDRESS="$INT_NET_BCAST_ADDRESS${INT_NET_BCAST_ADDRESS:+ }$(get_network_ipv4_broadcast $interface)"
           done
         
           if [ -n "$INTERNAL_NET" ]; then
+            echo "* Auto-detected internal net(s): $INTERNAL_NET"
             change_conf_var "$FIREWALL_CONF" "INTERNAL_NET" "$INTERNAL_NET"
+          fi
+
+          if [ -n "$INT_NET_BCAST_ADDRESS" ]; then
+            echo "* Auto-detected external broadcast address(es): $INT_NET_BCAST_ADDRESS"
+            change_conf_var "$FIREWALL_CONF" "INT_NET_BCAST_ADDRESS" "$INT_NET_BCAST_ADDRESS"
           fi
         fi
         break
       fi
-    done  
+    done
   fi
     
-  if get_user_yn "Do you want to enable NAT/masquerading? (Y/N)" "n"; then
+  if get_user_yn "Do you want to enable NAT/masquerading (Y/N)?" "n"; then
     change_conf_var "$FIREWALL_CONF" "NAT" "1"
   fi
 
@@ -354,7 +385,7 @@ sanity_check;
 # We want to run in the dir the install script is in
 cd "$(dirname $0)"
 
-if ! get_user_yn "Continue install (Y/N)? " "n"; then
+if ! get_user_yn "Continue install (Y/N)?" "n"; then
   echo "*Install aborted"
   exit 1
 fi
@@ -382,7 +413,7 @@ echo ""
 echo "** Install done **"
 echo ""
 
-if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/)? (Y/N)" "y"; then
+if get_user_yn "* Do you want to start the firewall at boot (via /etc/init.d/) (Y/N)?" "y"; then
   if [ -d /etc/rcS.d ]; then
     if [ -n "$(find /etc/rcS.d/ -name "*arno-iptables-firewall")" ]; then
       echo "Startup symlink seems to already exist in /etc/rcS.d so skipping that"
@@ -399,16 +430,16 @@ if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/)? (Y
 fi
 
 if diff ./etc/arno-iptables-firewall/firewall.conf "$FIREWALL_CONF" >/dev/null; then
-  if get_user_yn "Your firewall.conf is not configured yet.\nDo you want me to help you setup a basic configuration? (Y/N)" "y"; then
+  if get_user_yn "* Your firewall.conf is not configured yet.\nDo you want me to help you setup a basic configuration (Y/N)?" "y"; then
     setup_conf_file;
   else
-    echo "*Skipped"
+    echo "* Skipped"
   fi
 else
-  echo "Your firewall.conf looks already customized so skipping basic configuration..."
+  echo "* Your firewall.conf looks already customized so skipping basic configuration..."
 fi
 
-if get_user_yn "Do you want the init script to be verbose (print out what it's doing)? (Y/N)" "n"; then
+if get_user_yn "* Do you want the init script to be verbose (print out what it's doing) (Y/N)?" "n"; then
   change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "1"
 fi
  
