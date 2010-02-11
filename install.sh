@@ -94,7 +94,7 @@ copy_ask_if_exist()
     
     if [ ! -d "$(dirname $target)" ]; then
       echo "* Target directory $(dirname "$target") does not exist. Skipping copy of $fn"
-      return 0
+      continue;
     fi
  
     if [ -f "$source" ] && [ -f "$target" ]; then
