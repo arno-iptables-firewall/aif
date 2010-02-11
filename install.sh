@@ -93,11 +93,11 @@ copy_ask_if_exist()
     fi
     
     if [ ! -d "$(dirname $target)" ]; then
-      echo "* Target directory $(dirname "$target") does not exist. Skipping copy of $1..."
+      echo "* Target directory $(dirname "$target") does not exist. Skipping copy of $fn"
       return 0
     fi
  
-    if [ -e "$target" ]; then
+    if [ -f "$source" ] && [ -f "$target" ]; then
       # Ignore files that are the same in the target
       if ! diff "$source" "$target" >/dev/null; then
         printf "File \"$target\" already exists. Overwrite (Y/N)? "
@@ -109,7 +109,7 @@ copy_ask_if_exist()
         fi
         echo "Yes"
       else
-        echo "* Target file \"$target\" is the same as source. Skipping copy of $1..."
+        echo "* Target file \"$target\" is the same as source. Skipping copy of $source"
         continue;
       fi
     fi
@@ -148,13 +148,13 @@ copy_skip_if_exist()
     fi
     
     if [ ! -d "$(dirname $target)" ]; then
-      echo "* Target directory $(dirname "$target") does not exist. Skipping copy of $1..."
-      return 0
+      echo "* Target directory $(dirname "$target") does not exist. Skipping copy of $fn"
+      continue;
     fi
  
     if [ -e "$target" ]; then
-      echo "* File \"$target\" already exists. Skipping copy of $1..."
-      return 1
+      echo "* File \"$target\" already exists. Skipping copy of $source"
+      continue;
     fi
 
     if ! cp -v "$source" "$target"; then
@@ -190,8 +190,8 @@ copy_overwrite()
     fi
 
     if [ ! -d "$(dirname $target)" ]; then
-      echo "* Target directory $(dirname "$target") does not exist. Skipping copy of $1..."
-      return 0
+      echo "* Target directory $(dirname "$target") does not exist. Skipping copy of $fn"
+      continue;
     fi
 
     if ! cp -fv "$source" "$target"; then
