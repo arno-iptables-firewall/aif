@@ -1050,3 +1050,8 @@ if [ -z "$PLUGIN_CONF_PATH" ]; then
     exit 2
   fi
 fi
+
+# Default NAT_INTERNAL_NET to INTERNAL_NET, if not specified
+if [ -z "$NAT_INTERNAL_NET" ]; then
+  NAT_INTERNAL_NET="$INTERNAL_NET"
+fi
