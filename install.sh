@@ -152,7 +152,7 @@ copy_skip_if_exist()
       continue;
     fi
  
-    if [ -e "$target" ]; then
+    if [ -f "$target" ]; then
       echo "* File \"$target\" already exists. Skipping copy of $source"
       continue;
     fi
