@@ -423,7 +423,7 @@ if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/) (Y/
   if [ -d /etc/rcS.d ]; then
     ln -sv /etc/init.d/arno-iptables-firewall /etc/rcS.d/S41arno-iptables-firewall
   else
-    ln -sv /etc/init.d/arno-iptables-firewall /etc/rc2.d/S41arno-iptables-firewall
+    ln -sv /etc/init.d/arno-iptables-firewall /etc/rc2.d/S11arno-iptables-firewall
   fi
 fi
 
