@@ -78,7 +78,6 @@ dyndns_get_cached_host()
   fi
   
   # Return error
-  printf ""
   return 1
 }
 
@@ -94,7 +93,7 @@ dyndns_host_to_cache()
     printf "${INDENT}Resolving host \"$host\"..."
 
     if [ "$DNS_SERVER_FAILURE" = "1" ]; then
-      echo "** WARNING($retval): Not quering DNS server since it is considered dead for this session! **" >&2 
+      echo "** WARNING: Not quering DNS server since it is considered dead for this session! **" >&2 
       host_ip=""
       retval=9
     else
