@@ -75,12 +75,12 @@ sanity_check()
 }
 
 # Resolve a hostname using our cache
-dyndns_get_cached_host()
+traffic_accounting_get_cached_host()
 {
   local host="$1"
   
-  if [ -e "$DYNDNS_HOST_CACHE" ]; then
-    local host_ip=`grep "^$host " -m1 "$DYNDNS_HOST_CACHE" |cut -s -f2 -d' '`
+  if [ -e "$TRAFFIC_ACCOUNTING_HOST_CACHE" ]; then
+    local host_ip=`grep "^$host " -m1 "$TRAFFIC_ACCOUNTING_HOST_CACHE" |cut -s -f2 -d' '`
     if [ -n "$host_ip" ]; then
       echo "$host_ip"
       return 0
@@ -88,7 +88,6 @@ dyndns_get_cached_host()
   fi
   
   # Return error
-  printf ""
   return 1
 }
 
