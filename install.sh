@@ -39,11 +39,7 @@ else
 fi
 
 # Allow user to override firewall.conf location (undocumented)
-if [ -n "$1" ]; then
-  FIREWALL_CONF="$1"
-else
-  FIREWALL_CONF="/etc/arno-iptables-firewall/firewall.conf"
-fi
+FIREWALL_CONF=${1:-/etc/arno-iptables-firewall/firewall.conf}
 
 sanity_check()
 {
@@ -97,7 +93,7 @@ copy_ask_if_exist()
       continue;
     fi
  
-    if [ -f "$source" ] && [ -f "$target" ]; then
+    if [ -f "$source" -a -f "$target" ]; then
       # Ignore files that are the same in the target
       if ! diff "$source" "$target" >/dev/null; then
         printf "File \"$target\" already exists. Overwrite (Y/N)? "
