@@ -38,9 +38,6 @@ else
   exit 2
 fi
 
-# Allow user to override firewall.conf location (undocumented)
-FIREWALL_CONF=${1:-/etc/arno-iptables-firewall/firewall.conf}
-
 sanity_check()
 {
   # root check
