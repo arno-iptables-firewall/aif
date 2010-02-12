@@ -106,8 +106,8 @@ fi
 
 # Check if the config file exists
 if [ ! -e "$CONF_FILE" ]; then
-  printf "\033[40m\033[1;31m ERROR: Config file \"$CONF_FILE\" not found!\n        Plugin \"$PLUGIN_NAME v$PLUGIN_VERSION\" not loaded!\033[0m\n" >&2
-  PLUGIN_RET_VAL=1
+  printf "NOTE: Config file \"$CONF_FILE\" not found!\n        Plugin \"$PLUGIN_NAME v$PLUGIN_VERSION\" ignored!\n" >&2
+  PLUGIN_RET_VAL=0
 else
   # Source the plugin config file
   . "$CONF_FILE"
