@@ -97,6 +97,7 @@ traffic_accounting_host_to_cache()
 {
   local host="$1"
   local host_ip=""
+  local retval=0
   
   # Check whether we already have it in our (new) cache
   if ! grep -q "^$host " "$TRAFFIC_ACCOUNTING_HOST_CACHE".new; then
@@ -168,18 +169,18 @@ traffic_accounting_setup_cache()
 
 traffic_accounting_setup_rules()
 {
-  # Touch the log files (just in case they don't exist yet):
+  # Touch the log file (just in case they doesn't exist yet):
   touch /var/log/traffic-accounting.log
 
-  # FIXME: Truncate file
+  # Truncate file
   printf "" >/tmp/traffic-accounting.new
 
   # Process the input chain
   echo "Traffic Accounting Hosts:"
   echo "-------------------------"
-
-  IFS=$EOL
-  for host in `IPTABLES -xnvL ACCOUNTING_INPUT_CHAIN`; do
+  IFS=' ,'
+  # Also add catch all rule (0.0.0.0/0)
+  for host in $TRAFFIC_ACCOUNTING_HOSTS 0.0.0.0/0; do
     printf "Host=$host "
     old_entry="$(grep "^$host " /var/log/traffic-accounting.log)"
     old_ip="$(echo "$old_entry" |cut -s -d' ' -f2)"
@@ -194,6 +195,15 @@ traffic_accounting_setup_rules()
     # If value is non-existant make it zero
     if [ -z "$old_out_value" ]; then
       old_out_value=0
+    fi
+
+    # Get host ip
+    new_ip=`traffic_accounting_get_cached_host "$host"`
+
+    # If it fails use old IP
+    if [ -z "$new_ip" ]; then
+      echo "** WARNING: Unresolvable host \"$host\", and no old IP to fallback on! **" >&2
+      continue;
     fi
 
     printf "old_ip=$old_ip new_ip=$new_ip "
@@ -246,6 +256,14 @@ traffic_accounting_setup_rules()
       done
     fi
 
+    if [ "$OLDFOUND" = "0" ]; then
+      printf "out_action=add "
+      iptables -A ACCOUNTING_OUTPUT_CHAIN -d $new_ip -j RETURN
+
+      # Preset values to zero as none exist yet
+      ipt_out_value=0
+    fi
+
     # Calculate new in value
     new_in_value=$(($old_in_value + $ipt_in_value))
 
@@ -259,31 +277,7 @@ traffic_accounting_setup_rules()
 
     printf "\n\n"
   done
-
-  # Flush chains
-  ##############
-  iptables -F ACCOUNTING_INPUT_CHAIN
-  iptables -F ACCOUNTING_OUTPUT_CHAIN
   
-  # Setup new rules
-  #################
-  
-  # Also add catch all rule (0.0.0.0/0)
-  IFS=' ,'
-  for host in $TRAFFIC_ACCOUNTING_HOSTS 0.0.0.0/0; do
-    # Get new host ip
-    new_ip=`traffic_accounting_get_cached_host $host`
-    if [ -z "$new_ip" ]; then
-      echo "** ERROR: Can NOT add unresolvable host $host **"
-      new_ip="$old_ip"
-      OLDFOUND
-      FIXME
-    else
-      iptables -A ACCOUNTING_INPUT_CHAIN -s $new_ip -j RETURN
-      iptables -A ACCOUNTING_OUTPUT_CHAIN -d $new_ip -j RETURN
-    fi
-  done
-
   # FIXME: Don't use old-file
   if [ -e /var/log/traffic-accounting.log ]; then
     if [ -e /var/log/traffic-accounting.log.old ]; then
@@ -293,7 +287,6 @@ traffic_accounting_setup_rules()
     mv /var/log/traffic-accounting.log /var/log/traffic-accounting.log.old
   fi
   mv /tmp/traffic-accounting.new /var/log/traffic-accounting.log
-  
 }
 
 
@@ -310,7 +303,7 @@ fi
 
 # Check if the config file exists
 if [ ! -e "$CONF_FILE" ]; then
-  printf "  ** ERROR: Config file \"$CONF_FILE\" not found! **\n" >&2
+  echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
   exit 1
 else
   # Source the plugin config file
