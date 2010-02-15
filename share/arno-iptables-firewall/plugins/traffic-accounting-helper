@@ -40,6 +40,11 @@ fi
 TRAFFIC_ACCOUNTING_HOST_CACHE="/var/tmp/aif-traffic-accounting-host-cache"
 DNS_SERVER_FAILURE=0
 INDENT='  '
+VERBOSE=0
+
+if [ "$1" = "-v" ]; then
+  VERBOSE=1
+fi
 
 # Check sanity of eg. environment
 sanity_check()
@@ -181,7 +186,10 @@ traffic_accounting_setup_rules()
   IFS=' ,'
   # Also add catch all rule (0.0.0.0/0)
   for host in $TRAFFIC_ACCOUNTING_HOSTS 0.0.0.0/0; do
-    printf "Host=$host "
+    if [ "$VERBOSE" = "1" ]; then
+      printf "Host=$host "
+    fi
+    
     old_entry="$(grep "^$host " /var/log/traffic-accounting.log)"
     old_ip="$(echo "$old_entry" |cut -s -d' ' -f2)"
     old_in_value="$(echo "$old_entry" |cut -s -d' ' -f3)"
@@ -223,7 +231,9 @@ traffic_accounting_setup_rules()
         LCOUNT=$(($LCOUNT + 1))
         if [ "$ipt_ip" = "$old_ip" ]; then
           iptables -R ACCOUNTING_INPUT_CHAIN $LCOUNT -s $new_ip -j RETURN
-          printf "in_action=update "
+          if [ "$VERBOSE" = "1" ]; then
+            printf "in_action=update "
+          fi
           OLDFOUND=1
           ipt_in_value="$(echo "$LINE" |awk '{ print $2 }')"
 
@@ -233,7 +243,9 @@ traffic_accounting_setup_rules()
     fi
 
     if [ "$OLDFOUND" = "0" ]; then
-      printf "in_action=add "
+      if [ "$VERBOSE" = "1" ]; then
+        printf "in_action=add "
+      fi
       iptables -A ACCOUNTING_INPUT_CHAIN -s $new_ip -j RETURN
 
       # Preset values to zero as none exist yet
@@ -251,7 +263,9 @@ traffic_accounting_setup_rules()
         LCOUNT=$(($LCOUNT + 1))
         if [ "$ipt_ip" = "$old_ip" ]; then
           iptables -R ACCOUNTING_OUTPUT_CHAIN $LCOUNT -d $new_ip -j RETURN
-          printf "out_action=update "
+          if [ "$VERBOSE" = "1" ]; then
+            printf "out_action=update "
+          fi
           OLDFOUND=1
           ipt_out_value="$(echo "$LINE" |awk '{ print $2 }')"
 
@@ -261,7 +275,9 @@ traffic_accounting_setup_rules()
     fi
 
     if [ "$OLDFOUND" = "0" ]; then
-      printf "out_action=add "
+      if [ "$VERBOSE" = "1" ]; then
+        printf "out_action=add "
+      fi
       iptables -A ACCOUNTING_OUTPUT_CHAIN -d $new_ip -j RETURN
 
       # Preset values to zero as none exist yet
@@ -273,9 +289,10 @@ traffic_accounting_setup_rules()
 
     # Calculate new out value
     new_out_value=$(($old_out_value + $ipt_out_value))
-
-    printf "old_in_val=$old_in_value ipt_in_val=$ipt_in_value new_in_val=$new_in_value old_out_val=$old_out_value ipt_out_val=$ipt_out_value new_out_val=$new_out_value"
-
+    if [ "$VERBOSE" = "1" ]; then
+      printf "old_in_val=$old_in_value ipt_in_val=$ipt_in_value new_in_val=$new_in_value old_out_val=$old_out_value ipt_out_val=$ipt_out_value new_out_val=$new_out_value"
+    fi
+    
     # Create entry in accounting file
     echo "$host $new_ip $new_in_value $new_out_value" >>/tmp/traffic-accounting.new
 

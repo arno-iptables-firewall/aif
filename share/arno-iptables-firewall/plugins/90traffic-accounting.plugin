@@ -5,8 +5,8 @@ PLUGIN_NAME="Traffic Accounting plugin"
 PLUGIN_VERSION="1.0BETA (EXPERIMENTAL!)"
 PLUGIN_CONF_FILE="traffic-accounting.conf"
 #
-# Last changed          : January 19, 2010
-# Requirements          : AIF 1.9.0-rc4+
+# Last changed          : February 15, 2010
+# Requirements          : AIF 1.9.2i+
 # Comments              : This implements support for traffic accounting. It is
 #                         works with dynamic hostnames (non-static IPs)
 #
@@ -54,16 +54,10 @@ plugin_start()
   # Create hourly cron job
   echo "$TRAFFIC_ACCOUNTING_CRON        root    \"$PLUGIN_BIN_PATH/traffic-accounting-helper\" >/dev/null" >|/etc/cron.d/traffic-accounting
 
-  # Shows hosts we're monitoring
-  IFS=' ,'
-  for host in $TRAFFIC_ACCOUNTING_HOSTS; do
-    echo "  Adding host $host"
-  done
-
   # Call the host-accounting-helper script at startup?
   if [ "$TRAFFIC_ACCOUNTING_RUN_AT_START" = "1" ]; then
     echo "  Running helper script..."
-    "$PLUGIN_BIN_PATH/traffic-accounting-helper" >/dev/null
+    "$PLUGIN_BIN_PATH/traffic-accounting-helper"
   fi
 
   return 0
@@ -77,7 +71,7 @@ plugin_stop()
   rm -f /etc/cron.d/traffic-accounting
 
   # Store current values
-  "$PLUGIN_BIN_PATH/traffic-accounting-helper" >/dev/null
+  "$PLUGIN_BIN_PATH/traffic-accounting-helper"
 
   iptables -D INPUT -j ACCOUNTING_INPUT_CHAIN 2>/dev/null
   iptables -D OUTPUT -j ACCOUNTING_OUTPUT_CHAIN 2>/dev/null
