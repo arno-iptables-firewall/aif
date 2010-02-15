@@ -185,6 +185,7 @@ traffic_accounting_setup_rules()
     echo "Traffic Accounting Hosts:"
     echo "-------------------------"
   fi
+  
   IFS=' ,'
   # Also add catch all rule (0.0.0.0/0)
   for host in $TRAFFIC_ACCOUNTING_HOSTS 0.0.0.0/0; do
@@ -300,7 +301,9 @@ traffic_accounting_setup_rules()
     # Create entry in accounting file
     echo "$host $new_ip $new_in_value $new_out_value" >>/tmp/traffic-accounting.new
 
-    printf "\n\n"
+    if [ "$VERBOSE" = "1" ]; then
+      printf "\n\n"
+    fi
   done
   
   # FIXME: Don't use old-file
