@@ -104,7 +104,7 @@ traffic_accounting_host_to_cache()
     printf "${INDENT}Resolving host \"$host\"..."
 
     if [ "$DNS_SERVER_FAILURE" = "1" ]; then
-      echo "** WARNING($retval): Not quering DNS server since it is considered dead for this session! **" >&2 
+      echo "** WARNING: Not quering DNS server since it is considered dead for this session! **" >&2 
       host_ip=""
       retval=9
     else
@@ -202,7 +202,7 @@ traffic_accounting_setup_rules()
 
     # If it fails use old IP
     if [ -z "$new_ip" ]; then
-      echo "** WARNING: Unresolvable host \"$host\", and no old IP to fallback on! **" >&2
+      echo "** WARNING: Unresolvable host \"$host\", and no old IP to fallback on. Skipping host!... **" >&2
       continue;
     fi
 
