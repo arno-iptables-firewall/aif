@@ -247,7 +247,7 @@ copy_overwrite ./bin/ /usr/local/sbin/
 
 mkdir -pv /usr/local/share/arno-iptables-firewall/plugins
 copy_overwrite ./share/arno-iptables-firewall/ /usr/local/share/arno-iptables-firewall/
-ln -sv /usr/local/share/arno-iptables-firewall/traffic-accounting-show /usr/local/sbin/traffic-accounting-show
+ln -sv /usr/local/share/arno-iptables-firewall/plugins/traffic-accounting-show /usr/local/sbin/traffic-accounting-show
 
 mkdir -pv /usr/local/share/man/man1
 mkdir -pv /usr/local/share/man/man8
