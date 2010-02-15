@@ -39,7 +39,7 @@ fi
 # Define some global variables
 TRAFFIC_ACCOUNTING_HOST_CACHE="/var/tmp/aif-traffic-accounting-host-cache"
 DNS_SERVER_FAILURE=0
-INDENT='  '
+INDENT='   '
 VERBOSE=0
 
 if [ "$1" = "-v" ]; then

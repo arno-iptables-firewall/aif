@@ -48,8 +48,9 @@ plugin_start()
   # Create cron job
   echo "$DYNDNS_HOST_OPEN_CRON        root    $PLUGIN_BIN_PATH/dyndns-host-open-helper >/dev/null" >/etc/cron.d/dyndns-host-open
 
-  # Call the DynDNS script?
+  # Call the dyndns-helper script at startup?
   if [ "$DYNDNS_RUN_AT_START" = "1" ]; then
+    echo "  Running helper script..."
     "$PLUGIN_BIN_PATH/dyndns-host-open-helper"
   fi
 
