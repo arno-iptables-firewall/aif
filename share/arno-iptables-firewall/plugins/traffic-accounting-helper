@@ -218,7 +218,9 @@ traffic_accounting_setup_rules()
       continue;
     fi
 
-    printf "old_ip=$old_ip new_ip=$new_ip "
+    if [ "$VERBOSE" = "1" ]; then
+      printf "old_ip=$old_ip new_ip=$new_ip "
+    fi
 
     # Process input chain
     OLDFOUND=0
