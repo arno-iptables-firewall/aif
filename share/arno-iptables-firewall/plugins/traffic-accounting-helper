@@ -181,8 +181,10 @@ traffic_accounting_setup_rules()
   printf "" >/tmp/traffic-accounting.new
 
   # Process the input chain
-  echo "Traffic Accounting Hosts:"
-  echo "-------------------------"
+  if [ "$VERBOSE" = "1" ]; then
+    echo "Traffic Accounting Hosts:"
+    echo "-------------------------"
+  fi
   IFS=' ,'
   # Also add catch all rule (0.0.0.0/0)
   for host in $TRAFFIC_ACCOUNTING_HOSTS 0.0.0.0/0; do
