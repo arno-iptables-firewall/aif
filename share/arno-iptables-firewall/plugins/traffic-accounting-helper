@@ -198,7 +198,11 @@ traffic_accounting_setup_rules()
     fi
 
     # Get host ip
-    new_ip=`traffic_accounting_get_cached_host "$host"`
+    if is_numeric_ipv4 "$host" || is_numeric_ipv6 "$host"; then
+      new_ip="$host"
+    else
+      new_ip=`traffic_accounting_get_cached_host "$host"`
+    fi
 
     # If it fails use old IP
     if [ -z "$new_ip" ]; then
@@ -321,7 +325,7 @@ else
         # Call our function
         traffic_accounting_setup_cache
         traffic_accounting_setup_rules
-        local ret=$?
+        ret=$?
 
         # Remove lockfile
         rm -f "$lockfile"
