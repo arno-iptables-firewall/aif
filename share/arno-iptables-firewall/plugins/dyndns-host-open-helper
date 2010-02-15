@@ -90,7 +90,7 @@ dyndns_host_to_cache()
   
   # Check whether we already have it in our (new) cache
   if ! grep -q "^$host " "$DYNDNS_HOST_CACHE".new; then
-    printf "${INDENT}Resolving host \"$host\"..."
+    printf "${INDENT}Resolving host \"$host\" -> "
 
     if [ "$DNS_SERVER_FAILURE" = "1" ]; then
       echo "** WARNING: Not quering DNS server since it is considered dead for this session! **" >&2 
