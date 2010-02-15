@@ -39,7 +39,7 @@ fi
 # Define some global variables
 DYNDNS_HOST_CACHE="/var/tmp/aif-dyndns-host-cache"
 DNS_SERVER_FAILURE=0
-INDENT='  '
+INDENT='   '
 
 # Check sanity of environment
 sanity_check()
