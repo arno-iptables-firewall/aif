@@ -632,15 +632,12 @@ is_numeric_ipv6_address()
 # $1 = IP. $2 (optional) = Additional arguments for dig. stdout = DNS name
 gethostbyaddr()
 {
-  local retval=0
-  host="$1"
-  shift
+  local host="$1" result retval=0
 
-  # We can't resolve addressen with a subnet masker
-  if echo "$host" |grep -q '/'; then
-    printf ""
-    return 1
-  fi
+  # We can't resolve addresses with a subnet mask
+  case "$host" in
+    */*) return 1 ;;
+  esac
 
   # Don't try to resolve DNS names:
   if ! is_numeric_ipv4 "$host" && ! is_numeric_ipv6 "$host"; then
@@ -649,17 +646,18 @@ gethostbyaddr()
     return 0
   fi
   
-  if [ -z "$*" ]; then
+  shift
+  if [ $# -gt 0 ]; then
+    result="$(dig "$@" +short -x "$host" 2>/dev/null)"
+    retval=$?
+  else
     if [ "$DNS_FAST_FAIL" = "1" ]; then
-      result="$(dig +short +tries=1 +time=1 -x $host 2>/dev/null)"
+      result="$(dig +short +tries=1 +time=1 -x "$host" 2>/dev/null)"
       retval=$?
     else
-      result="$(dig +short -x $host 2>/dev/null)"
+      result="$(dig +short -x "$host" 2>/dev/null)"
       retval=$?
     fi
-  else
-    result="$(dig $* +short -x $host 2>/dev/null)"
-    retval=$?
   fi
 
   if [ "$retval" = "0" ]; then
@@ -667,11 +665,9 @@ gethostbyaddr()
       echo "$result" |grep -v -e "^;;" |head -n1
       return 0
     else
-      printf ""
       return 1
     fi
   else
-    printf ""
     return $retval
   fi
 }
@@ -681,10 +677,7 @@ gethostbyaddr()
 # $1 = Hostname. $2 (optional) = Additional arguments for dig. stdout = IP
 gethostbyname()
 {
-  local retval=0
-
-  host="$1"
-  shift
+  local host="$1" result retval=0
 
   # Don't try to resolve IPs:
   if is_numeric_ipv4 "$host" || is_numeric_ipv6 "$host"; then
@@ -693,17 +686,18 @@ gethostbyname()
     return 0
   fi
   
-  if [ -z "$*" ]; then
+  shift
+  if [ $# -gt 0 ]; then
+    result="$(dig "$@" +short "$host" 2>/dev/null)"
+    retval=$?
+  else
     if [ "$DNS_FAST_FAIL" = "1" ]; then
-      result="$(dig +short +tries=1 +time=1 $host 2>/dev/null)"
+      result="$(dig +short +tries=1 +time=1 "$host" 2>/dev/null)"
       retval=$?
     else
-      result="$(dig +short $host 2>/dev/null)"
+      result="$(dig +short "$host" 2>/dev/null)"
       retval=$?
     fi
-  else
-    result="$(dig $* +short $host 2>/dev/null)"
-    retval=$?
   fi
 
   if [ "$retval" = "0" ]; then
@@ -711,11 +705,9 @@ gethostbyname()
       echo "$result" |grep -v -e "^;;" |head -n1
       return 0
     else
-      printf ""
       return 1
     fi
   else
-    printf ""
     return $retval
   fi
 }
