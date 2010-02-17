@@ -68,6 +68,11 @@ sanity_check()
 dyndns_get_cached_host()
 {
   local host="$1"
+
+  if is_numeric_ipv4 "$host" || is_numeric_ipv6 "$host"; then
+    echo "$host"
+    return 0
+  fi
   
   if [ -e "$DYNDNS_HOST_CACHE" ]; then
     local host_ip=`grep "^$host " -m1 "$DYNDNS_HOST_CACHE" |cut -s -f2 -d' '`
@@ -87,9 +92,10 @@ dyndns_host_to_cache()
 {
   local host="$1"
   local host_ip=""
+  local retval=0
   
-  # Check whether we already have it in our (new) cache
-  if ! grep -q "^$host " "$DYNDNS_HOST_CACHE".new; then
+  # Check whether we already have it in our (new) cache and don't try to resolve stuff that's already numeric
+  if ! is_numeric_ipv4 "$host" && ! is_numeric_ipv6 "$host" && ! grep -q "^$host " "$DYNDNS_HOST_CACHE".new; then
     printf "${INDENT}Resolving host \"$host\" -> "
 
     if [ "$DNS_SERVER_FAILURE" = "1" ]; then
