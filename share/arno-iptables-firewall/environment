@@ -649,11 +649,6 @@ gethostbyaddr()
     return 0
   fi
   
-  # Make sure the dig binary exists before we continue
-  if ! check_command_warning dig; then
-    return 1
-  fi
-
   if [ -z "$*" ]; then
     if [ "$DNS_FAST_FAIL" = "1" ]; then
       result="$(dig +short +tries=1 +time=1 -x $host 2>/dev/null)"
@@ -698,11 +693,6 @@ gethostbyname()
     return 0
   fi
   
-  # Make sure the dig binary exists before we continue
-  if ! check_command_warning dig; then
-    return 1
-  fi
-
   if [ -z "$*" ]; then
     if [ "$DNS_FAST_FAIL" = "1" ]; then
       result="$(dig +short +tries=1 +time=1 $host 2>/dev/null)"
