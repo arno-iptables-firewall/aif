@@ -1,6 +1,8 @@
-Version 0.34BETA (February 9, 2010)
------------------------------------
-* The new sysctl() function forces use to explicitly specify -w
+Version 1.0BETA (February 15, 2010)
+----------------------------------
++ Adding proper caches + additional (tweak) settings for the config file
+* Pre-resolve all hostnames first before updating the rules in our helper script
+* Numerous tweaks + fixes 
 
 Version 0.33BETA (September 2, 2009)
 ------------------------------------
