@@ -218,13 +218,16 @@ features are enabled by default to protect you from hostile attacks.
 
 1) First we've to check whether your Linux setup is OK in order to make the
    script work correctly:
-        - It needs iptables, iproute(2) and dnsutils to be installed (probably come 
+        - It needs iptables and iproute(2) to be installed (probably come 
           as packages with your distro).
         - It requires a POSIX compliant /bin/sh (should live on any UNIX system
           by default)
         - My scripts need the following binaries (in your path): 
           iptables (obviously), ip (from the iproute package), sysctl, modprobe,
           logger, dig, uname, date, awk, tr, grep, sed, cut, head, tail, wc & cat.
+        - If you plan to use DNS resolving (eg. when RESOLV_IPS=1 or for certain
+          plugins) then the binary 'dig' (from the dnsutils package) should also
+          be available.
 
 2) Now we need to determine whether you have a single- or dual-homed machine.
    Single means you ONLY have one network-interface, which is the one connected

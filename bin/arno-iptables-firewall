@@ -97,7 +97,6 @@ sanity_check()
   check_command_error tail
   check_command_error wc
   check_command_error logger
-  check_command_error dig
 
   # Passed all sanity checks :-)
   ##############################
