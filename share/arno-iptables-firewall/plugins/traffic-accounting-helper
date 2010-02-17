@@ -219,9 +219,10 @@ traffic_accounting_setup_rules()
 
     # If it fails use old IP
     if [ -z "$new_ip" ]; then
-      echo "** WARNING: Unresolvable host \"$host\", and no old IP to fallback on. Skipping host!... **" >&2
       continue;
     fi
+
+    echo "${INDENT}Monitoring host \"$host\""
 
     if [ "$VERBOSE" = "1" ]; then
       printf "old_ip=$old_ip new_ip=$new_ip "
