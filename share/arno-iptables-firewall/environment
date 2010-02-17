@@ -52,14 +52,47 @@ trace()
 }
 
 
-# Check whether a binary is available
-check_binary()
+# Check whether a certain command is available
+check_command()
 {
-  if ! which "$1" >/dev/null 2>&1; then
+  if which "$1" >/dev/null 2>&1; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+
+# Check whether a binary is available and if not, generate an error and stop program execution
+check_command_error()
+{
+  if ! check_command "$1"; then
     printf "\033[40m\033[1;31mERROR: Binary \"$1\" does not exist or is not executable!\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       Please, make sure that it is (properly) installed!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       Please investigate. Quitting...\033[0m\n" >&2
     exit 2
   fi
+}
+
+
+# Check whether a binary is available and if not, generate a warning but continue program execution
+check_command_warning()
+{
+  check_command "$1"
+  local retval=$?
+
+  if [ "$retval" != "0" ]; then
+    printf "\033[40m\033[1;31mWARNING: Binary \"$1\" does not exist or is not executable!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m         Please investigate. This *may* be a problem!\033[0m\n" >&2
+  fi
+
+  return $retval
+}
+
+
+check_binary()
+{
+  printf "\033[40m\033[1;31mWARNING: Function check_binary() will soon be deprecated, please use check_command_error() instead!\033[0m\n" >&2
+  check_command_error "$1"
 }
 
 
@@ -116,7 +149,7 @@ note_iptables_error()
   done
 
   return 1
-} 
+}
 
 
 iptables()
@@ -306,6 +339,7 @@ module_probe()
 {
   printf "\033[40m\033[1;31mWARNING: Function module_probe() will soon be deprecated, please use modprobe() instead!\033[0m\n" >&2
   modprobe "$@"
+  return $?
 }
 
 

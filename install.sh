@@ -46,22 +46,25 @@ sanity_check()
     exit 1
   fi
 
-  check_binary iptables
-  check_binary awk
-  check_binary tr
-  check_binary ip
-  check_binary cut
-  check_binary uname
-  check_binary sed
-  check_binary cat
-  check_binary date
-  check_binary modprobe
-  check_binary sysctl
-  check_binary head
-  check_binary tail
-  check_binary wc
-  check_binary gzip
-  check_binary logger
+  check_command_error iptables
+  check_command_error awk
+  check_command_error tr
+  check_command_error ip
+  check_command_error cut
+  check_command_error uname
+  check_command_error sed
+  check_command_error cat
+  check_command_error date
+  check_command_error modprobe
+  check_command_error sysctl
+  check_command_error head
+  check_command_error tail
+  check_command_error wc
+  check_command_error gzip
+  check_command_error logger
+  check_command_error chmod
+  check_command_error chown
+  check_command_error dig
 }
 
 

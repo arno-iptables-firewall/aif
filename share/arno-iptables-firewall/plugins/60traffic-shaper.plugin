@@ -398,12 +398,14 @@ plugin_sanity_check()
     count=$((count+1))
   done
   if [ "$count" -ne 1 ]; then
-    printf "\033[40m\033[1;31m ERROR: Multiple external interfaces are not supported.\n\033[0m" >&2
+    printf "\033[40m\033[1;31m ERROR: Multiple external interfaces are not supported!\n\033[0m" >&2
     return 1
   fi
 
-  check_binary tc
-  check_binary ip
+  if ! check_command tc; then
+    printf "\033[40m\033[1;31m ERROR: Required binary \"tc\" is not available!\n\033[0m" >&2
+    return 1
+  fi
 
   return 0
 }
@@ -447,3 +449,4 @@ else
     PLUGIN_RET_VAL=0
   fi
 fi
+

@@ -48,16 +48,10 @@ sanity_check()
     printf "\033[40m\033[1;31mERROR: Root check FAILED (you MUST be root to use this script)! Quitting...\033[0m\n" >&2
     exit 1
   fi
-  check_binary awk
-  check_binary tr
-  check_binary cut
-  check_binary uname
-  check_binary sed
-  check_binary cat
-  check_binary date
-  check_binary head
-  check_binary tail
-  check_binary wc
+  
+  check_command_error sed
+  check_command_error chmod
+  check_command_error chown
 }
 
 
