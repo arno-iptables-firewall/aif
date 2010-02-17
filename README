@@ -224,7 +224,7 @@ features are enabled by default to protect you from hostile attacks.
           by default)
         - My scripts need the following binaries (in your path): 
           iptables (obviously), ip (from the iproute package), sysctl, modprobe,
-          logger, dig, uname, date, awk, tr, grep, sed, cut, head, tail, wc & cat.
+          logger, uname, date, awk, tr, grep, sed, cut, head, tail, wc & cat.
         - If you plan to use DNS resolving (eg. when RESOLV_IPS=1 or for certain
           plugins) then the binary 'dig' (from the dnsutils package) should also
           be available.
