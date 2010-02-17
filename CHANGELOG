@@ -1,5 +1,7 @@
-Version 1.9.2i (February 11, 2010)
+Version 1.9.2i (February 17, 2010)
 ----------------------------------
++ New DynDNS & Traffic Accounting plugins. Main improvement is that they feature
+  host caching now
 * Have a seperate function to check our config so we don't fail on a bad config when eg. stopping
 + Have the install script detect interfaces and their properties
 * Better (wildcard) interface detection in the main script
