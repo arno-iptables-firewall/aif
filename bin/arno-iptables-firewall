@@ -5130,6 +5130,7 @@ show_help()
   echo "stop-block                  = Stop firewall & block all internet traffic" >&2
   echo "restart                     = Restart firewall" >&2
   echo "force-reload                = Reload blocked hosts (blackhole) file" >&2
+  echo "check-conf                  = Check configuration file (only)" >&2
   echo "status [-t {table}] [chain] = View firewall ruleset ([chain] & [-t {table}] are optional)" >&2
 }
 
