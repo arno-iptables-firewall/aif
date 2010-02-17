@@ -36,6 +36,15 @@ else
   fi
 fi
 
+# Define some global variables
+TRAFFIC_ACCOUNTING_HOST_CACHE="/var/tmp/aif-traffic-accounting-host-cache"
+DNS_SERVER_FAILURE=0
+INDENT='   '
+VERBOSE=0
+
+if [ "$1" = "-v" ]; then
+  VERBOSE=1
+fi
 
 # Check sanity of eg. environment
 sanity_check()
@@ -70,22 +79,120 @@ sanity_check()
   return 0
 }
 
-
-traffic_accounting()
+# Resolve a hostname using our cache
+traffic_accounting_get_cached_host()
 {
-  # Touch the log files (just in case they don't exist yet):
+  local host="$1"
+  
+  if [ -e "$TRAFFIC_ACCOUNTING_HOST_CACHE" ]; then
+    local host_ip=`grep "^$host " -m1 "$TRAFFIC_ACCOUNTING_HOST_CACHE" |cut -s -f2 -d' '`
+    if [ -n "$host_ip" ]; then
+      echo "$host_ip"
+      return 0
+    fi
+  fi
+  
+  # Return error
+  return 1
+}
+
+
+# Resolve hostname to IP and store both in our (new) cache
+traffic_accounting_host_to_cache()
+{
+  local host="$1"
+  local host_ip=""
+  local retval=0
+  
+  # Check whether we already have it in our (new) cache
+  if ! grep -q "^$host " "$TRAFFIC_ACCOUNTING_HOST_CACHE".new; then
+    printf "${INDENT}Resolving host \"$host\" -> "
+
+    if [ "$DNS_SERVER_FAILURE" = "1" ]; then
+      echo "** WARNING: Not quering DNS server since it is considered dead for this session! **" >&2 
+      host_ip=""
+      retval=9
+    else
+      host_ip=`gethostbyname "$host"`
+      retval=$?
+      
+      # Check whether our DNS server itself failed
+      if [ "$retval" = "9" ]; then
+        if [ "$TRAFFIC_ACCOUNTING_SESSION_FAILED_DNS_SKIP" = "1" ]; then
+          # The DNS server failed, so set flag so we know this the next time
+          DNS_SERVER_FAILURE=1
+          echo "** ERROR(9): DNS server connection failed! Assuming server dead for this session. **" >&2 
+        else
+          echo "** ERROR(9): DNS server connection failed! **" >&2 
+        fi
+      fi
+    fi
+     
+    if [ -z "$host_ip" ]; then
+      # Try to get from (old) cache, if allowed
+      if [ "$TRAFFIC_ACCOUNTING_OLD_CACHE_FALLBACK" = "1" ]; then
+        host_ip=`dyndns_get_cached_host $host`
+      fi
+      
+      # (Re)check $host_ip
+      if [ -z "$host_ip" ]; then
+        printf "\033[40m\033[1;31mFAILED!\033[0m\n"
+        echo "** ERROR($retval): Unresolvable host \"$host\", and no old IP to fallback on! **" >&2 
+      
+        # Create dummy entry, so the others know we failed
+        echo "$host " >>"$TRAFFIC_ACCOUNTING_HOST_CACHE".new
+        return $retval
+      else
+        echo "** WARNING($retval): Unresolvable host \"$host\". Re-using old IP ($host_ip)! **" >&2 
+      fi
+    fi
+    echo "$host_ip"
+    echo "$host $host_ip" >>"$TRAFFIC_ACCOUNTING_HOST_CACHE".new 
+  fi
+  
+  return 0
+}      
+
+# Setup host->ip cache
+traffic_accounting_setup_cache()
+{
+  # Create new empty file
+  printf "" >"$TRAFFIC_ACCOUNTING_HOST_CACHE".new
+  
+  IFS=' ,'
+  for host in $TRAFFIC_ACCOUNTING_HOSTS; do
+    traffic_accounting_host_to_cache "$host"
+  done
+
+  # Remove old cache file
+  rm -f "$TRAFFIC_ACCOUNTING_HOST_CACHE" 2>/dev/null
+  
+  # Make our new cache file active
+  mv "$TRAFFIC_ACCOUNTING_HOST_CACHE".new "$TRAFFIC_ACCOUNTING_HOST_CACHE"
+}
+
+
+traffic_accounting_setup_rules()
+{
+  # Touch the log file (just in case they doesn't exist yet):
   touch /var/log/traffic-accounting.log
 
   # Truncate file
   printf "" >/tmp/traffic-accounting.new
 
   # Process the input chain
-  echo "Traffic Accounting Hosts:"
-  echo "-------------------------"
+  if [ "$VERBOSE" = "1" ]; then
+    echo "Traffic Accounting Hosts:"
+    echo "-------------------------"
+  fi
+  
   IFS=' ,'
   # Also add catch all rule (0.0.0.0/0)
   for host in $TRAFFIC_ACCOUNTING_HOSTS 0.0.0.0/0; do
-    printf "Host=$host "
+    if [ "$VERBOSE" = "1" ]; then
+      printf "Host=$host "
+    fi
+    
     old_entry="$(grep "^$host " /var/log/traffic-accounting.log)"
     old_ip="$(echo "$old_entry" |cut -s -d' ' -f2)"
     old_in_value="$(echo "$old_entry" |cut -s -d' ' -f3)"
@@ -102,21 +209,21 @@ traffic_accounting()
     fi
 
     # Get host ip
-    new_ip=`gethostbyname "$host"`
+    if is_numeric_ipv4 "$host" || is_numeric_ipv6 "$host"; then
+      new_ip="$host"
+    else
+      new_ip=`traffic_accounting_get_cached_host "$host"`
+    fi
 
     # If it fails use old IP
     if [ -z "$new_ip" ]; then
-      if [ -n "$old_ip" ]; then
-        echo "** ERROR: Unresolvable host \"$host\". Re-using old IP! **" >&2
-        new_ip="$old_ip"
-      else
-        echo "** ERROR: Unresolvable host \"$host\", and no old IP to fallback on! **" >&2
-        # TODO: continue here?
-        return 1
-      fi
+      echo "** WARNING: Unresolvable host \"$host\", and no old IP to fallback on. Skipping host!... **" >&2
+      continue;
     fi
 
-    printf "old_ip=$old_ip new_ip=$new_ip "
+    if [ "$VERBOSE" = "1" ]; then
+      printf "old_ip=$old_ip new_ip=$new_ip "
+    fi
 
     # Process input chain
     OLDFOUND=0
@@ -129,7 +236,9 @@ traffic_accounting()
         LCOUNT=$(($LCOUNT + 1))
         if [ "$ipt_ip" = "$old_ip" ]; then
           iptables -R ACCOUNTING_INPUT_CHAIN $LCOUNT -s $new_ip -j RETURN
-          printf "in_action=update "
+          if [ "$VERBOSE" = "1" ]; then
+            printf "in_action=update "
+          fi
           OLDFOUND=1
           ipt_in_value="$(echo "$LINE" |awk '{ print $2 }')"
 
@@ -139,7 +248,9 @@ traffic_accounting()
     fi
 
     if [ "$OLDFOUND" = "0" ]; then
-      printf "in_action=add "
+      if [ "$VERBOSE" = "1" ]; then
+        printf "in_action=add "
+      fi
       iptables -A ACCOUNTING_INPUT_CHAIN -s $new_ip -j RETURN
 
       # Preset values to zero as none exist yet
@@ -157,7 +268,9 @@ traffic_accounting()
         LCOUNT=$(($LCOUNT + 1))
         if [ "$ipt_ip" = "$old_ip" ]; then
           iptables -R ACCOUNTING_OUTPUT_CHAIN $LCOUNT -d $new_ip -j RETURN
-          printf "out_action=update "
+          if [ "$VERBOSE" = "1" ]; then
+            printf "out_action=update "
+          fi
           OLDFOUND=1
           ipt_out_value="$(echo "$LINE" |awk '{ print $2 }')"
 
@@ -167,7 +280,9 @@ traffic_accounting()
     fi
 
     if [ "$OLDFOUND" = "0" ]; then
-      printf "out_action=add "
+      if [ "$VERBOSE" = "1" ]; then
+        printf "out_action=add "
+      fi
       iptables -A ACCOUNTING_OUTPUT_CHAIN -d $new_ip -j RETURN
 
       # Preset values to zero as none exist yet
@@ -179,15 +294,19 @@ traffic_accounting()
 
     # Calculate new out value
     new_out_value=$(($old_out_value + $ipt_out_value))
-
-    printf "old_in_val=$old_in_value ipt_in_val=$ipt_in_value new_in_val=$new_in_value old_out_val=$old_out_value ipt_out_val=$ipt_out_value new_out_val=$new_out_value"
-
+    if [ "$VERBOSE" = "1" ]; then
+      printf "old_in_val=$old_in_value ipt_in_val=$ipt_in_value new_in_val=$new_in_value old_out_val=$old_out_value ipt_out_val=$ipt_out_value new_out_val=$new_out_value"
+    fi
+    
     # Create entry in accounting file
     echo "$host $new_ip $new_in_value $new_out_value" >>/tmp/traffic-accounting.new
 
-    printf "\n\n"
+    if [ "$VERBOSE" = "1" ]; then
+      printf "\n\n"
+    fi
   done
-
+  
+  # FIXME: Don't use old-file
   if [ -e /var/log/traffic-accounting.log ]; then
     if [ -e /var/log/traffic-accounting.log.old ]; then
       rm -f /var/log/traffic-accounting.log.old
@@ -212,7 +331,7 @@ fi
 
 # Check if the config file exists
 if [ ! -e "$CONF_FILE" ]; then
-  printf "  ** ERROR: Config file \"$CONF_FILE\" not found! **\n" >&2
+  echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
   exit 1
 else
   # Source the plugin config file
@@ -228,23 +347,23 @@ else
         trap 'rm -f "$lockfile"; exit $?' INT TERM EXIT
 
         # Call our function
-        traffic_accounting;
+        traffic_accounting_setup_cache
+        traffic_accounting_setup_rules
+        ret=$?
 
         # Remove lockfile
         rm -f "$lockfile"
 
         # Disable int handler
         trap - INT TERM EXIT
+        
+        exit $ret
       else
         echo "Failed to acquire lockfile: $lockfile." >&2
         echo "Held by $(cat $lockfile)" >&2
-        exit 1
       fi
-    else
-#      printf "  ** ERROR: Sanity check failed! **" >&2
-      exit 1
     fi
   fi
 fi
 
-exit 0
+exit 1
