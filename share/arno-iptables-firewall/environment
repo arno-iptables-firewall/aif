@@ -66,6 +66,19 @@ find_command()
 # Check whether a certain command is available
 check_command()
 {
+  local path
+
+  case "$1" in
+    /*) path="" ;;
+    ip|tc|modprobe|sysctl) path="/sbin/" ;;
+    sed|cat|date|uname) path="/bin/" ;;
+    *) path="/usr/bin/" ;;
+  esac
+
+  if [ -x "$path$1" ]; then
+    return 0
+  fi
+
   if which "$1" >/dev/null 2>&1; then
     return 0
   else
