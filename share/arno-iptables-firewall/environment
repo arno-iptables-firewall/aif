@@ -420,6 +420,87 @@ ip()
 }
 
 
+# dig binary wrapper
+####################
+dig()
+{
+  local cnt=0 x=0 addr name line lines IFS
+
+  if [ -n "$DIG" ]; then
+    lines="$($DIG +short "$@" 2>/dev/null)"
+    while [ $# -gt 1 ]; do
+      if [ "$1" = "-x" ]; then
+        x=1
+      fi
+      shift
+    done
+    IFS=$EOL
+    for line in $lines; do
+      case "$line" in
+        ';'*|'') addr=""
+                 name=""
+                 ;;
+        *'.') addr=""
+              name="$line"
+              ;;
+        *) addr="$line"
+           name=""
+           ;;
+      esac
+      if [ -n "$addr" -a "$x" = 0 ]; then
+        echo "$addr"
+        return 0
+      elif [ -n "$name" -a "$x" = 1 ]; then
+        echo "$name"
+        return 0
+      fi
+    done
+    return 9
+  elif [ -n "$NSLOOKUP" ]; then
+    while [ $# -gt 1 ]; do
+      if [ "$1" = "-x" ]; then
+        x=1
+      fi
+      shift
+    done
+    if [ -n "$1" ]; then
+      lines="$($NSLOOKUP "$1" 2>/dev/null)"
+      IFS=$EOL
+      for line in $lines; do
+        cnt=$((cnt + 1))
+        if [ $cnt -gt 2 ]; then
+          case "$line" in
+            Address*) addr="$(echo "$line" |sed -e 's/^Address.*: *//' -e 's/ .*$//')"
+                      name="$(echo "$line" |sed -e 's/^.* //')"
+                      ;;
+            *'canonical name = '*) addr=""
+                                   name=""
+                                   ;;
+            *'name = '*) addr="$1"
+                         name="$(echo "$line" |sed -e 's/^.*name = *//' -e 's/ .*$//')"
+                         ;;
+            *) addr=""
+               name=""
+               ;;
+          esac
+          if [ -n "$addr" -a "$x" = 0 ]; then
+            echo "$addr"
+            return 0
+          elif [ -n "$name" -a "$x" = 1 ]; then
+            echo "$name"
+            return 0
+          fi
+        fi
+      done
+      return 9
+    fi
+    return 1
+  else
+    return 9
+  fi
+}
+
+
 # Helper function to expand out wildcards in interface name list
 wildcard_ifs()
 {
@@ -659,21 +740,21 @@ gethostbyaddr()
   
   shift
   if [ $# -gt 0 ]; then
-    result="$(dig "$@" +short -x "$host" 2>/dev/null)"
+    result="$(dig "$@" -x "$host")"
     retval=$?
   else
     if [ "$DNS_FAST_FAIL" = "1" ]; then
-      result="$(dig +short +tries=1 +time=1 -x "$host" 2>/dev/null)"
+      result="$(dig +tries=1 +time=1 -x "$host")"
       retval=$?
     else
-      result="$(dig +short -x "$host" 2>/dev/null)"
+      result="$(dig -x "$host")"
       retval=$?
     fi
   fi
 
   if [ "$retval" = "0" ]; then
     if [ -n "$result" ]; then
-      echo "$result" |grep -v -e "^;;" |head -n1
+      echo "$result"
       return 0
     else
       return 1
@@ -699,21 +780,21 @@ gethostbyname()
   
   shift
   if [ $# -gt 0 ]; then
-    result="$(dig "$@" +short "$host" 2>/dev/null)"
+    result="$(dig "$@" "$host")"
     retval=$?
   else
     if [ "$DNS_FAST_FAIL" = "1" ]; then
-      result="$(dig +short +tries=1 +time=1 "$host" 2>/dev/null)"
+      result="$(dig +tries=1 +time=1 "$host")"
       retval=$?
     else
-      result="$(dig +short "$host" 2>/dev/null)"
+      result="$(dig "$host")"
       retval=$?
     fi
   fi
 
   if [ "$retval" = "0" ]; then
     if [ -n "$result" ]; then
-      echo "$result" |grep -v -e "^;;" |head -n1
+      echo "$result"
       return 0
     else
       return 1
