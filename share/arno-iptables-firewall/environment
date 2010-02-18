@@ -52,6 +52,17 @@ trace()
 }
 
 
+# Find command path with '/hint/path/command' as the argument
+find_command()
+{
+  if [ -x "$1" ]; then
+    echo "$1"
+  else
+    echo "$(which $(basename "$1") 2>/dev/null)"
+  fi
+}
+
+
 # Check whether a certain command is available
 check_command()
 {
@@ -998,43 +1009,25 @@ fi
 # Detect all binaries
 #####################
 if [ -z "$IP6TABLES" ]; then
-  if [ -x /sbin/ip6tables ]; then
-    IP6TABLES="/sbin/ip6tables"
-  else
-    IP6TABLES=`which ip6tables 2>/dev/null`
-  fi
+  IP6TABLES="$(find_command /sbin/ip6tables)"
 fi
 
 if [ -z "$IP4TABLES" ]; then
-  if [ -x /sbin/iptables ]; then
-    IP4TABLES="/sbin/iptables"
-  else
-    IP4TABLES=`which iptables 2>/dev/null`
-  fi
+  IP4TABLES="$(find_command /sbin/iptables)"
 fi
 
-if [ -x /sbin/ip ]; then
-  IP='/sbin/ip'
-else
-  IP=`which ip 2>/dev/null`
-fi
+IP="$(find_command /sbin/ip)"
 
-if [ -x /sbin/tc ]; then
-  TC='/sbin/tc'
-else
-  TC=`which tc 2>/dev/null`
-fi
+TC="$(find_command /sbin/tc)"
 
-if [ -x /sbin/sysctl ]; then
-  SYSCTL='/sbin/sysctl'
-else
-  SYSCTL=`which sysctl 2>/dev/null`
-fi
+SYSCTL="$(find_command /sbin/sysctl)"
 
-if [ -x /sbin/modprobe ]; then
-  MODPROBE='/sbin/modprobe'
-else
-  MODPROBE=`which modprobe 2>/dev/null`
+MODPROBE="$(find_command /sbin/modprobe)"
+
+DIG="$(find_command /usr/bin/dig)"
+
+if [ -z "$DIG" ]; then
+  NSLOOKUP="$(find_command /usr/bin/nslookup)"
 fi
 
 if [ "$IPV6_SUPPORT" = "1" ]; then
@@ -1051,15 +1044,9 @@ else
   ICMP_TYPE="--icmp-type"
 fi
 
-IPTABLES_SAVE="$IPTABLES"-save
-if [ ! -x "$IPTABLES_SAVE" ]; then
-  IPTABLES_SAVE=$(which $(basename "$IPTABLES_SAVE") 2>/dev/null)
-fi
+IPTABLES_SAVE="$(find_command "$IPTABLES"-save)"
 
-IPTABLES_RESTORE="$IPTABLES"-restore
-if [ ! -x "$IPTABLES_RESTORE" ]; then
-  IPTABLES_RESTORE=$(which $(basename "$IPTABLES_RESTORE") 2>/dev/null)
-fi
+IPTABLES_RESTORE="$(find_command "$IPTABLES"-restore)"
 
 # check for tracing
 ###################
