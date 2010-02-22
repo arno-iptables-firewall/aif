@@ -437,10 +437,17 @@ ip()
 ####################
 dig()
 {
-  local cnt=0 x=0 addr name line lines IFS
+  local cnt=0 x=0 addr name line lines IFS retval
 
   if [ -n "$DIG" ]; then
-    lines="$($DIG +short "$@" 2>/dev/null)"
+    if [ "$DNS_FAST_FAIL" = "1" ]; then
+      lines="$($DIG +short +tries=1 +time=1 "$@" 2>/dev/null)"
+      retval=$?
+    else
+      lines="$($DIG +short "$@" 2>/dev/null)"
+      retval=$?
+    fi
+    
     while [ $# -gt 1 ]; do
       if [ "$1" = "-x" ]; then
         x=1
@@ -468,7 +475,7 @@ dig()
         return 0
       fi
     done
-    return 9
+    return $retval
   elif [ -n "$NSLOOKUP" ]; then
     while [ $# -gt 1 ]; do
       if [ "$1" = "-x" ]; then
@@ -746,24 +753,14 @@ gethostbyaddr()
 
   # Don't try to resolve DNS names:
   if ! is_numeric_ipv4 "$host" && ! is_numeric_ipv6 "$host"; then
-    # It's an DNS name already, so just return it
+    # It's a DNS name already, so just return it
     echo "$host"
     return 0
   fi
   
   shift
-  if [ $# -gt 0 ]; then
-    result="$(dig "$@" -x "$host")"
-    retval=$?
-  else
-    if [ "$DNS_FAST_FAIL" = "1" ]; then
-      result="$(dig +tries=1 +time=1 -x "$host")"
-      retval=$?
-    else
-      result="$(dig -x "$host")"
-      retval=$?
-    fi
-  fi
+  result="$(dig -x "$@" "$host")"
+  retval=$?
 
   if [ "$retval" = "0" ]; then
     if [ -n "$result" ]; then
@@ -792,18 +789,8 @@ gethostbyname()
   fi
   
   shift
-  if [ $# -gt 0 ]; then
-    result="$(dig "$@" "$host")"
-    retval=$?
-  else
-    if [ "$DNS_FAST_FAIL" = "1" ]; then
-      result="$(dig +tries=1 +time=1 "$host")"
-      retval=$?
-    else
-      result="$(dig "$host")"
-      retval=$?
-    fi
-  fi
+  result="$(dig "$@" "$host")"
+  retval=$?
 
   if [ "$retval" = "0" ]; then
     if [ -n "$result" ]; then
