@@ -1,5 +1,6 @@
-Version 1.9.2i (February 18, 2010)
+Version 1.9.2i (February 23, 2010)
 ----------------------------------
+* Modify the install script to make the firewall start after the network is brought up on boot
 + Add dig() function wrapper that degrades to nslookup if dig is not available
 * Refactor check_binary() into seperate check_command() & check_command_error() functions + make dig a required binary
 + New DynDNS & Traffic Accounting plugins. Main improvement is that they feature
