@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.02a"
+MY_VERSION="1.02b"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -260,7 +260,7 @@ gzip -c -v ./share/man/man1/arno-fwfilter.1 >/usr/local/share/man/man8/arno-fwfi
 mkdir -pv /etc/arno-iptables-firewall/plugins
 copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/
 
-copy_overwrite ./etc/init.d/arno-iptables-firewall /etc/init.d/
+copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
 
 copy_overwrite ./etc/arno-iptables-firewall/firewall.conf ./etc/arno-iptables-firewall/firewall.conf.dist
 copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
@@ -273,7 +273,7 @@ echo ""
 if get_user_yn "Do you want to run the configuration script (Y/N)?" "y"; then
   ./configure.sh
 fi
- 
+
 echo ""
 echo "-------------------------------------------------------------------------------"
 echo "** NOTE: You can now (manually) start the firewall by executing              **"
