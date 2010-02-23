@@ -64,7 +64,7 @@ sanity_check()
   check_command_error logger
   check_command_error chmod
   check_command_error chown
-  check_command_warning dig
+  check_command_warning dig || check_command_error nslookup
 }
 
 
