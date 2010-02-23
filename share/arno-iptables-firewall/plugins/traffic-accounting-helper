@@ -136,7 +136,7 @@ traffic_accounting_host_to_cache()
     if [ -z "$host_ip" ]; then
       # Try to get from (old) cache, if allowed
       if [ "$TRAFFIC_ACCOUNTING_OLD_CACHE_FALLBACK" = "1" ]; then
-        host_ip=`dyndns_get_cached_host $host`
+        host_ip=`traffic_accounting_get_cached_host $host`
       fi
       
       # (Re)check $host_ip
