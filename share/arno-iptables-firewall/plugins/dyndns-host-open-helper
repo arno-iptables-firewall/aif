@@ -60,6 +60,11 @@ sanity_check()
     return 1
   fi
 
+  if ! check_command dig nslookup; then
+    echo "** ERROR: Required command dig (or nslookup) is not available!" >&2
+    return 1
+  fi
+
   return 0
 }
 

@@ -5,7 +5,7 @@ PLUGIN_NAME="Traffic Accounting plugin"
 PLUGIN_VERSION="1.0BETA (EXPERIMENTAL!)"
 PLUGIN_CONF_FILE="traffic-accounting.conf"
 #
-# Last changed          : February 15, 2010
+# Last changed          : February 25, 2010
 # Requirements          : AIF 1.9.2i+
 # Comments              : This implements support for traffic accounting. It is
 #                         works with dynamic hostnames (non-static IPs)
@@ -110,7 +110,12 @@ plugin_sanity_check()
     printf "\033[40m\033[1;31m  ERROR: The traffic-accounting-helper script can not be found or is not executable!\033[0m\n" >&2
     return 1
   fi
-
+  
+  if ! check_command dig nslookup; then
+    printf "\033[40m\033[1;31m  ERROR: Required command dig (or nslookup) is not available!\033[0m\n" >&2
+    return 1
+  fi
+  
   return 0
 }
 

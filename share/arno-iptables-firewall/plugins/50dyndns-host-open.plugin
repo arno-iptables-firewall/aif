@@ -5,7 +5,7 @@ PLUGIN_NAME="DynDNS Host Open plugin"
 PLUGIN_VERSION="1.1BETA (EXPERIMENTAL!)"
 PLUGIN_CONF_FILE="dyndns-host-open.conf"
 #
-# Last changed          : February 15, 2010
+# Last changed          : February 25, 2010
 # Requirements          : kernel 2.6 + AIF 1.9.2i or better
 # Comments              : This implements support to open ports for DynDNS hosts
 #
@@ -106,6 +106,11 @@ plugin_sanity_check()
 
   if [ ! -x "$PLUGIN_BIN_PATH/dyndns-host-open-helper" ]; then
     printf "\033[40m\033[1;31m  ERROR: The dyndns-host-open-helper script can not be found or is not executable!\033[0m\n" >&2
+    return 1
+  fi
+  
+  if ! check_command dig nslookup; then
+    printf "\033[40m\033[1;31m  ERROR: Required command dig (or nslookup) is not available!\033[0m\n" >&2
     return 1
   fi
 

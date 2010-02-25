@@ -56,23 +56,28 @@ sanity_check()
 
   # Check whether chains exists
   if ! iptables -nL ACCOUNTING_INPUT_CHAIN >/dev/null 2>&1; then
-    echo "  ** ERROR: ACCOUNTING_INPUT_CHAIN does not exist! **" >&2
+    echo "** ERROR: ACCOUNTING_INPUT_CHAIN does not exist! **" >&2
     return 1
   fi
 
   if ! iptables -nL ACCOUNTING_OUTPUT_CHAIN >/dev/null 2>&1; then
-    echo "  ** ERROR: ACCOUNTING_OUTPUT_CHAIN does not exist! **" >&2
+    echo "** ERROR: ACCOUNTING_OUTPUT_CHAIN does not exist! **" >&2
     return 1
   fi
 
   # Check if chains inserted in the main chains
   if ! iptables -nL INPUT |grep -q '^ACCOUNTING_INPUT_CHAIN '; then
-    echo "  ** ERROR: ACCOUNTING_INPUT_CHAIN is not inserted in the INPUT chain! **" >&2
+    echo "** ERROR: ACCOUNTING_INPUT_CHAIN is not inserted in the INPUT chain! **" >&2
     return 1
   fi
 
   if ! iptables -nL OUTPUT |grep -q '^ACCOUNTING_OUTPUT_CHAIN '; then
-    echo "  ** ERROR: ACCOUNTING_OUTPUT_CHAIN is not inserted in the OUTPUT chain! **" >&2
+    echo "** ERROR: ACCOUNTING_OUTPUT_CHAIN is not inserted in the OUTPUT chain! **" >&2
+    return 1
+  fi
+
+  if ! check_command dig nslookup; then
+    echo "** ERROR: Required command dig (or nslookup) is not available!" >&2
     return 1
   fi
 
