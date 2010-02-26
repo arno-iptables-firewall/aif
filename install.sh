@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.02b"
+MY_VERSION="1.02c"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -262,7 +262,7 @@ copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firew
 
 copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
 
-copy_overwrite ./etc/arno-iptables-firewall/firewall.conf ./etc/arno-iptables-firewall/firewall.conf.dist
+copy_overwrite ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf.dist
 copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
 copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
 
