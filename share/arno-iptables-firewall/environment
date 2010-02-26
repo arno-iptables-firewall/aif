@@ -1141,20 +1141,19 @@ if [ "$TRACE" = "1" ]; then
   cp /dev/null $TRACEFILE
 fi
 
+# Default NAT_INTERNAL_NET to INTERNAL_NET, if not specified
+############################################################
+if [ -z "$NAT_INTERNAL_NET" ]; then
+  NAT_INTERNAL_NET="$INTERNAL_NET"
+fi
 
 # Check plugin bin path and fallback in case it's empty
 #######################################################
 if [ -z "$PLUGIN_BIN_PATH" ]; then
   if [ -d "/usr/local/share/arno-iptables-firewall/plugins" ]; then
     PLUGIN_BIN_PATH="/usr/local/share/arno-iptables-firewall/plugins"
-  else
-    if [ -d "/usr/share/arno-iptables-firewall/plugins" ]; then
-      PLUGIN_BIN_PATH="/usr/share/arno-iptables-firewall/plugins"
-    else
-      printf "\033[40m\033[1;31mERROR: The plugin binary path (PLUGIN_BIN_PATH) has not been specified\033[0m\n" >&2
-      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
-      exit 2
-    fi
+  elif [ -d "/usr/share/arno-iptables-firewall/plugins" ]; then
+    PLUGIN_BIN_PATH="/usr/share/arno-iptables-firewall/plugins"
   fi
 fi
 
@@ -1166,14 +1165,5 @@ PLUGIN_PATH="$PLUGIN_BIN_PATH"
 if [ -z "$PLUGIN_CONF_PATH" ]; then
   if [ -d "/etc/arno-iptables-firewall/plugins" ]; then
     PLUGIN_CONF_PATH="/etc/arno-iptables-firewall/plugins"
-  else
-    printf "\033[40m\033[1;31mERROR: The plugin config path (PLUGIN_CONF_PATH) has not been specified\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
-    exit 2
   fi
-fi
-
-# Default NAT_INTERNAL_NET to INTERNAL_NET, if not specified
-if [ -z "$NAT_INTERNAL_NET" ]; then
-  NAT_INTERNAL_NET="$INTERNAL_NET"
 fi

@@ -1,3 +1,9 @@
+Version 1.9.2j (February 26, 2010)
+----------------------------------
+! Check for dig/nslookup in the main script when RESOLV_IPS=1
+! PLUGIN config & binary path check should be in the main script else our
+  install script fails on fresh installs or old 1.8 upgrades
+
 Version 1.9.2i (February 23, 2010)
 ----------------------------------
 * Modify the install script to make the firewall start after the network is brought up on boot

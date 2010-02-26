@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="1.9.2i"
+MY_VERSION="1.9.2j"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -219,6 +219,22 @@ config_check()
       printf "\033[40m\033[1;31mWARNING: You are using the BROADCAST_xxx_NOLOG variables but EXTERNAL_NET and EXT_NET_BCAST_ADDRESS\033[0m\n" >&2
       printf "\033[40m\033[1;31m         have NOT been defined!\033[0m\n" >&2
     fi
+  fi
+
+  # Check whether we know the plugin binary path
+  ##############################################
+  if [ -z "$PLUGIN_BIN_PATH" ]; then
+    printf "\033[40m\033[1;31mERROR: The plugin binary path (PLUGIN_BIN_PATH) has not been specified\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+    exit 2
+  fi
+
+  # Check whether we know the plugin config path
+  ##############################################
+  if [ -z "$PLUGIN_CONF_PATH" ]; then
+    printf "\033[40m\033[1;31mERROR: The plugin config path (PLUGIN_CONF_PATH) has not been specified\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+    exit 2
   fi
 }
 
