@@ -99,7 +99,7 @@ sanity_check()
   check_command_error logger
   
   if [ "$RESOLV_IPS" = "1" ]; then
-    check_command_warning dig || check_command_error nslookup
+    check_command_error dig nslookup
   fi
 
   # Passed all sanity checks :-)
