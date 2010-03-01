@@ -199,7 +199,7 @@ traffic_accounting_setup_rules()
   
   IFS=' ,'
   # Also add catch all rule (0.0.0.0/0)
-  for host in $TRAFFIC_ACCOUNTING_HOSTS 0.0.0.0/0; do
+  for host in 0.0.0.0/0 $TRAFFIC_ACCOUNTING_HOSTS; do
     if [ "$VERBOSE" = "1" ]; then
       printf "Host=$host "
     fi
@@ -259,8 +259,13 @@ traffic_accounting_setup_rules()
       if [ "$VERBOSE" = "1" ]; then
         printf "in_action=add "
       fi
-      iptables -A ACCOUNTING_INPUT_CHAIN -s $new_ip -j RETURN
-
+      
+      if [ "$new_ip" = "0.0.0.0/0" ]; then
+        iptables -A ACCOUNTING_INPUT_CHAIN -s 0.0.0.0/0 -j RETURN
+      else
+        iptables -I ACCOUNTING_INPUT_CHAIN 1 -s $new_ip -j RETURN
+      fi
+      
       # Preset values to zero as none exist yet
       ipt_in_value=0
     fi
@@ -291,7 +296,12 @@ traffic_accounting_setup_rules()
       if [ "$VERBOSE" = "1" ]; then
         printf "out_action=add "
       fi
-      iptables -A ACCOUNTING_OUTPUT_CHAIN -d $new_ip -j RETURN
+
+      if [ "$new_ip" = "0.0.0.0/0" ]; then
+        iptables -A ACCOUNTING_OUTPUT_CHAIN -d 0.0.0.0/0 -j RETURN
+      else
+        iptables -I ACCOUNTING_OUTPUT_CHAIN 1 -d $new_ip -j RETURN
+      fi
 
       # Preset values to zero as none exist yet
       ipt_out_value=0

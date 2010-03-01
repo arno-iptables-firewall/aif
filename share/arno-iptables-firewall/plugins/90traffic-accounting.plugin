@@ -2,14 +2,13 @@
 #            -= Arno's iptables firewall - Traffic Accounting plugin =-
 #
 PLUGIN_NAME="Traffic Accounting plugin"
-PLUGIN_VERSION="1.0BETA (EXPERIMENTAL!)"
+PLUGIN_VERSION="1.01BETA (EXPERIMENTAL!)"
 PLUGIN_CONF_FILE="traffic-accounting.conf"
 #
-# Last changed          : February 25, 2010
+# Last changed          : March 1, 2010
 # Requirements          : AIF 1.9.2i+
 # Comments              : This implements support for traffic accounting. It is
 #                         works with dynamic hostnames (non-static IPs)
-#
 #
 # Author                : (C) Copyright 2008-2010 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
