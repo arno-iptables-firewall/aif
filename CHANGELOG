@@ -1,3 +1,8 @@
+Version 1.9.2k (March 1, 2010)
+----------------------------------
++ Added 224.0.0.0/24 to the list of broadcast destination addresses
++ Updated traffic-accounting-plugin
+
 Version 1.9.2j (February 26, 2010)
 ----------------------------------
 + Check for dig/nslookup in the main script when RESOLV_IPS=1

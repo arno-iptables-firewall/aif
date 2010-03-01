@@ -3342,6 +3342,7 @@ setup_ext_input_chain()
       for port in $ports; do
         for interface in $interfaces; do
           iptables -A EXT_INPUT_CHAIN -i $interface -d 255.255.255.255 -p tcp --dport $port -j DROP
+          iptables -A EXT_INPUT_CHAIN -i $interface -d 224.0.0.0/24 -p tcp --dport $port -j DROP
 
           #iptables -A EXT_INPUT_CHAIN -i $interface -p tcp --dport $port -m pkttype --pkt-type broadcast -j DROP
           #iptables -A EXT_INPUT_CHAIN -i $interface -p tcp --dport $port -m addrtype --dst-type BROADCAST -j DROP
@@ -3382,7 +3383,8 @@ setup_ext_input_chain()
       for port in $ports; do
         for interface in $interfaces; do
           iptables -A EXT_INPUT_CHAIN -i $interface -d 255.255.255.255 -p udp --dport $port -j DROP
-
+          iptables -A EXT_INPUT_CHAIN -i $interface -d 224.0.0.0/24 -p udp --dport $port -j DROP
+          
           #iptables -A EXT_INPUT_CHAIN -i $interface -p udp --dport $port -m pkttype --pkt-type broadcast -j DROP
           #iptables -A EXT_INPUT_CHAIN -i $interface -p udp --dport $port -m addrtype --dst-type BROADCAST -j DROP
           if [ -n "$EXT_NET_BCAST_ADDRESS" ]; then
