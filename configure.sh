@@ -235,7 +235,7 @@ echo "--------------------------------------------------------------------------
 sanity_check;
 
 # Remove any symlinks in rc*.d out of the way
-rm -f /etc/rc*.d/*arno-iptables-firewall 2>/dev/null
+rm -f /etc/rc*.d/*arno-iptables-firewall
 
 if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/) (Y/N)?" "y"; then
   if [ -d /etc/rcS.d ]; then

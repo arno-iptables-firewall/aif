@@ -4319,7 +4319,7 @@ plugins_stop()
         printf "\033[40m\033[1;31mERROR: Could not stop plugin \"$plugin_name\" as it does no exist!\033[0m\n" >&2 
       fi
     done
-    rm -f "$PLUGIN_LOAD_FILE" 2>/dev/null
+    rm -f "$PLUGIN_LOAD_FILE"
   fi
 }
 

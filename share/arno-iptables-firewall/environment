@@ -937,23 +937,23 @@ iptables_batch()
   if [ -n "$CHAIN" ]; then
     CHAINFILE="$IPTABLES_BATCH_FILE"_"$CHAIN"
     if [ "$1" = "-A" ]; then
-      echo "$ARGS" >> $CHAINFILE
+      echo "$ARGS" >> "$CHAINFILE"
     elif [ "$1" = "init" ]; then
-      rm -f $CHAINFILE
+      rm -f "$CHAINFILE"
     elif [ "$1" = "apply" ]; then
-      sed -i "/^-A $CHAIN / r $CHAINFILE" $IPTABLES_BATCH_FILE
-      iptables_restore < $IPTABLES_BATCH_FILE
+      sed -i "/^-A $CHAIN / r $CHAINFILE" "$IPTABLES_BATCH_FILE"
+      iptables_restore < "$IPTABLES_BATCH_FILE"
       RESULT=$?
-      rm -f $CHAINFILE
+      rm -f "$CHAINFILE"
     else
       RESULT=1
     fi
   else
     if [ "$1" = "start" ]; then
-      iptables_save -t filter > $IPTABLES_BATCH_FILE
+      iptables_save -t filter > "$IPTABLES_BATCH_FILE"
       RESULT=$?
     elif [ "$1" = "stop" ]; then
-      rm -f $IPTABLES_BATCH_FILE
+      rm -f "$IPTABLES_BATCH_FILE"
     else
       RESULT=1
     fi

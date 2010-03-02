@@ -196,7 +196,7 @@ dyndns_setup_cache()
   done
 
   # Remove old cache file
-  rm -f "$DYNDNS_HOST_CACHE" 2>/dev/null
+  rm -f "$DYNDNS_HOST_CACHE"
   
   # Make our new cache file active
   mv "$DYNDNS_HOST_CACHE".new "$DYNDNS_HOST_CACHE"
