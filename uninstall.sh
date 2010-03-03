@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="0.12"
+MY_VERSION="1.0"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -39,7 +39,6 @@ sanity_check()
 }
 
 
-
 get_user_yn()
 {
   printf "$1 "
@@ -65,7 +64,6 @@ get_user_yn()
 }
 
 
-
 # main line:
 AIF_VERSION="$(grep "MY_VERSION=" ./bin/arno-iptables-firewall |sed -e "s/^MY_VERSION=\"//" -e "s/\"$//")"
 
@@ -75,7 +73,7 @@ echo "--------------------------------------------------------------------------
 
 sanity_check;
 
-if get_user_yn "Continue uninstall (Y/N)? " "n"; then
+if ! get_user_yn "Continue uninstall (Y/N)? " "n"; then
   echo "*Uninstall aborted!"
   exit 1
 fi
@@ -105,4 +103,3 @@ echo "** Uninstall done **"
 echo ""
 
 exit 0
-
