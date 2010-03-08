@@ -2,10 +2,10 @@
 #      -= Arno's iptables firewall - HTB & HFSC traffic shaper plugin =-
 #
 PLUGIN_NAME="Traffic-Shaper plugin"
-PLUGIN_VERSION="1.2.02 (htb: well tested, hfsc: experimental)"
+PLUGIN_VERSION="1.2.03 (htb: well tested, hfsc: experimental)"
 PLUGIN_CONF_FILE="traffic-shaper.conf"
 #
-# Last changed          : September 11, 2009
+# Last changed          : March 07, 2010
 # Requirements          : kernel 2.6 + iproute
 # Comments              : This plugin will shape traffic. It borrows heavily on
 # 			  the logic of Maciej's original script (below), with
@@ -14,8 +14,8 @@ PLUGIN_CONF_FILE="traffic-shaper.conf"
 # 			  be a higher priority than browsing or bulk data
 # 			  transfer).
 #                  [LRA]: Added htb support from astshape in AstLinux
-#                  [LRA]: Classify UDP by DSCP class
-# Author                : (C) Copyright 2008-2009 by Philip Prindeville
+#                  [LRA]: Classify by DSCP class
+# Author                : (C) Copyright 2008-2010 by Philip Prindeville
 # Credits               : Maciej Blizinski
 # Credits               : Kristian Kielhofner
 # Credits               : Lonnie Abelbeck
@@ -41,83 +41,137 @@ PLUGIN_CONF_FILE="traffic-shaper.conf"
 # ------------------------------------------------------------------------------
 
 # Traffic classes:
-# 1:20 Streaming Media (VoIP) (RTP, IAX2, etc.)
-# 1:30 Interactive (ssh, SIP-signaling, telnet, X, Vnc, ACK, etc.)
-# 1:40 Default
+# 1:10 Highest Priority - Low Volume (ICMP, tcp-ACK, NTP, etc.)
+# 1:20 Streaming Media - VoIP (RTP, IAX2, etc.)
+# 1:30 Interactive - Shell (ssh, telnet, X, Vnc, etc.)
+# 1:40 Default (SIP-signaling)
 # 1:50 Bulk data transfer (HTTP, HTTPS, POP3, SMTP, FTP, etc.)
+# 1:60 Lowest priority (P2P)
 
 # Helper functions
-setclassbyport_hfsc()
+setclassbyport()
 {
-  local class=$2
+  local pport="$1" class="$2" port sport proto IFS
 
-  case $1 in
-    t*) proto=tcp; port="$(echo "$1" | cut -c2- )" ;;
-    u*) proto=udp; port="$(echo "$1" | cut -c2- )" ;;
-    *)  printf "\033[40m\033[1;31m  ERROR: Unknown protocol/port $port!\n\033[0m" >&2
+  case $pport in
+    t*) proto=tcp; port="${pport#t}" ;;
+    u*) proto=udp; port="${pport#u}" ;;
+    *)  printf "\033[40m\033[1;31m  ERROR: Unknown protocol/port $pport!\n\033[0m" >&2
         return 1 ;;
   esac
 
-  # we assume that on egress traffic, only the destination port is
+  # We assume that on egress traffic, only the destination port is
   # significant, i.e. that we're not running any servers locally.
   iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --dport $port -j CLASSIFY \
 	--set-class $class
+  iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --dport $port -j RETURN
+
+  # If we are running servers locally, include the protocol/port from the
+  # SHAPER_LOCAL_SERVER_PORTS variable to also generate a --sport classify rule.
+  # Note that this could have been done using an associative array in a single pass.
+  IFS=' ,'
+  for sport in $SHAPER_LOCAL_SERVER_PORTS; do
+    if [ "$sport" = "$pport" ]; then
+      iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --sport $port -j CLASSIFY \
+	    --set-class $class
+      iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --sport $port -j RETURN
+      break
+    fi
+  done
 
   return 0
 }
 
-setclassbyport_htb()
+classify_by_port()
 {
-  local class=$2
+  local port IFS
 
-  case $1 in
-    t*) proto=tcp; port="$(echo "$1" | cut -c2- )" ;;
-    u*) proto=udp; port="$(echo "$1" | cut -c2- )" ;;
-    *)  printf "\033[40m\033[1;31m  ERROR: Unknown protocol/port $port!\n\033[0m" >&2
-        return 1 ;;
-  esac
+  # Automatically set UDP 123 (NTP) to highest priority class
+  setclassbyport u123 1:10
 
-  iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --dport $port -j CLASSIFY \
-	--set-class $class
-  iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --sport $port -j CLASSIFY \
-	--set-class $class
+  IFS=' ,'
+  for port in $SHAPER_STREAMINGMEDIA_PORTS; do
+    setclassbyport $port 1:20
+  done
 
-  return 0
+  IFS=' ,'
+  for port in $SHAPER_INTERACTIVE_PORTS; do
+    setclassbyport $port 1:30
+  done
+
+  IFS=' ,'
+  for port in $SHAPER_BULKDATA_PORTS; do
+    setclassbyport $port 1:50
+  done
+
+  IFS=' ,'
+  for port in $SHAPER_P2P_PORTS; do
+    setclassbyport $port 1:60
+  done
 }
 
 classify_special_packets()
 {
   # To speed up downloads while an upload is going on, put short ACK
-  # packets in the interactive class:
+  # packets in the high priority class:
   iptables -t mangle -A SHAPER_CHAIN \
 	-p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK ACK \
 	-m length --length :64 \
-	-j CLASSIFY --set-class 1:30
+	-j CLASSIFY --set-class 1:10
+  iptables -t mangle -A SHAPER_CHAIN \
+	-p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK ACK \
+	-m length --length :64 \
+	-j RETURN
 
-  # put large (512+) icmp packets in browsing category
+  # put large (512+) icmp packets in bulk category
   iptables -t mangle -A SHAPER_CHAIN \
 	-p icmp \
 	-m length --length 512: \
 	-j CLASSIFY --set-class 1:50
+  iptables -t mangle -A SHAPER_CHAIN \
+	-p icmp \
+	-m length --length 512: \
+	-j RETURN
 
-  # ICMP in the interactive class
+  # ICMP in the high priority class
   iptables -t mangle -A SHAPER_CHAIN \
 	-p icmp \
 	-m length --length :512 \
-	-j CLASSIFY --set-class 1:30
-
-  return 0
+	-j CLASSIFY --set-class 1:10
+  iptables -t mangle -A SHAPER_CHAIN \
+	-p icmp \
+	-m length --length :512 \
+	-j RETURN
 }
 
 classify_by_dscp_class()
 {
-  # Classify UDP by DSCP class, assume VoIP audio is marked as EF, and SIP as CS3
-  iptables -t mangle -A SHAPER_CHAIN -m udp -p udp -m dscp --dscp-class EF -j CLASSIFY --set-class 1:20
-  iptables -t mangle -A SHAPER_CHAIN -m udp -p udp -m dscp --dscp-class AF21 -j CLASSIFY --set-class 1:20
-  iptables -t mangle -A SHAPER_CHAIN -m udp -p udp -m dscp --dscp-class CS3 -j CLASSIFY --set-class 1:30
-  iptables -t mangle -A SHAPER_CHAIN -m udp -p udp -m dscp --dscp-class AF31 -j CLASSIFY --set-class 1:30
+  # Classify by DSCP class
+  # Assume VoIP audio is marked as EF, and SIP as CS3
 
-  return 0
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class CS7 -j CLASSIFY --set-class 1:10
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class CS6 -j CLASSIFY --set-class 1:10
+
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class EF -j CLASSIFY --set-class 1:20
+
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class CS5 -j CLASSIFY --set-class 1:30
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class CS4 -j CLASSIFY --set-class 1:30
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF41 -j CLASSIFY --set-class 1:30
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF42 -j CLASSIFY --set-class 1:30
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF43 -j CLASSIFY --set-class 1:30
+
+  # Default: --set-class 1:40
+  # CS0, CS3, AF31, AF32, AF33
+
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class CS2 -j CLASSIFY --set-class 1:50
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF21 -j CLASSIFY --set-class 1:50
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF22 -j CLASSIFY --set-class 1:50
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF23 -j CLASSIFY --set-class 1:50
+
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class CS1 -j CLASSIFY --set-class 1:60
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF11 -j CLASSIFY --set-class 1:60
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF12 -j CLASSIFY --set-class 1:60
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF13 -j CLASSIFY --set-class 1:60
 }
 
 incoming_traffic_limit()
@@ -130,8 +184,6 @@ incoming_traffic_limit()
   # coming in too fast:
   tc filter add dev $1 parent ffff: protocol ip prio 100 u32 match ip src \
      0.0.0.0/0 police rate ${DOWNLINK}kbit burst $((1*$DOWNLINK/10))k drop flowid :1
-
-  return 0
 } 
 
 # Plugin start function
@@ -151,7 +203,7 @@ plugin_start_hfsc()
 {
   # Some required modules are already loaded by the main script:
   modprobe ip_nat
-#   modprobe ip_table
+  # modprobe ip_table
 
   if ! modprobe sch_hfsc; then
     printf "\033[40m\033[1;31m  ERROR: Couldn't load kernel module sch_hfsc!\033[m\n" >&2
@@ -164,20 +216,7 @@ plugin_start_hfsc()
 
   classify_special_packets
 
-  IFS=' ,'
-  for port in $SHAPER_BULKDATA_PORTS; do
-    setclassbyport_hfsc $port 1:50
-  done
-
-  IFS=' ,'
-  for port in $SHAPER_INTERACTIVE_PORTS; do
-    setclassbyport_hfsc $port 1:30
-  done
-
-  IFS=' ,'
-  for port in $SHAPER_STREAMINGMEDIA_PORTS; do
-    setclassbyport_hfsc $port 1:20
-  done
+  classify_by_port
 
   classify_by_dscp_class
 
@@ -194,26 +233,34 @@ plugin_start_hfsc()
       tc class add dev $eif1 parent 1: classid 1:1 hfsc \
     	sc rate ${UPLINK}kbit ul rate ${UPLINK}kbit
 
-      # Streaming Media: guarantee 1/2 uplink for 200ms, then 5/10
+      # Highest Priority: guarantee 2/10 uplink for 50ms, then 1/10
+      tc class add dev $eif1 parent 1:1 classid 1:10 hfsc \
+    	sc m1 $((2*$UPLINK/10))kbit d 50ms m2 $((1*$UPLINK/10))kbit \
+    	ul rate ${UPLINK}kbit
+
+      # Streaming Media: guarantee 5/10 uplink for 200ms, then 4/10
       tc class add dev $eif1 parent 1:1 classid 1:20 hfsc \
-    	sc m1 $((5*$UPLINK/10))kbit d 200ms m2 $((5*$UPLINK/10))kbit \
+    	sc m1 $((5*$UPLINK/10))kbit d 200ms m2 $((4*$UPLINK/10))kbit \
     	ul rate ${UPLINK}kbit
 
-      # Interactive traffic: guarantee 1/2 uplink for 50ms, then 3/10
+      # Interactive traffic: guarantee 3/10 uplink for 50ms, then 3/10
       tc class add dev $eif1 parent 1:1 classid 1:30 hfsc \
-    	sc m1 $((5*$UPLINK/10))kbit d 50ms m2 $((3*$UPLINK/10))kbit \
+    	sc m1 $((3*$UPLINK/10))kbit d 50ms m2 $((3*$UPLINK/10))kbit \
     	ul rate ${UPLINK}kbit
 
-      # Default traffic: don't guarantee anything for the first two seconds,
-      # then guarantee 1/20
+      # Default traffic: don't guarantee for 500ms, then guarentee 3/20
       tc class add dev $eif1 parent 1:1  classid 1:40 hfsc \
-    	sc m1           0 d    2s m2 $((3*$UPLINK/20))kbit \
+    	sc m1           0 d    500ms m2 $((3*$UPLINK/20))kbit \
     	ul rate ${UPLINK}kbit
 
-      # Bulk data traffic: don't guarantee anything for the first 2 seconds,
-      # then guarantee 1/20
+      # Bulk data traffic: don't guarantee for 2 seconds, then guarantee 1/20
       tc class add dev $eif1 parent 1:1  classid 1:50 hfsc \
     	sc m1           0 d    2s m2 $((1*$UPLINK/20))kbit \
+    	ul rate ${UPLINK}kbit
+
+      # P2P traffic: don't guarantee anything
+      tc class add dev $eif1 parent 1:1  classid 1:60 hfsc \
+    	sc m1           0 d    4s m2 1kbit \
     	ul rate ${UPLINK}kbit
 
       incoming_traffic_limit $eif1
@@ -238,20 +285,7 @@ plugin_start_htb()
 
   classify_special_packets
 
-  IFS=' ,'
-  for port in $SHAPER_BULKDATA_PORTS; do
-    setclassbyport_htb $port 1:50
-  done
-
-  IFS=' ,'
-  for port in $SHAPER_INTERACTIVE_PORTS; do
-    setclassbyport_htb $port 1:30
-  done
-
-  IFS=' ,'
-  for port in $SHAPER_STREAMINGMEDIA_PORTS; do
-    setclassbyport_htb $port 1:20
-  done
+  classify_by_port
 
   classify_by_dscp_class
 
@@ -266,32 +300,37 @@ plugin_start_htb()
       #shape everything at $UPLINK speed to prevent queing
       tc class add dev $eif1 parent 1: classid 1:1 htb rate ${UPLINK}kbit burst 6k
 
+      # highest priority class 1:10
+      tc class add dev $eif1 parent 1:1 classid 1:10 htb rate ${UPLINK}kbit burst 6k prio 1
+
       # streaming media class 1:20
-      tc class add dev $eif1 parent 1:1 classid 1:20 htb rate ${UPLINK}kbit burst 6k prio 1
+      tc class add dev $eif1 parent 1:1 classid 1:20 htb rate ${UPLINK}kbit burst 6k prio 2
 
       # interactive class 1:30
-      tc class add dev $eif1 parent 1:1 classid 1:30 htb rate ${UPLINK}kbit burst 6k prio 2
+      tc class add dev $eif1 parent 1:1 classid 1:30 htb rate ${UPLINK}kbit burst 6k prio 3
 
       # default class 1:40
-      tc class add dev $eif1 parent 1:1 classid 1:40 htb rate $((9*$UPLINK/10))kbit burst 6k prio 3
+      tc class add dev $eif1 parent 1:1 classid 1:40 htb rate $((9*$UPLINK/10))kbit burst 6k prio 4
 
       # bulk class 1:50
-      tc class add dev $eif1 parent 1:1 classid 1:50 htb rate $((8*$UPLINK/10))kbit burst 6k prio 4
+      tc class add dev $eif1 parent 1:1 classid 1:50 htb rate $((8*$UPLINK/10))kbit burst 6k prio 5
+
+      # p2p class 1:60
+      tc class add dev $eif1 parent 1:1 classid 1:60 htb rate $((5*$UPLINK/10))kbit burst 6k prio 6
 
       # all get Stochastic Fairness
+      tc qdisc add dev $eif1 parent 1:10 handle 10: sfq perturb 10
       tc qdisc add dev $eif1 parent 1:20 handle 20: sfq perturb 10
       tc qdisc add dev $eif1 parent 1:30 handle 30: sfq perturb 10
       tc qdisc add dev $eif1 parent 1:40 handle 40: sfq perturb 10
       tc qdisc add dev $eif1 parent 1:50 handle 50: sfq perturb 10
+      tc qdisc add dev $eif1 parent 1:60 handle 60: sfq perturb 10
 
       incoming_traffic_limit $eif1
     done
 
     # add SHAPER_CHAIN chain to mangle table in iptables
-    # Note: This strategy uses the OUTPUT chain, along with POSTROUTING, unlike the hfsc implimentation here.
-    #       The basis is from a proven technique in AstLinux (astshape).
     iptables -t mangle -A POSTROUTING -o $eif -j SHAPER_CHAIN
-    iptables -t mangle -A OUTPUT -o $eif -j SHAPER_CHAIN
   done
 
   return 0
@@ -301,18 +340,6 @@ plugin_start_htb()
 # Plugin stop function
 plugin_stop()
 {
-  case $SHAPER_TYPE in
-  hfsc)
-    plugin_stop_hfsc ;;
-
-  *)
-    plugin_stop_htb ;;
-  esac
-}
-
-# HFSC stop function
-plugin_stop_hfsc()
-{
   IFS=' ,'
   for eif in $EXT_IF; do
 
@@ -325,30 +352,6 @@ plugin_stop_hfsc()
 
     # Flush and delete tables
     iptables -t mangle -D POSTROUTING -o $eif -j SHAPER_CHAIN 2>/dev/null
-  done
-
-  iptables -t mangle -F SHAPER_CHAIN
-  iptables -t mangle -X SHAPER_CHAIN 2>/dev/null
-
-  return 0
-}
-
-# HTB stop function
-plugin_stop_htb()
-{
-  IFS=' ,'
-  for eif in $EXT_IF; do
-
-    # tc doesn't take wildcards, so we need expansion done here
-    for eif1 in $(wildcard_ifs $eif); do
-      # Reset everything to a known state (cleared)
-      tc qdisc del dev $eif1 root 2>/dev/null
-      tc qdisc del dev $eif1 ingress 2>/dev/null
-    done
-
-    # Flush and delete tables
-    iptables -t mangle -D POSTROUTING -o $eif -j SHAPER_CHAIN 2>/dev/null
-    iptables -t mangle -D OUTPUT -o $eif -j SHAPER_CHAIN 2>/dev/null
   done
 
   iptables -t mangle -F SHAPER_CHAIN
