@@ -2992,7 +2992,7 @@ setup_ext_input_chain()
     destips=`get_ips "$rule"`
     ports=`get_ports_ip "$rule"`
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying 0/0 for TCP port(s): $ports"
+    echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for TCP port(s): $ports"
 
     IFS=','
     for port in $ports; do
@@ -3015,7 +3015,7 @@ setup_ext_input_chain()
     destips=`get_ips "$rule"`
     ports=`get_ports_ip "$rule"`
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying 0/0 for UDP port(s): $ports"
+    echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for UDP port(s): $ports"
 
     IFS=','
     for port in $ports; do
@@ -3038,7 +3038,7 @@ setup_ext_input_chain()
     destips=`get_ips "$rule"`
     ports=`get_ports_ip "$rule"`
 
-    echo " $(show_if_ip "$interfaces" "$destips")Rejecting 0/0 for TCP port(s): $ports"
+    echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for TCP port(s): $ports"
 
     IFS=','
     for port in $ports; do
@@ -3061,7 +3061,7 @@ setup_ext_input_chain()
     destips=`get_ips "$rule"`
     ports=`get_ports_ip "$rule"`
 
-    echo " $(show_if_ip "$interfaces" "$destips")Rejecting 0/0 for UDP port(s): $ports"
+    echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for UDP port(s): $ports"
 
     IFS=','
     for port in $ports; do
@@ -3104,7 +3104,7 @@ setup_ext_input_chain()
     destips=`get_ips "$rule"`
     ports=`get_ports_ip "$rule"`
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying 0/0 for TCP port(s) (NO LOG): $ports"
+    echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for TCP port(s) (NO LOG): $ports"
 
     IFS=','
     for port in $ports; do
@@ -3124,7 +3124,7 @@ setup_ext_input_chain()
     destips=`get_ips "$rule"`
     ports=`get_ports_ip "$rule"`
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying 0/0 for UDP port(s) (NO LOG): $ports"
+    echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for UDP port(s) (NO LOG): $ports"
 
     IFS=','
     for port in $ports; do
@@ -3144,7 +3144,7 @@ setup_ext_input_chain()
     destips=`get_ips "$rule"`
     ports=`get_ports_ip "$rule"`
 
-    echo " $(show_if_ip "$interfaces" "$destips")Rejecting 0/0 for TCP port(s) (NO LOG): $ports"
+    echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for TCP port(s) (NO LOG): $ports"
 
     IFS=','
     for port in $ports; do
@@ -3164,7 +3164,7 @@ setup_ext_input_chain()
     destips=`get_ips "$rule"`
     ports=`get_ports_ip "$rule"`
 
-    echo " $(show_if_ip "$interfaces" "$destips")Rejecting 0/0 for UDP port(s) (NO LOG): $ports"
+    echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for UDP port(s) (NO LOG): $ports"
 
     IFS=','
     for port in $ports; do
@@ -3207,7 +3207,7 @@ setup_ext_input_chain()
     destips=`get_ips "$rule"`
     ports=`get_ports_ip "$rule"`
 
-    echo " $(show_if_ip "$interfaces" "$destips")Allowing 0/0 for TCP port(s): $ports"
+    echo " $(show_if_ip "$interfaces" "$destips")Allowing ANYHOST for TCP port(s): $ports"
 
     IFS=','
     for port in $ports; do
@@ -3228,7 +3228,7 @@ setup_ext_input_chain()
     destips=`get_ips "$rule"`
     ports=`get_ports_ip "$rule"`
 
-    echo " $(show_if_ip "$interfaces" "$destips")Allowing 0/0 for UDP port(s): $ports"
+    echo " $(show_if_ip "$interfaces" "$destips")Allowing ANYHOST for UDP port(s): $ports"
 
     IFS=','
     for port in $ports; do
@@ -3249,7 +3249,7 @@ setup_ext_input_chain()
     destips=`get_ips "$rule"`
     protos=`get_ports_ip "$rule"`
 
-    echo " $(show_if_ip "$interfaces" "$destips")Allowing 0/0 for IP protocol(s): $protos"
+    echo " $(show_if_ip "$interfaces" "$destips")Allowing ANYHOST for IP protocol(s): $protos"
 
     IFS=','
     for proto in $protos; do
@@ -3264,10 +3264,10 @@ setup_ext_input_chain()
   # Allow world to send ICMP packets?
   ###################################
   if [ "$OPEN_ICMP" = "1" ]; then
-    echo " Allowing 0/0 to send ICMP-requests(ping)"
+    echo " Allowing ANYHOST to send ICMP-requests(ping)"
     iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
   else
-    echo " Denying 0/0 to send ICMP-requests(ping)"
+    echo " Denying ANYHOST to send ICMP-requests(ping)"
   fi
 
   # Log incoming ICMP-request packets
