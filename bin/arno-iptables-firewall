@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="1.9.2k-DEVEL"
+MY_VERSION="1.9.2j"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -409,6 +409,10 @@ setup_kernel_settings()
 
 #  sysctl_multi -w net.netfilter.nf_conntrack_udp_timeout_stream=180 \
 #                  net.ipv4.netfilter.ip_conntrack_udp_timeout_stream=180
+
+  # Enable Conntrack Accounting (kernel config CONFIG_NF_CT_ACCT)
+  # CONFIG_NF_CT_ACCT is deprecated and will be removed sometime after kernel 2.6.27
+  sysctl -w net.netfilter.nf_conntrack_acct=1 2>/dev/null
 
   # Only set IPv4 options if IPv4 is used (and not IPv6)
   ######################################################

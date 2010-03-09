@@ -1,6 +1,5 @@
 Version 1.9.2k-DEVEL (March 7, 2010)
 ------------------------------------
-! Fixed kernel deprecation warning caused by the main script (CONFIG_NF_CT_ACCT)
 + Updated traffic-shaper-plugin, added two more queues, added more DSCP matches,
   updated "traffic-shaper.conf" template and support local server source port matches.
 + Added 224.0.0.0/24 to the list of broadcast destination addresses
