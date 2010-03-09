@@ -4458,7 +4458,7 @@ setup_firewall_rules()
     COUNT=$(($COUNT + 1))
     EXTIF_NET=$(echo "$EXTERNAL_NET" |awk "{ print \$$COUNT }")
 
-    printf " Applying external(INET) policy to interface: $interface"
+    printf "Applying external(INET) policy to interface: $interface"
     if [ -z "$EXTIF_NET" ]; then
       echo " (without an external subnet specified)"
     else
@@ -4497,7 +4497,7 @@ setup_firewall_rules()
 
     IFS=' ,'
     for interface in $INT_IF; do
-      echo " Applying internal(LAN) policy to interface: $interface"
+      echo "Applying internal(LAN) policy to interface: $interface"
       iptables -A INPUT -i $interface -j INT_INPUT_CHAIN
       iptables -A OUTPUT -o $interface -j INT_OUTPUT_CHAIN
     done
@@ -4512,7 +4512,7 @@ setup_firewall_rules()
 
     IFS=' ,'
     for interface in $DMZ_IF; do
-      echo " Applying DMZ policy to interface: $interface"
+      echo "Applying DMZ policy to interface: $interface"
       iptables -A INPUT -i $interface -j DMZ_INPUT_CHAIN
       iptables -A OUTPUT -o $interface -j DMZ_OUTPUT_CHAIN
     done
@@ -4623,7 +4623,7 @@ setup_firewall_rules()
 
     IFS=' ,'
     for dif in $DMZ_IF; do
-      echo " Applying DMZ FORWARD policy to interface: $dif"
+      echo "Applying DMZ FORWARD policy to interface: $dif"
       
       # Always make subnets on the SAME interface trust each other
       iptables -A FORWARD -i $dif -o $dif -j ACCEPT
@@ -4680,7 +4680,7 @@ setup_firewall_rules()
 
     IFS=' ,'
     for iif in $INT_IF; do
-      echo " Applying internal(LAN) FORWARD policy to interface: $iif"
+      echo "Applying internal(LAN) FORWARD policy to interface: $iif"
       
       # Always make subnets on the SAME interface trust each other
       iptables -A FORWARD -i $iif -o $iif -j ACCEPT
