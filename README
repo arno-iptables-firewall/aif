@@ -534,3 +534,39 @@ modules or compiled in your kernel):
                                            (kernel <2.6.16)
                                         - "TTL target support" (if you want to
                                            use TTL manipulation
+
+
+Kernel Configuration Special Issues
+-----------------------------------
+Some kernel versions, or series of versions, may have unique issues, below are topics
+related to the scope of this firewall script.
+
+1) Starting with kernel version 2.6.27, CONFIG_NF_CT_ACCT is deprecated, the result when
+the "nf_conntrack" module is loaded and the kernel has CONFIG_NF_CT_ACCT=y set,
+the following message is displayed:
+
+"CONFIG_NF_CT_ACCT is deprecated and will be removed soon. Please use
+nf_conntrack.acct=1 kernel paramater, acct=1 nf_conntrack module option or
+sysctl net.netfilter.nf_conntrack_acct=1 to enable it."
+
+The message is harmless, and can be safely ignored.  The arno-iptables-firewall script also
+sets net.netfilter.nf_conntrack_acct=1 in the case when CONFIG_NF_CT_ACCT is not set.
+
+Though, if you find this message annoying, it can be silenced via "make menuconfig":
+
+    -- Core Netfilter Configuration --
+  <M> Netfilter connection tracking support
+  [ ]   Connection tracking flow accounting
+
+if "Connection tracking flow accounting" can't be disabled, then also disable...
+
+  < >   "connbytes" per-connection counter match support
+
+may be required because of dependencies.  The resulting configuration settings are:
+
+  CONFIG_NF_CONNTRACK=m
+  # CONFIG_NF_CT_ACCT is not set
+  # CONFIG_NETFILTER_XT_MATCH_CONNBYTES is not set
+
+CONFIG_NF_CT_ACCT was scheduled to be removed in 2.6.29, but has not yet been removed.
+
