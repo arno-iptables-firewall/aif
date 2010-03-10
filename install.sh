@@ -229,6 +229,19 @@ get_user_yn()
 }
 
 
+detect_18_version()
+{
+  if [ -e "/etc/init.d/arno-iptables-firewall" ] && grep -q "^MY_VERSION=" "/etc/init.d/arno-iptables-firewall"; then
+    if get_user_yn "WARNING: An old version is still installed. Removing it first, is *STRONGLY* recommended. Remove (Y/N)?" "y"; then
+      rm -fv /etc/init.d/arno-iptables-firewall
+      mv -fv /etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/custom-rules.old
+      mv -fv /etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf.old
+      rm -fv /etc/arno-iptables-firewall/plugins/*.plugin
+      rm -fv /etc/rc*.d/*arno-iptables-firewall
+    fi
+  fi
+}
+
 # main line:
 AIF_VERSION="$(grep "MY_VERSION=" ./bin/arno-iptables-firewall |sed -e "s/^MY_VERSION=\"//" -e "s/\"$//")"
 
@@ -245,6 +258,9 @@ if ! get_user_yn "Continue install (Y/N)?" "n"; then
   echo "*Install aborted"
   exit 1
 fi
+
+# Make sure there still isn't an old version installed
+detect_18_version;
 
 copy_overwrite ./bin/ /usr/local/sbin/
 
