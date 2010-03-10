@@ -59,17 +59,15 @@ if [ "$VERBOSE" = "0" ]; then
 
   # Call firewall script:
   result=`$PROGRAM $*`
-  return_val=$?
+  retval=$?
 
-  if [ "$return_val" = "0" ]; then
-    echo "done."
-  else
-    echo "FAILED!"
+  if [ "$retval" != "0" ]; then
+    echo "FAILED!" >&2
   fi
 else
   $PROGRAM $*
-  return_val=$?
+  retval=$?
 fi
 
 # Return value:
-exit $return_val
+exit $retval
