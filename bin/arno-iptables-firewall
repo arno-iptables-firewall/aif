@@ -3311,12 +3311,12 @@ setup_ext_input_chain()
     echo " Logging of possible stealth scans enabled"
     if [ "$UNPRIV_TCP_LOG" != "0" ]; then
       iptables -A EXT_INPUT_CHAIN -p tcp ! --syn --dport 1024: \
-        -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Stealth scan (UNPRIV)?: "
+        -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Stealth scan? (UNPRIV): "
     fi
 
     if [ "$PRIV_TCP_LOG" != "0" ]; then
       iptables -A EXT_INPUT_CHAIN -p tcp ! --syn --dport :1023 \
-        -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Stealth scan (PRIV)?: "
+        -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Stealth scan? (PRIV): "
     fi
   else
     echo " Logging of possible stealth scans disabled"
