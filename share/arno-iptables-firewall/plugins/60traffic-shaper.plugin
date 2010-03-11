@@ -161,17 +161,14 @@ classify_by_dscp_class()
   iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF43 -j CLASSIFY --set-class 1:30
 
   # Default: --set-class 1:40
-  # CS0, CS3, AF31, AF32, AF33
+  # CS0, CS3, AF31, AF32, AF33, AF21, AF22, AF23
 
   iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class CS2 -j CLASSIFY --set-class 1:50
-  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF21 -j CLASSIFY --set-class 1:50
-  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF22 -j CLASSIFY --set-class 1:50
-  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF23 -j CLASSIFY --set-class 1:50
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF11 -j CLASSIFY --set-class 1:50
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF12 -j CLASSIFY --set-class 1:50
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF13 -j CLASSIFY --set-class 1:50
 
   iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class CS1 -j CLASSIFY --set-class 1:60
-  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF11 -j CLASSIFY --set-class 1:60
-  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF12 -j CLASSIFY --set-class 1:60
-  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF13 -j CLASSIFY --set-class 1:60
 }
 
 incoming_traffic_limit()
