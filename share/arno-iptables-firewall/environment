@@ -310,39 +310,46 @@ modprobe()
 # Multi modprobe - Modprobe different modules until one succeeds
 modprobe_multi()
 {
-  OPTIONS=""
+  local OPTIONS=
+  local MODULES=
+  # Split options and modules
   while [ -n "$1" ]; do
-    # Combine options and exit on first non-option
     case "$1" in
-      -*) OPTIONS="$OPTIONS${OPTIONS:+ }$1"; shift;;
-      *) break;;
+      -*) OPTIONS="$OPTIONS${OPTIONS:+ }$1";;
+       *) MODULES="${MODULES}${MODULES:+ }$1";;
     esac
+    shift
   done
 
-  MODULES="$@"
-
-  local retval
-  local result
 
   # Module support available?
   if [ -e /proc/modules ]; then
     # Make sure environment variable is not set
     MODPROBE_OPTIONS=""
+
+    local retval
+    local result
     
     IFS=' '
     for module in $MODULES; do
-      result=`trace $MODPROBE $OPTIONS $module 2>&1`
+      local modprobe_commandline="$MODPROBE"
+      if [ -n "$OPTIONS" ]; then
+        modprobe_commandline="$modprobe_commandline $OPTIONS"
+      fi
+      modprobe_commandline="$modprobe_commandline $module"
+
+      result=`trace $modprobe_commandline 2>&1`
       retval=$?
 
       if [ "$retval" != "0" ]; then
         if ! echo "$result" |grep -q -e '^FATAL: Module .* not found'; then
           # Show any (error) messages in red
-          printf "\033[40m\033[1;31mmodprobe $@: ($retval) $result\033[0m\n" >&2
+          printf "\033[40m\033[1;31m${modprobe_commandline}: ($retval) $result\033[0m\n" >&2
         fi
       else
         if echo "$result" |grep -q -e '^WARNING:'; then
           # Show any (warning) messages in red
-          printf "\033[40m\033[1;31mmodprobe $@: $result\033[0m\n" >&2
+          printf "\033[40m\033[1;31m${modprobe_commandline}: $result\033[0m\n" >&2
         else
           echo "${INDENT}Loaded kernel module $module. $result"
         fi
@@ -392,28 +399,35 @@ sysctl()
 # Multi sysctl - Try sysctl-variables until one succeeds
 sysctl_multi()
 {
-  OPTIONS=""
+  local OPTIONS=
+  local VARIABLES=
+
   while [ -n "$1" ]; do
     # Combine options and exit on first non-option
     case "$1" in
-      -*) OPTIONS="$OPTIONS${OPTIONS:+ }$1"; shift;;
-      *) break;;
+      -*) OPTIONS="${OPTIONS}${OPTIONS:+ }$1";;
+       *) VARIABLES="${VARIABLES}${VARIABLES:+ }$1";;
     esac
+    shift
   done
 
-  VARIABLES="$@"
-  
   IFS=' '
   for variable in $VARIABLES; do
-    if $SYSCTL $(echo "$variable" |cut -d'=' -f1) >/dev/null 2>&1; then
-      result=`trace $SYSCTL $OPTIONS $variable 2>&1`
+    if $SYSCTL "$(echo "$variable" |cut -d'=' -f1)" >/dev/null 2>&1; then
+      local sysctl_commandline="$SYSCTL"
+      if [ -n "$OPTIONS" ]; then
+        sysctl_commandline="$sysctl_commandline $OPTIONS"
+      fi
+      sysctl_commandline="$sysctl_commandline $variable"
+
+      result=`trace $sysctl_commandline 2>&1`
       retval=$?
 
       if [ "$retval" = "0" ]; then
-        echo "${INDENT}sysctl $OPTIONS $variable"
+        echo "${INDENT}${sysctl_commandline}"
         return 0
       else
-        printf "\033[40m\033[1;31msysctl $OPTIONS $variable: ($retval) $result\033[0m\n" >&2
+        printf "\033[40m\033[1;31m${sysctl_commandline}: ($retval) $result\033[0m\n" >&2
       fi
     fi
   done
