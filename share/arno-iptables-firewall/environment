@@ -285,15 +285,15 @@ modprobe()
     if [ "$retval" != "0" ]; then
       if ! echo "$result" |grep -q -e '^FATAL: Module .* not found'; then
         # Show any (error) messages in red
-        printf "\033[40m\033[1;31m$MODPROBE $@: ($retval) $result\033[0m\n" >&2
+        printf "\033[40m\033[1;31m${MODPROBE} $@: ($retval) $result\033[0m\n" >&2
       elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-        printf "\033[40m\033[1;31m$MODPROBE $@: Module not found! Assuming compiled-in-kernel!\033[0m\n" >&2
+        printf "\033[40m\033[1;31m${MODPROBE} $@: Module not found! Assuming compiled-in-kernel!\033[0m\n" >&2
       fi
       return $retval
     else
       if echo "$result" |grep -q -e '^WARNING:'; then
         # Show any (warning) messages in red
-        printf "\033[40m\033[1;31mmodprobe $@: $result\033[0m\n" >&2
+        printf "\033[40m\033[1;31m${MODPROBE} $@: $result\033[0m\n" >&2
       else
         echo "${INDENT}Loaded kernel module $1. $result"
       fi
