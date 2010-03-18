@@ -179,7 +179,7 @@ setup_conf_file()
   get_conf_var "Which TCP ports do you want to allow from the internet? (eg. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_TCP" ""
   get_conf_var "Which UDP ports do you want to allow from the internet? (eg. 53=DNS, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_UDP" ""
 
-  if get_user_yn "Does this machine run an DHCP server for hosts connected to the external interface?" "n"; then
+  if get_user_yn "Does this machine run an DHCP server for hosts connected to the external interface (Y/N)?" "n"; then
     change_conf_var "$FIREWALL_CONF" "EXTERNAL_DHCP_SERVER" "1"
   fi
 
@@ -266,5 +266,9 @@ else
     echo "* Skipped"
   fi
 fi
+
+echo ""
+echo "** Configuration done **"
+echo ""
 
 exit 0
