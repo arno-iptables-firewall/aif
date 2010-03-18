@@ -246,15 +246,17 @@ check_18_version()
 # Check plugins for (old) versions with different priority
 check_plugins()
 {
-  unset IFS
-  for plugin in ./share/arno-iptables-firewall/plugins/*; do
-    plugin_name="$(basename "$plugin" |sed 's/^[0-9]*//')"
-      
-    find /usr/local/arno-iptables-firewall/plugins/ -maxdepth 1 -name "*.plugin" |grep "^[0-9]*$plugin_name$" |while read FN; do
-    if [ "$(basename "$fn")" != "$(basename "$plugin")" ]; then
-      rm -fv "$plugin"
-    fi
-  done
+  if [ -d "/usr/local/share/arno-iptables-firewall/plugins/" ]; then
+    unset IFS
+    for plugin in ./share/arno-iptables-firewall/plugins/*.plugin; do
+      plugin_name="$(basename "$plugin" |sed 's/^[0-9]*//')"
+        
+      find /usr/local/share/arno-iptables-firewall/plugins/ -maxdepth 1 -name "*.plugin" |grep "/[0-9]*$plugin_name$" |grep -v "/$(basename "$plugin")$" |while read fn; do
+        echo "* Removing old plugin: $fn"
+        rm -fv "$fn"
+      done
+    done
+  fi
 }
 
 
