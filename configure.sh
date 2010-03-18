@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.02a"
+MY_VERSION="1.02b"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -168,16 +168,20 @@ setup_conf_file()
     fi
   done  
   
-  if get_user_yn "Does your external interface get its IP through DHCP (Y/N)?" "y"; then
+  if get_user_yn "Does your external interface get its IP through DHCP (Y/N)?" "n"; then
     change_conf_var "$FIREWALL_CONF" "EXT_IF_DHCP_IP" "1"
   fi
 
-  if get_user_yn "Do you want to be pingable from the internet (Y/N)?"; then
+  if get_user_yn "Do you want to be pingable from the internet (Y/N)?" "n"; then
     change_conf_var "$FIREWALL_CONF" "OPEN_ICMP" "1"
   fi
 
   get_conf_var "Which TCP ports do you want to allow from the internet? (eg. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_TCP" ""
   get_conf_var "Which UDP ports do you want to allow from the internet? (eg. 53=DNS, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_UDP" ""
+
+  if get_user_yn "Does this machine run an DHCP server for hosts connected to the external interface?" "n"; then
+    change_conf_var "$FIREWALL_CONF" "EXTERNAL_DHCP_SERVER" "1"
+  fi
 
   if get_user_yn "Do you have an internal(aka LAN) interface that you want to setup (Y/N)?" "n"; then
     while true; do
@@ -245,6 +249,10 @@ if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/) (Y/
   fi
 fi
 
+if get_user_yn "Do you want the init script to be verbose (print out what it's doing) (Y/N)?" "n"; then
+  change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "1"
+fi
+
 if diff ./etc/arno-iptables-firewall/firewall.conf "$FIREWALL_CONF" >/dev/null; then
   if get_user_yn "Your firewall.conf is not configured yet.\nDo you want me to help you setup a basic configuration (Y/N)?" "y"; then
     setup_conf_file;
@@ -259,8 +267,4 @@ else
   fi
 fi
 
-if get_user_yn "Do you want the init script to be verbose (print out what it's doing) (Y/N)?" "n"; then
-  change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "1"
-fi
- 
 exit 0
