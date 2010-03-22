@@ -1,5 +1,6 @@
-Version 1.9.2k-DEVEL (March 10, 2010)
+Version 1.9.2k-DEVEL (March 22, 2010)
 ------------------------------------
+! Several tweaks & fixes in the install script
 + Add old version detection to the install script
 + Added "Kernel Configuration Special Issues" section to README
 + Updated traffic-shaper-plugin, added two more queues, added more DSCP matches,

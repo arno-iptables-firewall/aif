@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.03"
+MY_VERSION="1.04"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -64,7 +64,7 @@ sanity_check()
   check_command_error logger
   check_command_error chmod
   check_command_error chown
-  check_command_warning dig || check_command_error nslookup
+  check_command_warning dig nslookup
 }
 
 
@@ -77,19 +77,21 @@ copy_ask_if_exist()
 
   unset IFS
   for source in `find "$1" -type f`; do
-    if [ -d "$2" ]; then
+    if echo "$2" |grep -q '/$'; then
       fn="$(echo "$source" |sed "s,^$1,,")"
       if [ -z "$fn" ]; then
         target="$2$(basename "$1")"
       else
         target="$2$fn"
       fi
+      target_dir="$2"
     else
       target="$2"
+      target_dir="$(dirname "$2")"
     fi
     
-    if [ ! -d "$(dirname $target)" ]; then
-      echo "* Target directory $(dirname "$target") does not exist. Skipping copy of $fn"
+    if [ ! -d "$target_dir" ]; then
+      printf "\033[40m\033[1;31m* WARNING: Target directory $target_dir does not exist. Skipping copy of $source!\033[0m\n" >&2
       continue;
     fi
  
@@ -132,19 +134,21 @@ copy_skip_if_exist()
 
   unset IFS
   for source in `find "$1" -type f`; do
-    if [ -d "$2" ]; then
+    if echo "$2" |grep -q '/$'; then
       fn="$(echo "$source" |sed "s,^$1,,")"
       if [ -z "$fn" ]; then
         target="$2$(basename "$1")"
       else
         target="$2$fn"
       fi
+      target_dir="$2"
     else
       target="$2"
+      target_dir="$(dirname "$2")"
     fi
     
-    if [ ! -d "$(dirname $target)" ]; then
-      echo "* Target directory $(dirname "$target") does not exist. Skipping copy of $fn"
+    if [ ! -d "$target_dir" ]; then
+      printf "\033[40m\033[1;31m* WARNING: Target directory $target_dir does not exist. Skipping copy of $source!\033[0m\n" >&2
       continue;
     fi
  
@@ -174,22 +178,32 @@ copy_overwrite()
 
   unset IFS
   for source in `find "$1" -type f`; do
-    if [ -d "$2" ]; then
+    if echo "$2" |grep -q '/$'; then
       fn="$(echo "$source" |sed "s,^$1,,")"
       if [ -z "$fn" ]; then
         target="$2$(basename "$1")"
       else
         target="$2$fn"
       fi
+      target_dir="$2"
     else
       target="$2"
+      target_dir="$(dirname "$2")"
     fi
 
-    if [ ! -d "$(dirname $target)" ]; then
-      echo "* Target directory $(dirname "$target") does not exist. Skipping copy of $fn"
+    if [ ! -d "$target_dir" ]; then
+      printf "\033[40m\033[1;31m* WARNING: Target directory $target_dir does not exist. Skipping copy of $source!\033[0m\n" >&2
       continue;
     fi
-
+    
+    if [ -f "$source" -a -f "$target" ]; then
+      # Ignore files that are the same in the target
+      if diff "$source" "$target" >/dev/null; then
+        echo "* Target file \"$target\" is the same as source. Skipping copy of $source"
+        continue;
+      fi
+    fi
+ 
     if ! cp -fv "$source" "$target"; then
       echo "ERROR: Copy error of \"$source\" to \"$target\"!" >&2
       exit 3
@@ -284,7 +298,10 @@ copy_overwrite ./bin/ /usr/local/sbin/
 
 mkdir -pv /usr/local/share/arno-iptables-firewall/plugins
 copy_overwrite ./share/arno-iptables-firewall/ /usr/local/share/arno-iptables-firewall/
-ln -sv /usr/local/share/arno-iptables-firewall/plugins/traffic-accounting-show /usr/local/sbin/traffic-accounting-show
+
+if [ ! -e /usr/local/sbin/traffic-accounting-show ]; then 
+  ln -sv /usr/local/share/arno-iptables-firewall/plugins/traffic-accounting-show /usr/local/sbin/traffic-accounting-show
+fi
 
 mkdir -pv /usr/local/share/man/man1
 mkdir -pv /usr/local/share/man/man8
@@ -293,6 +310,7 @@ gzip -c -v ./share/man/man1/arno-fwfilter.1 >/usr/local/share/man/man8/arno-fwfi
 
 copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
 
+mkdir -pv /etc/arno-iptables-firewall
 copy_overwrite ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf.dist
 copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
 copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
@@ -318,3 +336,4 @@ echo "**       It is recommended however to first review the settings in        
 echo "**       /etc/arno-iptables-firewall/firewall.conf!                          **"
 
 exit 0
+
