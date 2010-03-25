@@ -1017,7 +1017,7 @@ check_interface()
           return 0
         fi
         ;;
-     *) if ip link show |grep -q ": $1:"; then
+     *) if ip link show |grep -q ": $1[@:]"; then
           # Interface found
           return 0
         fi
