@@ -4328,12 +4328,13 @@ plugins_status()
 {
   # Load/insert user plugins
   if [ -e "$PLUGIN_LOAD_FILE" ]; then
-    printf "\nShowing status of (user) plugins...\n"
+    printf "\nShowing status of (user) plugins:\n"
+    echo "---------------------------------"
 
     IFS=$EOL
     for plugin in `cat "$PLUGIN_LOAD_FILE"`; do
       # Only issue the status command for plugins that support the PLUGIN_CMD-variable:
-      if grep -q "^plugin_status\(\)" $plugin; then
+      if grep -q "^plugin_status\(\)" "$plugin"; then
         # Preset ENABLED=0 to make sure the plugin only
         # gets loaded if the config has an explicit ENABLED=1:
         ENABLED=0
@@ -4341,7 +4342,9 @@ plugins_status()
         PLUGIN_CMD=status
         
         # Source the plugin:
+        printf "=>"
         . "$plugin"
+        echo ""
       fi
     done
   fi
@@ -5081,13 +5084,13 @@ show_status()
     if [ "$MANGLE_TOS" = "1" ]; then
       iptables -t mangle -nvL
     fi
+
+    # Show plugin status
+    plugins_status;
   else
     #iptables -nvL $2 $3 $4 $5
     iptables -xnvL $@
   fi
-
-  # Show plugin status
-  plugins_status;
 }
 
 
