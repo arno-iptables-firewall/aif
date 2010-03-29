@@ -1,5 +1,5 @@
-Version 1.9.2k-DEVEL (March 25, 2010)
-------------------------------------
+Version 1.9.2k (March 25, 2010)
+-------------------------------
 ! check_interface() function didn't work for VLAN interfaces
 ! Several tweaks & fixes in the install script
 + Add old version detection to the install script
