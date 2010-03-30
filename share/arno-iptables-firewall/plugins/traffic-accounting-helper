@@ -199,7 +199,7 @@ traffic_accounting_setup_rules()
   
   IFS=' ,'
   # Also add catch all rule (0.0.0.0/0)
-  for host in 0.0.0.0/0 $TRAFFIC_ACCOUNTING_HOSTS; do
+  for host in $TRAFFIC_ACCOUNTING_HOSTS 0.0.0.0/0; do
     if [ "$VERBOSE" = "1" ]; then
       printf "Host=$host "
     fi
