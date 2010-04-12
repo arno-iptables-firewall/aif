@@ -5,8 +5,8 @@
 
 ### BEGIN INIT INFO
 # Provides:          arno-iptables-firewall
-# Required-Start:    $local_fs $network
-# Required-Stop:     $local_fs $network
+# Required-Start:    $local_fs $remote_fs $network
+# Required-Stop:     $local_fs $remote_fs $network
 # Default-Start:     S
 # Default-Stop:      0 6
 # Short-Description: Setup iptables firewall configuration
