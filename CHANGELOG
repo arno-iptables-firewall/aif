@@ -1,3 +1,7 @@
+Version 1.9.2l-DEVEL (April 22, 2010)
+-------------------------------
++ Implemented EXT_BROADCAST_CHAIN
+
 Version 1.9.2k (March 25, 2010)
 -------------------------------
 ! check_interface() function didn't work for VLAN interfaces

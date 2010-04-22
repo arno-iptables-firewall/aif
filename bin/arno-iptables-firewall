@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="1.9.2k"
+MY_VERSION="1.9.2l-DEVEL"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -2510,8 +2510,6 @@ setup_lan_inet_forward_chain()
 ######################################################################################################################
 setup_ext_input_chain()
 {
-  echo "Setting up external(INET) INPUT policy"
-
   ## Log scanning of port 0 fingerprinting
   ########################################
   if [ "$SCAN_LOG" != "0" ]; then
@@ -2547,7 +2545,6 @@ setup_ext_input_chain()
     # Allow this host to be an DHCP client:
     iptables -A EXT_INPUT_CHAIN -p udp --sport 67 --dport 68 -j ACCEPT
   fi
-
 
   # Here we add support for a DHCP/BootP service on the EXTERNAL interface
   ########################################################################
@@ -3326,98 +3323,44 @@ setup_ext_input_chain()
   ###########################
   iptables -A EXT_INPUT_CHAIN -p tcp ! --syn -j POST_INPUT_DROP_CHAIN
 
-  # Check whether IPv4 or IPv6 is used
+  # Setup IPv4 chain to handle broadcast traffic
   if [ "$IPV6_SUPPORT" != "1" ]; then
-    # Disable logging of certain TCP broadcasts on the external interface
-    #####################################################################
-    unset IFS
-    for rule in $BROADCAST_TCP_NOLOG; do
-      interfaces=`get_ifs "$rule"`
-      destips=`get_ips "$rule"`
-      ports=`get_ports_ip "$rule"`
+    iptables -A EXT_INPUT_CHAIN -d 255.255.255.255 -j EXT_BROADCAST_CHAIN
+    iptables -A EXT_INPUT_CHAIN -d 224.0.0.0/24 -j EXT_BROADCAST_CHAIN
 
-      echo " $(show_if_ip "$interfaces" "$destips")Logging of external subnet broadcasts disabled for TCP port(s): $ports"
-
+    #iptables -A EXT_INPUT_CHAIN -m pkttype --pkt-type broadcast -j EXT_BROADCAST_CHAIN
+    #iptables -A EXT_INPUT_CHAIN -m addrtype --dst-type BROADCAST -j EXT_BROADCAST_CHAIN
+    if [ -n "$EXT_NET_BCAST_ADDRESS" ]; then
       IFS=' ,'
-      for port in $ports; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -d 255.255.255.255 -p tcp --dport $port -j DROP
-          iptables -A EXT_INPUT_CHAIN -i $interface -d 224.0.0.0/24 -p tcp --dport $port -j DROP
-
-          #iptables -A EXT_INPUT_CHAIN -i $interface -p tcp --dport $port -m pkttype --pkt-type broadcast -j DROP
-          #iptables -A EXT_INPUT_CHAIN -i $interface -p tcp --dport $port -m addrtype --dst-type BROADCAST -j DROP
-          if [ -n "$EXT_NET_BCAST_ADDRESS" ]; then
-            for address in $EXT_NET_BCAST_ADDRESS; do
-              iptables -A EXT_INPUT_CHAIN -i $interface -d $address -p tcp --dport $port -j DROP
-            done
-          else
-            for net in $EXTERNAL_NET; do
-              # Class C net
-              iptables -A EXT_INPUT_CHAIN -i $interface -d $(echo $net |awk -F. '{ print $1"."$2"."$3".255" }') \
-               -p tcp --dport $port -j DROP
-
-              # Class B net
-              iptables -A EXT_INPUT_CHAIN -i $interface -d $(echo $net |awk -F. '{ print $1"."$2".255.255" }') \
-               -p tcp --dport $port -j DROP
-
-              # Class A net
-              iptables -A EXT_INPUT_CHAIN -i $interface -d $(echo $net |awk -F. '{ print $1".255.255.255" }') \
-               -p tcp --dport $port -j DROP
-            done
-          fi
-        done
+      for address in $EXT_NET_BCAST_ADDRESS; do
+        iptables -A EXT_INPUT_CHAIN -d $address -j EXT_BROADCAST_CHAIN
       done
-    done
-
-    # Disable logging of certain UDP broadcasts on the external interface
-    ##########################################################################################
-    unset IFS
-    for rule in $BROADCAST_UDP_NOLOG; do
-      interfaces=`get_ifs "$rule"`
-      destips=`get_ips "$rule"`
-      ports=`get_ports_ip "$rule"`
-
-      echo " $(show_if_ip "$interfaces" "$destips")Logging of external subnet broadcasts disabled for UDP port(s): $ports"
-
+    else
       IFS=' ,'
-      for port in $ports; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -d 255.255.255.255 -p udp --dport $port -j DROP
-          iptables -A EXT_INPUT_CHAIN -i $interface -d 224.0.0.0/24 -p udp --dport $port -j DROP
-          
-          #iptables -A EXT_INPUT_CHAIN -i $interface -p udp --dport $port -m pkttype --pkt-type broadcast -j DROP
-          #iptables -A EXT_INPUT_CHAIN -i $interface -p udp --dport $port -m addrtype --dst-type BROADCAST -j DROP
-          if [ -n "$EXT_NET_BCAST_ADDRESS" ]; then
-            for address in $EXT_NET_BCAST_ADDRESS; do
-              iptables -A EXT_INPUT_CHAIN -i $interface -d $address -p udp --dport $port -j DROP
-            done
-          else
-            for net in $EXTERNAL_NET; do
-              # Class C net
-              iptables -A EXT_INPUT_CHAIN -i $interface -d $(echo $net |awk -F. '{ print $1"."$2"."$3".255" }') \
-               -p udp --dport $port -j DROP
+      for net in $EXTERNAL_NET; do
+        # Class C net
+        iptables -A EXT_INPUT_CHAIN -d $(echo $net |awk -F. '{ print $1"."$2"."$3".255" }') \
+         -j EXT_BROADCAST_CHAIN
 
-              # Class B net
-              iptables -A EXT_INPUT_CHAIN -i $interface -d $(echo $net |awk -F. '{ print $1"."$2".255.255" }') \
-               -p udp --dport $port -j DROP
+        # Class B net
+        iptables -A EXT_INPUT_CHAIN -d $(echo $net |awk -F. '{ print $1"."$2".255.255" }') \
+         -j EXT_BROADCAST_CHAIN
 
-              # Class A net
-              iptables -A EXT_INPUT_CHAIN -i $interface -d $(echo $net |awk -F. '{ print $1".255.255.255" }') \
-               -p udp --dport $port -j DROP
-            done
-          fi
-        done
+        # Class A net
+        iptables -A EXT_INPUT_CHAIN -d $(echo $net |awk -F. '{ print $1".255.255.255" }') \
+         -j EXT_BROADCAST_CHAIN
       done
-    done
+    fi
   fi
-  
-  
+
   # Log connection attempts to privileged TCP ports?
   ##################################################
   if [ "$PRIV_TCP_LOG" != "0" ]; then
     echo " Logging of (other) connection attempts to PRIVILEGED TCP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p tcp --dport :1023 \
-      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV connect attempt: "
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV TCP connect: "
+    iptables -A EXT_BROADCAST_CHAIN -p tcp --dport :1023 \
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV TCP broadcast: "
   else
     echo " Logging of (other) connection attempts to PRIVILEGED TCP ports disabled"
   fi
@@ -3427,7 +3370,9 @@ setup_ext_input_chain()
   if [ "$PRIV_UDP_LOG" != "0" ]; then
     echo " Logging of (other) connection attempts to PRIVILEGED UDP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p udp --dport :1023 \
-      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV connect attempt: "
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV UDP connect: "
+    iptables -A EXT_BROADCAST_CHAIN -p udp --dport :1023 \
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV UDP broadcast: "
   else
     echo " Logging of (other) connection attempts to PRIVILEGED UDP ports disabled"
   fi
@@ -3437,7 +3382,9 @@ setup_ext_input_chain()
   if [ "$UNPRIV_TCP_LOG" != "0" ]; then
     echo " Logging of (other) connection attempts to UNPRIVILEGED TCP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p tcp --dport 1024: \
-      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV connect attempt: "
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV TCP connect: "
+    iptables -A EXT_BROADCAST_CHAIN -p tcp --dport 1024: \
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV TCP broadcast: "
   else
     echo " Logging of (other) connection attempts to UNPRIVILEGED TCP ports disabled"
   fi
@@ -3447,7 +3394,9 @@ setup_ext_input_chain()
   if [ "$UNPRIV_UDP_LOG" != "0" ]; then
     echo " Logging of (other) connection attempts to UNPRIVILEGED UDP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p udp --dport 1024: \
-      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV connect attempt: "
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV UDP connect: "
+    iptables -A EXT_BROADCAST_CHAIN -p udp --dport 1024 \
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV UDP broadcast: "
   else
     echo "Logging of (other) connection attempts to UNPRIVILEGED UDP ports disabled"
   fi
@@ -3459,6 +3408,9 @@ setup_ext_input_chain()
     iptables -A EXT_INPUT_CHAIN -m conntrack --ctstate DNAT -j ACCEPT
   fi
 
+  # Finally drop all in the broadcast chain
+  iptables -A EXT_BROADCAST_CHAIN -j DROP
+    
   # Jump into the POST_INPUT_CHAIN before we start to DROP
   iptables -A EXT_INPUT_CHAIN -j POST_INPUT_CHAIN
   
@@ -3473,7 +3425,7 @@ setup_ext_input_chain()
   if [ "$OTHER_IP_LOG" != "0" ]; then
     echo " Logging of other IP protocols (non TCP/UDP/ICMP) connection attempts enabled"
     iptables -A EXT_INPUT_CHAIN \
-      -m limit --limit 1/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Connect attempt: "
+      -m limit --limit 1/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Other connect: "
   else
     echo " Logging of other IP protocols (non TCP/UDP/ICMP) connection attempts disabled"
   fi
@@ -3541,8 +3493,6 @@ setup_ext_icmp_flood_chain()
 ######################################################################################################################
 setup_ext_output_chain()
 {
-  echo "Setting up external(INET) OUTPUT policy"
-
   # This rule is for hostwise OUTPUT TCP blocking
   ###############################################
   unset IFS
@@ -3712,6 +3662,47 @@ setup_ext_output_chain()
           fi
           iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p $proto -j DROP
         done
+      done
+    done
+  done
+}
+
+
+# Helper chain to catch broadcast traffic
+setup_ext_broadcast_chain()
+{
+  # Disable logging of certain TCP broadcasts on the external interface
+  #####################################################################
+  unset IFS
+  for rule in $BROADCAST_TCP_NOLOG; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Logging of external subnet broadcasts disabled for TCP port(s): $ports"
+
+    IFS=' ,'
+    for port in $ports; do
+      for interface in $interfaces; do
+        iptables -A EXT_BROADCAST_CHAIN -i $interface -p tcp --dport $port -j DROP
+      done
+    done
+  done
+
+  # Disable logging of certain UDP broadcasts on the external interface
+  ##########################################################################################
+  unset IFS
+  for rule in $BROADCAST_UDP_NOLOG; do
+    interfaces=`get_ifs "$rule"`
+    destips=`get_ips "$rule"`
+    ports=`get_ports_ip "$rule"`
+
+    echo " $(show_if_ip "$interfaces" "$destips")Logging of external subnet broadcasts disabled for UDP port(s): $ports"
+
+    IFS=' ,'
+    for port in $ports; do
+      for interface in $interfaces; do
+        iptables -A EXT_BROADCAST_CHAIN -i $interface -p udp --dport $port -j DROP
       done
     done
   done
@@ -4448,9 +4439,14 @@ setup_firewall_rules()
     iptables -A OUTPUT -f -j DROP
   fi
 
-  # Setup helper chains for EXTERNAL traffic:
-  setup_ext_input_chain;
+  # Setup helper chains for EXTERNAL input traffic:
+  echo "Setting up external(INET) INPUT policy"
+  setup_ext_broadcast_chain;
   setup_ext_icmp_flood_chain;
+  setup_ext_input_chain;
+  
+  # Setup helper chains for EXTERNAL output traffic:
+  echo "Setting up external(INET) OUTPUT policy"
   setup_ext_output_chain;
 
   # This is used for your external (untrusted) interfaces
@@ -4908,6 +4904,7 @@ create_user_chains()
   iptables -N LAN_INET_FORWARD_CHAIN
 
   # Chains for the external interface
+  iptables -N EXT_BROADCAST_CHAIN
   iptables -N EXT_ICMP_FLOOD_CHAIN
   iptables -N EXT_INPUT_CHAIN
   iptables -N EXT_FORWARD_IN_CHAIN
@@ -4957,6 +4954,7 @@ flush_user_chains()
   iptables -F LAN_INET_FORWARD_CHAIN
 
   # Chains for the external interface
+  iptables -F EXT_BROADCAST_CHAIN
   iptables -F EXT_ICMP_FLOOD_CHAIN
   iptables -F EXT_INPUT_CHAIN
   iptables -F EXT_FORWARD_IN_CHAIN
