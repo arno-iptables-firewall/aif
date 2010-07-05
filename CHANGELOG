@@ -1,5 +1,6 @@
-Version 1.9.2l-DEVEL (April 22, 2010)
+Version 1.9.2l-DEVEL (July 5, 2010)
 -------------------------------
++ Configure option to allow user to enable full access for the external subnet
 + Implemented EXT_BROADCAST_CHAIN
 
 Version 1.9.2k (March 25, 2010)

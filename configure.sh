@@ -156,6 +156,10 @@ setup_conf_file()
         if [ -n "$EXTERNAL_NET" ]; then
           echo "* Auto-detected external net(s): $EXTERNAL_NET"
           change_conf_var "$FIREWALL_CONF" "EXTERNAL_NET" "$EXTERNAL_NET"
+
+          if get_user_yn "Do you want to allow full access for your external subnet (Y/N)?" "n"; then
+            change_conf_var "$FIREWALL_CONF" "FULL_ACCESS_HOSTS" '\$EXTERNAL_NET'
+          fi
         fi
         
         if [ -n "$EXT_NET_BCAST_ADDRESS" ]; then
@@ -211,7 +215,7 @@ setup_conf_file()
           fi
           
           if [ -n "$INTERNAL_NET" ]; then
-            if get_user_yn "Do you want to enable NAT/masquerading for your internal net (Y/N)?" "n"; then
+            if get_user_yn "Do you want to enable NAT/masquerading for your internal subnet (Y/N)?" "n"; then
               change_conf_var "$FIREWALL_CONF" "NAT" "1"
               change_conf_var "$FIREWALL_CONF" "NAT_INTERNAL_NET" '\$INTERNAL_NET'
             fi
@@ -272,3 +276,4 @@ echo "** Configuration done **"
 echo ""
 
 exit 0
+
