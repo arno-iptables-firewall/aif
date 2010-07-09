@@ -3401,7 +3401,6 @@ setup_ext_input_chain()
     echo "Logging of (other) connection attempts to UNPRIVILEGED UDP ports disabled"
   fi
 
-
   # Allow all packets that have been locally redirected
   #####################################################
   if [ "$NAT_LOCAL_REDIRECT" = "1" ]; then
@@ -3421,6 +3420,16 @@ setup_ext_input_chain()
   iptables -A EXT_INPUT_CHAIN -p udp -j POST_INPUT_DROP_CHAIN
   iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO -j POST_INPUT_DROP_CHAIN
 
+  # Do we want to log non udp/tcp/icmp packets?
+  #############################################
+  if [ "$OTHER_IP_LOG" != "0" ]; then
+    echo " Logging of other IP protocols (non TCP/UDP/ICMP) connection attempts enabled"
+    iptables -A EXT_INPUT_CHAIN \
+      -m limit --limit 1/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Other connect: "
+  else
+    echo " Logging of other IP protocols (non TCP/UDP/ICMP) connection attempts disabled"
+  fi
+  
   # Drop all remaining packets
   ############################
   iptables -A EXT_INPUT_CHAIN -j POST_INPUT_DROP_CHAIN
