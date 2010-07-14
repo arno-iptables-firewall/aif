@@ -3401,6 +3401,16 @@ setup_ext_input_chain()
     echo "Logging of (other) connection attempts to UNPRIVILEGED UDP ports disabled"
   fi
 
+  # Do we want to log igmp packets?
+  #############################################
+  if [ "$IGMP_LOG" != "0" ]; then
+    echo " Logging of IGMP packets enabled"
+    iptables -A EXT_INPUT_CHAIN -p igmp \
+      -m limit --limit 1/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IGMP packet: "
+  else
+    echo " Logging of IGMP packets disabled"
+  fi
+
   # Allow all packets that have been locally redirected
   #####################################################
   if [ "$NAT_LOCAL_REDIRECT" = "1" ]; then
@@ -3418,16 +3428,17 @@ setup_ext_input_chain()
   ##################################
   iptables -A EXT_INPUT_CHAIN -p tcp -j POST_INPUT_DROP_CHAIN
   iptables -A EXT_INPUT_CHAIN -p udp -j POST_INPUT_DROP_CHAIN
+  iptables -A EXT_INPUT_CHAIN -p igmp -j POST_INPUT_DROP_CHAIN
   iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO -j POST_INPUT_DROP_CHAIN
 
   # Do we want to log non udp/tcp/icmp packets?
   #############################################
   if [ "$OTHER_IP_LOG" != "0" ]; then
-    echo " Logging of other IP protocols (non TCP/UDP/ICMP) connection attempts enabled"
+    echo " Logging of other IP protocols (non TCP/UDP/ICMP/IGMP) connection attempts enabled"
     iptables -A EXT_INPUT_CHAIN \
       -m limit --limit 1/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Other connect: "
   else
-    echo " Logging of other IP protocols (non TCP/UDP/ICMP) connection attempts disabled"
+    echo " Logging of other IP protocols (non TCP/UDP/ICMP/IGMP) connection attempts disabled"
   fi
   
   # Drop all remaining packets
