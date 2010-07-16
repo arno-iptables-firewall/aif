@@ -981,34 +981,42 @@ setup_spoof_chk_chain()
 {
   # Anti-spoof protection for the internal net
   if [ -n "$INT_IF" ]; then
-    printf "Setting up (antispoof) INTERNAL net(s): "
-    IFS=' ,'
-    for net in $INTERNAL_NET; do
-      printf "$net "
-      for interface in $INT_IF; do
-        # Any internal net is valid
-        iptables -A SPOOF_CHK -i $interface -s $net -j RETURN
+    if [ "$INTERNAL_NET_ANTISPOOF" != "0" ]; then
+      printf "Setting up antispoof for INTERNAL net(s): "
+      IFS=' ,'
+      for net in $INTERNAL_NET; do
+        printf "$net "
+        for interface in $INT_IF; do
+          # Any internal net is valid
+          iptables -A SPOOF_CHK -i $interface -s $net -j RETURN
+        done
+        iptables -A SPOOF_CHK -s $net -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Spoofed packet: "
+        iptables -A SPOOF_CHK -s $net -j POST_INPUT_DROP_CHAIN
       done
-      iptables -A SPOOF_CHK -s $net -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Spoofed packet: "
-      iptables -A SPOOF_CHK -s $net -j POST_INPUT_DROP_CHAIN
-    done
-    echo ""
+      echo ""
+    else
+      echo "Antispoof for INTERNAL net(s) DISABLED!"
+    fi
   fi
 
   # Anti-spoof protection for the DMZ net
   if [ -n "$DMZ_IF" ]; then
-    printf "Setting up (antispoof) DMZ net(s): "
-    IFS=' ,'
-    for net in $DMZ_NET; do
-      printf "$net "
-      for interface in $DMZ_IF; do
-        # Any dmz net is valid
-        iptables -A SPOOF_CHK -i $interface -s $net -j RETURN
+    if [ "$DMZ_NET_ANTISPOOF" != "0" ]; then
+      printf "Setting up (antispoof) DMZ net(s): "
+      IFS=' ,'
+      for net in $DMZ_NET; do
+        printf "$net "
+        for interface in $DMZ_IF; do
+          # Any dmz net is valid
+          iptables -A SPOOF_CHK -i $interface -s $net -j RETURN
+        done
+        iptables -A SPOOF_CHK -s $net -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Spoofed packet: "
+        iptables -A SPOOF_CHK -s $net -j POST_INPUT_DROP_CHAIN
       done
-      iptables -A SPOOF_CHK -s $net -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Spoofed packet: "
-      iptables -A SPOOF_CHK -s $net -j POST_INPUT_DROP_CHAIN
-    done
-    echo ""
+      echo ""
+    else
+      echo "Antispoof for DMZ net(s) DISABLED!"
+    fi
   fi
 
   # Everything else is valid
