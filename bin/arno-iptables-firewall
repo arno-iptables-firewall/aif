@@ -3361,52 +3361,52 @@ setup_ext_input_chain()
     fi
   fi
 
-  # Log connection attempts to privileged TCP ports?
+  # Log packets to privileged TCP ports?
   ##################################################
   if [ "$PRIV_TCP_LOG" != "0" ]; then
-    echo " Logging of (other) connection attempts to PRIVILEGED TCP ports enabled"
+    echo " Logging of (other) packets to PRIVILEGED TCP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p tcp --dport :1023 \
-      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV TCP connect: "
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV TCP packet: "
     iptables -A EXT_BROADCAST_CHAIN -p tcp --dport :1023 \
       -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV TCP broadcast: "
   else
-    echo " Logging of (other) connection attempts to PRIVILEGED TCP ports disabled"
+    echo " Logging of (other) packets to PRIVILEGED TCP ports disabled"
   fi
 
-  # Log connection attempts to privileged UDP ports?
+  # Log packets to privileged UDP ports?
   ##################################################
   if [ "$PRIV_UDP_LOG" != "0" ]; then
-    echo " Logging of (other) connection attempts to PRIVILEGED UDP ports enabled"
+    echo " Logging of (other) packets to PRIVILEGED UDP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p udp --dport :1023 \
-      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV UDP connect: "
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV UDP packet: "
     iptables -A EXT_BROADCAST_CHAIN -p udp --dport :1023 \
       -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV UDP broadcast: "
   else
-    echo " Logging of (other) connection attempts to PRIVILEGED UDP ports disabled"
+    echo " Logging of (other) packets to PRIVILEGED UDP ports disabled"
   fi
 
-  # Log connection attempts to unprivileged TCP ports?
+  # Log packets to unprivileged TCP ports?
   ####################################################
   if [ "$UNPRIV_TCP_LOG" != "0" ]; then
-    echo " Logging of (other) connection attempts to UNPRIVILEGED TCP ports enabled"
+    echo " Logging of (other) packets to UNPRIVILEGED TCP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p tcp --dport 1024: \
-      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV TCP connect: "
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV TCP packet: "
     iptables -A EXT_BROADCAST_CHAIN -p tcp --dport 1024: \
       -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV TCP broadcast: "
   else
-    echo " Logging of (other) connection attempts to UNPRIVILEGED TCP ports disabled"
+    echo " Logging of (other) packets to UNPRIVILEGED TCP ports disabled"
   fi
 
-  # Log connection attempts to unprivileged UDP ports?
+  # Log packets to unprivileged UDP ports?
   ####################################################
   if [ "$UNPRIV_UDP_LOG" != "0" ]; then
-    echo " Logging of (other) connection attempts to UNPRIVILEGED UDP ports enabled"
+    echo " Logging of (other) packets to UNPRIVILEGED UDP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p udp --dport 1024: \
-      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV UDP connect: "
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV UDP packet: "
     iptables -A EXT_BROADCAST_CHAIN -p udp --dport 1024 \
       -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV UDP broadcast: "
   else
-    echo "Logging of (other) connection attempts to UNPRIVILEGED UDP ports disabled"
+    echo "Logging of (other) packets to UNPRIVILEGED UDP ports disabled"
   fi
 
   # Do we want to log igmp packets?
@@ -3442,11 +3442,11 @@ setup_ext_input_chain()
   # Do we want to log non udp/tcp/icmp packets?
   #############################################
   if [ "$OTHER_IP_LOG" != "0" ]; then
-    echo " Logging of other IP protocols (non TCP/UDP/ICMP/IGMP) connection attempts enabled"
+    echo " Logging of other IP protocols (non TCP/UDP/ICMP/IGMP) packets enabled"
     iptables -A EXT_INPUT_CHAIN \
       -m limit --limit 1/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Other connect: "
   else
-    echo " Logging of other IP protocols (non TCP/UDP/ICMP/IGMP) connection attempts disabled"
+    echo " Logging of other IP protocols (non TCP/UDP/ICMP/IGMP) packets disabled"
   fi
   
   # Drop all remaining packets
