@@ -51,7 +51,7 @@ PLUGIN_CONF_FILE="traffic-shaper.conf"
 # Helper functions
 setclassbyport()
 {
-  local pport="$1" class="$2" port sport proto IFS
+  local pport="$1" class="$2" port sport proto
 
   case $pport in
     t*) proto=tcp; port="${pport#t}" ;;
@@ -84,7 +84,7 @@ setclassbyport()
 
 classify_by_port()
 {
-  local port IFS
+  local port
 
   # Automatically set UDP 123 (NTP) to highest priority class
   setclassbyport u123 1:10

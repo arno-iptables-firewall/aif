@@ -33,7 +33,7 @@ PLUGIN_CONF_FILE="ipsec-vpn.conf"
 # Plugin start function
 plugin_start()
 {
-  local eif net IFS
+  local eif net
 
   modprobe ipt_policy              # Allows use of policy match
   modprobe iptable_nat             # We need the NAT table
