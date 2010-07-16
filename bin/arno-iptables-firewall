@@ -1002,7 +1002,7 @@ setup_spoof_chk_chain()
   # Anti-spoof protection for the DMZ net
   if [ -n "$DMZ_IF" ]; then
     if [ "$DMZ_NET_ANTISPOOF" != "0" ]; then
-      printf "Setting up (antispoof) DMZ net(s): "
+      printf "Setting up antispoof for DMZ net(s): "
       IFS=' ,'
       for net in $DMZ_NET; do
         printf "$net "
