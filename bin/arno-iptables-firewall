@@ -4040,7 +4040,7 @@ setup_output_log()
 
   # Hostwise logging of certain IP protocols connection attempts
   ##############################################################
-  IFS=' ,'
+  IFS=' '
   for rule in $LOG_HOST_OUTPUT_IP; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
