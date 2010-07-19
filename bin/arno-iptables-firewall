@@ -980,7 +980,7 @@ setup_reserved_net_chk_chain()
 setup_spoof_chk_chain()
 {
   # Anti-spoof protection for the internal net
-  if [ -n "$INT_IF" ]; then
+  if [ -n "$INT_IF" ] && [ -n "$INTERNAL_NET" ]; then
     if [ "$INTERNAL_NET_ANTISPOOF" != "0" ]; then
       printf "Setting up antispoof for INTERNAL net(s): "
       IFS=' ,'
@@ -1000,7 +1000,7 @@ setup_spoof_chk_chain()
   fi
 
   # Anti-spoof protection for the DMZ net
-  if [ -n "$DMZ_IF" ]; then
+  if [ -n "$DMZ_IF" ] && [ -n "$DMZ_NET" ]; then
     if [ "$DMZ_NET_ANTISPOOF" != "0" ]; then
       printf "Setting up antispoof for DMZ net(s): "
       IFS=' ,'
