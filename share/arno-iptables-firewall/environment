@@ -68,7 +68,7 @@ check_command()
 {
   local path
 
-  IFS=' '
+  local IFS=' '
   for cmd in $*; do
     case "$cmd" in
       /*) path="" ;;
@@ -170,7 +170,7 @@ lc()
 
 note_iptables_error()
 {
-  unset IFS
+  local IFS=' '
   for arg in $*; do
     if [ "$arg" = "-A" ] || [ "$arg" = "-I" ]; then
       return 0
@@ -330,7 +330,7 @@ modprobe_multi()
     local retval
     local result
     
-    IFS=' '
+    local IFS=' '
     for module in $MODULES; do
       local modprobe_commandline="$MODPROBE"
       if [ -n "$OPTIONS" ]; then
@@ -411,7 +411,7 @@ sysctl_multi()
     shift
   done
 
-  IFS=' '
+  local IFS=' '
   for variable in $VARIABLES; do
     if $SYSCTL "$(echo "$variable" |cut -d'=' -f1)" >/dev/null 2>&1; then
       local sysctl_commandline="$SYSCTL"
@@ -473,7 +473,8 @@ dig()
       fi
       shift
     done
-    IFS=$EOL
+    
+    local IFS=$EOL
     for line in $lines; do
       case "$line" in
         ';'*|'') addr=""
@@ -504,7 +505,8 @@ dig()
     done
     if [ -n "$1" ]; then
       lines="$($NSLOOKUP "$1" 2>/dev/null)"
-      IFS=$EOL
+      
+      local IFS=$EOL
       for line in $lines; do
         cnt=$((cnt + 1))
         if [ $cnt -gt 2 ]; then
@@ -547,7 +549,7 @@ wildcard_ifs()
 
   expnd=""
 
-  IFS=', '
+  local IFS=', '
   for if0 in $*; do
     if1="$if0"
     case $if1 in
@@ -830,7 +832,7 @@ show_hostname()
   local hostname=""
   local FIRST=0
   
-  IFS=' ,'
+  local IFS=' ,'
   # Argument(s) contains IP(s)
   for host in $1; do
     if [ "$RESOLV_IPS" = "1" ]; then
@@ -894,7 +896,7 @@ ip_range()
 
   FIRST=1
 
-  IFS=','
+  local IFS=','
   # Get variable from commandline
   for item in $*; do
     # Check whether an IP range was specified (only works like w.x.y.z1-z2!):
@@ -903,7 +905,7 @@ ip_range()
     stop="$(echo "$item" |cut -s -d'-' -f2 |grep -e '[0-9]')"
 
     if [ -n "$stop" ] && [ -n "$start" ]; then
-      unset IFS
+      local IFS=' '
       for x in `seq -s' ' $start $stop`; do
         if [ "$FIRST" = "1" ]; then
           FIRST=0
@@ -1010,22 +1012,17 @@ progress_bar()
 # Check existance of an interface
 check_interface()
 {
-  local interface
-
-  unset IFS
-  for interface in $(ip -o link show | cut -d':' -f2); do
-    case "$1" in
-      # Wildcard interface?
-      *+) if [ "${1%+}" = "${interface%%[0-9]*}" ]; then
-            return 0
-          fi
-          ;;
-       *) if [ "${1}" = "${interface%@*}" ]; then
-            return 0
-          fi
-          ;;
-    esac
-  done
+  case "$1" in
+    # Wildcard interface?
+    *+) if ip -o link show |grep -q ": ${1%+}[0-9]*: "; then
+          return 0
+        fi
+        ;;
+     *) if ip -o link show |grep -q ": ${1}: "; then
+          return 0
+        fi
+        ;;
+  esac
 
   # Interface not found
   return 1
