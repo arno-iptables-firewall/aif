@@ -1014,11 +1014,11 @@ check_interface()
 {
   case "$1" in
     # Wildcard interface?
-    *+) if ip -o link show |grep -q ": ${1%+}[0-9]*: "; then
+    *+) if ip -o link show |grep -E -q ": ${1%+}[0-9]*:"; then
           return 0
         fi
         ;;
-     *) if ip -o link show |grep -q ": ${1}: "; then
+     *) if ip -o link show |grep -E -q ": ${1}[@,:]"; then
           return 0
         fi
         ;;
