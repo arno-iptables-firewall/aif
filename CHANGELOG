@@ -3,7 +3,7 @@ Version 1.9.2l-DEVEL (July 19, 2010)
 * Proper setting of IFS in the main script
 * Re-added local IFS in environment
 + Added option to enable/disable antispoofing for internal/dmz nets
-! Don't local IFS in functions, this breaks older shells
+! Don't "unset IFS" immediately after "local IFS" declaration in functions, this breaks older shells
 + Added option to enable/disable IGMP logging
 ! Modprobe didn't work properly for old modprobe/distros when modules were compiled in-kernel
 + Configure option to allow user to enable full access for the external subnet
