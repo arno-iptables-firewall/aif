@@ -1143,6 +1143,7 @@ if [ "$IPV6_SUPPORT" = "1" ]; then
   IPTABLES="$IP6TABLES"
   ICMP_PROTO="icmpv6"
   ICMP_TYPE="--icmpv6-type"
+  IGMP_PROTO="2"
   
   # If IPv6 support is enabled some options should be forced off as they
   # are simply not supported (yet) by ip6tables
@@ -1151,6 +1152,7 @@ else
   IPTABLES="$IP4TABLES"
   ICMP_PROTO="icmp"
   ICMP_TYPE="--icmp-type"
+  IGMP_PROTO="2"
 fi
 
 IPTABLES_SAVE="$(find_command "$IPTABLES"-save)"

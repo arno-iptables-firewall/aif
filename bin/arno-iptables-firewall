@@ -3413,7 +3413,7 @@ setup_ext_input_chain()
   #############################################
   if [ "$IGMP_LOG" != "0" ]; then
     echo " Logging of IGMP packets enabled"
-    iptables -A EXT_INPUT_CHAIN -p igmp \
+    iptables -A EXT_INPUT_CHAIN -p $IGMP_PROTO \
       -m limit --limit 1/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IGMP packet: "
   else
     echo " Logging of IGMP packets disabled"
@@ -3436,7 +3436,7 @@ setup_ext_input_chain()
   ##################################
   iptables -A EXT_INPUT_CHAIN -p tcp -j POST_INPUT_DROP_CHAIN
   iptables -A EXT_INPUT_CHAIN -p udp -j POST_INPUT_DROP_CHAIN
-  iptables -A EXT_INPUT_CHAIN -p igmp -j POST_INPUT_DROP_CHAIN
+  iptables -A EXT_INPUT_CHAIN -p $IGMP_PROTO -j POST_INPUT_DROP_CHAIN
   iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO -j POST_INPUT_DROP_CHAIN
 
   # Do we want to log non udp/tcp/icmp packets?
