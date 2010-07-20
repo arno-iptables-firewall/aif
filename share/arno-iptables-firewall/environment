@@ -1014,17 +1014,24 @@ progress_bar()
 # Check existance of an interface
 check_interface()
 {
-  case "$1" in
-    # Wildcard interface?
-    *+) if ip -o link show |grep -E -q ": ${1%+}[0-9]*:"; then
-          return 0
-        fi
-        ;;
-     *) if ip -o link show |grep -E -q ": ${1}[@,:]"; then
-          return 0
-        fi
-        ;;
-  esac
+  local interface IFS=' '
+  
+  local interfaces=$(ip -o link show | cut -d':' -f2)
+
+  unset IFS
+  for interface in $interfaces; do
+    case "$1" in
+      # Wildcard interface?
+      *+) if [ "${1%+}" = "${interface%%[0-9]*}" ]; then
+            return 0
+          fi
+          ;;
+       *) if [ "${1}" = "${interface%@*}" ]; then
+            return 0
+          fi
+          ;;
+    esac
+  done
 
   # Interface not found
   return 1
