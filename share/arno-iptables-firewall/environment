@@ -456,7 +456,7 @@ ip()
 ####################
 dig()
 {
-  local cnt=0 x=0 addr name line lines retval
+  local cnt=0 x=0 addr name line lines retval IFS
 
   if [ -n "$DIG" ]; then
     if [ "$DNS_FAST_FAIL" = "1" ]; then
@@ -474,7 +474,7 @@ dig()
       shift
     done
     
-    local IFS=$EOL
+    IFS=$EOL
     for line in $lines; do
       case "$line" in
         ';'*|'') addr=""
@@ -506,7 +506,7 @@ dig()
     if [ -n "$1" ]; then
       lines="$($NSLOOKUP "$1" 2>/dev/null)"
       
-      local IFS=$EOL
+      IFS=$EOL
       for line in $lines; do
         cnt=$((cnt + 1))
         if [ $cnt -gt 2 ]; then
@@ -888,6 +888,8 @@ show_hosts_ports()
 # Helper function to translate host ranges from variable
 ip_range()
 {
+  local IFS
+  
   # Return the args if there is no '-' for improved execution speed
   case "$@" in
     *-*) ;;
@@ -896,7 +898,7 @@ ip_range()
 
   FIRST=1
 
-  local IFS=','
+  IFS=','
   # Get variable from commandline
   for item in $*; do
     # Check whether an IP range was specified (only works like w.x.y.z1-z2!):
@@ -905,7 +907,7 @@ ip_range()
     stop="$(echo "$item" |cut -s -d'-' -f2 |grep -e '[0-9]')"
 
     if [ -n "$stop" ] && [ -n "$start" ]; then
-      local IFS=' '
+      IFS=' '
       for x in `seq -s' ' $start $stop`; do
         if [ "$FIRST" = "1" ]; then
           FIRST=0

@@ -8,11 +8,11 @@ PLUGIN_CONF_FILE="traffic-shaper.conf"
 # Last changed          : March 07, 2010
 # Requirements          : kernel 2.6 + iproute
 # Comments              : This plugin will shape traffic. It borrows heavily on
-# 			  the logic of Maciej's original script (below), with
-# 			  some minor changes to the actual bins that traffic
-# 			  goes into (I made the catch-all [default] for traffic
-# 			  be a higher priority than browsing or bulk data
-# 			  transfer).
+#                         the logic of Maciej's original script (below), with
+#                         some minor changes to the actual bins that traffic
+#                         goes into (I made the catch-all [default] for traffic
+#                         be a higher priority than browsing or bulk data
+#                         transfer).
 #                  [LRA]: Added htb support from astshape in AstLinux
 #                  [LRA]: Classify by DSCP class
 # Author                : (C) Copyright 2008-2010 by Philip Prindeville
@@ -20,7 +20,7 @@ PLUGIN_CONF_FILE="traffic-shaper.conf"
 # Credits               : Kristian Kielhofner
 # Credits               : Lonnie Abelbeck
 # Homepage              : http://www.voip-info.org/wiki/view/QoS+Linux+with+HFSC
-# 			  http://media.blizinski.pl/code/hfsc.gz
+#                         http://media.blizinski.pl/code/hfsc.gz
 # Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
 # Email                 : philipp AT redfish-solutions DOT com
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -51,7 +51,7 @@ PLUGIN_CONF_FILE="traffic-shaper.conf"
 # Helper functions
 setclassbyport()
 {
-  local pport="$1" class="$2" port sport proto
+  local pport="$1" class="$2" port sport proto IFS
 
   case $pport in
     t*) proto=tcp; port="${pport#t}" ;;
@@ -63,7 +63,7 @@ setclassbyport()
   # We assume that on egress traffic, only the destination port is
   # significant, i.e. that we're not running any servers locally.
   iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --dport $port -j CLASSIFY \
-	--set-class $class
+    --set-class $class
   iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --dport $port -j RETURN
 
   # If we are running servers locally, include the protocol/port from the
@@ -73,7 +73,7 @@ setclassbyport()
   for sport in $SHAPER_LOCAL_SERVER_PORTS; do
     if [ "$sport" = "$pport" ]; then
       iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --sport $port -j CLASSIFY \
-	    --set-class $class
+        --set-class $class
       iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --sport $port -j RETURN
       break
     fi
@@ -84,7 +84,7 @@ setclassbyport()
 
 classify_by_port()
 {
-  local port
+  local port IFS
 
   # Automatically set UDP 123 (NTP) to highest priority class
   setclassbyport u123 1:10
@@ -115,33 +115,33 @@ classify_special_packets()
   # To speed up downloads while an upload is going on, put short ACK
   # packets in the high priority class:
   iptables -t mangle -A SHAPER_CHAIN \
-	-p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK ACK \
-	-m length --length :64 \
-	-j CLASSIFY --set-class 1:10
+    -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK ACK \
+    -m length --length :64 \
+    -j CLASSIFY --set-class 1:10
   iptables -t mangle -A SHAPER_CHAIN \
-	-p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK ACK \
-	-m length --length :64 \
-	-j RETURN
+    -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK ACK \
+    -m length --length :64 \
+    -j RETURN
 
   # put large (512+) icmp packets in bulk category
   iptables -t mangle -A SHAPER_CHAIN \
-	-p icmp \
-	-m length --length 512: \
-	-j CLASSIFY --set-class 1:50
+    -p icmp \
+    -m length --length 512: \
+    -j CLASSIFY --set-class 1:50
   iptables -t mangle -A SHAPER_CHAIN \
-	-p icmp \
-	-m length --length 512: \
-	-j RETURN
+    -p icmp \
+    -m length --length 512: \
+    -j RETURN
 
   # ICMP in the high priority class
   iptables -t mangle -A SHAPER_CHAIN \
-	-p icmp \
-	-m length --length :512 \
-	-j CLASSIFY --set-class 1:10
+    -p icmp \
+    -m length --length :512 \
+    -j CLASSIFY --set-class 1:10
   iptables -t mangle -A SHAPER_CHAIN \
-	-p icmp \
-	-m length --length :512 \
-	-j RETURN
+    -p icmp \
+    -m length --length :512 \
+    -j RETURN
 }
 
 classify_by_dscp_class()
@@ -228,37 +228,37 @@ plugin_start_hfsc()
 
       # add main rate limit class
       tc class add dev $eif1 parent 1: classid 1:1 hfsc \
-    	sc rate ${UPLINK}kbit ul rate ${UPLINK}kbit
+        sc rate ${UPLINK}kbit ul rate ${UPLINK}kbit
 
       # Highest Priority: guarantee 2/10 uplink for 50ms, then 1/10
       tc class add dev $eif1 parent 1:1 classid 1:10 hfsc \
-    	sc m1 $((2*$UPLINK/10))kbit d 50ms m2 $((1*$UPLINK/10))kbit \
-    	ul rate ${UPLINK}kbit
+        sc m1 $((2*$UPLINK/10))kbit d 50ms m2 $((1*$UPLINK/10))kbit \
+        ul rate ${UPLINK}kbit
 
       # Streaming Media: guarantee 5/10 uplink for 200ms, then 4/10
       tc class add dev $eif1 parent 1:1 classid 1:20 hfsc \
-    	sc m1 $((5*$UPLINK/10))kbit d 200ms m2 $((4*$UPLINK/10))kbit \
-    	ul rate ${UPLINK}kbit
+        sc m1 $((5*$UPLINK/10))kbit d 200ms m2 $((4*$UPLINK/10))kbit \
+        ul rate ${UPLINK}kbit
 
       # Interactive traffic: guarantee 3/10 uplink for 50ms, then 3/10
       tc class add dev $eif1 parent 1:1 classid 1:30 hfsc \
-    	sc m1 $((3*$UPLINK/10))kbit d 50ms m2 $((3*$UPLINK/10))kbit \
-    	ul rate ${UPLINK}kbit
+        sc m1 $((3*$UPLINK/10))kbit d 50ms m2 $((3*$UPLINK/10))kbit \
+        ul rate ${UPLINK}kbit
 
       # Default traffic: don't guarantee for 500ms, then guarentee 3/20
       tc class add dev $eif1 parent 1:1  classid 1:40 hfsc \
-    	sc m1           0 d    500ms m2 $((3*$UPLINK/20))kbit \
-    	ul rate ${UPLINK}kbit
+        sc m1           0 d    500ms m2 $((3*$UPLINK/20))kbit \
+        ul rate ${UPLINK}kbit
 
       # Bulk data traffic: don't guarantee for 2 seconds, then guarantee 1/20
       tc class add dev $eif1 parent 1:1  classid 1:50 hfsc \
-    	sc m1           0 d    2s m2 $((1*$UPLINK/20))kbit \
-    	ul rate ${UPLINK}kbit
+        sc m1           0 d    2s m2 $((1*$UPLINK/20))kbit \
+        ul rate ${UPLINK}kbit
 
       # P2P traffic: don't guarantee anything
       tc class add dev $eif1 parent 1:1  classid 1:60 hfsc \
-    	sc m1           0 d    4s m2 1kbit \
-    	ul rate ${UPLINK}kbit
+        sc m1           0 d    4s m2 1kbit \
+        ul rate ${UPLINK}kbit
 
       incoming_traffic_limit $eif1
     done
