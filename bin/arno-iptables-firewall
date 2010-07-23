@@ -4118,7 +4118,7 @@ setup_hostblock_chain()
 
       # Support both a '#' and a ';' as a comment delimiter in BLOCK_HOSTS_FILE file
       unset IFS
-      cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' | while read hosts; do
+      cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' |while read hosts; do
         cur_cnt=$(($cur_cnt + 100))
         progress_bar $cur_cnt $total_cnt
 
@@ -4128,6 +4128,7 @@ setup_hostblock_chain()
             iptables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
             iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
           done
+          unset IFS
         fi
       done
       echo ""
