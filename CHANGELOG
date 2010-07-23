@@ -1,6 +1,6 @@
-Version 1.9.2l-DEVEL (July 19, 2010)
+Version 1.9.2l-DEVEL (July 23, 2010)
 -------------------------------
-* Proper setting of IFS in the main script
+* Use unset IFS only for actual rules
 * Re-added local IFS in environment
 + Added option to enable/disable antispoofing for internal/dmz nets
 ! Don't "unset IFS" immediately after "local IFS" declaration in functions, this breaks older shells

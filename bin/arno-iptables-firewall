@@ -1031,7 +1031,7 @@ setup_dmz_input_chain()
 {
   # Add TCP ports to allow for certain hosts
   ##########################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_HOST_OPEN_TCP; do
     hosts=`get_hosts_ihp "$rule"`
     ports=`get_ports_ihp "$rule"`
@@ -1048,7 +1048,7 @@ setup_dmz_input_chain()
 
   # Add UDP ports to allow for certain hosts
   ##########################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_HOST_OPEN_UDP; do
     hosts=`get_hosts_ihp "$rule"`
     ports=`get_ports_ihp "$rule"`
@@ -1065,7 +1065,7 @@ setup_dmz_input_chain()
 
   # Add IP protocols to allow for certain hosts
   #############################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_HOST_OPEN_IP; do
     hosts=`get_hosts_ihp "$rule"`
     protos=`get_ports_ihp "$rule"`
@@ -1144,7 +1144,7 @@ setup_dmz_lan_forward_chain()
 
   # TCP ports to ALLOW for certain DMZ hosts
   ##########################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_LAN_HOST_OPEN_TCP; do
     shosts=`get_hosts_ih $(echo "$rule" |cut -s -d'>' -f1 ) "$ANYHOST"`
     dhosts=`get_hosts_hp $(echo "$rule" |cut -s -d'>' -f2 ) "$ANYHOST"`
@@ -1164,7 +1164,7 @@ setup_dmz_lan_forward_chain()
 
   # UDP ports to ALLOW for certain DMZ hosts
   ##########################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_LAN_HOST_OPEN_UDP; do
     shosts=`get_hosts_ih $(echo "$rule" |cut -s -d'>' -f1) "$ANYHOST"`
     dhosts=`get_hosts_hp $(echo "$rule" |cut -s -d'>' -f2) "$ANYHOST"`
@@ -1184,7 +1184,7 @@ setup_dmz_lan_forward_chain()
 
   # IP protocol(s) to ALLOW for certain DMZ hosts
   ###############################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_LAN_HOST_OPEN_IP; do
     shosts=`get_hosts_ih $(echo "$rule" |cut -s -d'>' -f1) "$ANYHOST"`
     dhosts=`get_hosts_hp $(echo "$rule" |cut -s -d'>' -f2) "$ANYHOST"`
@@ -1237,7 +1237,7 @@ setup_inet_dmz_forward_chain()
 
   # TCP ports to ALLOW for certain INET hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $INET_DMZ_HOST_OPEN_TCP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -1265,7 +1265,7 @@ setup_inet_dmz_forward_chain()
 
   # UDP ports to ALLOW for certain INET hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $INET_DMZ_HOST_OPEN_UDP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -1293,7 +1293,7 @@ setup_inet_dmz_forward_chain()
 
   # (Other) IP protocols to ALLOW for certain INET hosts
   ######################################################
-  IFS=' '
+  unset IFS
   for rule in $INET_DMZ_HOST_OPEN_IP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -1322,7 +1322,7 @@ setup_inet_dmz_forward_chain()
 
   # TCP ports to DENY for certain INET hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $INET_DMZ_HOST_DENY_UDP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -1354,7 +1354,7 @@ setup_inet_dmz_forward_chain()
 
   # UDP ports to DENY for certain INET hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $INET_DMZ_HOST_DENY_UDP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -1386,7 +1386,7 @@ setup_inet_dmz_forward_chain()
 
   # (Other) IP protocols to DENY for certain INET hosts
   #####################################################
-  IFS=' '
+  unset IFS
   for rule in $INET_DMZ_HOST_DENY_IP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -1418,7 +1418,7 @@ setup_inet_dmz_forward_chain()
 
   # Allow only certain TCP ports to be used from the INET->DMZ?
   #############################################################
-  IFS=' '
+  unset IFS
   for rule in $INET_DMZ_OPEN_TCP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -1438,7 +1438,7 @@ setup_inet_dmz_forward_chain()
 
   # Allow only certain UDP ports to be used from the INET->DMZ?
   #############################################################
-  IFS=' '
+  unset IFS
   for rule in $INET_DMZ_OPEN_UDP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -1458,7 +1458,7 @@ setup_inet_dmz_forward_chain()
 
   # Allow only certain IP protocols to be used from the INET->DMZ?
   ################################################################
-  IFS=' '
+  unset IFS
   for rule in $INET_DMZ_OPEN_IP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -1486,7 +1486,7 @@ setup_inet_dmz_forward_chain()
 
   # TCP ports to DENY for INET->DMZ
   #################################
-  IFS=' '
+  unset IFS
   for rule in $INET_DMZ_DENY_TCP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -1508,7 +1508,7 @@ setup_inet_dmz_forward_chain()
 
   # UDP ports to DENY for INET->DMZ
   #################################
-  IFS=' '
+  unset IFS
   for rule in $INET_DMZ_DENY_UDP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -1532,7 +1532,7 @@ setup_inet_dmz_forward_chain()
 
   # IP protocols to DENY for INET->DMZ
   ####################################
-  IFS=' '
+  unset IFS
   for rule in $INET_DMZ_DENY_IP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -1613,7 +1613,7 @@ setup_dmz_inet_forward_chain()
 
   # TCP ports to ALLOW for certain DMZ hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_INET_HOST_OPEN_TCP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -1638,7 +1638,7 @@ setup_dmz_inet_forward_chain()
 
   # UDP ports to ALLOW for certain DMZ hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_INET_HOST_OPEN_UDP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -1663,7 +1663,7 @@ setup_dmz_inet_forward_chain()
 
   # (Other) IP protocols to ALLOW for certain DMZ hosts
   #####################################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_INET_HOST_OPEN_IP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -1689,7 +1689,7 @@ setup_dmz_inet_forward_chain()
 
   # TCP ports to DENY for certain DMZ hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_INET_HOST_DENY_TCP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -1718,7 +1718,7 @@ setup_dmz_inet_forward_chain()
 
   # UDP ports to DENY for certain DMZ hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_INET_HOST_DENY_UDP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -1747,7 +1747,7 @@ setup_dmz_inet_forward_chain()
 
   # (Other) IP protocols to DENY for certain DMZ hosts
   #####################################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_INET_HOST_DENY_IP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -1776,7 +1776,7 @@ setup_dmz_inet_forward_chain()
 
   # Allow only certain TCP ports to be used from the DMZ->INET?
   #############################################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_INET_OPEN_TCP; do
     interfaces=`get_ifs "$rule"`
     ports=`get_ports_ip "$rule"`
@@ -1793,7 +1793,7 @@ setup_dmz_inet_forward_chain()
 
   # Allow only certain UDP ports to be used from the DMZ->INET?
   #############################################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_INET_OPEN_UDP; do
     interfaces=`get_ifs "$rule"`
     ports=`get_ports_ip "$rule"`
@@ -1810,7 +1810,7 @@ setup_dmz_inet_forward_chain()
 
   # Allow only certain IP protocols to be used from the DMZ->INET?
   ################################################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_INET_OPEN_IP; do
     interfaces=`get_ifs "$rule"`
     protos=`get_ports_ip "$rule"`
@@ -1835,7 +1835,7 @@ setup_dmz_inet_forward_chain()
 
   # TCP ports to DENY for DMZ->INET
   #################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_INET_DENY_TCP; do
     interfaces=`get_ifs "$rule"`
     ports=`get_ports_ip "$rule"`
@@ -1856,7 +1856,7 @@ setup_dmz_inet_forward_chain()
 
   # UDP ports to DENY for DMZ->INET
   #################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_INET_DENY_UDP; do
     interfaces=`get_ifs "$rule"`
     ports=`get_ports_ip "$rule"`
@@ -1877,7 +1877,7 @@ setup_dmz_inet_forward_chain()
 
   # IP protocols to DENY for DMZ->INET
   ####################################
-  IFS=' '
+  unset IFS
   for rule in $DMZ_INET_DENY_IP; do
     interfaces=`get_ifs "$rule"`
     protos=`get_ports_ip "$rule"`
@@ -1953,7 +1953,7 @@ setup_int_input_chain()
 {
   # TCP ports to OPEN for certain LAN hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_HOST_OPEN_TCP; do
     hosts=`get_hosts_ihp "$rule"`
     ports=`get_ports_ihp "$rule"`
@@ -1970,7 +1970,7 @@ setup_int_input_chain()
 
   # UDP ports to OPEN for certain LAN hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_HOST_OPEN_UDP; do
     hosts=`get_hosts_ihp "$rule"`
     ports=`get_ports_ihp "$rule"`
@@ -1987,7 +1987,7 @@ setup_int_input_chain()
 
   # IP protocols to OPEN for certain LAN hosts
   ############################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_HOST_OPEN_IP; do
     hosts=`get_hosts_ihp "$rule"`
     protos=`get_ports_ihp "$rule"`
@@ -2004,7 +2004,7 @@ setup_int_input_chain()
 
   # TCP ports to DENY for certain LAN hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_HOST_DENY_TCP; do
     hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
     ports=`get_ports_ihp "$rule" "$ANYPORT"`
@@ -2025,7 +2025,7 @@ setup_int_input_chain()
 
   # UDP ports to DENY for certain LAN hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_HOST_DENY_UDP; do
     hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
     ports=`get_ports_ihp "$rule" "$ANYPORT"`
@@ -2046,7 +2046,7 @@ setup_int_input_chain()
 
   # IP protocols to DENY for certain LAN hosts
   ############################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_HOST_DENY_IP; do
     hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
     protos=`get_ports_ihp "$rule"`
@@ -2181,7 +2181,7 @@ setup_lan_inet_forward_chain()
 
   # udp ports to ALLOW for certain LAN hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_INET_HOST_OPEN_TCP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -2206,7 +2206,7 @@ setup_lan_inet_forward_chain()
 
   # UDP ports to ALLOW for certain LAN hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_INET_HOST_OPEN_UDP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -2231,7 +2231,7 @@ setup_lan_inet_forward_chain()
 
   # (Other) IP protocols to ALLOW for certain LAN hosts
   #####################################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_INET_HOST_OPEN_IP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -2256,7 +2256,7 @@ setup_lan_inet_forward_chain()
 
   # udp ports to DENY for certain LAN hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_INET_HOST_DENY_TCP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -2285,7 +2285,7 @@ setup_lan_inet_forward_chain()
 
   # UDP ports to DENY for certain LAN hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_INET_HOST_DENY_UDP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -2314,7 +2314,7 @@ setup_lan_inet_forward_chain()
 
   # (Other) IP protocols to DENY for certain LAN hosts
   #####################################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_INET_HOST_DENY_IP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
@@ -2343,7 +2343,7 @@ setup_lan_inet_forward_chain()
 
   # Allow only certain udp ports to be used from the LAN->INET?
   #############################################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_INET_OPEN_TCP; do
     interfaces=`get_ifs "$rule"`
     ports=`get_ports_ihp "$rule"`
@@ -2360,7 +2360,7 @@ setup_lan_inet_forward_chain()
 
   # Allow only certain UDP ports to be used from the LAN->INET?
   #############################################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_INET_OPEN_UDP; do
     interfaces=`get_ifs "$rule"`
     ports=`get_ports_ihp "$rule"`
@@ -2377,7 +2377,7 @@ setup_lan_inet_forward_chain()
 
   # Allow only certain IP protocols to be used from the LAN->INET?
   ################################################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_INET_OPEN_IP; do
     interfaces=`get_ifs "$rule"`
     protos=`get_ports_ihp "$rule"`
@@ -2402,7 +2402,7 @@ setup_lan_inet_forward_chain()
 
   # TCP ports to DENY for LAN->INET
   #################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_INET_DENY_TCP; do
     interfaces=`get_ifs "$rule"`
     ports=`get_ports_ihp "$rule"`
@@ -2423,7 +2423,7 @@ setup_lan_inet_forward_chain()
 
   # UDP ports to DENY for LAN->INET
   #################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_INET_DENY_UDP; do
     interfaces=`get_ifs "$rule"`
     ports=`get_ports_ihp "$rule"`
@@ -2444,7 +2444,7 @@ setup_lan_inet_forward_chain()
 
   # IP protocols to DENY for LAN->INET
   ####################################
-  IFS=' '
+  unset IFS
   for rule in $LAN_INET_DENY_IP; do
     interfaces=`get_ifs "$rule"`
     protos=`get_ports_ihp "$rule"`
@@ -2599,7 +2599,7 @@ setup_ext_input_chain()
 
   # Add TCP ports to allow for certain hosts
   ##########################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_OPEN_TCP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2623,7 +2623,7 @@ setup_ext_input_chain()
 
   # Add UDP ports to allow for certain hosts
   ##########################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_OPEN_UDP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2647,7 +2647,7 @@ setup_ext_input_chain()
 
   # Add IP protocols to allow for certain hosts
   #############################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_OPEN_IP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2672,7 +2672,7 @@ setup_ext_input_chain()
 
   # Add ICMP to allow for certain hosts
   #####################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_OPEN_ICMP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2693,7 +2693,7 @@ setup_ext_input_chain()
 
   # Add TCP ports to REJECT for certain hosts but NOT logged
   ##########################################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_REJECT_TCP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2717,7 +2717,7 @@ setup_ext_input_chain()
 
   # Add UDP ports to REJECT for certain hosts NOT logged
   ######################################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_REJECT_UDP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2741,7 +2741,7 @@ setup_ext_input_chain()
 
   # Add TCP ports to REJECT for certain hosts
   ###########################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_REJECT_TCP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2768,7 +2768,7 @@ setup_ext_input_chain()
 
   # Add UDP ports to REJECT for certain hosts
   ###########################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_REJECT_UDP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2795,7 +2795,7 @@ setup_ext_input_chain()
 
   # Add TCP ports to DENY for certain hosts but NOT logged
   ########################################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_DENY_TCP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2819,7 +2819,7 @@ setup_ext_input_chain()
 
   # Add UDP ports to DENY for certain hosts but NOT logged
   ########################################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_DENY_UDP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2842,7 +2842,7 @@ setup_ext_input_chain()
 
   # Add IP protocols to DENY for certain hosts but NOT logged
   ###########################################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_DENY_IP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2865,7 +2865,7 @@ setup_ext_input_chain()
 
   # Add ICMP-request to DENY for certain hosts but NOT logged
   ############################################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_DENY_ICMP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2886,7 +2886,7 @@ setup_ext_input_chain()
 
   # Add TCP ports to DENY for certain hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_DENY_TCP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2913,7 +2913,7 @@ setup_ext_input_chain()
 
   # Add UDP ports to DENY for certain hosts
   #########################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_DENY_UDP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2940,7 +2940,7 @@ setup_ext_input_chain()
 
   # Add IP protocols to DENY for certain hosts
   ############################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_DENY_IP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2967,7 +2967,7 @@ setup_ext_input_chain()
 
   # Add ICMP-request to DENY for certain hosts
   ############################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_DENY_ICMP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -2991,7 +2991,7 @@ setup_ext_input_chain()
 
   # Adding TCP ports to be denied for everyone
   ############################################
-  IFS=' '
+  unset IFS
   for rule in $DENY_TCP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3014,7 +3014,7 @@ setup_ext_input_chain()
 
   # Adding UDP ports to be denied for everyone
   ############################################
-  IFS=' '
+  unset IFS
   for rule in $DENY_UDP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3037,7 +3037,7 @@ setup_ext_input_chain()
 
   # Adding TCP ports to be rejected for everyone
   ##############################################
-  IFS=' '
+  unset IFS
   for rule in $REJECT_TCP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3060,7 +3060,7 @@ setup_ext_input_chain()
 
   # Adding UDP ports to be rejected for everyone
   ##############################################
-  IFS=' '
+  unset IFS
   for rule in $REJECT_UDP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3083,7 +3083,7 @@ setup_ext_input_chain()
 
   # Adding the "full access hosts"
   ################################
-  IFS=' '
+  unset IFS
   for rule in $FULL_ACCESS_HOSTS; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3103,7 +3103,7 @@ setup_ext_input_chain()
 
   # TCP ports to DENY but NOT to LOG
   ##################################
-  IFS=' '
+  unset IFS
   for rule in $DENY_TCP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3123,7 +3123,7 @@ setup_ext_input_chain()
 
   # UDP ports to DENY but NOT to LOG
   ##################################
-  IFS=' '
+  unset IFS
   for rule in $DENY_UDP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3143,7 +3143,7 @@ setup_ext_input_chain()
 
   # TCP ports to REJECT but NOT to LOG
   ####################################
-  IFS=' '
+  unset IFS
   for rule in $REJECT_TCP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3163,7 +3163,7 @@ setup_ext_input_chain()
 
   # UDP ports to REJECT but NOT to LOG
   ####################################
-  IFS=' '
+  unset IFS
   for rule in $REJECT_UDP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3206,7 +3206,7 @@ setup_ext_input_chain()
 
   # Adding TCP ports NOT to be firewalled
   #######################################
-  IFS=' '
+  unset IFS
   for rule in $OPEN_TCP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3227,7 +3227,7 @@ setup_ext_input_chain()
 
   # Adding UDP ports NOT to be firewalled
   #######################################
-  IFS=' '
+  unset IFS
   for rule in $OPEN_UDP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3248,7 +3248,7 @@ setup_ext_input_chain()
 
   # Adding IP protocols NOT to be firewalled
   ##########################################
-  IFS=' '
+  unset IFS
   for rule in $OPEN_IP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3516,7 +3516,7 @@ setup_ext_output_chain()
 {
   # This rule is for hostwise OUTPUT TCP blocking
   ###############################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_DENY_TCP_OUTPUT; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
@@ -3543,7 +3543,7 @@ setup_ext_output_chain()
 
   # This rule is for hostwise OUTPUT UDP blocking
   ###############################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_DENY_UDP_OUTPUT; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
@@ -3570,7 +3570,7 @@ setup_ext_output_chain()
 
   # This rule is for hostwise OUTPUT IP blocking
   ##############################################
-  IFS=' '
+  unset IFS
   for rule in $HOST_DENY_IP_OUTPUT; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
@@ -3597,7 +3597,7 @@ setup_ext_output_chain()
 
   # Adding the "full access hosts"
   ################################
-  IFS=' '
+  unset IFS
   for rule in $FULL_ACCESS_HOSTS; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
@@ -3617,7 +3617,7 @@ setup_ext_output_chain()
 
   # This rule is for local OUTPUT TCP blocking
   ############################################
-  IFS=' '
+  unset IFS
   for rule in $DENY_TCP_OUTPUT; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
@@ -3641,7 +3641,7 @@ setup_ext_output_chain()
 
   # This rule is for local OUTPUT UDP blocking
   ############################################
-  IFS=' '
+  unset IFS
   for rule in $DENY_UDP_OUTPUT; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
@@ -3665,7 +3665,7 @@ setup_ext_output_chain()
 
   # This rule is for local OUTPUT IP blocking
   ############################################
-  IFS=' '
+  unset IFS
   for rule in $DENY_IP_OUTPUT; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
@@ -3694,7 +3694,7 @@ setup_ext_broadcast_chain()
 {
   # Disable logging of certain TCP broadcasts on the external interface
   #####################################################################
-  IFS=' '
+  unset IFS
   for rule in $BROADCAST_TCP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3712,7 +3712,7 @@ setup_ext_broadcast_chain()
 
   # Disable logging of certain UDP broadcasts on the external interface
   ##########################################################################################
-  IFS=' '
+  unset IFS
   for rule in $BROADCAST_UDP_NOLOG; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3736,7 +3736,7 @@ setup_input_log()
 {
   # This rule is for local INPUT TCP watching
   ############################################
-  IFS=' '
+  unset IFS
   for rule in $LOG_INPUT_TCP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3758,7 +3758,7 @@ setup_input_log()
 
   # This rule is for local INPUT UDP watching
   ###########################################
-  IFS=' '
+  unset IFS
   for rule in $LOG_INPUT_UDP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3779,7 +3779,7 @@ setup_input_log()
 
   # This rule is for local INPUT IP watching
   ##########################################
-  IFS=' '
+  unset IFS
   for rule in $LOG_INPUT_IP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3801,7 +3801,7 @@ setup_input_log()
 
   # Hostwise logging of input connection attempts
   ###############################################
-  IFS=' '
+  unset IFS
   for rule in $LOG_HOST_INPUT; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3823,7 +3823,7 @@ setup_input_log()
 
   # Hostwise logging of certain TCP port connection attempts
   ##########################################################
-  IFS=' '
+  unset IFS
   for rule in $LOG_HOST_INPUT_TCP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3849,7 +3849,7 @@ setup_input_log()
 
   # Hostwise logging of certain UDP port connection attempts
   ##########################################################
-  IFS=' '
+  unset IFS
   for rule in $LOG_HOST_INPUT_UDP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3874,7 +3874,7 @@ setup_input_log()
 
   # Hostwise logging of certain IP protocols connection attempts
   ##############################################################
-  IFS=' '
+  unset IFS
   for rule in $LOG_HOST_INPUT_IP; do
     interfaces=`get_ifs "$rule"`
     destips=`get_ips "$rule"`
@@ -3905,7 +3905,7 @@ setup_output_log()
 {
   # This rule is for local OUTPUT TCP watching
   ############################################
-  IFS=' '
+  unset IFS
   for rule in $LOG_OUTPUT_TCP; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
@@ -3926,7 +3926,7 @@ setup_output_log()
 
   # This rule is for local OUTPUT UDP watching
   ############################################
-  IFS=' '
+  unset IFS
   for rule in $LOG_OUTPUT_UDP; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
@@ -3947,7 +3947,7 @@ setup_output_log()
 
   # This rule is for local OUTPUT IP watching
   ###########################################
-  IFS=' '
+  unset IFS
   for rule in $LOG_OUTPUT_IP; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
@@ -3968,7 +3968,7 @@ setup_output_log()
 
   # Hostwise logging of output connection attempts
   ################################################
-  IFS=' '
+  unset IFS
   for rule in $LOG_HOST_OUTPUT; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
@@ -3991,7 +3991,7 @@ setup_output_log()
 
   # Hostwise logging of certain TCP port connection attempts
   ##########################################################
-  IFS=' '
+  unset IFS
   for rule in $LOG_HOST_OUTPUT_TCP; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
@@ -4017,7 +4017,7 @@ setup_output_log()
 
   # Hostwise logging of certain UDP port connection attempts
   ##########################################################
-  IFS=' '
+  unset IFS
   for rule in $LOG_HOST_OUTPUT_UDP; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
@@ -4042,7 +4042,7 @@ setup_output_log()
 
   # Hostwise logging of certain IP protocols connection attempts
   ##############################################################
-  IFS=' '
+  unset IFS
   for rule in $LOG_HOST_OUTPUT_IP; do
     interfaces=`get_ifs "$rule"`
     srcips=`get_ips "$rule"`
@@ -4117,8 +4117,8 @@ setup_hostblock_chain()
       progress_bar $cur_cnt $total_cnt
 
       # Support both a '#' and a ';' as a comment delimiter in BLOCK_HOSTS_FILE file
-      IFS=$EOL
-      cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' |while read hosts; do
+      unset IFS
+      cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' | while read hosts; do
         cur_cnt=$(($cur_cnt + 100))
         progress_bar $cur_cnt $total_cnt
 
@@ -4758,7 +4758,7 @@ setup_firewall_rules()
 
   # NAT TCP port forwards
   #######################
-  IFS=' '
+  unset IFS
   for rule in $NAT_FORWARD_TCP; do
     if_shosts_sports=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts_sports" "$EXT_IF"`
@@ -4792,7 +4792,7 @@ setup_firewall_rules()
 
   # NAT UDP port forwards
   #######################
-  IFS=' '
+  unset IFS
   for rule in $NAT_FORWARD_UDP; do
     if_shosts_sports=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts_sports" "$EXT_IF"`
@@ -4826,7 +4826,7 @@ setup_firewall_rules()
 
   # Non-TCP/UDP port forwards (protocol based)
   ############################################
-  IFS=' '
+  unset IFS
   for rule in $NAT_FORWARD_IP; do
     if_shosts_protos=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts_protos" "$EXT_IF"`
