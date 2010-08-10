@@ -4746,8 +4746,9 @@ setup_firewall_rules()
         printf "$net "
 
         for interface in $EXT_IF; do
-          # the "! -d $net" is to avoid problems with Freeswan etc.
-          iptables -t nat -A POSTROUTING -o $interface -s $net ! -d $net -j MASQUERADE
+          # NOTE 1: The "! -d $net" is to avoid problems with Freeswan etc.
+          # NOTE 2: The "! --proto 41" is prevent IPv6 from being masqueraded
+          iptables -t nat -A POSTROUTING ! --proto 41 -o $interface -s $net ! -d $net -j MASQUERADE
         done
       done
       echo ""
