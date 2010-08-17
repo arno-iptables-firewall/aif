@@ -4083,6 +4083,12 @@ setup_hostblock_chain()
     return
   fi
 
+  if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+    echo "Blocking (blackhole) direction: Inbound and Outbound"
+  else
+    echo "Blocking (blackhole) direction: Inbound Only"
+  fi
+
   # Set default to DROP all while rules are added
   iptables -A HOST_BLOCK_SRC -j DROP
   iptables -A HOST_BLOCK_DST -j DROP
@@ -4100,7 +4106,9 @@ setup_hostblock_chain()
 
       for host in `ip_range "$hosts"`; do
         iptables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
-        iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+        if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+          iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+        fi
       done
     done
     echo ""
@@ -4126,7 +4134,9 @@ setup_hostblock_chain()
           IFS=','
           for host in `ip_range "$hosts"`; do
             iptables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
-            iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+            if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+              iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+            fi
           done
           unset IFS
         fi

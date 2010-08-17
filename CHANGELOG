@@ -1,5 +1,7 @@
-Version 1.9.2l-DEVEL (August 10, 2010)
+Version 1.9.2l-DEVEL (August 17, 2010)
 -------------------------------
++ The "Blocked Host" feature adds the BLOCK_HOSTS_BIDIRECTIONAL option to specify whether hosts are
+  blocked both Inbound and Outbound (default) or Inbound only. (Thanks Philip)
 * Don't masquerade IPv6/proto 41 (thanks Klemen Mihevc)
 * Use unset IFS only for actual rules
 * Re-added local IFS in environment
