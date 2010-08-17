@@ -4066,13 +4066,23 @@ setup_output_log()
   done
 }
 
+test_hostblock_chains()
+{
+  if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+    (iptables -F HOST_BLOCK_SRC 2>&1 >/dev/null) |grep -q "No chain" || \
+    (iptables -F HOST_BLOCK_DST 2>&1 >/dev/null) |grep -q "No chain"
+    return $?
+  else
+    (iptables -F HOST_BLOCK_SRC 2>&1 >/dev/null) |grep -q "No chain"
+    return $?
+  fi
+}
 
 # This creates the separate host block
 ######################################
 setup_hostblock_chain()
 {
-  if iptables -F HOST_BLOCK_SRC 2>&1 |grep -q "No chain" || \
-     iptables -F HOST_BLOCK_DST 2>&1 |grep -q "No chain"; then
+  if test_hostblock_chains; then
     printf "\033[40m\033[1;31mERROR: The firewall isn't running!\033[0m\n" >&2
     printf "\033[40m\033[1;31m       You should first run this script with the \"start\" command.\033[0m\n" >&2
     return 5
@@ -4085,11 +4095,15 @@ setup_hostblock_chain()
 
   # Set default to DROP all while rules are added
   iptables -A HOST_BLOCK_SRC -j DROP
-  iptables -A HOST_BLOCK_DST -j DROP
+  if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+    iptables -A HOST_BLOCK_DST -j DROP
+  fi
 
   iptables_batch start
   iptables_batch init HOST_BLOCK_SRC
-  iptables_batch init HOST_BLOCK_DST
+  if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+    iptables_batch init HOST_BLOCK_DST
+  fi
 
   if [ -n "$BLOCK_HOSTS" ]; then
     printf "Blocking (blackhole) host(s): "
@@ -4100,7 +4114,9 @@ setup_hostblock_chain()
 
       for host in `ip_range "$hosts"`; do
         iptables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
-        iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+        if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+          iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+        fi
       done
     done
     echo ""
@@ -4126,7 +4142,9 @@ setup_hostblock_chain()
           IFS=','
           for host in `ip_range "$hosts"`; do
             iptables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
-            iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+            if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+              iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+            fi
           done
           unset IFS
         fi
@@ -4139,13 +4157,17 @@ setup_hostblock_chain()
   fi
 
   iptables_batch apply HOST_BLOCK_SRC
-  iptables_batch apply HOST_BLOCK_DST
+  if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+    iptables_batch apply HOST_BLOCK_DST
+  fi
   iptables_batch stop
   
   # All Blocked Host rules are applied
   # Remove default rule at the beginning of the HOST_BLOCK_SRC and HOST_BLOCK_DST chains
   iptables -D HOST_BLOCK_SRC 1
-  iptables -D HOST_BLOCK_DST 1
+  if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+    iptables -D HOST_BLOCK_DST 1
+  fi
 }
 
 
