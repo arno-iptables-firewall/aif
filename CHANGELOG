@@ -1,5 +1,5 @@
-Version 1.9.2l-DEVEL (August 25, 2010)
--------------------------------
+Version 1.9.2l (August 25, 2010)
+--------------------------------
 * Slightly safer check on whether we have IPv6 on the system we're running
 ! IPv6 detection failed due to our systctl wrapper function being to verbose. This caused IPv6 to always be
   "open" on systems having IPv6 connectivity (Debug bug #594326, thanks to Tim Small for reporting this)
