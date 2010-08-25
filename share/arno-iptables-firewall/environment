@@ -452,7 +452,7 @@ sysctl_set_all()
   local VARIABLE="$2"
   local VALUE="$3"
 
-  IFS=$EOL
+  unset IFS
   $SYSCTL -a 2>/dev/null |cut -d' ' -f1 |grep -x "$PREFIX.[a-z,0-9]*.$VARIABLE" |while read ITEM; do
     local sysctl_commandline="$SYSCTL -w $ITEM=$VALUE"
     local result=`trace $sysctl_commandline 2>&1`
