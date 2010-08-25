@@ -436,6 +436,23 @@ sysctl_multi()
 }
 
 
+# Set a value for sysctl wildcard variables (like "net.ipv4.conf.*.rp_filter")
+# $1 = prefix (eg. net.ipv4.conf)
+# $2 = variable (eg. rp_filter)
+# $3 = value to set
+sysctl_set_all()
+{
+  local PREFIX="$1"
+  local VARIABLE="$2"
+  local VALUE="$3"
+
+  IFS=$EOL
+  sysctl -a 2>/dev/null |cut -d' ' -f1 |grep -x "$PREFIX.[a-z,0-9]*.$VARIABLE" |while read ITEM; do
+     sysctl -w $ITEM=$VALUE
+  done
+}
+
+
 # tc binary wrapper
 ###################
 tc()

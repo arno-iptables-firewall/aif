@@ -1,5 +1,7 @@
-Version 1.9.2l-DEVEL (August 17, 2010)
+Version 1.9.2l-DEVEL (August 25, 2010)
 -------------------------------
+* From now on explicitly set all variables for sysctl wildcard variables (like "net.ipv4.conf.*.rp_filter")
+  since newer kernels handle those differently now (Thanks to Klemen Mihevc)
 + The "Blocked Host" feature adds the BLOCK_HOSTS_BIDIRECTIONAL option to specify whether hosts are
   blocked both Inbound and Outbound (default) or Inbound only. (Thanks Philip)
 * Don't masquerade IPv6/proto 41 (thanks Klemen Mihevc)
