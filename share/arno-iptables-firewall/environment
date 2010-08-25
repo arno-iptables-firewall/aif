@@ -388,7 +388,7 @@ sysctl()
 
   if [ "$retval" != "0" ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31msysctl $@: ($retval) $result\033[0m\n" >&2
+    printf "\033[40m\033[1;31m$SYSCTL $@: ($retval) $result\033[0m\n" >&2
     return $retval
   fi
   
