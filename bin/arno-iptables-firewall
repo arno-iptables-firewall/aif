@@ -4390,16 +4390,14 @@ setup_firewall_rules()
     ip4tables -P OUTPUT DROP
   else
     # IPv6 support available on the system?
-    if sysctl -a 2>/dev/null |grep -q "^net.ipv6.conf"; then
-      if [ -x "$IP6TABLES" ]; then
-        echo "NOTE: IPv4 support enabled, setting default policy for IPv6 to DROP"
-        ip6tables -P INPUT DROP
-        ip6tables -P FORWARD DROP
-        ip6tables -P OUTPUT DROP
-      else
-        printf "\033[40m\033[1;31mWARNING: IPv4 support enabled, but unable to set the default policy\033[0m\n" >&2
-        printf "\033[40m\033[1;31m         for IPv6 to DROP as the ip6tables-binary is not available!\033[0m\n" >&2
-      fi
+    if [ -x "$IP6TABLES" ]; then
+      echo "NOTE: IPv4 support enabled, setting default policy for IPv6 to DROP"
+      ip6tables -P INPUT DROP
+      ip6tables -P FORWARD DROP
+      ip6tables -P OUTPUT DROP
+    elif sysctl -a 2>/dev/null |grep -q "^net.ipv6.conf"; then
+      printf "\033[40m\033[1;31mWARNING: IPv4 support enabled, but unable to set the default policy\033[0m\n" >&2
+      printf "\033[40m\033[1;31m         for IPv6 to DROP as the ip6tables-binary is not available!\033[0m\n" >&2
     fi
   fi
 
