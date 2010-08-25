@@ -447,8 +447,17 @@ sysctl_set_all()
   local VALUE="$3"
 
   IFS=$EOL
-  sysctl -a 2>/dev/null |cut -d' ' -f1 |grep -x "$PREFIX.[a-z,0-9]*.$VARIABLE" |while read ITEM; do
-     sysctl -w $ITEM=$VALUE
+  $SYSCTL -a 2>/dev/null |cut -d' ' -f1 |grep -x "$PREFIX.[a-z,0-9]*.$VARIABLE" |while read ITEM; do
+     local sysctl_commandline="$SYSCTL -w $ITEM=$VALUE"
+     local result=`trace $sysctl_commandline 2>&1`
+     local retval=$?
+
+     if [ "$retval" = "0" ]; then
+       echo "${INDENT}${sysctl_commandline}"
+     else
+       # Show any (error) messages in red
+       printf "\033[40m\033[1;31m${sysctl_commandline}: ($retval) $result\033[0m\n" >&2
+     fi
   done
 }
 
