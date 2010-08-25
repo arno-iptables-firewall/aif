@@ -391,7 +391,11 @@ sysctl()
     printf "\033[40m\033[1;31msysctl $@: ($retval) $result\033[0m\n" >&2
     return $retval
   fi
-  echo "${INDENT}sysctl $@"
+  
+  if [ -n "$result" ]; then
+    echo "${INDENT}$result"
+  fi
+  
   return 0
 }
 
@@ -424,7 +428,9 @@ sysctl_multi()
       retval=$?
 
       if [ "$retval" = "0" ]; then
-        echo "${INDENT}${sysctl_commandline}"
+        if [ -n "$result" ]; then
+          echo "${INDENT}$result"
+        fi
         return 0
       else
         printf "\033[40m\033[1;31m${sysctl_commandline}: ($retval) $result\033[0m\n" >&2
@@ -448,16 +454,18 @@ sysctl_set_all()
 
   IFS=$EOL
   $SYSCTL -a 2>/dev/null |cut -d' ' -f1 |grep -x "$PREFIX.[a-z,0-9]*.$VARIABLE" |while read ITEM; do
-     local sysctl_commandline="$SYSCTL -w $ITEM=$VALUE"
-     local result=`trace $sysctl_commandline 2>&1`
-     local retval=$?
+    local sysctl_commandline="$SYSCTL -w $ITEM=$VALUE"
+    local result=`trace $sysctl_commandline 2>&1`
+    local retval=$?
 
-     if [ "$retval" = "0" ]; then
-       echo "${INDENT}${sysctl_commandline}"
-     else
-       # Show any (error) messages in red
-       printf "\033[40m\033[1;31m${sysctl_commandline}: ($retval) $result\033[0m\n" >&2
-     fi
+    if [ "$retval" = "0" ]; then
+      if [ -n "$result" ]; then
+        echo "${INDENT}$result"
+      fi
+    else
+      # Show any (error) messages in red
+      printf "\033[40m\033[1;31m${sysctl_commandline}: ($retval) $result\033[0m\n" >&2
+    fi
   done
 }
 
