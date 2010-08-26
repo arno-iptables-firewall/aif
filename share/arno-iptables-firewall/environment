@@ -470,6 +470,12 @@ sysctl_set_all()
 }
 
 
+sysctl_key()
+{
+  $SYSCTL -a 2>/dev/null |grep -q "^$1"
+}
+
+
 # tc binary wrapper
 ###################
 tc()

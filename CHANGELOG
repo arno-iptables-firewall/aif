@@ -1,5 +1,6 @@
 Version 1.9.2m-DEVEL (August 26, 2010)
 --------------------------------------
+* Implement sysctl_key() function and use it for IPv6 detection (thanks Lonnie)
 ! The recent changes caused setting net.ipv4.icmp_echo_ignore_all to fail (thanks Lonnie)
 
 Version 1.9.2l (August 25, 2010)

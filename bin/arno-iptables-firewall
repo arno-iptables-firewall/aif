@@ -4390,7 +4390,7 @@ setup_firewall_rules()
     ip4tables -P OUTPUT DROP
   else
     # IPv6 support available on the system?
-    if sysctl -a 2>/dev/null |grep -q "^net.ipv6.conf"; then
+    if sysctl_key net.ipv6.conf; then
       if [ -x "$IP6TABLES" ]; then
         echo "NOTE: IPv4 support enabled, setting default policy for IPv6 to DROP"
         ip6tables -P INPUT DROP
