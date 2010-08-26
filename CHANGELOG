@@ -1,10 +1,7 @@
-Version 1.9.2m-DEVEL (August 26, 2010)
---------------------------------------
+Version 1.9.2l (August 26, 2010)
+--------------------------------
 * Implement sysctl_key() function and use it for IPv6 detection (thanks Lonnie)
 ! The recent changes caused setting net.ipv4.icmp_echo_ignore_all to fail (thanks Lonnie)
-
-Version 1.9.2l (August 25, 2010)
---------------------------------
 * BusyBox doesn't understand grep -x, so use ^$ instead + dots should be escaped (thanks Lonnie)
 * From now on explicitly set all variables for sysctl wildcard variables (like "net.ipv4.conf.*.rp_filter")
   since newer kernels handle those differently now (Thanks to Klemen Mihevc)
