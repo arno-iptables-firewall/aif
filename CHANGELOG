@@ -1,3 +1,7 @@
+Version 1.9.2m-DEVEL (August 26, 2010)
+--------------------------------------
+! The recent changes caused setting net.ipv4.icmp_echo_ignore_all to fail (thanks Lonnie)
+
 Version 1.9.2l (August 25, 2010)
 --------------------------------
 * BusyBox doesn't understand grep -x, so use ^$ instead + dots should be escaped (thanks Lonnie)
