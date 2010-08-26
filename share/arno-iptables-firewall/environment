@@ -442,30 +442,24 @@ sysctl_multi()
 }
 
 
-# Set a value for sysctl wildcard variables (like "net.ipv4.conf.*.rp_filter")
+# Set a value for sysctl wildcard interfaces (like "net.ipv4.conf.*.rp_filter")
 # $1 = prefix (eg. net.ipv4.conf)
 # $2 = variable (eg. rp_filter)
 # $3 = value to set
 sysctl_set_all()
 {
-  local PREFIX="$1"
-  local VARIABLE="$2"
-  local VALUE="$3"
-
-  unset IFS
-  $SYSCTL -a 2>/dev/null |cut -d' ' -f1 |grep "^$PREFIX\..*\.$VARIABLE$" |while read ITEM; do
-    local sysctl_commandline="$SYSCTL -w $ITEM=$VALUE"
-    local result=`trace $sysctl_commandline 2>&1`
-    local retval=$?
-
-    if [ "$retval" = "0" ]; then
-      if [ -n "$result" ]; then
-        echo "${INDENT}$result"
+  local prefix="$1" variable="$2" value="$3"
+  local interface line IFS
+  
+  IFS=$EOL
+  for line in $($SYSCTL -a 2>/dev/null |cut -d' ' -f1 |grep "^${prefix}\..*\.${variable}$"); do
+    IFS=' ,'
+    for interface in all default lo $EXT_IF $INT_IF $DMZ_IF; do
+      if [ "$line" = "$prefix.$interface.$variable" ]; then
+        sysctl -w "$line=$value"
+        break
       fi
-    else
-      # Show any (error) messages in red
-      printf "\033[40m\033[1;31m${sysctl_commandline}: ($retval) $result\033[0m\n" >&2
-    fi
+    done
   done
 }
 
