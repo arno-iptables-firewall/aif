@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.04"
+MY_VERSION="1.05"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -220,26 +220,28 @@ get_user_yn()
 {
   printf "$1 "
 
-  read -s -n1 answer
+  while true; do
+    read -s -n1 answer
 
-  if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
-    echo "Yes"
-    return 0
-  fi
+    if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
+      echo "Yes"
+      return 0
+    fi
 
-  if [ "$answer" = "n" ] || [ "$answer" = "N" ]; then
-    echo "No"
-    return 1
-  fi
+    if [ "$answer" = "n" ] || [ "$answer" = "N" ]; then
+      echo "No"
+      return 1
+    fi
 
-  # Fallback to default
-  if [ "$2" = "y" ]; then
-    echo "Yes"
-    return 0
-  else
-    echo "No"
-    return 1
-  fi
+    # Fallback to default
+    if [ "$2" = "y" ]; then
+      echo "Yes"
+      return 0
+    elif [ "$2" = "n" ]; then
+      echo "No"
+      return 1
+    fi
+  done
 }
 
 
@@ -324,7 +326,7 @@ echo ""
 echo "** Install done **"
 echo ""
 
-if get_user_yn "Do you want to run the configuration script (Y/N)?" "y"; then
+if get_user_yn "Do you want to run the configuration script (Y/N)?"; then
   ./configure.sh
 fi
 
@@ -335,5 +337,6 @@ echo "**       \"/etc/init.d/arno-iptables-firewall start\"                     
 echo "**       It is recommended however to first review the settings in           **"
 echo "**       /etc/arno-iptables-firewall/firewall.conf!                          **"
 
-exit 0
+if get_user_yn "(Re)start firewall (in verbose mode) (Y/N)?"; then
 
+exit 0
