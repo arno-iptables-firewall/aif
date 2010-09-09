@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="1.9.2l"
+MY_VERSION="1.9.2m-DEVEL"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -4384,22 +4384,40 @@ setup_firewall_rules()
 
   # When IPv4 support is active, disable IPv6 traffic
   if [ "$IPV6_SUPPORT" = "1" ]; then
-    echo "NOTE: IPv6 support enabled, setting default policy for IPv4 to DROP"
+    echo "NOTE: IPv6 support enabled, setting simple default policy for IPv4 to DROP"
     ip4tables -P INPUT DROP
     ip4tables -P FORWARD DROP
     ip4tables -P OUTPUT DROP
-  else
+    
+    ip4tables -A INPUT -i lo -j ACCEPT
+    ip4tables -A FORWARD -i lo -j ACCEPT
+    ip4tables -A OUTPUT -o lo -j ACCEPT
+
+    IFS=' ,'
+    for interface in $INT_IF $TRUSTED_IF; do
+      ip4tables -A INPUT -i $interface -j ACCEPT
+      ip4tables -A OUTPUT -o $interface -j ACCEPT
+    done
+  elif sysctl_key net.ipv6.conf; then
     # IPv6 support available on the system?
-    if sysctl_key net.ipv6.conf; then
-      if [ -x "$IP6TABLES" ]; then
-        echo "NOTE: IPv4 support enabled, setting default policy for IPv6 to DROP"
-        ip6tables -P INPUT DROP
-        ip6tables -P FORWARD DROP
-        ip6tables -P OUTPUT DROP
-      else
-        printf "\033[40m\033[1;31mWARNING: IPv4 support enabled, but unable to set the default policy\033[0m\n" >&2
-        printf "\033[40m\033[1;31m         for IPv6 to DROP as the ip6tables-binary is not available!\033[0m\n" >&2
-      fi
+    if [ -x "$IP6TABLES" ]; then
+      echo "NOTE: IPv4 support enabled, setting simple default policy for IPv6"
+      ip6tables -P INPUT DROP
+      ip6tables -P FORWARD DROP
+      ip6tables -P OUTPUT DROP
+
+      ip6tables -A INPUT -i lo -j ACCEPT
+      ip6tables -A FORWARD -i lo -j ACCEPT
+      ip6tables -A OUTPUT -o lo -j ACCEPT
+
+      IFS=' ,'
+      for interface in $INT_IF $TRUSTED_IF; do
+        ip6tables -A INPUT -i $interface -j ACCEPT
+        ip6tables -A OUTPUT -o $interface -j ACCEPT
+      done
+    else
+      printf "\033[40m\033[1;31mWARNING: IPv4 support enabled, but unable to set the default policy\033[0m\n" >&2
+      printf "\033[40m\033[1;31m         for IPv6 to DROP as the ip6tables-binary is not available!\033[0m\n" >&2
     fi
   fi
 

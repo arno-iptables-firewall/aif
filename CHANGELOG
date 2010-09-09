@@ -1,3 +1,8 @@
+Version 1.9.2m-DEVEL (September 9, 2010)
+--------------------------------
+* Changed default policy for IPv6 when IPv4 mode is used (and vice versa). It now
+  eg. will accept IPv6 traffic from the internal interface(s) by default (Debian bug #596170)
+
 Version 1.9.2l (August 26, 2010)
 --------------------------------
 * Implement sysctl_key() function and use it for IPv6 detection (thanks Lonnie)
