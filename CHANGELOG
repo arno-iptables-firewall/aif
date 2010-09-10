@@ -1,5 +1,6 @@
-Version 1.9.2m-DEVEL (September 9, 2010)
+Version 1.9.2m-DEVEL (September 10, 2010)
 --------------------------------
+! Several (regression) fixes + improvements related to the previous IPv6 changes
 * Changed default policy for IPv6 when IPv4 mode is used (and vice versa). It now
   eg. will accept IPv6 traffic from the internal interface(s) by default (Debian bug #596170)
 

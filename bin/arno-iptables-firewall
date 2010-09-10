@@ -665,16 +665,27 @@ init_firewall_chains()
   # Set INDENT for functions
   INDENT='  '
 
-  # Attempt to flush all rules in filter table
-  ############################################
+  # Attempt to flush all chains
+  #############################
   iptables -F
   iptables -X
 
-  # Flush built-in rules
-  ######################
-  iptables -F INPUT
-  iptables -F OUTPUT
-  iptables -F FORWARD
+  # Flush builtin IPv4 chains
+  ###########################
+  ip4tables -F INPUT
+  ip4tables -F OUTPUT
+  ip4tables -F FORWARD
+
+  if sysctl_key net.ipv6.conf; then
+    # Flush builtin IPv6 chains
+    ###########################
+    ip6tables -F INPUT
+    ip6tables -F OUTPUT
+    ip6tables -F FORWARD
+  fi
+  
+  # Flush rules in nat/mangle tables
+  ##################################
   iptables -t nat -F
   iptables -t nat -X
   iptables -t mangle -F
@@ -726,7 +737,7 @@ init_firewall_chains()
 
 setup_default_policies()
 {
-  # Set the default policies for the built-in INPUT & FORWARD tables. The
+  # Set the default policies for the builtin INPUT & FORWARD tables. The
   # default for other chains (eg. OUTPUT) is always set to ACCEPT.
   #######################################################################
   if [ "$DEFAULT_POLICY_DROP" != "0" ]; then
@@ -5022,21 +5033,35 @@ flush_user_chains()
 
 stop_firewall()
 {
-  # Set default policies
-  iptables -P INPUT ACCEPT
-  iptables -P FORWARD DROP
-  iptables -P OUTPUT ACCEPT
+  # Set default IPv4 policies
+  ip4tables -P INPUT ACCEPT
+  ip4tables -P FORWARD DROP
+  ip4tables -P OUTPUT ACCEPT
 
-  # Flush Built-in Rules
-  iptables -F INPUT
-  iptables -F OUTPUT
-  iptables -F FORWARD
+  # Flush builtin IPv4 chains
+  ip4tables -F INPUT
+  ip4tables -F OUTPUT
+  ip4tables -F FORWARD
+  
+  if sysctl_key net.ipv6.conf; then
+    # Set default IPv6 policies
+    ip6tables -P INPUT ACCEPT
+    ip6tables -P FORWARD DROP
+    ip6tables -P OUTPUT ACCEPT
+
+    # Flush builtin IPv6 chains
+    ip6tables -F INPUT
+    ip6tables -F OUTPUT
+    ip6tables -F FORWARD
+  fi
+
+  # Flush rules in the mangle/nat tables
   iptables -t mangle -F
   iptables -t mangle -X
   iptables -t nat -F
   iptables -t nat -X
 
-  # Attempt to flush all rules in filter table
+  # Attempt to flush all chains
   iptables -F
   iptables -X
 }
@@ -5059,15 +5084,26 @@ reinit_firewall_chains()
   # Without it, active states will be flushed.
   iptables -P OUTPUT ACCEPT
 
-  # Flush Built-in Rules
-  iptables -F INPUT
-  iptables -F OUTPUT
-  iptables -F FORWARD
+  # Flush builtin IPv4 chains
+  ip4tables -F INPUT
+  ip4tables -F OUTPUT
+  ip4tables -F FORWARD
+
+  if sysctl_key net.ipv6.conf; then
+    # Flush builtin IPv6 chains
+    ip6tables -F INPUT
+    ip6tables -F OUTPUT
+    ip6tables -F FORWARD
+  fi
+
+  # Flush rules in the nat/mangle tables
+  ######################################
   iptables -t nat -F
   iptables -t mangle -F
 
   # Restore our base chains (which weren't flushed so any
   # running connections should be maintained
+  #######################################################
   iptables -A INPUT -j BASE_INPUT_CHAIN
   iptables -A FORWARD -j BASE_FORWARD_CHAIN
   iptables -A OUTPUT -j BASE_OUTPUT_CHAIN
@@ -5076,41 +5112,73 @@ reinit_firewall_chains()
 
 stop_block_firewall()
 {
-  # Temporarely set default policies to DROP, to don't even have a small
-  # window of opportunity
-  ######################################################################
-  iptables -P INPUT DROP
-  iptables -P FORWARD DROP
-  iptables -P OUTPUT DROP
+  # Temporarely set default IPv4 policies to DROP,
+  # to not even have a small window of opportunity
+  ################################################
+  ip4tables -P INPUT DROP
+  ip4tables -P FORWARD DROP
+  ip4tables -P OUTPUT DROP
+  
+  # Flush builtin IPv4 chains
+  ip4tables -F INPUT
+  ip4tables -F OUTPUT
+  ip4tables -F FORWARD
 
-  # Flush Built-in Rules
-  iptables -F INPUT
-  iptables -F OUTPUT
-  iptables -F FORWARD
+  if sysctl_key net.ipv6.conf; then
+    # Temporarely set default IPv6 policies to DROP,
+    # to not even have a small window of opportunity
+    ################################################
+    ip6tables -P INPUT DROP
+    ip6tables -P FORWARD DROP
+    ip6tables -P OUTPUT DROP
+
+    # Flush builtin IPv6 chains
+    ip6tables -F INPUT
+    ip6tables -F OUTPUT
+    ip6tables -F FORWARD
+  fi
+
+  # Flush nat/mangle table rules
   iptables -t nat -F
   iptables -t nat -X
   iptables -t mangle -F
   iptables -t mangle -X
 
-  # Attempt to flush all rules in the filter table
+  # Attempt to flush all chains
   iptables -F
   iptables -X
-
+  
   # Deny traffic from our internet interfaces
   IFS=' ,'
   for interface in $EXT_IF; do
-    iptables -A INPUT -i $interface -j DROP
+    ip4tables -A INPUT -i $interface -j DROP
+    
+    if sysctl_key net.ipv6.conf; then
+      ip6tables -A INPUT -i $interface -j DROP
+    fi
   done
 
-  # Allow traffic from the loopback (localhost)
-  iptables -A INPUT -i lo -j ACCEPT
-  iptables -A FORWARD -i lo -j ACCEPT
-  iptables -A OUTPUT -o lo -j ACCEPT
+  # Allow IPv4 traffic from the loopback (localhost)
+  ip4tables -A INPUT -i lo -j ACCEPT
+  ip4tables -A FORWARD -i lo -j ACCEPT
+  ip4tables -A OUTPUT -o lo -j ACCEPT
 
-  # Set default policies
-  iptables -P INPUT ACCEPT
-  iptables -P FORWARD DROP
-  iptables -P OUTPUT ACCEPT
+  # Set default IPv4 policies
+  ip4tables -P INPUT ACCEPT
+  ip4tables -P FORWARD DROP
+  ip4tables -P OUTPUT ACCEPT
+
+  if sysctl_key net.ipv6.conf; then
+    # Allow IPv6 traffic from the loopback (localhost)
+    ip6tables -A INPUT -i lo -j ACCEPT
+    ip6tables -A FORWARD -i lo -j ACCEPT
+    ip6tables -A OUTPUT -o lo -j ACCEPT
+
+    # Set default IPv6 policies
+    ip6tables -P INPUT ACCEPT
+    ip6tables -P FORWARD DROP
+    ip6tables -P OUTPUT ACCEPT
+  fi
 }
 
 
