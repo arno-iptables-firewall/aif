@@ -1,5 +1,6 @@
 Version 1.9.2m-DEVEL (September 10, 2010)
 --------------------------------
++ Implemented IPv6 detection variable so we don't have to perform a sysctl_key for each check
 ! Several (regression) fixes + improvements related to the previous IPv6 changes
 * Changed default policy for IPv6 when IPv4 mode is used (and vice versa). It now
   eg. will accept IPv6 traffic from the internal interface(s) by default (Debian bug #596170)

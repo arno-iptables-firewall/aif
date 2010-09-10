@@ -676,7 +676,7 @@ init_firewall_chains()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  if sysctl_key net.ipv6.conf; then
+  if [ "$IPV6_DETECTED" = "1" ]; then
     # Flush builtin IPv6 chains
     ###########################
     ip6tables -F INPUT
@@ -4407,7 +4407,7 @@ setup_firewall_rules()
     for interface in $INT_IF $TRUSTED_IF; do
       ip4tables -A INPUT -i $interface -j ACCEPT
     done
-  elif sysctl_key net.ipv6.conf; then
+  elif [ "$IPV6_DETECTED" = "1" ]; then
     # IPv6 support available on the system?
     if [ -x "$IP6TABLES" ]; then
       echo "NOTE: IPv4 mode selected, setting simple default policy for IPv6"
@@ -5043,7 +5043,7 @@ stop_firewall()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
   
-  if sysctl_key net.ipv6.conf; then
+  if [ "$IPV6_DETECTED" = "1" ]; then
     # Set default IPv6 policies
     ip6tables -P INPUT ACCEPT
     ip6tables -P FORWARD DROP
@@ -5089,7 +5089,7 @@ reinit_firewall_chains()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  if sysctl_key net.ipv6.conf; then
+  if [ "$IPV6_DETECTED" = "1" ]; then
     # Flush builtin IPv6 chains
     ip6tables -F INPUT
     ip6tables -F OUTPUT
@@ -5124,7 +5124,7 @@ stop_block_firewall()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  if sysctl_key net.ipv6.conf; then
+  if [ "$IPV6_DETECTED" = "1" ]; then
     # Temporarely set default IPv6 policies to DROP,
     # to not even have a small window of opportunity
     ################################################
@@ -5153,7 +5153,7 @@ stop_block_firewall()
   for interface in $EXT_IF; do
     ip4tables -A INPUT -i $interface -j DROP
     
-    if sysctl_key net.ipv6.conf; then
+    if [ "$IPV6_DETECTED" = "1" ]; then
       ip6tables -A INPUT -i $interface -j DROP
     fi
   done
@@ -5168,7 +5168,7 @@ stop_block_firewall()
   ip4tables -P FORWARD DROP
   ip4tables -P OUTPUT ACCEPT
 
-  if sysctl_key net.ipv6.conf; then
+  if [ "$IPV6_DETECTED" = "1" ]; then
     # Allow IPv6 traffic from the loopback (localhost)
     ip6tables -A INPUT -i lo -j ACCEPT
     ip6tables -A FORWARD -i lo -j ACCEPT

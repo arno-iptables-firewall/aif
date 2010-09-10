@@ -1173,6 +1173,13 @@ if [ -z "$DIG" ]; then
   NSLOOKUP="$(find_command /usr/bin/nslookup)"
 fi
 
+# Setup IPv6 detected environment variable
+if sysctl_key net.ipv6.conf; then
+  IPV6_DETECTED=1
+else
+  IPV6_DETECTED=0
+fi
+
 if [ "$IPV6_SUPPORT" = "1" ]; then
   IPTABLES="$IP6TABLES"
   ICMP_PROTO="icmpv6"
