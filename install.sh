@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.05"
+MY_VERSION="1.05a"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -47,6 +47,9 @@ sanity_check()
   fi
 
   check_command_error iptables
+  if [ "$IPV6_DETECTED" = "1" ]; then
+    check_command_error ip6tables
+  fi
   check_command_error awk
   check_command_error tr
   check_command_error ip
