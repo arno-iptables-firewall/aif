@@ -895,12 +895,12 @@ show_hostname()
 show_if_ip()
 {
   # Only show interfaces if not empty:
-  if [ -n "$1" ] && [ "$1" != "+" ]; then
+  if [ -n "$1" -a "$1" != "+" ]; then
     printf "($1) "
   fi
 
   # Only show destination IPs if not empty:
-  if [ -n "$2" ] && [ "$2" != "$ANYHOST" ]; then
+  if [ -n "$2" -a "$2" != "$ANYHOST" ]; then
     printf "($2) "
   fi
 }
@@ -940,7 +940,7 @@ ip_range()
     host_base="$(echo "$item" |cut -s -d'-' -f1 |awk -F'.' '{ for (i=1; i<NF; i++) printf ("%s.",$i) }')"
     stop="$(echo "$item" |cut -s -d'-' -f2 |grep -e '[0-9]')"
 
-    if [ -n "$stop" ] && [ -n "$start" ]; then
+    if [ -n "$stop" -a -n "$start" ]; then
       IFS=' '
       for x in `seq -s' ' $start $stop`; do
         if [ "$FIRST" = "1" ]; then
