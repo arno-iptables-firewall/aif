@@ -100,7 +100,7 @@ plugin_start()
 
   # Manage your modemsettings from computers on your LAN. For example with your browser via http://{MODEM_IP}
   ###########################################################################################################
-  if [ -n "$MODEM_IP" ] && [ -n "$MODEM_INTERNAL_NET" ]; then
+  if [ -n "$MODEM_IP" -a -n "$MODEM_INTERNAL_NET" ]; then
     echo "  Enabling (ADSL) modem (@$MODEM_IP) management for hosts(s): $MODEM_INTERNAL_NET"
     IFS=' ,'
     for net in `ip_range "$MODEM_INTERNAL_NET"`; do
