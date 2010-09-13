@@ -676,7 +676,7 @@ init_firewall_chains()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  if [ "$IPV6_DETECTED" = "1" -a -x "$IP6TABLES" ]; then
+  if [ "$IPV6_DETECTED" = "1" -a -n "$IP6TABLES" ]; then
     # Flush builtin IPv6 chains
     ###########################
     ip6tables -F INPUT
@@ -766,7 +766,7 @@ setup_default_policies()
     for interface in $INT_IF $TRUSTED_IF; do
       ip4tables -A INPUT -i $interface -j ACCEPT
     done
-  elif [ "$IPV6_DETECTED" = "1" -a -x "$IP6TABLES" ]; then
+  elif [ "$IPV6_DETECTED" = "1" ]; then
     # IPv6 support available on the system?
     if [ -x "$IP6TABLES" ]; then
       echo "NOTE: IPv4 mode selected, setting simple default policy for IPv6"
@@ -783,7 +783,7 @@ setup_default_policies()
       done
     else
       printf "\033[40m\033[1;31mWARNING: IPv4 support enabled, but unable to set the default policy\033[0m\n" >&2
-      printf "\033[40m\033[1;31m         for IPv6 to DROP as the ip6tables-binary is not available!\033[0m\n" >&2
+      printf "\033[40m\033[1;31m         for IPv6 as the ip6tables-binary is not available!\033[0m\n" >&2
     fi
   fi
 
@@ -5043,7 +5043,7 @@ stop_firewall()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
   
-  if [ "$IPV6_DETECTED" = "1" -a -x "$IP6TABLES" ]; then
+  if [ "$IPV6_DETECTED" = "1" -a -n "$IP6TABLES" ]; then
     # Set default IPv6 policies
     ip6tables -P INPUT ACCEPT
     ip6tables -P FORWARD DROP
@@ -5089,7 +5089,7 @@ reinit_firewall_chains()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  if [ "$IPV6_DETECTED" = "1" -a -x "$IP6TABLES" ]; then
+  if [ "$IPV6_DETECTED" = "1" -a -n "$IP6TABLES" ]; then
     # Flush builtin IPv6 chains
     ip6tables -F INPUT
     ip6tables -F OUTPUT
@@ -5124,7 +5124,7 @@ stop_block_firewall()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  if [ "$IPV6_DETECTED" = "1" -a -x "$IP6TABLES" ]; then
+  if [ "$IPV6_DETECTED" = "1" -a -n "$IP6TABLES" ]; then
     # Temporarely set default IPv6 policies to DROP,
     # to not even have a small window of opportunity
     ################################################
@@ -5153,7 +5153,7 @@ stop_block_firewall()
   for interface in $EXT_IF; do
     ip4tables -A INPUT -i $interface -j DROP
     
-    if [ "$IPV6_DETECTED" = "1" -a -x "$IP6TABLES" ]; then
+    if [ "$IPV6_DETECTED" = "1" -a -n "$IP6TABLES" ]; then
       ip6tables -A INPUT -i $interface -j DROP
     fi
   done
@@ -5168,7 +5168,7 @@ stop_block_firewall()
   ip4tables -P FORWARD DROP
   ip4tables -P OUTPUT ACCEPT
 
-  if [ "$IPV6_DETECTED" = "1" -a -x "$IP6TABLES" ]; then
+  if [ "$IPV6_DETECTED" = "1" -a -n "$IP6TABLES" ]; then
     # Allow IPv6 traffic from the loopback (localhost)
     ip6tables -A INPUT -i lo -j ACCEPT
     ip6tables -A FORWARD -i lo -j ACCEPT
