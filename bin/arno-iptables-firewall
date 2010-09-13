@@ -4208,7 +4208,7 @@ setup_mangle_tables()
     echo "Enabling TTL-increase for the PREROUTING chain"
     IFS=' ,'
     for interface in $EXT_IF; do
-      iptables -t mangle -A PREROUTING -i $interface -j TTL --ttl-inc 1
+      ip4tables -t mangle -A PREROUTING -i $interface -j TTL --ttl-inc 1
     done
   fi
 
@@ -4219,8 +4219,8 @@ setup_mangle_tables()
       echo "Setting TTL=$PACKET_TTL for the FORWARD & OUTPUT chains"
       IFS=' ,'
       for interface in $EXT_IF; do
-        iptables -t mangle -A FORWARD -o $interface -j TTL --ttl-set $PACKET_TTL
-        iptables -t mangle -A OUTPUT -o $interface -j TTL --ttl-set $PACKET_TTL
+        ip4tables -t mangle -A FORWARD -o $interface -j TTL --ttl-set $PACKET_TTL
+        ip4tables -t mangle -A OUTPUT -o $interface -j TTL --ttl-set $PACKET_TTL
       done
     else
       printf "\033[40m\033[1;31m WARNING: Ingoring invalid value for PACKET_TTL ($PACKET_TTL), it should be between 10 and 255!\033[0m\n" >&2
