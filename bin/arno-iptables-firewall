@@ -4760,7 +4760,7 @@ setup_firewall_rules()
         for interface in $EXT_IF; do
           COUNT=$(($COUNT + 1))         # x++;
           STATIC_IP=$(echo "$NAT_STATIC_IP" |awk "{ print \$$COUNT }")
-          iptables -t nat -A POSTROUTING -o $interface -s $net ! -d $net -j SNAT --to-source $STATIC_IP
+          ip4tables -t nat -A POSTROUTING -o $interface -s $net ! -d $net -j SNAT --to-source $STATIC_IP
         done
       done
       echo ""
@@ -4778,7 +4778,7 @@ setup_firewall_rules()
         for interface in $EXT_IF; do
           # NOTE 1: The "! -d $net" is to avoid problems with Freeswan etc.
           # NOTE 2: The "! --proto 41" is prevent IPv6 from being masqueraded
-          iptables -t nat -A POSTROUTING ! --proto 41 -o $interface -s $net ! -d $net -j MASQUERADE
+          ip4tables -t nat -A POSTROUTING ! --proto 41 -o $interface -s $net ! -d $net -j MASQUERADE
         done
       done
       echo ""
@@ -4811,9 +4811,9 @@ setup_firewall_rules()
             # This code makes it possible to forward to a different port on the internal host
             dport=`get_ports_hp "$dhost_dport" "$sport"`
 
-            iptables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p tcp --dport $sport -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
+            ip4tables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p tcp --dport $sport -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
             if [ -n "$dhost" ]; then
-              iptables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p tcp --dport $dport -j ACCEPT
+              ip4tables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p tcp --dport $dport -j ACCEPT
             fi
           done
         done
@@ -4845,9 +4845,9 @@ setup_firewall_rules()
             # This code makes it possible to forward to a different port on the internal host
             dport=`get_ports_hp "$dhost_dport" "$sport"`
 
-            iptables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p udp --dport $sport -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
+            ip4tables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p udp --dport $sport -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
             if [ -n "$dhost" ]; then
-              iptables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p udp --dport $dport -j ACCEPT
+              ip4tables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p udp --dport $dport -j ACCEPT
             fi
           done
         done
@@ -4874,9 +4874,9 @@ setup_firewall_rules()
       for proto in $protos; do
         for destip in $destips; do
           for eif in $interfaces; do
-            iptables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p $proto -j DNAT --to-destination $dhost
+            ip4tables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p $proto -j DNAT --to-destination $dhost
             if [ -n "$dhost" ]; then
-              iptables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p $proto -j ACCEPT
+              ip4tables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p $proto -j ACCEPT
             fi
           done
         done

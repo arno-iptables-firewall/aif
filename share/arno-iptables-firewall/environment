@@ -1188,7 +1188,7 @@ if [ "$IPV6_SUPPORT" = "1" ]; then
   
   # If IPv6 support is enabled some options should be forced off as they
   # are simply not supported (yet) by ip6tables
-  unset TTL_INC NAT PACKET_TTL NAT_FORWARD_TCP NAT_FORWARD_UDP NAT_FORWARD_IP
+  unset TTL_INC PACKET_TTL
 else
   IPTABLES="$IP4TABLES"
   ICMP_PROTO="icmp"
