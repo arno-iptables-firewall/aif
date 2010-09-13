@@ -756,7 +756,7 @@ setup_default_policies()
 
   # When IPv4 support is active, disable IPv6 traffic
   if [ "$IPV6_SUPPORT" = "1" ]; then
-    echo "NOTE: IPv6 mode selected, setting simple default policy for IPv4"
+    echo "IPv6 mode selected, setting simple default policy for IPv4"
     ip4tables -P INPUT DROP
     ip4tables -P FORWARD DROP
     ip4tables -P OUTPUT ACCEPT
@@ -769,7 +769,7 @@ setup_default_policies()
       ip4tables -A INPUT -i $interface -j ACCEPT
     done
   elif [ "$IPV6_DETECTED" = "1" ]; then
-    echo "NOTE: IPv4 mode selected, setting simple default policy for IPv6"
+    echo "IPv4 mode selected but IPv6 available, setting simple default policy for IPv6"
     ip6tables -P INPUT DROP
     ip6tables -P FORWARD DROP
     ip6tables -P OUTPUT ACCEPT
