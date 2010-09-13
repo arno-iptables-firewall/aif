@@ -192,21 +192,21 @@ config_check()
   # If support for an DHCP server serving an external net is enabled, we
   # also need to know what the external net is.
   ##########################################################################
-  if [ "$EXTERNAL_DHCP_SERVER" = "1" ] && [ -z "$EXTERNAL_NET" ]; then
+  if [ "$EXTERNAL_DHCP_SERVER" = "1" -a -z "$EXTERNAL_NET" ]; then
     printf "\033[40m\033[1;31mERROR: You have enabled external DHCP server support but required variable\033[0m\n" >&2
     printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n" >&2
     exit 10
   fi
 
   # We can only perform NAT if NAT_INTERNAL_NET is defined
-  if [ "$NAT" = "1" ] && [ -z "$NAT_INTERNAL_NET" ]; then
+  if [ "$NAT" = "1" -a -z "$NAT_INTERNAL_NET" ]; then
     printf "\033[40m\033[1;31mERROR: Unable to enable NAT because there's no (NAT_)INTERNAL_NET specified!\033[0m\n" >&2
     exit 11
   fi
 
   # If support the nmb_broadcast_fix is enabled we need the EXTERNAL_NET set
   ##########################################################################
-  if [ "$NMB_BROADCAST_FIX" = "1" ] && [ -z "$EXTERNAL_NET" ]; then
+  if [ "$NMB_BROADCAST_FIX" = "1" -a -z "$EXTERNAL_NET" ]; then
     printf "\033[40m\033[1;31mERROR: You have enabled the NMB_BROADCAST_FIX but required variable\033[0m\n" >&2
     printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n" >&2
     exit 12
@@ -215,7 +215,7 @@ config_check()
   # Warn if no_broadcast variables are used and external net is NOT defined
   ##########################################################################
   if [ -n "$BROADCAST_TCP_NOLOG" ] || [ -n "$BROADCAST_UDP_NOLOG" ]; then
-    if [ -z "$EXTERNAL_NET" ] && [ -z "$EXT_NET_BCAST_ADDRESS"]; then
+    if [ -z "$EXTERNAL_NET" -a -z "$EXT_NET_BCAST_ADDRESS"]; then
       printf "\033[40m\033[1;31mWARNING: You are using the BROADCAST_xxx_NOLOG variables but EXTERNAL_NET and EXT_NET_BCAST_ADDRESS\033[0m\n" >&2
       printf "\033[40m\033[1;31m         have NOT been defined!\033[0m\n" >&2
     fi
@@ -379,7 +379,7 @@ setup_kernel_settings()
   # The kernel "default" depends on the available amount of RAM, 128 MB of RAM -> 8192
   # possible entries, 256 MB of RAM --> 16376 possible entries, etc...
   #######################################################################################
-  if [ -n "$CONNTRACK" ] && [ "$CONNTRACK" != "0" ]; then
+  if [ -n "$CONNTRACK" -a "$CONNTRACK" != "0" ]; then
     echo " Setting the max. amount of simultaneous connections to $CONNTRACK"
     sysctl_multi -w net.nf_conntrack_max=$CONNTRACK \
                     net.ipv4.netfilter.ip_conntrack_max=$CONNTRACK \
@@ -566,7 +566,7 @@ setup_kernel_settings()
       DEFAULT_TTL="64"
     fi
 
-    if [ $DEFAULT_TTL -gt 9 ] && [ $DEFAULT_TTL -lt 256 ]; then
+    if [ $DEFAULT_TTL -gt 9 -a $DEFAULT_TTL -lt 256 ]; then
       echo " Setting default TTL=$DEFAULT_TTL"
       sysctl -w net.ipv4.ip_default_ttl=$DEFAULT_TTL
     else
@@ -676,7 +676,7 @@ init_firewall_chains()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  if [ "$IPV6_DETECTED" = "1" ] && [ -x "$IP6TABLES" ]; then
+  if [ "$IPV6_DETECTED" = "1" -a -x "$IP6TABLES" ]; then
     # Flush builtin IPv6 chains
     ###########################
     ip6tables -F INPUT
@@ -766,7 +766,7 @@ setup_default_policies()
     for interface in $INT_IF $TRUSTED_IF; do
       ip4tables -A INPUT -i $interface -j ACCEPT
     done
-  elif [ "$IPV6_DETECTED" = "1" ] && [ -x "$IP6TABLES" ]; then
+  elif [ "$IPV6_DETECTED" = "1" -a -x "$IP6TABLES" ]; then
     # IPv6 support available on the system?
     if [ -x "$IP6TABLES" ]; then
       echo "NOTE: IPv4 mode selected, setting simple default policy for IPv6"
@@ -1025,7 +1025,7 @@ setup_reserved_net_chk_chain()
 setup_spoof_chk_chain()
 {
   # Anti-spoof protection for the internal net
-  if [ -n "$INT_IF" ] && [ -n "$INTERNAL_NET" ]; then
+  if [ -n "$INT_IF" -a -n "$INTERNAL_NET" ]; then
     if [ "$INTERNAL_NET_ANTISPOOF" != "0" ]; then
       printf "Setting up antispoof for INTERNAL net(s): "
       IFS=' ,'
@@ -1045,7 +1045,7 @@ setup_spoof_chk_chain()
   fi
 
   # Anti-spoof protection for the DMZ net
-  if [ -n "$DMZ_IF" ] && [ -n "$DMZ_NET" ]; then
+  if [ -n "$DMZ_IF" -a -n "$DMZ_NET" ]; then
     if [ "$DMZ_NET_ANTISPOOF" != "0" ]; then
       printf "Setting up antispoof for DMZ net(s): "
       IFS=' ,'
@@ -2201,9 +2201,9 @@ setup_int_input_chain()
 
   # Set the default policy
   ########################
-  if [ -z "$LAN_OPEN_TCP" ] && [ -z "$LAN_HOST_OPEN_TCP" ] &&
-     [ -z "$LAN_OPEN_UDP" ] && [ -z "$LAN_HOST_OPEN_UDP" ] &&
-     [ -z "$LAN_OPEN_IP" ] && [ -z "$LAN_HOST_OPEN_IP" ]; then
+  if [ -z "$LAN_OPEN_TCP" -a -z "$LAN_HOST_OPEN_TCP" -a \
+       -z "$LAN_OPEN_UDP" -a -z "$LAN_HOST_OPEN_UDP" -a \
+       -z "$LAN_OPEN_IP" -a -z "$LAN_HOST_OPEN_IP" ]; then
     echo " Allowing all (other) ports/protocols"
     iptables -A INT_INPUT_CHAIN -j ACCEPT
   else
@@ -4124,7 +4124,7 @@ setup_hostblock_chain()
   fi
 
   # Return if no Blocked Hosts are defined
-  if [ -z "$BLOCK_HOSTS" ] && [ -z "$BLOCK_HOSTS_FILE" ]; then
+  if [ -z "$BLOCK_HOSTS" -a -z "$BLOCK_HOSTS_FILE" ]; then
     return
   fi
 
@@ -4219,7 +4219,7 @@ setup_mangle_tables()
   # Set TTL on outgoing & forwarded packets:
   ##########################################
   if [ -n "$PACKET_TTL" ]; then
-    if [ $PACKET_TTL -gt 9 ] && [ $PACKET_TTL -lt 256 ]; then
+    if [ $PACKET_TTL -gt 9 -a $PACKET_TTL -lt 256 ]; then
       echo "Setting TTL=$PACKET_TTL for the FORWARD & OUTPUT chains"
       IFS=' ,'
       for interface in $EXT_IF; do
@@ -5043,7 +5043,7 @@ stop_firewall()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
   
-  if [ "$IPV6_DETECTED" = "1" ] && [ -x "$IP6TABLES" ]; then
+  if [ "$IPV6_DETECTED" = "1" -a -x "$IP6TABLES" ]; then
     # Set default IPv6 policies
     ip6tables -P INPUT ACCEPT
     ip6tables -P FORWARD DROP
@@ -5089,7 +5089,7 @@ reinit_firewall_chains()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  if [ "$IPV6_DETECTED" = "1" ] && [ -x "$IP6TABLES" ]; then
+  if [ "$IPV6_DETECTED" = "1" -a -x "$IP6TABLES" ]; then
     # Flush builtin IPv6 chains
     ip6tables -F INPUT
     ip6tables -F OUTPUT
@@ -5124,7 +5124,7 @@ stop_block_firewall()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  if [ "$IPV6_DETECTED" = "1" ] && [ -x "$IP6TABLES" ]; then
+  if [ "$IPV6_DETECTED" = "1" -a -x "$IP6TABLES" ]; then
     # Temporarely set default IPv6 policies to DROP,
     # to not even have a small window of opportunity
     ################################################
@@ -5153,7 +5153,7 @@ stop_block_firewall()
   for interface in $EXT_IF; do
     ip4tables -A INPUT -i $interface -j DROP
     
-    if [ "$IPV6_DETECTED" = "1" ] && [ -x "$IP6TABLES" ]; then
+    if [ "$IPV6_DETECTED" = "1" -a -x "$IP6TABLES" ]; then
       ip6tables -A INPUT -i $interface -j DROP
     fi
   done
@@ -5168,7 +5168,7 @@ stop_block_firewall()
   ip4tables -P FORWARD DROP
   ip4tables -P OUTPUT ACCEPT
 
-  if [ "$IPV6_DETECTED" = "1" ] && [ -x "$IP6TABLES" ]; then
+  if [ "$IPV6_DETECTED" = "1" -a -x "$IP6TABLES" ]; then
     # Allow IPv6 traffic from the loopback (localhost)
     ip6tables -A INPUT -i lo -j ACCEPT
     ip6tables -A FORWARD -i lo -j ACCEPT
