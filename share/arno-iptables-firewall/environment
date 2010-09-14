@@ -751,7 +751,8 @@ get_ports_ip()
 # Is IPv4 numeric?
 is_numeric_ipv4()
 {
-  if [ "$(echo "$1" |tr -d '0123456789/')" = "..." ]; then
+  get_numeric_ip_version "$1"
+  if [ $? -eq 4 ]; then
     return 0
   fi
 
@@ -762,11 +763,10 @@ is_numeric_ipv4()
 # Is IPv6 numeric?
 is_numeric_ipv6()
 {
-  case $(echo "$1" |tr -d '0123456789aAbBcCdDeEfF/') in
-   ::|:::|::::|:::::|::::::|:::::::)
-     return 0
-     ;;
-  esac
+  get_numeric_ip_version "$1"
+  if [ $? -eq 6 ]; then
+    return 0
+  fi
 
   return 1
 }
@@ -802,14 +802,11 @@ get_numeric_ip_version()
   [0-9][0-9.][0-9.][0-9.][0-9.]*.*[0-9])
     return 4
     ;;
-  [0-9a-fA-F][0-9a-fA-F:][0-9a-fA-F:]*:*[0-9a-fA-F:])
-    return 6
-    ;;
-  ::|::*[0-9a-fA-F:]|[0-9a-fA-F]::*[0-9a-fA-F:])
+  *:*)
     return 6
     ;;
   esac
-  
+
   return 0
 }
 
