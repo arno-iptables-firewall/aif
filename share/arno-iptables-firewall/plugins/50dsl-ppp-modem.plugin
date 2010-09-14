@@ -173,7 +173,7 @@ plugin_sanity_check()
 
   # Make sure MODEM_IF != lo / 127.0.0.1
   ######################################
-  if [ "$MODEM_IF" = "lo" ] || [ "$MODEM_IF" = "127.0.0.1" ]; then
+  if [ "$MODEM_IF" = "lo" -o "$MODEM_IF" = "127.0.0.1" ]; then
     printf "\033[40m\033[1;31m  ERROR: The interface specified in MODEM_IF has the address or name of the local\033[0m\n" >&2
     printf "\033[40m\033[1;31m         loopback device! Please, check the configuration file.\033[0m\n" >&2
     return 4

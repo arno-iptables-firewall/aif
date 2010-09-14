@@ -51,12 +51,12 @@ get_user_yn()
       answer="$2"
     fi
 
-    if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
+    if [ "$answer" = "y" -o "$answer" = "Y" ]; then
       echo "Yes"
       return 0
     fi
 
-    if [ "$answer" = "n" ] || [ "$answer" = "N" ]; then
+    if [ "$answer" = "n" -o "$answer" = "N" ]; then
       echo "No"
       return 1
     fi

@@ -49,7 +49,7 @@ sanity_check()
     return 1
   fi
 
-  if [ -z "$DYNDNS_HOST_OPEN_TCP" ] && [ -z "$DYNDNS_HOST_OPEN_UDP" ] && [ -z "$DYNDNS_HOST_OPEN_IP" ] && [ -z "$DYNDNS_HOST_OPEN_ICMP" ]; then
+  if [ -z "$DYNDNS_HOST_OPEN_TCP" -a -z "$DYNDNS_HOST_OPEN_UDP" -a -z "$DYNDNS_HOST_OPEN_IP" -a -z "$DYNDNS_HOST_OPEN_ICMP" ]; then
     echo "** ERROR: The plugin config file is not (properly) setup!" >&2
     return 1
   fi
