@@ -104,7 +104,7 @@ plugin_status()
 # Check sanity of eg. environment
 plugin_sanity_check()
 {
-#  if [ -z "$FTP_PROXY_PORT" ] || [ -z "$SMTP_PROXY_PORT" ]; then
+#  if [ -z "$FTP_PROXY_PORT" -o -z "$SMTP_PROXY_PORT" ]; then
 #   printf "\033[40m\033[1;31m  ERROR: The plugin config file is not properly set!\033[0m\n" >&2
 #    return 1
 #  fi

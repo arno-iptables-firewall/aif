@@ -173,7 +173,7 @@ config_check()
   ####################################
   IFS=' ,'
   for eif in $EXT_IF; do
-    if [ "$eif" = "lo" ] || [ "$eif" = "127.0.0.1" ]; then
+    if [ "$eif" = "lo" -o "$eif" = "127.0.0.1" ]; then
       printf "\033[40m\033[1;31mERROR: One or more interfaces specified in EXT_IF has the address or name of the\033[0m\n" >&2
       printf "\033[40m\033[1;31m       local loopback device! Please, check the configuration file.\033[0m\n" >&2
       exit 6
@@ -184,7 +184,7 @@ config_check()
   ####################################
   IFS=' ,'
   for iif in $INT_IF; do
-    if [ "$iif" = "lo" ] || [ "$iif" = "127.0.0.1" ]; then
+    if [ "$iif" = "lo" -o "$iif" = "127.0.0.1" ]; then
       printf "\033[40m\033[1;31mERROR: At least one of the interfaces specified in INT_IF has the address or\033[0m\n" >&2
       printf "\033[40m\033[1;31m       name of the local loopback device! Please, check the configuration file.\033[0m\n" >&2
       exit 7
@@ -216,7 +216,7 @@ config_check()
 
   # Warn if no_broadcast variables are used and external net is NOT defined
   ##########################################################################
-  if [ -n "$BROADCAST_TCP_NOLOG" ] || [ -n "$BROADCAST_UDP_NOLOG" ]; then
+  if [ -n "$BROADCAST_TCP_NOLOG" -o -n "$BROADCAST_UDP_NOLOG" ]; then
     if [ -z "$EXTERNAL_NET" -a -z "$EXT_NET_BCAST_ADDRESS" ]; then
       printf "\033[40m\033[1;31mWARNING: You are using the BROADCAST_xxx_NOLOG variables but EXTERNAL_NET and EXT_NET_BCAST_ADDRESS\033[0m\n" >&2
       printf "\033[40m\033[1;31m         have NOT been defined!\033[0m\n" >&2
@@ -286,7 +286,7 @@ load_modules()
       modprobe_multi xt_DSCP ipt_DSCP ipt_TOS                # Load the TOS target
     fi
 
-    if [ "$PACKET_TTL" = "1" ] || [ "$TTL_INC" = "1" ]; then
+    if [ "$PACKET_TTL" = "1" -o "$TTL_INC" = "1" ]; then
       modprobe ipt_TTL                # Load the TTL target
     fi
 
@@ -311,7 +311,7 @@ load_modules()
       modprobe_multi nf_nat_ftp ip_nat_ftp             # Permits active FTP via nat; requires ip_conntrack, iptables_nat
     fi
     
-    if [ "$NAT" = "1" ] || [ -n "$NAT_FORWARD_TCP" ] || [ -n "$NAT_FORWARD_UDP" ] || [ -n "$NAT_FORWARD_IP" ]; then
+    if [ "$NAT" = "1" -o -n "$NAT_FORWARD_TCP" -o -n "$NAT_FORWARD_UDP" -o -n "$NAT_FORWARD_IP" ]; then
       modprobe iptable_nat            # Implements the NAT table
 
       if [ -z "$NAT_STATIC_IP" ]; then

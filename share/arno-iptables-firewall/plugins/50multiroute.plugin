@@ -142,10 +142,10 @@ plugin_sanity_check()
     MULTIROUTE_EXT_WEIGHT2=1
   fi
 
-  if [ -z "$MULTIROUTE_EXT_IF1" ] || [ -z "$MULTIROUTE_EXT_ROUTER1" ] || [ -z "$MULTIROUTE_EXT_IP1" ] || \
-     [ -z "$MULTIROUTE_EXT_IF2" ] || [ -z "$MULTIROUTE_EXT_ROUTER2" ] || [ -z "$MULTIROUTE_EXT_IP2" ] || \
-     [ -z "$MULTIROUTE_INT_IP" ] || [ -z "$MULTIROUTE_INT_NET" ] || \
-     [ ! $MULTIROUTE_EXT_WEIGHT1 -gt 0 ] || [ ! $MULTIROUTE_EXT_WEIGHT2 -gt 0 ]; then
+  if [ -z "$MULTIROUTE_EXT_IF1" -o -z "$MULTIROUTE_EXT_ROUTER1" -o -z "$MULTIROUTE_EXT_IP1" -o \
+       -z "$MULTIROUTE_EXT_IF2" -o -z "$MULTIROUTE_EXT_ROUTER2" -o -z "$MULTIROUTE_EXT_IP2" -o \
+       -z "$MULTIROUTE_INT_IP"  -o -z "$MULTIROUTE_INT_NET" -o \
+       $MULTIROUTE_EXT_WEIGHT1 -le 0 -o $MULTIROUTE_EXT_WEIGHT2 -le 0 ]; then
     printf "\033[40m\033[1;31m  ERROR: The plugin config file is not properly set!\033[0m\n" >&2
     return 1
   fi

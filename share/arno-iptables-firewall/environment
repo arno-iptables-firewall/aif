@@ -172,7 +172,7 @@ note_iptables_error()
 {
   local IFS=' '
   for arg in $*; do
-    if [ "$arg" = "-A" ] || [ "$arg" = "-I" ]; then
+    if [ "$arg" = "-A" -o "$arg" = "-I" ]; then
       return 0
     fi
   done

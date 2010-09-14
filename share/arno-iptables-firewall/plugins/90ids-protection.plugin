@@ -120,7 +120,7 @@ plugin_status()
 # Check sanity of eg. environment
 plugin_sanity_check()
 {
-  if [ -z "$IDS_MAX_RATE1" ] || [ -z "$IDS_MAX_TIME1" ] || [ -z "$IDS_MAX_RATE2" ] || [ -z "$IDS_MAX_TIME2" ]; then
+  if [ -z "$IDS_MAX_RATE1" -o -z "$IDS_MAX_TIME1" -o -z "$IDS_MAX_RATE2" -o -z "$IDS_MAX_TIME2" ]; then
     printf "\033[40m\033[1;31m  ERROR: The plugin config file is not properly set!\033[0m\n" >&2
     return 1
   fi
