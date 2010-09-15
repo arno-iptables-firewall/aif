@@ -772,30 +772,6 @@ is_numeric_ipv6()
 }
 
 
-# Is IPv4 numeric?
-is_numeric_ipv4_address()
-{
-  if [ "$(echo "$1" |tr -d '0123456789')" = "..." ]; then
-    return 0
-  fi
-
-  return 1
-}
-
-
-# Is IPv6 numeric?
-is_numeric_ipv6_address()
-{
-  case $(echo "$1" |tr -d '0123456789aAbBcCdDeEfF') in
-   ::|:::|::::|:::::|::::::|:::::::)
-     return 0
-     ;;
-  esac
-
-  return 1
-}
-
-
 get_numeric_ip_version()
 {
   case $1 in
