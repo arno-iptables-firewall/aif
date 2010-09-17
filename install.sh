@@ -79,7 +79,7 @@ copy_ask_if_exist()
   fi
 
   unset IFS
-  for source in `find "$1" -type f`; do
+  for source in `find "$1" -type f |grep -v '/\.svn/'`; do
     if echo "$2" |grep -q '/$'; then
       fn="$(echo "$source" |sed "s,^$1,,")"
       if [ -z "$fn" ]; then
@@ -136,7 +136,7 @@ copy_skip_if_exist()
   fi
 
   unset IFS
-  for source in `find "$1" -type f`; do
+  for source in `find "$1" -type f |grep -v '/\.svn/'`; do
     if echo "$2" |grep -q '/$'; then
       fn="$(echo "$source" |sed "s,^$1,,")"
       if [ -z "$fn" ]; then
@@ -180,7 +180,7 @@ copy_overwrite()
   fi
 
   unset IFS
-  for source in `find "$1" -type f`; do
+  for source in `find "$1" -type f |grep -v '/\.svn/'`; do
     if echo "$2" |grep -q '/$'; then
       fn="$(echo "$source" |sed "s,^$1,,")"
       if [ -z "$fn" ]; then
