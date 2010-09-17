@@ -1263,10 +1263,8 @@ fi
 
 if [ "$IPV6_SUPPORT" = "1" ]; then
   IPTABLES="$IP6TABLES"
-  IGMP_PROTO=""
 else
   IPTABLES="$IP4TABLES"
-  IGMP_PROTO="2"
 fi
 
 IPTABLES_SAVE="$(find_command "$IPTABLES"-save)"
