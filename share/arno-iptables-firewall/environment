@@ -1047,7 +1047,7 @@ check_interface()
 {
   local interface IFS=' '
   
-  local interfaces=$(ip -o link show | cut -d':' -f2)
+  local interfaces="$(ip -o link show | cut -d':' -f2)"
 
   unset IFS
   for interface in $interfaces; do

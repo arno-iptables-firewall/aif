@@ -130,7 +130,7 @@ config_check()
   done
 
   # Check whether INT_IF exists
-  ###############################
+  #############################
   IFS=' ,'
   for interface in $INT_IF; do
     if ! check_interface $interface; then
@@ -139,7 +139,7 @@ config_check()
   done
 
   # Check whether DMZ_IF exists
-  ###############################
+  #############################
   IFS=' ,'
   for interface in $DMZ_IF; do
     if ! check_interface $interface; then
@@ -148,7 +148,7 @@ config_check()
   done
 
   # Check whether TRUSTED_IF exists
-  ###################################
+  #################################
   IFS=' ,'
   for interface in $TRUSTED_IF; do
     if ! check_interface $interface; then
