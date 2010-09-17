@@ -678,21 +678,26 @@ init_firewall_chains()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
+  # Flush rules in nat/mangle tables
+  ##################################
+  ip4tables -t nat -F
+  ip4tables -t nat -X
+  ip4tables -t mangle -F
+  ip4tables -t mangle -X
+  
   if [ "$IPV6_DETECTED" = "1" ]; then
     # Flush builtin IPv6 chains
     ###########################
     ip6tables -F INPUT
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
+
+    # Flush rules in mangle table
+    #############################
+    ip6tables -t mangle -F
+    ip6tables -t mangle -X
   fi
   
-  # Flush rules in nat/mangle tables
-  ##################################
-  iptables -t nat -F
-  iptables -t nat -X
-  iptables -t mangle -F
-  iptables -t mangle -X
-
   # Create our "base" chains
   ##########################
   iptables -N BASE_INPUT_CHAIN
@@ -732,8 +737,8 @@ init_firewall_chains()
 
   # Reset the iptables counters
   iptables -Z
-  iptables -t nat -Z
   iptables -t mangle -Z
+  ip4tables -t nat -Z
 }
 
 
@@ -4301,7 +4306,7 @@ setup_tcp_mss()
       iptables -A OUTPUT -o $interface -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
 
       if [ "$NAT" = "1" ]; then
-        iptables -t nat -A POSTROUTING -o $interface -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+        ip4tables -t nat -A POSTROUTING -o $interface -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
       fi
     done
   fi
@@ -4437,8 +4442,8 @@ setup_firewall_rules()
   iptables -A INPUT -j INPUT_CHAIN
   iptables -A FORWARD -j FORWARD_CHAIN
   iptables -A OUTPUT -j OUTPUT_CHAIN
-  iptables -t nat -A PREROUTING -j NAT_PREROUTING_CHAIN
-  iptables -t nat -A POSTROUTING -j NAT_POSTROUTING_CHAIN
+  ip4tables -t nat -A PREROUTING -j NAT_PREROUTING_CHAIN
+  ip4tables -t nat -A POSTROUTING -j NAT_POSTROUTING_CHAIN
 
   # Block all hosts in the custom blocked hosts file
   ##################################################
@@ -4905,8 +4910,8 @@ setup_firewall_rules()
   iptables -A FORWARD -j DROP
 
   # Post/pre routing post chains
-  iptables -t nat -A PREROUTING -j POST_NAT_PREROUTING_CHAIN
-  iptables -t nat -A POSTROUTING -j POST_NAT_POSTROUTING_CHAIN
+  ip4tables -t nat -A PREROUTING -j POST_NAT_PREROUTING_CHAIN
+  ip4tables -t nat -A POSTROUTING -j POST_NAT_POSTROUTING_CHAIN
 
   # Mark outgoing packets for traffic shaping?
   ############################################
@@ -4940,14 +4945,14 @@ create_user_chains()
   iptables -N INPUT_CHAIN
   iptables -N FORWARD_CHAIN
   iptables -N OUTPUT_CHAIN
-  iptables -t nat -N NAT_PREROUTING_CHAIN
-  iptables -t nat -N NAT_POSTROUTING_CHAIN
+  ip4tables -t nat -N NAT_PREROUTING_CHAIN
+  ip4tables -t nat -N NAT_POSTROUTING_CHAIN
   iptables -N POST_INPUT_DROP_CHAIN
   iptables -N POST_INPUT_CHAIN
   iptables -N POST_FORWARD_CHAIN
   iptables -N POST_OUTPUT_CHAIN
-  iptables -t nat -N POST_NAT_PREROUTING_CHAIN
-  iptables -t nat -N POST_NAT_POSTROUTING_CHAIN
+  ip4tables -t nat -N POST_NAT_PREROUTING_CHAIN
+  ip4tables -t nat -N POST_NAT_POSTROUTING_CHAIN
 
   # Interface-2-interface chains
   iptables -N DMZ_LAN_FORWARD_CHAIN
@@ -4990,14 +4995,15 @@ flush_user_chains()
   iptables -F INPUT_CHAIN
   iptables -F FORWARD_CHAIN
   iptables -F OUTPUT_CHAIN
-  iptables -t nat -F NAT_PREROUTING_CHAIN
-  iptables -t nat -F NAT_POSTROUTING_CHAIN
   iptables -F POST_INPUT_DROP_CHAIN
   iptables -F POST_INPUT_CHAIN
   iptables -F POST_FORWARD_CHAIN
   iptables -F POST_OUTPUT_CHAIN
-  iptables -t nat -F POST_NAT_PREROUTING_CHAIN
-  iptables -t nat -F POST_NAT_POSTROUTING_CHAIN
+
+  ip4tables -t nat -F NAT_PREROUTING_CHAIN
+  ip4tables -t nat -F NAT_POSTROUTING_CHAIN
+  ip4tables -t nat -F POST_NAT_PREROUTING_CHAIN
+  ip4tables -t nat -F POST_NAT_POSTROUTING_CHAIN
 
   # Interface-2-interface chains
   iptables -F DMZ_LAN_FORWARD_CHAIN
@@ -5038,6 +5044,12 @@ stop_firewall()
   ip4tables -F INPUT
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
+
+  # Flush rules in the mangle/nat tables
+  ip4tables -t mangle -F
+  ip4tables -t mangle -X
+  ip4tables -t nat -F
+  ip4tables -t nat -X
   
   if [ "$IPV6_DETECTED" = "1" ]; then
     # Set default IPv6 policies
@@ -5049,13 +5061,11 @@ stop_firewall()
     ip6tables -F INPUT
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
-  fi
 
-  # Flush rules in the mangle/nat tables
-  iptables -t mangle -F
-  iptables -t mangle -X
-  iptables -t nat -F
-  iptables -t nat -X
+    # Flush rules in the mangle table
+    ip6tables -t mangle -F
+    ip6tables -t mangle -X
+  fi
 
   # Attempt to flush all chains
   iptables -F
@@ -5085,17 +5095,19 @@ reinit_firewall_chains()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
+  # Flush rules in the nat/mangle tables
+  ip4tables -t mangle -F
+  ip4tables -t nat -F
+
   if [ "$IPV6_DETECTED" = "1" ]; then
     # Flush builtin IPv6 chains
     ip6tables -F INPUT
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
-  fi
 
-  # Flush rules in the nat/mangle tables
-  ######################################
-  iptables -t nat -F
-  iptables -t mangle -F
+    # Flush rules in the mangle table
+    ip6tables -t mangle -F
+  fi
 
   # Restore our base chains (which weren't flushed so any
   # running connections should be maintained
@@ -5120,6 +5132,12 @@ stop_block_firewall()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
+  # Flush nat/mangle table rules
+  ip4tables -t mangle -F
+  ip4tables -t mangle -X
+  ip4tables -t nat -F
+  ip4tables -t nat -X
+
   if [ "$IPV6_DETECTED" = "1" ]; then
     # Temporarely set default IPv6 policies to DROP,
     # to not even have a small window of opportunity
@@ -5132,13 +5150,11 @@ stop_block_firewall()
     ip6tables -F INPUT
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
-  fi
 
-  # Flush nat/mangle table rules
-  iptables -t nat -F
-  iptables -t nat -X
-  iptables -t mangle -F
-  iptables -t mangle -X
+    # Flush mangle table rules
+    ip6tables -t mangle -F
+    ip6tables -t mangle -X
+  fi
 
   # Attempt to flush all chains
   iptables -F
@@ -5185,7 +5201,7 @@ show_status()
     iptables -xnvL
 
     if [ "$NAT" = "1" ]; then
-      iptables -t nat -xnvL
+      ip4tables -t nat -xnvL
     fi
 
     if [ "$MANGLE_TOS" = "1" ]; then
