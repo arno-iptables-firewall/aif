@@ -4158,9 +4158,11 @@ setup_hostblock_chain()
           fi
           ;;
         6)
-          ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
-          if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-            ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+          if [ "$IPV6_SUPPORT" = "1" ]; then
+            ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+            if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+              ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+            fi
           fi
           ;;
         esac
@@ -4197,9 +4199,11 @@ setup_hostblock_chain()
               fi
               ;;
             6)
-              ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
-              if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-                ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+              if [ "$IPV6_SUPPORT" = "1" ]; then
+                ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+                if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+                  ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+                fi
               fi
               ;;
             esac
