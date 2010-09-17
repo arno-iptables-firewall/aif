@@ -322,14 +322,14 @@ ip6tables()
 }
 
 
-iptables_save()
+ip4tables_save()
 {
-  $IPTABLES_SAVE "$@"
+  $IP4TABLES_SAVE "$@"
   retval=$?
 
   if [ "$retval" != "0" ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IPTABLES_SAVE: Error ($retval) \033[0m\n" >&2
+    printf "\033[40m\033[1;31m$IP4TABLES_SAVE: Error ($retval) \033[0m\n" >&2
     IPTABLES_ERROR=1
   fi
 
@@ -337,14 +337,46 @@ iptables_save()
 }
 
 
-iptables_restore()
+ip4tables_restore()
 {
-  result=`$IPTABLES_RESTORE "$@" 2>&1`
+  result=`$IP4TABLES_RESTORE "$@" 2>&1`
   retval=$?
 
   if [ "$retval" != "0" ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IPTABLES_RESTORE: ($retval) $result\033[0m\n" >&2
+    printf "\033[40m\033[1;31m$IP4TABLES_RESTORE: ($retval) $result\033[0m\n" >&2
+    IPTABLES_ERROR=1
+  elif [ -n "$result" ]; then
+    echo "${INDENT}$result"
+  fi
+
+  return $retval
+}
+
+
+ip6tables_save()
+{
+  $IP6TABLES_SAVE "$@"
+  retval=$?
+
+  if [ "$retval" != "0" ]; then
+    # Show any (error) messages in red
+    printf "\033[40m\033[1;31m$IP6TABLES_SAVE: Error ($retval) \033[0m\n" >&2
+    IPTABLES_ERROR=1
+  fi
+
+  return $retval
+}
+
+
+ip6tables_restore()
+{
+  result=`$IP6TABLES_RESTORE "$@" 2>&1`
+  retval=$?
+
+  if [ "$retval" != "0" ]; then
+    # Show any (error) messages in red
+    printf "\033[40m\033[1;31m$IP6TABLES_RESTORE: ($retval) $result\033[0m\n" >&2
     IPTABLES_ERROR=1
   elif [ -n "$result" ]; then
     echo "${INDENT}$result"
@@ -1042,8 +1074,23 @@ ip_range()
   done
 }
 
-# Add iptables rules in batch using iptables-save and iptables-restore
+
 iptables_batch()
+{
+  # Note: this wrapper does not perform IPv4/IPv6 address type checking
+  # That must be done elsewhere for speed reasons
+  #
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    ip4tables_batch "$@"
+    ip6tables_batch "$@"
+  else
+    ip4tables_batch "$@"
+  fi
+}
+
+
+# Add iptables rules in batch using iptables-save and iptables-restore
+ip4tables_batch()
 {
   local ARGS CHAIN CHAINFILE RESULT=0
   
@@ -1062,20 +1109,20 @@ iptables_batch()
   
   if [ "$DISABLE_IPTABLES_BATCH" = "1" ]; then
     if [ "$1" = "-A" ]; then
-      iptables "$@"
+      ip4tables "$@"
     fi
     return
   fi
   
   if [ -n "$CHAIN" ]; then
-    CHAINFILE="$IPTABLES_BATCH_FILE"_"$CHAIN"
+    CHAINFILE="$IP4TABLES_BATCH_FILE"_"$CHAIN"
     if [ "$1" = "-A" ]; then
       echo "$ARGS" >> "$CHAINFILE"
     elif [ "$1" = "init" ]; then
       rm -f "$CHAINFILE"
     elif [ "$1" = "apply" ]; then
-      sed -i "/^-A $CHAIN / r $CHAINFILE" "$IPTABLES_BATCH_FILE"
-      iptables_restore < "$IPTABLES_BATCH_FILE"
+      sed -i "/^-A $CHAIN / r $CHAINFILE" "$IP4TABLES_BATCH_FILE"
+      ip4tables_restore < "$IP4TABLES_BATCH_FILE"
       RESULT=$?
       rm -f "$CHAINFILE"
     else
@@ -1083,10 +1130,10 @@ iptables_batch()
     fi
   else
     if [ "$1" = "start" ]; then
-      iptables_save -t filter > "$IPTABLES_BATCH_FILE"
+      ip4tables_save -t filter > "$IP4TABLES_BATCH_FILE"
       RESULT=$?
     elif [ "$1" = "stop" ]; then
-      rm -f "$IPTABLES_BATCH_FILE"
+      rm -f "$IP4TABLES_BATCH_FILE"
     else
       RESULT=1
     fi
@@ -1094,6 +1141,61 @@ iptables_batch()
   
   return $RESULT
 }
+
+
+# Add ip6tables rules in batch using ip6tables-save and ip6tables-restore
+ip6tables_batch()
+{
+  local ARGS CHAIN CHAINFILE RESULT=0
+  
+  # Args must be of the form and called in this order:
+  #   start
+  #   init CHAIN
+  #   -A CHAIN ...
+  #   apply CHAIN
+  #   stop
+  #
+  # Note: the added rules will be placed after a required
+  #       pre-existing rule in CHAIN.
+  #
+  ARGS="$@"
+  CHAIN="$2"
+  
+  if [ "$DISABLE_IPTABLES_BATCH" = "1" ]; then
+    if [ "$1" = "-A" ]; then
+      ip6tables "$@"
+    fi
+    return
+  fi
+  
+  if [ -n "$CHAIN" ]; then
+    CHAINFILE="$IP6TABLES_BATCH_FILE"_"$CHAIN"
+    if [ "$1" = "-A" ]; then
+      echo "$ARGS" >> "$CHAINFILE"
+    elif [ "$1" = "init" ]; then
+      rm -f "$CHAINFILE"
+    elif [ "$1" = "apply" ]; then
+      sed -i "/^-A $CHAIN / r $CHAINFILE" "$IP6TABLES_BATCH_FILE"
+      ip6tables_restore < "$IP6TABLES_BATCH_FILE"
+      RESULT=$?
+      rm -f "$CHAINFILE"
+    else
+      RESULT=1
+    fi
+  else
+    if [ "$1" = "start" ]; then
+      ip6tables_save -t filter > "$IP6TABLES_BATCH_FILE"
+      RESULT=$?
+    elif [ "$1" = "stop" ]; then
+      rm -f "$IP6TABLES_BATCH_FILE"
+    else
+      RESULT=1
+    fi
+  fi
+  
+  return $RESULT
+}
+
 
 # Display progress bar, 0% to 100% in 2% increments
 progress_bar()
@@ -1208,7 +1310,8 @@ get_network_ipv6_mask()
 ################################# Main ####################################
 
 # Set base file for iptables_batch
-IPTABLES_BATCH_FILE="/var/tmp/aif_iptables_batch"
+IP4TABLES_BATCH_FILE="/var/tmp/aif_ip4tables_batch"
+IP6TABLES_BATCH_FILE="/var/tmp/aif_ip6tables_batch"
 
 # Set file to store which plugins are loaded
 PLUGIN_LOAD_FILE="/var/tmp/aif_active_plugins"
@@ -1235,9 +1338,17 @@ fi
 if [ -z "$IP6TABLES" ]; then
   IP6TABLES="$(find_command /sbin/ip6tables)"
 fi
+if [ -n "$IP6TABLES" ]; then
+  IP6TABLES_SAVE="$(find_command "$IP6TABLES"-save)"
+  IP6TABLES_RESTORE="$(find_command "$IP6TABLES"-restore)"
+fi
 
 if [ -z "$IP4TABLES" ]; then
   IP4TABLES="$(find_command /sbin/iptables)"
+fi
+if [ -n "$IP4TABLES" ]; then
+  IP4TABLES_SAVE="$(find_command "$IP4TABLES"-save)"
+  IP4TABLES_RESTORE="$(find_command "$IP4TABLES"-restore)"
 fi
 
 IP="$(find_command /sbin/ip)"
@@ -1260,16 +1371,6 @@ if sysctl_key net.ipv6.conf; then
 else
   IPV6_DETECTED=0
 fi
-
-if [ "$IPV6_SUPPORT" = "1" ]; then
-  IPTABLES="$IP6TABLES"
-else
-  IPTABLES="$IP4TABLES"
-fi
-
-IPTABLES_SAVE="$(find_command "$IPTABLES"-save)"
-
-IPTABLES_RESTORE="$(find_command "$IPTABLES"-restore)"
 
 # check for tracing
 ###################

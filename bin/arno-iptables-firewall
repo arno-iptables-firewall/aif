@@ -4149,10 +4149,21 @@ setup_hostblock_chain()
       printf "$hosts "
 
       for host in `ip_range "$hosts"`; do
-        iptables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
-        if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-          iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
-        fi
+        get_numeric_ip_version "$host"
+        case $? in
+        4)
+          ip4tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+          if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+            ip4tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+          fi
+          ;;
+        6)
+          ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+          if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+            ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+          fi
+          ;;
+        esac
       done
     done
     echo ""
@@ -4177,10 +4188,21 @@ setup_hostblock_chain()
         if [ -n "$hosts" ]; then
           IFS=','
           for host in `ip_range "$hosts"`; do
-            iptables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
-            if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-              iptables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
-            fi
+            get_numeric_ip_version "$host"
+            case $? in
+            4)
+              ip4tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+              if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+                ip4tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+              fi
+              ;;
+            6)
+              ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+              if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+                ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+              fi
+              ;;
+            esac
           done
           unset IFS
         fi
