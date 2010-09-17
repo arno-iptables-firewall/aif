@@ -60,10 +60,6 @@ if [ "$VERBOSE" = "0" ]; then
   # Call firewall script:
   result=`$PROGRAM $*`
   retval=$?
-
-  if [ "$retval" != "0" ]; then
-    echo "FAILED!" >&2
-  fi
 else
   $PROGRAM $*
   retval=$?
@@ -71,3 +67,4 @@ fi
 
 # Return value:
 exit $retval
+
