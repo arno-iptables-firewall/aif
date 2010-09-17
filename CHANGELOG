@@ -1,5 +1,6 @@
 Version 1.9.2m-DEVEL (September 17, 2010)
 --------------------------------
+! Fixes/tweaks in the install script
 ! Properly handle nat/mangle table rules for IPv4/IPv6
 * In case IPv6 is detected, require that the ip6tables-binary is available to ensure a proper/secure policy
 + Implemented IPv6 detection variable so we don't have to perform a sysctl_key for each check

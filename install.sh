@@ -339,7 +339,13 @@ echo "** NOTE: You can now (manually) start the firewall by executing           
 echo "**       \"/etc/init.d/arno-iptables-firewall start\"                          **"
 echo "**       It is recommended however to first review the settings in           **"
 echo "**       /etc/arno-iptables-firewall/firewall.conf!                          **"
+echo "-------------------------------------------------------------------------------"
+echo ""
 
-if get_user_yn "(Re)start firewall (in verbose mode) (Y/N)?"; then
+if get_user_yn "Start firewall (in verbose mode) (Y/N)?"; then
+  /etc/init.d/arno-iptables-firewall stop 2>/dev/null
+  /etc/init.d/arno-iptables-firewall start
+fi
 
 exit 0
+
