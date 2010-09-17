@@ -342,9 +342,9 @@ echo "**       /etc/arno-iptables-firewall/firewall.conf!                       
 echo "-------------------------------------------------------------------------------"
 echo ""
 
-if get_user_yn "Start firewall (in verbose mode) (Y/N)?"; then
-  /etc/init.d/arno-iptables-firewall stop 2>/dev/null
-  /etc/init.d/arno-iptables-firewall start
+if get_user_yn "Start firewall (Y/N)?"; then
+  /usr/local/sbin/arno-iptables-firewall stop 2>/dev/null
+  /usr/local/sbin/arno-iptables-firewall start
 fi
 
 exit 0
