@@ -160,7 +160,6 @@ kernel_ver_chk()
 }
 
 
-
 # Linecount function
 lc()
 {
@@ -170,7 +169,9 @@ lc()
 
 note_iptables_error()
 {
-  local IFS=' '
+  local arg IFS
+
+  IFS='~'  # expand command-line args using the unique 'tilde' character
   for arg in $*; do
     if [ "$arg" = "-A" -o "$arg" = "-I" ]; then
       return 0
@@ -181,22 +182,105 @@ note_iptables_error()
 }
 
 
+ip6tables_icmp_args()
+{
+  local arg args="" action="" IFS
+
+  IFS='~'  # expand command-line args using the unique 'tilde' character
+  for arg in $*; do
+    if [ "$action" = "p" ]; then
+      if [ "$arg" = "icmp" ]; then
+        arg="icmpv6"
+      fi
+      action=""
+    else
+      # parse option flags
+      case $arg in
+      --icmp-type)
+        arg="--icmpv6-type"
+        ;;
+      -p|--proto)
+        action="p"
+        ;;
+      esac
+    fi
+    # build 'tilde' separated command-line
+    args="$args${args:+~}$arg"
+  done
+  
+  # return 'tilde' separated command-line
+  echo "$args"
+}
+
+
 iptables()
 {
-  result=`trace $IPTABLES "$@" 2>&1`
-  retval=$?
-
-  if [ "$retval" != "0" ]; then
-    # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IPTABLES: ($retval) $result\033[0m\n" >&2
-    if note_iptables_error "$@"; then
-      IPTABLES_ERROR=1
+  local arg action="" IFS
+  local src=0 dst=0 table="" proto=""
+  
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    IFS='~'  # expand command-line args using the unique 'tilde' character
+    for arg in $*; do
+      if [ -n "$action" ]; then
+        case $action in
+        s)
+          get_numeric_ip_version "$arg"
+          src=$?
+          ;;
+        d)
+          get_numeric_ip_version "$arg"
+          dst=$?
+          ;;
+        t)
+          table="$arg"
+          ;;
+        p)
+          proto="$arg"
+          ;;
+        esac
+        action=""
+      else
+        # parse option flags
+        case $arg in
+        -s|--source)
+          action="s"
+          ;;
+        -d|--destination)
+          action="d"
+          ;;
+        -t|--table)
+          action="t"
+          ;;
+        -p|--proto)
+          action="p"
+          ;;
+        esac
+      fi
+    done
+    unset IFS
+    
+    #
+    # Call ip4tables and/or ip6tables as appropriate
+    #
+    if [ $src -eq 4 -o $dst -eq 4 -o "$table" = "nat" ]; then
+      ip4tables "$@"
+    elif [ $src -eq 6 -o $dst -eq 6 -o "$proto" = "icmpv6" ]; then
+      ip6tables "$@"
+    elif [ "$proto" = "icmp" ]; then
+      ip4tables "$@"
+      # Regenerate ip6tables command-line from the returned 'tilde' separated string
+      IFS='~'; set -- $(ip6tables_icmp_args "$@"); unset IFS
+      ip6tables "$@"
+    else
+      ip4tables "$@"
+      ip6tables "$@"
     fi
-  elif [ -n "$result" ]; then
-    echo "${INDENT}$result"
+  else
+    #
+    # Only call ip4tables since IPv6 filtering is disabled.
+    #
+    ip4tables "$@"
   fi
-
-  return $retval
 }
 
 
