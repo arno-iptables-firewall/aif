@@ -307,7 +307,7 @@ dyndns_host_open()
         for host in $hosts; do
           host_ip=`dyndns_get_cached_host $host`
           if [ -n "$host_ip" ]; then
-            iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p $ICMP_PROTO $ICMP_TYPE echo-request -j ACCEPT
+            iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p icmp --icmp-type echo-request -j ACCEPT
           fi
         done
       done

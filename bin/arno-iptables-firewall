@@ -714,10 +714,10 @@ init_firewall_chains()
   #######################################
   iptables -A BASE_INPUT_CHAIN -m state --state RELATED -p tcp --dport 1024: -j ACCEPT
   iptables -A BASE_INPUT_CHAIN -m state --state RELATED -p udp --dport 1024: -j ACCEPT
-  iptables -A BASE_INPUT_CHAIN -m state --state RELATED -p $ICMP_PROTO -j ACCEPT
+  iptables -A BASE_INPUT_CHAIN -m state --state RELATED -p icmp -j ACCEPT
   iptables -A BASE_FORWARD_CHAIN -m state --state RELATED -p tcp --dport 1024: -j ACCEPT
   iptables -A BASE_FORWARD_CHAIN -m state --state RELATED -p udp --dport 1024: -j ACCEPT
-  iptables -A BASE_FORWARD_CHAIN -m state --state RELATED -p $ICMP_PROTO -j ACCEPT
+  iptables -A BASE_FORWARD_CHAIN -m state --state RELATED -p icmp -j ACCEPT
 
   # Accept all packets for the loopback device
   ############################################
@@ -938,13 +938,13 @@ setup_valid_chk_chain()
 
     # Only log INVALID ICMP-request packets when we also want to log "normal" ICMP-request packets
     if [ "$ICMP_REQUEST_LOG" != "0" ]; then
-      iptables -A VALID_CHK -p $ICMP_PROTO $ICMP_TYPE echo-request -m state --state INVALID \
+      iptables -A VALID_CHK -p icmp --icmp-type echo-request -m state --state INVALID \
         -m limit --limit 1/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INVALID ICMP-request: "
     fi
 
     # Only log INVALID ICMP-other when enabled in the config
     if [ "$ICMP_OTHER_LOG" != "0" ]; then
-      iptables -A VALID_CHK -p $ICMP_PROTO ! $ICMP_TYPE echo-request -m state --state INVALID \
+      iptables -A VALID_CHK -p icmp ! --icmp-type echo-request -m state --state INVALID \
         -m limit --limit 1/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INVALID ICMP-other: "
     fi
   else
@@ -1160,18 +1160,18 @@ setup_dmz_input_chain()
   #############################
   if [ "$DMZ_OPEN_ICMP" != "0" ]; then
     echo " Allowing ICMP-requests(ping)"
-    iptables -A DMZ_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+    iptables -A DMZ_INPUT_CHAIN -p icmp --icmp-type echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
   fi
 
   # Log incoming ICMP-request packets?
   ####################################
   if [ "$ICMP_REQUEST_LOG" != "0" ]; then
-    iptables -A DMZ_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+    iptables -A DMZ_INPUT_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
   fi
 
   # Drop ICMP packets
-  iptables -A DMZ_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j DROP
+  iptables -A DMZ_INPUT_CHAIN -p icmp --icmp-type echo-request -j DROP
 
   # Log everything else
   iptables -A DMZ_INPUT_CHAIN -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ-INPUT denied: "
@@ -1252,19 +1252,19 @@ setup_dmz_lan_forward_chain()
   ##########################################
   if [ "$DMZ_LAN_OPEN_ICMP" = "1" ]; then
     echo "  Allowing ICMP-requests(ping)"
-    iptables -A DMZ_LAN_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+    iptables -A DMZ_LAN_FORWARD_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 20/second --limit-burst 100 -j ACCEPT
   fi
 
   # Log incoming ICMP-request packets?
   ####################################
   if [ "$ICMP_REQUEST_LOG" != "0" ]; then
-    iptables -A DMZ_LAN_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+    iptables -A DMZ_LAN_FORWARD_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
   fi
 
   # Drop ICMP packets
-  iptables -A DMZ_LAN_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j DROP
+  iptables -A DMZ_LAN_FORWARD_CHAIN -p icmp --icmp-type echo-request -j DROP
 
   # Log everything else
   iptables -A DMZ_LAN_FORWARD_CHAIN -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ->LAN denied: "
@@ -1526,7 +1526,7 @@ setup_inet_dmz_forward_chain()
   ##########################################
   if [ "$INET_DMZ_OPEN_ICMP" = "1" ]; then
     echo " Allowing ICMP-requests(ping)"
-    iptables -A INET_DMZ_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+    iptables -A INET_DMZ_FORWARD_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 20/second --limit-burst 100 -j ACCEPT
   fi
 
@@ -1603,12 +1603,12 @@ setup_inet_dmz_forward_chain()
   # Log incoming ICMP-request packets?
   ####################################
   if [ "$ICMP_REQUEST_LOG" != "0" ]; then
-    iptables -A INET_DMZ_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+    iptables -A INET_DMZ_FORWARD_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
   fi
 
   # Drop ICMP packets
-  iptables -A INET_DMZ_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j DROP
+  iptables -A INET_DMZ_FORWARD_CHAIN -p icmp --icmp-type echo-request -j DROP
 
   # Set the default policy (switch to DROP for a protocol when xxx_OPEN_xxx variable is used)
   ###########################################################################################
@@ -1875,7 +1875,7 @@ setup_dmz_inet_forward_chain()
   ##########################################
   if [ "$DMZ_INET_OPEN_ICMP" != "0" ]; then
     echo " Allowing ICMP-requests(ping)"
-    iptables -A DMZ_INET_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+    iptables -A DMZ_INET_FORWARD_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 20/second --limit-burst 100 -j ACCEPT
   fi
 
@@ -1945,12 +1945,12 @@ setup_dmz_inet_forward_chain()
   # Log incoming ICMP-request packets?
   ####################################
   if [ "$ICMP_REQUEST_LOG" != "0" ]; then
-    iptables -A DMZ_INET_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+    iptables -A DMZ_INET_FORWARD_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
   fi
 
   # Drop ICMP packets
-  iptables -A DMZ_INET_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j DROP
+  iptables -A DMZ_INET_FORWARD_CHAIN -p icmp --icmp-type echo-request -j DROP
 
   # Set the default policy (switch to DROP for a protocol when xxx_OPEN_xxx variable is used)
   ###########################################################################################
@@ -2145,7 +2145,7 @@ setup_int_input_chain()
   ###################################
   if [ "$LAN_OPEN_ICMP" != "0" ]; then
     echo " Allowing ICMP-requests(ping)"
-    iptables -A INT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+    iptables -A INT_INPUT_CHAIN -p icmp --icmp-type echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
   fi
 
   # TCP ports to DENY for LAN hosts
@@ -2193,12 +2193,12 @@ setup_int_input_chain()
   # Log incoming ICMP-request packets?
   ####################################
   if [ "$ICMP_REQUEST_LOG" != "0" ]; then
-    iptables -A INT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+    iptables -A INT_INPUT_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
   fi
 
   # Drop ICMP packets
-  iptables -A INT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j DROP
+  iptables -A INT_INPUT_CHAIN -p icmp --icmp-type echo-request -j DROP
 
   # Set the default policy
   ########################
@@ -2442,7 +2442,7 @@ setup_lan_inet_forward_chain()
   ##########################################
   if [ "$LAN_INET_OPEN_ICMP" != "0" ]; then
     echo "  Allowing ICMP-requests(ping)"
-    iptables -A LAN_INET_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+    iptables -A LAN_INET_FORWARD_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 20/second --limit-burst 100 -j ACCEPT
   fi
 
@@ -2512,12 +2512,12 @@ setup_lan_inet_forward_chain()
   # Log incoming ICMP-request packets?
   ####################################
   if [ "$ICMP_REQUEST_LOG" != "0" ]; then
-    iptables -A LAN_INET_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+    iptables -A LAN_INET_FORWARD_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
   fi
 
   # Drop ICMP packets
-  iptables -A LAN_INET_FORWARD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j DROP
+  iptables -A LAN_INET_FORWARD_CHAIN -p icmp --icmp-type echo-request -j DROP
 
   # Set the default policy (switch to DROP for a protocol when xxx_OPEN_xxx variable is used)
   ###########################################################################################
@@ -2730,7 +2730,7 @@ setup_ext_input_chain()
     for host in `ip_range "$hosts"`; do
       for destip in $destips; do
         for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p $ICMP_PROTO $ICMP_TYPE echo-request -j ACCEPT
+          iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p icmp --icmp-type echo-request -j ACCEPT
         done
       done
     done
@@ -2923,7 +2923,7 @@ setup_ext_input_chain()
     for host in `ip_range "$hosts"`; do
       for destip in $destips; do
         for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p $ICMP_PROTO $ICMP_TYPE icmp-request -j POST_INPUT_DROP_CHAIN
+          iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p icmp --icmp-type icmp-request -j POST_INPUT_DROP_CHAIN
         done
       done
     done
@@ -3026,10 +3026,10 @@ setup_ext_input_chain()
       for destip in $destips; do
         for interface in $interfaces; do
           if [ "$ICMP_DROP_LOG" != "0" ]; then
-            iptables -A EXT_INPUT_CHAIN -s $host -p $ICMP_PROTO $ICMP_TYPE icmp-request -m limit --limit 1/h --limit-burst 1 \
+            iptables -A EXT_INPUT_CHAIN -s $host -p icmp --icmp-type icmp-request -m limit --limit 1/h --limit-burst 1 \
               -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
           fi
-          iptables -A EXT_INPUT_CHAIN -s $host -p $ICMP_PROTO $ICMP_TYPE icmp-request -j POST_INPUT_DROP_CHAIN
+          iptables -A EXT_INPUT_CHAIN -s $host -p icmp --icmp-type icmp-request -j POST_INPUT_DROP_CHAIN
         done
       done
     done
@@ -3316,7 +3316,7 @@ setup_ext_input_chain()
   ###################################
   if [ "$OPEN_ICMP" = "1" ]; then
     echo " Allowing ANYHOST to send ICMP-requests(ping)"
-    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
   else
     echo " Denying ANYHOST to send ICMP-requests(ping)"
   fi
@@ -3325,7 +3325,7 @@ setup_ext_input_chain()
   ###################################
   if [ "$ICMP_REQUEST_LOG" != "0" ]; then
     echo " Logging of dropped ICMP-request(ping) packets enabled"
-    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
   else
     echo " Logging of dropped ICMP-request(ping) packets disabled"
@@ -3334,23 +3334,23 @@ setup_ext_input_chain()
   if [ "$ICMP_OTHER_LOG" != "0" ]; then
     echo " Logging of dropped other ICMP packets enabled"
 
-    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE destination-unreachable \
+    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type destination-unreachable \
       -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-unreachable: "
 
-    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE time-exceeded \
+    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type time-exceeded \
       -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-time-exceeded: "
 
-    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE parameter-problem \
+    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type parameter-problem \
       -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-param.-problem: "
 
-#    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE source-quench \
+#    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type source-quench \
 #      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-source-quench: "
 
-    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE destination-unreachable -j POST_INPUT_DROP_CHAIN
-    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE time-exceeded -j POST_INPUT_DROP_CHAIN
-    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE parameter-problem -j POST_INPUT_DROP_CHAIN
-    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j POST_INPUT_DROP_CHAIN
-    iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-reply -j POST_INPUT_DROP_CHAIN
+    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type destination-unreachable -j POST_INPUT_DROP_CHAIN
+    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type time-exceeded -j POST_INPUT_DROP_CHAIN
+    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type parameter-problem -j POST_INPUT_DROP_CHAIN
+    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type echo-request -j POST_INPUT_DROP_CHAIN
+    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type echo-reply -j POST_INPUT_DROP_CHAIN
 
   else
     echo " Logging of dropped other ICMP packets disabled"
@@ -3485,7 +3485,7 @@ setup_ext_input_chain()
   if [ -n "$IGMP_PROTO" ]; then
     iptables -A EXT_INPUT_CHAIN -p $IGMP_PROTO -j POST_INPUT_DROP_CHAIN
   fi
-  iptables -A EXT_INPUT_CHAIN -p $ICMP_PROTO -j POST_INPUT_DROP_CHAIN
+  iptables -A EXT_INPUT_CHAIN -p icmp -j POST_INPUT_DROP_CHAIN
 
   # Do we want to log non udp/tcp/icmp packets?
   #############################################
@@ -3513,45 +3513,45 @@ setup_ext_icmp_flood_chain()
   if [ "$ICMP_FLOOD_LOG" != "0" ]; then
     echo " Logging of ICMP flooding enabled"
 
-    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE destination-unreachable \
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type destination-unreachable \
       -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-unreachable flood: "
-    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE destination-unreachable -j POST_INPUT_DROP_CHAIN
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type destination-unreachable -j POST_INPUT_DROP_CHAIN
 
-    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE time-exceeded \
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type time-exceeded \
       -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-time-exceeded fld: "
-    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE time-exceeded -j POST_INPUT_DROP_CHAIN
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type time-exceeded -j POST_INPUT_DROP_CHAIN
 
-    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE parameter-problem \
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type parameter-problem \
       -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-param-problem fld: "
-    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE parameter-problem -j POST_INPUT_DROP_CHAIN
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type parameter-problem -j POST_INPUT_DROP_CHAIN
 
-    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request \
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request(ping) fld: "
-    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-request -j POST_INPUT_DROP_CHAIN
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type echo-request -j POST_INPUT_DROP_CHAIN
 
-    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-reply \
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type echo-reply \
       -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-reply(pong) flood: "
-    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE echo-reply -j POST_INPUT_DROP_CHAIN
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type echo-reply -j POST_INPUT_DROP_CHAIN
 
     if [ "$IPV6_SUPPORT" != "1" ]; then
-      iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE source-quench \
+      ip4tables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type source-quench \
         -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-source-quench fld: "
-      iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE source-quench -j POST_INPUT_DROP_CHAIN
+      ip4tables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type source-quench -j POST_INPUT_DROP_CHAIN
     else
-      iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE packet-too-big \
+      ip6tables -A EXT_ICMP_FLOOD_CHAIN -p icmpv6 --icmpv6-type packet-too-big \
         -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-packet-too-big fld: "
-      iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO $ICMP_TYPE packet-too-big -j POST_INPUT_DROP_CHAIN
+      ip6tables -A EXT_ICMP_FLOOD_CHAIN -p icmpv6 --icmpv6-type packet-too-big -j POST_INPUT_DROP_CHAIN
     fi
 
     # All other ICMP into the general log rule
-    iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO \
+    iptables -A EXT_ICMP_FLOOD_CHAIN -p icmp \
       -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP(other) flood: "
   else
     echo " Logging of ICMP flooding disabled"
   fi
 
   # Drop any ICMP packets left
-  iptables -A EXT_ICMP_FLOOD_CHAIN -p $ICMP_PROTO -j POST_INPUT_DROP_CHAIN
+  iptables -A EXT_ICMP_FLOOD_CHAIN -p icmp -j POST_INPUT_DROP_CHAIN
 }
 
 
@@ -4532,14 +4532,14 @@ setup_firewall_rules()
     # Perform check:
     ################
     # Non-ICMP traffic:
-    iptables -A INPUT -i $interface ! -p $ICMP_PROTO -m state --state NEW -j EXT_INPUT_CHAIN
+    iptables -A INPUT -i $interface ! -p icmp -m state --state NEW -j EXT_INPUT_CHAIN
 
     # ICMP traffic (rate limited):
-    iptables -A INPUT -i $interface -p $ICMP_PROTO -m state --state NEW \
+    iptables -A INPUT -i $interface -p icmp -m state --state NEW \
       -m limit --limit 60/second --limit-burst 100 -j EXT_INPUT_CHAIN
 
     # ICMP traffic (flood)
-    iptables -A INPUT -i $interface -p $ICMP_PROTO -m state --state NEW -j EXT_ICMP_FLOOD_CHAIN
+    iptables -A INPUT -i $interface -p icmp -m state --state NEW -j EXT_ICMP_FLOOD_CHAIN
   done
 
 

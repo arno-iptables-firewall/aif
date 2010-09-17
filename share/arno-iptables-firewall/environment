@@ -1263,13 +1263,9 @@ fi
 
 if [ "$IPV6_SUPPORT" = "1" ]; then
   IPTABLES="$IP6TABLES"
-  ICMP_PROTO="icmpv6"
-  ICMP_TYPE="--icmpv6-type"
   IGMP_PROTO=""
 else
   IPTABLES="$IP4TABLES"
-  ICMP_PROTO="icmp"
-  ICMP_TYPE="--icmp-type"
   IGMP_PROTO="2"
 fi
 
