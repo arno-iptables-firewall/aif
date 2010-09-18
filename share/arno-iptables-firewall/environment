@@ -1370,6 +1370,7 @@ if sysctl_key net.ipv6.conf; then
   IPV6_DETECTED=1
 else
   IPV6_DETECTED=0
+  IPV6_SUPPORT=0
 fi
 
 # check for tracing

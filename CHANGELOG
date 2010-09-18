@@ -1,5 +1,6 @@
-Version 1.9.9 (September 17, 2010)
+Version 1.9.9 (September 18, 2010)
 ----------------------------------
++ Automatically disable IPV6_SUPPORT if IPv6 is not detected in the kernel
 + Add support for mixed IPv4/IPv6 when IPV6_SUPPORT=1
 
 Version 1.9.2m (September 17, 2010)
