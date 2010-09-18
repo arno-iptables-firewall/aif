@@ -946,20 +946,18 @@ setup_valid_chk_chain()
   iptables -A VALID_CHK -m state --state INVALID -j POST_INPUT_DROP_CHAIN
 
   # Fragmentation cannot happen with IPV6 (and maybe even not with iptables/ipv4?)
-  if [ "$IPV6_SUPPORT" != "1" ]; then
-    ## Log fragmented packets
-    #########################
-    if [ "$FRAG_LOG" = "1" ]; then
-      echo "Logging of fragmented packets enabled"
-      iptables -A VALID_CHK -f -m limit --limit 3/m --limit-burst 1 -j LOG --log-prefix "AIF:Fragment packet: "
-    else
-      echo "Logging of fragmented packets disabled"
-    fi
-
-    # Drop fragmented packets
-    #########################
-    iptables -A VALID_CHK -f -j DROP
+  ## Log fragmented packets
+  #########################
+  if [ "$FRAG_LOG" = "1" ]; then
+    echo "Logging of fragmented packets enabled"
+    ip4tables -A VALID_CHK -f -m limit --limit 3/m --limit-burst 1 -j LOG --log-prefix "AIF:Fragment packet: "
+  else
+    echo "Logging of IPv4 fragmented packets disabled"
   fi
+
+  # Drop fragmented packets
+  #########################
+  ip4tables -A VALID_CHK -f -j DROP
 }
 
 
@@ -968,44 +966,44 @@ setup_valid_chk_chain()
 ################################################################################################################
 setup_reserved_net_chk_chain()
 {
-  if [ "$IPV6_SUPPORT" != "1" ]; then
-    # Log access from reserved addresses
-    ####################################
-    if [ "$RESERVED_NET_LOG" != "0" ]; then
-      echo "Logging of access from reserved addresses enabled"
-      iptables -A RESERVED_NET_CHK -s 10.0.0.0/8 \
-        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class A address: "
+  # Log access from reserved addresses
+  ####################################
+  if [ "$RESERVED_NET_LOG" != "0" ]; then
+    echo "Logging of access from reserved addresses enabled"
+    ip4tables -A RESERVED_NET_CHK -s 10.0.0.0/8 \
+      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class A address: "
 
-      iptables -A RESERVED_NET_CHK -s 172.16.0.0/12 \
-        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class B address: "
+    ip4tables -A RESERVED_NET_CHK -s 172.16.0.0/12 \
+      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class B address: "
 
-      iptables -A RESERVED_NET_CHK -s 192.168.0.0/16 \
-        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class C address: "
+    ip4tables -A RESERVED_NET_CHK -s 192.168.0.0/16 \
+      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class C address: "
 
-      iptables -A RESERVED_NET_CHK -s 169.254.0.0/16 \
-        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class M$ address: "
-      
-      iptables -A RESERVED_NET_CHK -s 224.0.0.0/24 \
-        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Multicast address: "
-      
-      iptables -A RESERVED_NET_CHK -s 239.0.0.0/24 \
-        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Multicast address: "
-    else
-      echo "Logging of access from reserved addresses disabled"
-    fi
-
-    # rp_filter drops some of these addresses, but just to be sure :)
-    ################################################################
-    #echo "Denying access from reserved addresses..."
-    iptables -A RESERVED_NET_CHK -s 10.0.0.0/8 -j POST_INPUT_DROP_CHAIN
-    iptables -A RESERVED_NET_CHK -s 172.16.0.0/12 -j POST_INPUT_DROP_CHAIN
-    iptables -A RESERVED_NET_CHK -s 192.168.0.0/16 -j POST_INPUT_DROP_CHAIN
-    iptables -A RESERVED_NET_CHK -s 169.254.0.0/16 -j POST_INPUT_DROP_CHAIN
-    iptables -A RESERVED_NET_CHK -s 224.0.0.0/24 -j POST_INPUT_DROP_CHAIN
-    iptables -A RESERVED_NET_CHK -s 239.0.0.0/24 -j POST_INPUT_DROP_CHAIN
+    ip4tables -A RESERVED_NET_CHK -s 169.254.0.0/16 \
+      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class M$ address: "
+    
+    ip4tables -A RESERVED_NET_CHK -s 224.0.0.0/24 \
+      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Multicast address: "
+    
+    ip4tables -A RESERVED_NET_CHK -s 239.0.0.0/24 \
+      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Multicast address: "
   else
+    echo "Logging of access from reserved IPv4 addresses disabled"
+  fi
+
+  # rp_filter drops some of these addresses, but just to be sure :)
+  ################################################################
+  #echo "Denying access from reserved addresses..."
+  ip4tables -A RESERVED_NET_CHK -s 10.0.0.0/8 -j POST_INPUT_DROP_CHAIN
+  ip4tables -A RESERVED_NET_CHK -s 172.16.0.0/12 -j POST_INPUT_DROP_CHAIN
+  ip4tables -A RESERVED_NET_CHK -s 192.168.0.0/16 -j POST_INPUT_DROP_CHAIN
+  ip4tables -A RESERVED_NET_CHK -s 169.254.0.0/16 -j POST_INPUT_DROP_CHAIN
+  ip4tables -A RESERVED_NET_CHK -s 224.0.0.0/24 -j POST_INPUT_DROP_CHAIN
+  ip4tables -A RESERVED_NET_CHK -s 239.0.0.0/24 -j POST_INPUT_DROP_CHAIN
+
+  if [ "$IPV6_SUPPORT" = "1" ]; then
     # Currently only 2000::/3 are unicast/internet routable for IPv6 (correct me if I am wrong)
-    iptables -A RESERVED_NET_CHK ! -s 2000::/3 -j POST_INPUT_DROP_CHAIN
+    ip6tables -A RESERVED_NET_CHK ! -s 2000::/3 -j POST_INPUT_DROP_CHAIN
   fi
 }
 
@@ -3368,33 +3366,31 @@ setup_ext_input_chain()
   iptables -A EXT_INPUT_CHAIN -p tcp ! --syn -j POST_INPUT_DROP_CHAIN
 
   # Setup IPv4 chain to handle broadcast traffic
-  if [ "$IPV6_SUPPORT" != "1" ]; then
-    iptables -A EXT_INPUT_CHAIN -d 255.255.255.255 -j EXT_BROADCAST_CHAIN
-    iptables -A EXT_INPUT_CHAIN -d 224.0.0.0/24 -j EXT_BROADCAST_CHAIN
+  ip4tables -A EXT_INPUT_CHAIN -d 255.255.255.255 -j EXT_BROADCAST_CHAIN
+  ip4tables -A EXT_INPUT_CHAIN -d 224.0.0.0/24 -j EXT_BROADCAST_CHAIN
 
-    #iptables -A EXT_INPUT_CHAIN -m pkttype --pkt-type broadcast -j EXT_BROADCAST_CHAIN
-    #iptables -A EXT_INPUT_CHAIN -m addrtype --dst-type BROADCAST -j EXT_BROADCAST_CHAIN
-    if [ -n "$EXT_NET_BCAST_ADDRESS" ]; then
-      IFS=' ,'
-      for address in $EXT_NET_BCAST_ADDRESS; do
-        iptables -A EXT_INPUT_CHAIN -d $address -j EXT_BROADCAST_CHAIN
-      done
-    else
-      IFS=' ,'
-      for net in $EXTERNAL_NET; do
-        # Class C net
-        iptables -A EXT_INPUT_CHAIN -d $(echo $net |awk -F. '{ print $1"."$2"."$3".255" }') \
-         -j EXT_BROADCAST_CHAIN
+  # ip4tables -A EXT_INPUT_CHAIN -m pkttype --pkt-type broadcast -j EXT_BROADCAST_CHAIN
+  # ip4tables -A EXT_INPUT_CHAIN -m addrtype --dst-type BROADCAST -j EXT_BROADCAST_CHAIN
+  if [ -n "$EXT_NET_BCAST_ADDRESS" ]; then
+    IFS=' ,'
+    for address in $EXT_NET_BCAST_ADDRESS; do
+      ip4tables -A EXT_INPUT_CHAIN -d $address -j EXT_BROADCAST_CHAIN
+    done
+  else
+    IFS=' ,'
+    for net in $EXTERNAL_NET; do
+      # Class C net
+      ip4tables -A EXT_INPUT_CHAIN -d $(echo $net |awk -F. '{ print $1"."$2"."$3".255" }') \
+       -j EXT_BROADCAST_CHAIN
 
-        # Class B net
-        iptables -A EXT_INPUT_CHAIN -d $(echo $net |awk -F. '{ print $1"."$2".255.255" }') \
-         -j EXT_BROADCAST_CHAIN
+      # Class B net
+      ip4tables -A EXT_INPUT_CHAIN -d $(echo $net |awk -F. '{ print $1"."$2".255.255" }') \
+       -j EXT_BROADCAST_CHAIN
 
-        # Class A net
-        iptables -A EXT_INPUT_CHAIN -d $(echo $net |awk -F. '{ print $1".255.255.255" }') \
-         -j EXT_BROADCAST_CHAIN
-      done
-    fi
+      # Class A net
+      ip4tables -A EXT_INPUT_CHAIN -d $(echo $net |awk -F. '{ print $1".255.255.255" }') \
+       -j EXT_BROADCAST_CHAIN
+    done
   fi
 
   # Log packets to privileged TCP ports?
@@ -3521,11 +3517,11 @@ setup_ext_icmp_flood_chain()
       -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-reply(pong) flood: "
     iptables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type echo-reply -j POST_INPUT_DROP_CHAIN
 
-    if [ "$IPV6_SUPPORT" != "1" ]; then
-      ip4tables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type source-quench \
-        -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-source-quench fld: "
-      ip4tables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type source-quench -j POST_INPUT_DROP_CHAIN
-    else
+    ip4tables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type source-quench \
+      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-source-quench fld: "
+    ip4tables -A EXT_ICMP_FLOOD_CHAIN -p icmp --icmp-type source-quench -j POST_INPUT_DROP_CHAIN
+
+    if [ "$IPV6_SUPPORT" = "1" ]; then
       ip6tables -A EXT_ICMP_FLOOD_CHAIN -p icmpv6 --icmpv6-type packet-too-big \
         -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-packet-too-big fld: "
       ip6tables -A EXT_ICMP_FLOOD_CHAIN -p icmpv6 --icmpv6-type packet-too-big -j POST_INPUT_DROP_CHAIN
@@ -4500,14 +4496,12 @@ setup_firewall_rules()
   ######################
   plugins_start;
 
-  if [ "$IPV6_SUPPORT" != "1" ]; then
-    # Drop outgoing fragmented packets (this should in principle never happen because of netfilter's
-    # packet defragmentation
-    ################################################################################################
-    iptables -A OUTPUT -f \
-      -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Fragment packet: "
-    iptables -A OUTPUT -f -j DROP
-  fi
+  # Drop outgoing fragmented packets (this should in principle never happen because of netfilter's
+  # packet defragmentation
+  ################################################################################################
+  ip4tables -A OUTPUT -f \
+    -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Fragment packet: "
+  ip4tables -A OUTPUT -f -j DROP
 
   # Setup helper chains for EXTERNAL input traffic:
   echo "Setting up external(INET) INPUT policy"
