@@ -416,7 +416,7 @@ setup_kernel_settings()
   # CONFIG_NF_CT_ACCT is deprecated and will be removed sometime after kernel 2.6.27
   sysctl -w net.netfilter.nf_conntrack_acct=1 2>/dev/null
 
-  # Always set IPv4 options for IPv4-only or IPv4/IPv6
+  # Always set IPv4 options for IPv4 or IPv4/IPv6
   ######################################################
   echo "Configuring IPv4 kernel parameters:"
 
@@ -759,20 +759,8 @@ setup_default_policies()
     iptables -P OUTPUT ACCEPT
   fi
 
-  # When IPv4 support is active, disable IPv6 traffic
   if [ "$IPV6_SUPPORT" = "1" ]; then
-    echo "IPv6 mode selected, setting simple default policy for IPv4"
-    ip4tables -P INPUT DROP
-    ip4tables -P FORWARD DROP
-    ip4tables -P OUTPUT ACCEPT
-    
-    ip4tables -A INPUT -i lo -j ACCEPT
-    ip4tables -A FORWARD -i lo -j ACCEPT
-
-    IFS=' ,'
-    for interface in $INT_IF $TRUSTED_IF; do
-      ip4tables -A INPUT -i $interface -j ACCEPT
-    done
+    echo "IPv4/IPv6 mixed mode selected"
   elif [ "$IPV6_DETECTED" = "1" ]; then
     echo "IPv4 mode selected but IPv6 available, setting simple default policy for IPv6"
     ip6tables -P INPUT DROP
@@ -786,6 +774,8 @@ setup_default_policies()
     for interface in $INT_IF $TRUSTED_IF; do
       ip6tables -A INPUT -i $interface -j ACCEPT
     done
+  else
+    echo "IPv4 mode selected, no IPv6 available"
   fi
 
   # The POST_INPUT_DROP_CHAIN should temporarily DROP for now
