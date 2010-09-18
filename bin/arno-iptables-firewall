@@ -246,49 +246,48 @@ load_modules()
   # Set indent for functions
   INDENT=' '
 
-  if [ "$IPV6_SUPPORT" != "1" ]; then
-    echo "Checking/probing IPv4 Iptables modules:"
-    
-    # Required; all IPv4 modules depend on this one
-    modprobe ip_tables
-    
-    # Allows connection tracking state match, which allows you to
-    # write rules matching the state of a connection
-    modprobe_multi nf_conntrack ip_conntrack
+  echo "Checking/probing IPv4 Iptables modules:"
+  
+  # Required; all IPv4 modules depend on this one
+  modprobe ip_tables
+  
+  # Allows connection tracking state match, which allows you to
+  # write rules matching the state of a connection
+  modprobe_multi nf_conntrack ip_conntrack
 
-    # Permits active FTP; requires ip_conntrack 
-    modprobe_multi nf_conntrack_ftp ip_conntrack_ftp
-    
-    # Allows tracking for various protocols, placing entries in the conntrack table etc. 
-    modprobe_multi xt_conntrack ipt_conntrack
-    
-    # Allows log limits
-    modprobe_multi xt_limit ipt_limit
-    
-    # Permits packet state checking (SYN, SYN-ACK, ACK, and so on). 
-    modprobe_multi xt_state ipt_state
-    
-    # Allows packet specifications on multiple ports
-    modprobe_multi xt_multiport ipt_multiport
+  # Permits active FTP; requires ip_conntrack 
+  modprobe_multi nf_conntrack_ftp ip_conntrack_ftp
+  
+  # Allows tracking for various protocols, placing entries in the conntrack table etc. 
+  modprobe_multi xt_conntrack ipt_conntrack
+  
+  # Allows log limits
+  modprobe_multi xt_limit ipt_limit
+  
+  # Permits packet state checking (SYN, SYN-ACK, ACK, and so on). 
+  modprobe_multi xt_state ipt_state
+  
+  # Allows packet specifications on multiple ports
+  modprobe_multi xt_multiport ipt_multiport
 
-    modprobe iptable_filter          # Implements the filter table
-    modprobe iptable_mangle          # Implements the mangle table
+  modprobe iptable_filter          # Implements the filter table
+  modprobe iptable_mangle          # Implements the mangle table
 
-    # Explicitly load some targets
-    modprobe ipt_REJECT              # Implements the REJECT target
-    modprobe ipt_LOG                 # Implements the LOG target
-    
-    if [ "$SET_MSS" != "0" ]; then
-      modprobe_multi xt_TCPMSS ipt_TCPMSS             # Load the TCPMSS target
-    fi
- 
-    if [ "$MANGLE_TOS" != "0" ]; then
-      modprobe_multi xt_DSCP ipt_DSCP ipt_TOS                # Load the TOS target
-    fi
+  # Explicitly load some targets
+  modprobe ipt_REJECT              # Implements the REJECT target
+  modprobe ipt_LOG                 # Implements the LOG target
+  
+  if [ "$SET_MSS" != "0" ]; then
+    modprobe_multi xt_TCPMSS ipt_TCPMSS             # Load the TCPMSS target
+  fi
 
-    if [ "$PACKET_TTL" = "1" -o "$TTL_INC" = "1" ]; then
-      modprobe ipt_TTL                # Load the TTL target
-    fi
+  if [ "$MANGLE_TOS" != "0" ]; then
+    modprobe_multi xt_DSCP ipt_DSCP ipt_TOS                # Load the TOS target
+  fi
+
+  if [ "$PACKET_TTL" = "1" -o "$TTL_INC" = "1" ]; then
+    modprobe ipt_TTL                # Load the TTL target
+  fi
 
   # (Currently) unused modules:
   #    modprobe ipt_addrtype            # Allows matching src/dst address type (BROKEN!)
@@ -298,27 +297,28 @@ load_modules()
   #    modprobe ipt_mark                # Allows use of mark match
   #    modprobe ip_conntrack_egg
 
-    if [ "$USE_IRC" = "1" ]; then
-  #      echo "Enabling IRC DCC module support..."
-      modprobe_multi nf_conntrack_irc ip_conntrack_irc        #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
-
-      if [ "$NAT" = "1" ]; then
-        modprobe_multi nf_nat_irc ip_nat_irc            #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
-      fi
-    fi
+  if [ "$USE_IRC" = "1" ]; then
+    #      echo "Enabling IRC DCC module support..."
+    modprobe_multi nf_conntrack_irc ip_conntrack_irc        #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
 
     if [ "$NAT" = "1" ]; then
-      modprobe_multi nf_nat_ftp ip_nat_ftp             # Permits active FTP via nat; requires ip_conntrack, iptables_nat
+      modprobe_multi nf_nat_irc ip_nat_irc            #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
     fi
-    
-    if [ "$NAT" = "1" -o -n "$NAT_FORWARD_TCP" -o -n "$NAT_FORWARD_UDP" -o -n "$NAT_FORWARD_IP" ]; then
-      modprobe iptable_nat            # Implements the NAT table
+  fi
 
-      if [ -z "$NAT_STATIC_IP" ]; then
-        modprobe ipt_MASQUERADE         # Load the MASQUERADE target
-      fi
+  if [ "$NAT" = "1" ]; then
+    modprobe_multi nf_nat_ftp ip_nat_ftp             # Permits active FTP via nat; requires ip_conntrack, iptables_nat
+  fi
+  
+  if [ "$NAT" = "1" -o -n "$NAT_FORWARD_TCP" -o -n "$NAT_FORWARD_UDP" -o -n "$NAT_FORWARD_IP" ]; then
+    modprobe iptable_nat            # Implements the NAT table
+
+    if [ -z "$NAT_STATIC_IP" ]; then
+      modprobe ipt_MASQUERADE         # Load the MASQUERADE target
     fi
-  else
+  fi
+
+  if [ "$IPV6_SUPPORT" = "1" ]; then
     echo "Checking/probing IPv6 Iptables modules:"
 
     modprobe ip6_tables              # Required; all ipv6 modules depend on this one
@@ -375,7 +375,7 @@ setup_kernel_settings()
   # Set INDENT value for functions
   INDENT='  '
   
-  echo "Setup kernel settings:"
+  echo "Configuring General kernel parameters:"
 
   # Set the maximum number of connections to track.
   # The kernel "default" depends on the available amount of RAM, 128 MB of RAM -> 8192
@@ -416,202 +416,202 @@ setup_kernel_settings()
   # CONFIG_NF_CT_ACCT is deprecated and will be removed sometime after kernel 2.6.27
   sysctl -w net.netfilter.nf_conntrack_acct=1 2>/dev/null
 
-  # Only set IPv4 options if IPv4 is used (and not IPv6)
+  # Always set IPv4 options for IPv4-only or IPv4/IPv6
   ######################################################
-  if [ "$IPV6_SUPPORT" != "1" ]; then
-    # IPv4 is selected:
+  echo "Configuring IPv4 kernel parameters:"
 
-    # Disable ICMP send_redirect
-    ############################
-    sysctl_set_all "net.ipv4.conf" "send_redirects" 0
+  # Disable ICMP send_redirect
+  ############################
+  sysctl_set_all "net.ipv4.conf" "send_redirects" 0
 
-    # Don't accept source routed packets.
-    # Attackers can use source routing to generate
-    # traffic pretending to be from inside your network, but which is routed back along
-    # the path from which it came, namely outside, so attackers can compromise your
-    # network. Source routing is rarely used for legitimate purposes.
-    ###################################################################################
-    if [ "$SOURCE_ROUTE_PROTECTION" = "0" ]; then
-      echo " DISABLING protection against source routed packets"
-      sysctl_set_all "net.ipv4.conf" "accept_source_route" 1
-    else
-      echo " Enabling protection against source routed packets"
-      sysctl_set_all "net.ipv4.conf" "accept_source_route" 0
-    fi
-
-    # ICMP Broadcasting protection (smurf amplifier protection)
-    ###########################################################
-    sysctl -w net.ipv4.icmp_echo_ignore_broadcasts=1
-
-    # ICMP Dead Error Messages protection
-    #####################################
-    sysctl -w net.ipv4.icmp_ignore_bogus_error_responses=1
-
-    # IP forwarding (need it to perform for example NAT)
-    ####################################################
-    if [ "$IP_FORWARDING" != "0" ]; then
-      echo " Enabling packet forwarding"
-#      sysctl -w -e net.ipv4.conf.all.forwarding=1
-      if ! sysctl -w net.ipv4.ip_forward=1; then
-        printf "\033[40m\033[1;31m WARNING: net.ipv4.ip_forward could not be set! If you're using\033[0m\n" >&2
-        printf "\033[40m\033[1;31m          NAT or any other type of forwarding this may be a problem.\033[0m\n" >&2
-      fi
-    else
-      echo " DISABLING packet forwarding"
-#      sysctl -w -e net.ipv4.conf.all.forwarding=0
-      sysctl -w -e net.ipv4.ip_forward=0 2>/dev/null
-    fi
-
-    # Enable some general settings
-    ##############################
-    echo " Setting some kernel performance options"
-    sysctl -w net.ipv4.tcp_window_scaling=1
-    sysctl -w net.ipv4.tcp_timestamps=1
-    sysctl -w net.ipv4.tcp_sack=1
-    sysctl -w net.ipv4.tcp_dsack=1
-    sysctl -w net.ipv4.tcp_fack=1
-    sysctl -w net.ipv4.tcp_low_latency=0
-
-    # Reduce DoS'ing ability by reducing timeouts
-    #############################################################
-    if [ "$REDUCE_DOS_ABILITY" = "1" ]; then
-      echo " Enabling reduction of the DoS'ing ability"
-
-      sysctl -w net.ipv4.tcp_fin_timeout=30
-      sysctl -w net.ipv4.tcp_keepalive_time=1800
-
-      # Set number of times to retry SYN in a new connection
-      sysctl -w net.ipv4.tcp_syn_retries=3
-
-      # Set number of times to retry a SYN-ACK in a half-open new connections
-      sysctl -w net.ipv4.tcp_synack_retries=2
-
-      # Enable a fix for RFC1337 - time-wait assassination hazards in TCP
-      sysctl -w net.ipv4.tcp_rfc1337=1
-    else
-      echo " Disabling reduction of the DoS'ing ability"
-
-      # Defaults:
-      sysctl -w net.ipv4.tcp_fin_timeout=60
-      sysctl -w net.ipv4.tcp_keepalive_time=7200
-      sysctl -w net.ipv4.tcp_syn_retries=5
-      sysctl -w net.ipv4.tcp_synack_retries=5
-      sysctl -w net.ipv4.tcp_rfc1337=0
-    fi
-
-    # Set out local port range. Kernel default = "1024 4999"
-    ########################################################
-    if [ -z "$LOCAL_PORT_RANGE" ]; then
-      LOCAL_PORT_RANGE="32768 61000"
-    fi
-    sysctl -w net.ipv4.ip_local_port_range="$LOCAL_PORT_RANGE"
-
-    # Now we change the LOCAL_PORT_RANGE for further use by iptables (replace space with :)
-    LOCAL_PORT_RANGE="$(echo "$LOCAL_PORT_RANGE" |tr ' ' ':')"
-
-    # Use rp_filter to drop connections from non-routable IPs
-    ######################################################################
-    if [ "$RP_FILTER" = "1" ]; then
-      echo " Enabling anti-spoof with rp_filter"
-      sysctl_set_all "net.ipv4.conf" "rp_filter" 1
-    else
-      echo " Disabling anti-spoof with rp_filter"
-      sysctl_set_all "net.ipv4.conf" "rp_filter" 0
-    fi
-
-    # Block ALL ICMP echo requests?
-    ###############################
-    if [ "$ECHO_IGNORE" = "1" ]; then
-      echo " Blocking all ICMP echo-requests"
-      sysctl -w net.ipv4.icmp_echo_ignore_all=1
-    else
-      sysctl -w net.ipv4.icmp_echo_ignore_all=0
-    fi
-
-    # Add synflood protection?
-    ##########################
-    if [ "$SYN_PROT" != 0 ]; then
-      echo " Enabling SYN-flood protection via SYN-cookies"
-      sysctl -w net.ipv4.tcp_syncookies=1
-    else
-      echo " Disabling SYN-flood protection via SYN-cookies"
-      sysctl -w net.ipv4.tcp_syncookies=0
-    fi
-
-    # Log martians?
-    ###############
-    if [ "$LOG_MARTIANS" = "1" ]; then
-      echo " Enabling the logging of martians"
-      sysctl_set_all "net.ipv4.conf" "log_martians" 1
-    else
-      echo " Disabling the logging of martians"
-      sysctl_set_all "net.ipv4.conf" "log_martians" 0
-    fi
-
-    # Accept ICMP redirect messages?
-    ################################
-    if [ "$ICMP_REDIRECT" = "1" ]; then
-      echo " Enabling the acception of ICMP-redirect messages"
-      sysctl_set_all "net.ipv4.conf" "accept_redirects" 1
-    else
-      echo " Disabling the acception of ICMP-redirect messages"
-      sysctl_set_all "net.ipv4.conf" "accept_redirects" 0
-    fi
-
-    # Time To Live (TTL) is the term for a data field in the internet protocol.
-    # TTL is today interpreted to indicate the maximum number of routers a packet may transit.
-    # Each router that handles a packet will decrement the TTL field by 1.
-    # Raise if you have a huge network.
-    # Set the default ttl. (Kernel Default: 64)
-    ###########################################################################################
-    if [ -z "$DEFAULT_TTL" ]; then
-      DEFAULT_TTL="64"
-    fi
-
-    if [ $DEFAULT_TTL -gt 9 -a $DEFAULT_TTL -lt 256 ]; then
-      echo " Setting default TTL=$DEFAULT_TTL"
-      sysctl -w net.ipv4.ip_default_ttl=$DEFAULT_TTL
-    else
-      printf "\033[40m\033[1;31m WARNING: Ingoring invalid value for DEFAULT_TTL ($DEFAULT_TTL), it should be between 10 and 255!\033[0m\n" >&2
-    fi
-
-    # Increase the default queuelength. (Kernel Default: 1024)
-    ##########################################################
-#    sysctl -w -e net.ipv4.ip_queue_maxlen=2048
-
-    # Enable ECN? (Explicit Congestion Notification)
-    ################################################
-    if [ "$ECN" = "1" ]; then
-      echo " Enabling ECN (Explicit Congestion Notification)"
-      sysctl -w net.ipv4.tcp_ecn=1
-    else
-      echo " Disabling ECN (Explicit Congestion Notification)"
-      sysctl -w net.ipv4.tcp_ecn=0
-    fi
-
-    # This enables dynamic-address hacking which makes the
-    # life with Diald and similar programs much easier.
-    ######################################################
-    if [ "$EXT_IF_DHCP_IP" = "1" ]; then
-      echo " Enabling kernel support for dynamic IPs"
-      sysctl -w net.ipv4.ip_dynaddr=1
-    else
-      sysctl -w net.ipv4.ip_dynaddr=0
-    fi
-
-    # In most cases pmtu discovery is ok, but in some rare cases (when having problems)
-    # you might want to disable it.
-    if [ "$NO_PMTU_DISCOVERY" = "1" ]; then
-      echo " Disabling PMTU discovery"
-      sysctl -w net.ipv4.ip_no_pmtu_disc=1
-    else
-      sysctl -w net.ipv4.ip_no_pmtu_disc=0
-    fi
-
-    echo " Flushing route table"
-    sysctl -w net.ipv4.route.flush=1
+  # Don't accept source routed packets.
+  # Attackers can use source routing to generate
+  # traffic pretending to be from inside your network, but which is routed back along
+  # the path from which it came, namely outside, so attackers can compromise your
+  # network. Source routing is rarely used for legitimate purposes.
+  ###################################################################################
+  if [ "$SOURCE_ROUTE_PROTECTION" = "0" ]; then
+    echo " DISABLING protection against source routed packets"
+    sysctl_set_all "net.ipv4.conf" "accept_source_route" 1
   else
-    # IPv6 is selected:
+    echo " Enabling protection against source routed packets"
+    sysctl_set_all "net.ipv4.conf" "accept_source_route" 0
+  fi
+
+  # ICMP Broadcasting protection (smurf amplifier protection)
+  ###########################################################
+  sysctl -w net.ipv4.icmp_echo_ignore_broadcasts=1
+
+  # ICMP Dead Error Messages protection
+  #####################################
+  sysctl -w net.ipv4.icmp_ignore_bogus_error_responses=1
+
+  # IP forwarding (need it to perform for example NAT)
+  ####################################################
+  if [ "$IP_FORWARDING" != "0" ]; then
+    echo " Enabling packet forwarding"
+    # sysctl -w -e net.ipv4.conf.all.forwarding=1
+    if ! sysctl -w net.ipv4.ip_forward=1; then
+      printf "\033[40m\033[1;31m WARNING: net.ipv4.ip_forward could not be set! If you're using\033[0m\n" >&2
+      printf "\033[40m\033[1;31m          NAT or any other type of forwarding this may be a problem.\033[0m\n" >&2
+    fi
+  else
+    echo " DISABLING packet forwarding"
+    # sysctl -w -e net.ipv4.conf.all.forwarding=0
+    sysctl -w -e net.ipv4.ip_forward=0 2>/dev/null
+  fi
+
+  # Enable some general settings
+  ##############################
+  echo " Setting some kernel performance options"
+  sysctl -w net.ipv4.tcp_window_scaling=1
+  sysctl -w net.ipv4.tcp_timestamps=1
+  sysctl -w net.ipv4.tcp_sack=1
+  sysctl -w net.ipv4.tcp_dsack=1
+  sysctl -w net.ipv4.tcp_fack=1
+  sysctl -w net.ipv4.tcp_low_latency=0
+
+  # Reduce DoS'ing ability by reducing timeouts
+  #############################################################
+  if [ "$REDUCE_DOS_ABILITY" = "1" ]; then
+    echo " Enabling reduction of the DoS'ing ability"
+
+    sysctl -w net.ipv4.tcp_fin_timeout=30
+    sysctl -w net.ipv4.tcp_keepalive_time=1800
+
+    # Set number of times to retry SYN in a new connection
+    sysctl -w net.ipv4.tcp_syn_retries=3
+
+    # Set number of times to retry a SYN-ACK in a half-open new connections
+    sysctl -w net.ipv4.tcp_synack_retries=2
+
+    # Enable a fix for RFC1337 - time-wait assassination hazards in TCP
+    sysctl -w net.ipv4.tcp_rfc1337=1
+  else
+    echo " Disabling reduction of the DoS'ing ability"
+
+    # Defaults:
+    sysctl -w net.ipv4.tcp_fin_timeout=60
+    sysctl -w net.ipv4.tcp_keepalive_time=7200
+    sysctl -w net.ipv4.tcp_syn_retries=5
+    sysctl -w net.ipv4.tcp_synack_retries=5
+    sysctl -w net.ipv4.tcp_rfc1337=0
+  fi
+
+  # Set out local port range. Kernel default = "1024 4999"
+  ########################################################
+  if [ -z "$LOCAL_PORT_RANGE" ]; then
+    LOCAL_PORT_RANGE="32768 61000"
+  fi
+  sysctl -w net.ipv4.ip_local_port_range="$LOCAL_PORT_RANGE"
+
+  # Now we change the LOCAL_PORT_RANGE for further use by iptables (replace space with :)
+  LOCAL_PORT_RANGE="$(echo "$LOCAL_PORT_RANGE" |tr ' ' ':')"
+
+  # Use rp_filter to drop connections from non-routable IPs
+  ######################################################################
+  if [ "$RP_FILTER" = "1" ]; then
+    echo " Enabling anti-spoof with rp_filter"
+    sysctl_set_all "net.ipv4.conf" "rp_filter" 1
+  else
+    echo " Disabling anti-spoof with rp_filter"
+    sysctl_set_all "net.ipv4.conf" "rp_filter" 0
+  fi
+
+  # Block ALL ICMP echo requests?
+  ###############################
+  if [ "$ECHO_IGNORE" = "1" ]; then
+    echo " Blocking all ICMP echo-requests"
+    sysctl -w net.ipv4.icmp_echo_ignore_all=1
+  else
+    sysctl -w net.ipv4.icmp_echo_ignore_all=0
+  fi
+
+  # Add synflood protection?
+  ##########################
+  if [ "$SYN_PROT" != 0 ]; then
+    echo " Enabling SYN-flood protection via SYN-cookies"
+    sysctl -w net.ipv4.tcp_syncookies=1
+  else
+    echo " Disabling SYN-flood protection via SYN-cookies"
+    sysctl -w net.ipv4.tcp_syncookies=0
+  fi
+
+  # Log martians?
+  ###############
+  if [ "$LOG_MARTIANS" = "1" ]; then
+    echo " Enabling the logging of martians"
+    sysctl_set_all "net.ipv4.conf" "log_martians" 1
+  else
+    echo " Disabling the logging of martians"
+    sysctl_set_all "net.ipv4.conf" "log_martians" 0
+  fi
+
+  # Accept ICMP redirect messages?
+  ################################
+  if [ "$ICMP_REDIRECT" = "1" ]; then
+    echo " Enabling the acception of ICMP-redirect messages"
+    sysctl_set_all "net.ipv4.conf" "accept_redirects" 1
+  else
+    echo " Disabling the acception of ICMP-redirect messages"
+    sysctl_set_all "net.ipv4.conf" "accept_redirects" 0
+  fi
+
+  # Time To Live (TTL) is the term for a data field in the internet protocol.
+  # TTL is today interpreted to indicate the maximum number of routers a packet may transit.
+  # Each router that handles a packet will decrement the TTL field by 1.
+  # Raise if you have a huge network.
+  # Set the default ttl. (Kernel Default: 64)
+  ###########################################################################################
+  if [ -z "$DEFAULT_TTL" ]; then
+    DEFAULT_TTL="64"
+  fi
+
+  if [ $DEFAULT_TTL -gt 9 -a $DEFAULT_TTL -lt 256 ]; then
+    echo " Setting default TTL=$DEFAULT_TTL"
+    sysctl -w net.ipv4.ip_default_ttl=$DEFAULT_TTL
+  else
+    printf "\033[40m\033[1;31m WARNING: Ingoring invalid value for DEFAULT_TTL ($DEFAULT_TTL), it should be between 10 and 255!\033[0m\n" >&2
+  fi
+
+  # Increase the default queuelength. (Kernel Default: 1024)
+  ##########################################################
+  # sysctl -w -e net.ipv4.ip_queue_maxlen=2048
+
+  # Enable ECN? (Explicit Congestion Notification)
+  ################################################
+  if [ "$ECN" = "1" ]; then
+    echo " Enabling ECN (Explicit Congestion Notification)"
+    sysctl -w net.ipv4.tcp_ecn=1
+  else
+    echo " Disabling ECN (Explicit Congestion Notification)"
+    sysctl -w net.ipv4.tcp_ecn=0
+  fi
+
+  # This enables dynamic-address hacking which makes the
+  # life with Diald and similar programs much easier.
+  ######################################################
+  if [ "$EXT_IF_DHCP_IP" = "1" ]; then
+    echo " Enabling kernel support for dynamic IPs"
+    sysctl -w net.ipv4.ip_dynaddr=1
+  else
+    sysctl -w net.ipv4.ip_dynaddr=0
+  fi
+
+  # In most cases pmtu discovery is ok, but in some rare cases (when having problems)
+  # you might want to disable it.
+  if [ "$NO_PMTU_DISCOVERY" = "1" ]; then
+    echo " Disabling PMTU discovery"
+    sysctl -w net.ipv4.ip_no_pmtu_disc=1
+  else
+    sysctl -w net.ipv4.ip_no_pmtu_disc=0
+  fi
+
+  echo " Flushing route table"
+  sysctl -w net.ipv4.route.flush=1
+
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    echo "Configuring IPv6 kernel parameters:"
 
     # Disable ICMP send_redirect
     ############################
