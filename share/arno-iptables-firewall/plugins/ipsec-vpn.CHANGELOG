@@ -1,3 +1,7 @@
+Version 0.81BETA (September 19, 2010)
+----------------------------------
+* Changed '-t nat' calls via ip4tables
+
 Version 0.80BETA (August 23, 2009)
 ----------------------------------
 + Use 'modprobe' wrapper instead of module_probe.

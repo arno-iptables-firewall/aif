@@ -1,3 +1,7 @@
+Version 1.03 (September 19, 2010)
+--------------------------------
+* Changed to be IPv4-only
+
 Version 1.02 (September 8, 2008)
 --------------------------------
 ! Fixed incorrect configuration filename
