@@ -5334,7 +5334,7 @@ case "$1" in
                         sanity_check;
                         config_check;
                         # Check whether we are actually running
-                        if ! iptables -L BASE_INPUT_CHAIN >/dev/null 2>&1; then
+                        if ! iptables -n -L BASE_INPUT_CHAIN >/dev/null 2>&1; then
                           main_start;
                         else
                           main_restart;
