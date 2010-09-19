@@ -5,7 +5,7 @@ PLUGIN_NAME="DMZ-host DNAT plugin"
 PLUGIN_VERSION="0.06BETA (EXPERIMENTAL!)"
 PLUGIN_CONF_FILE="dmz-dnat.conf"
 #
-# Last changed          : Septenber 19, 2010
+# Last changed          : September 19, 2010
 # Requirements          : kernel 2.6
 # Comments              : This plugin allows forwarding of all traffic to a
 #                         "DMZ" host.  It's only been tested with 1.9+.
