@@ -1,3 +1,7 @@
+Version 1.1 (September 20, 2010)
+------------------------------------
+* Updated for mixed IPv4/IPv6
+
 Version 0.34BETA (February 19, 2008)
 ------------------------------------
 * Minor tweak for PLUGIN_RET_VAL
