@@ -2,16 +2,17 @@
 #            -= Arno's iptables firewall - IDS-protection plugin =-
 #
 PLUGIN_NAME="IDS-protection plugin"
-PLUGIN_VERSION="1.02"
+PLUGIN_VERSION="1.1"
 PLUGIN_CONF_FILE="ids-protection.conf"
 #
-# Last changed          : July 28, 2009
+# Last changed          : September 20, 2010
 # Requirements          : kernel 2.6 + ipt_recent + AIF 1.9.1-beta1 (or better)
 # Comments              : This implements IDS protection aka Intrusion-Detection-System.
 #                         It will block remote hosts trying to eg. scan/access your
 #                         system on firewalled ports.
+#                         Updated for mixed IPv4/IPv6
 #
-# Author                : (C) Copyright 2007-2009 by Arno van Amersfoort
+# Author                : (C) Copyright 2007-2010 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
@@ -35,38 +36,47 @@ PLUGIN_CONF_FILE="ids-protection.conf"
 # Plugin start function
 plugin_start()
 {
-  # Probe module ipt_recent (Allows checking for recent packets):
-  modprobe ipt_recent
+  # Probe module xt_recent for IPv4/IPv6 or ipt_recent for IPv4:
+  # (Allows checking for recent packets)
+  if ! modprobe xt_recent 2>/dev/null; then
+    modprobe ipt_recent
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      printf "  \033[40m\033[1;31mModule 'xt_recent' not found, only protecting IPv4\033[0m\n" >&2
+    fi
+    IDS_IPT="ip4tables"
+  else
+    IDS_IPT="iptables"
+  fi
 
   # Create new IDS_LOG_DROP chain for loggin' 'n droppin':
-  iptables -N IDS_LOG_DROP 2>/dev/null
-  iptables -F IDS_LOG_DROP
+  $IDS_IPT -N IDS_LOG_DROP 2>/dev/null
+  $IDS_IPT -F IDS_LOG_DROP
 
-  iptables -A IDS_LOG_DROP -m limit --limit 1/m --limit-burst 1 -j LOG \
+  $IDS_IPT -A IDS_LOG_DROP -m limit --limit 1/m --limit-burst 1 -j LOG \
     --log-level $LOGLEVEL --log-prefix "AIF:IDS violation: "
-  iptables -A IDS_LOG_DROP -j DROP
+  $IDS_IPT -A IDS_LOG_DROP -j DROP
 
   # Create new IDS_CHK to insert IDS checker + whitelist:
-  iptables -N IDS_CHK 2>/dev/null
-  iptables -F IDS_CHK
+  $IDS_IPT -N IDS_CHK 2>/dev/null
+  $IDS_IPT -F IDS_CHK
 
   if [ -n "$IDS_TRUSTED_HOSTS" ]; then
     # Create whitelist:
     echo "  Allowing bypass of IDS protection checks for: $IDS_TRUSTED_HOSTS"
     IFS=' ,'
     for host in `ip_range "$IDS_TRUSTED_HOSTS"`; do
-      iptables -A IDS_CHK -s $host -j RETURN
+      $IDS_IPT -A IDS_CHK -s $host -j RETURN
     done
   fi
 
   # We also ignore ICMP traffic since we can not reliabily check it for IDS
-  iptables -A IDS_CHK -p icmp -j RETURN
+  $IDS_IPT -A IDS_CHK -p icmp -j RETURN
   
   if [ -n "$IDS_EXCLUDE_TCP" ]; then
     echo "  Excluding IDS check for TCP port(s): $IDS_EXCLUDE_TCP"
     IFS=' ,'
     for port in $IDS_EXCLUDE_TCP; do
-      iptables -A IDS_CHK -p tcp --dport $port -j RETURN
+      $IDS_IPT -A IDS_CHK -p tcp --dport $port -j RETURN
     done
   fi
 
@@ -74,12 +84,12 @@ plugin_start()
     echo "  Excluding IDS check for UDP port(s): $IDS_EXCLUDE_UDP"
     IFS=' ,'
     for port in $IDS_EXCLUDE_UDP; do
-      iptables -A IDS_CHK -p udp --dport $port -j RETURN
+      $IDS_IPT -A IDS_CHK -p udp --dport $port -j RETURN
     done
   fi
 
-  iptables -A IDS_CHK -m recent --set --name idschk
-  iptables -A IDS_CHK -m recent --update --name idschk
+  $IDS_IPT -A IDS_CHK -m recent --set --name idschk
+  $IDS_IPT -A IDS_CHK -m recent --update --name idschk
 
   if [ -z "$IDS_INTERFACE" ]; then
     IDS_INTERFACE="$EXT_IF"
@@ -88,11 +98,11 @@ plugin_start()
   IFS=' ,'
   for interface in $IDS_INTERFACE; do
     # Create rate1 & rate2 checker:
-    iptables -A INPUT_CHAIN -i $interface -m recent --rcheck --seconds $IDS_MAX_TIME1 --hitcount $IDS_MAX_RATE1 --name idschk -j IDS_LOG_DROP
-    iptables -A INPUT_CHAIN -i $interface -m recent --rcheck --seconds $IDS_MAX_TIME2 --hitcount $IDS_MAX_RATE2 --name idschk -j IDS_LOG_DROP
+    $IDS_IPT -A INPUT_CHAIN -i $interface -m recent --rcheck --seconds $IDS_MAX_TIME1 --hitcount $IDS_MAX_RATE1 --name idschk -j IDS_LOG_DROP
+    $IDS_IPT -A INPUT_CHAIN -i $interface -m recent --rcheck --seconds $IDS_MAX_TIME2 --hitcount $IDS_MAX_RATE2 --name idschk -j IDS_LOG_DROP
 
     # Insert rule into the POST_INPUT_CHAIN chain:
-    iptables -A POST_INPUT_DROP_CHAIN -i $interface -m state --state NEW -j IDS_CHK
+    $IDS_IPT -A POST_INPUT_DROP_CHAIN -i $interface -m state --state NEW -j IDS_CHK
   done
 
   return 0
@@ -102,10 +112,16 @@ plugin_start()
 # Plugin stop function
 plugin_stop()
 {
-  iptables -F IDS_CHK
-  iptables -X IDS_CHK 2>/dev/null
-  iptables -F IDS_LOG_DROP
-  iptables -X IDS_LOG_DROP 2>/dev/null
+  if ! modprobe xt_recent 2>/dev/null; then
+    IDS_IPT="ip4tables"
+  else
+    IDS_IPT="iptables"
+  fi
+  
+  $IDS_IPT -F IDS_CHK
+  $IDS_IPT -X IDS_CHK 2>/dev/null
+  $IDS_IPT -F IDS_LOG_DROP
+  $IDS_IPT -X IDS_LOG_DROP 2>/dev/null
 
   return 0
 }

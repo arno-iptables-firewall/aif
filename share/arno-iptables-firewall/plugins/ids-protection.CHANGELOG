@@ -1,3 +1,7 @@
+Version 1.1 (September 20, 2010)
+----------------------------
+* Updated for mixed IPv4/IPv6
+
 Version 1.02 (July 27, 2009)
 ----------------------------
 + Implemented TCP & UDP port excludes
