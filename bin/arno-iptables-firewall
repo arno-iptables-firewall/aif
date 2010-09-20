@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="1.9.2m"
+MY_VERSION="1.9.2n-DEVEL"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -103,10 +103,6 @@ sanity_check()
   if [ "$RESOLV_IPS" = "1" ]; then
     check_command_error dig nslookup
   fi
-
-  # Passed all sanity checks :-)
-  ##############################
-  echo "Sanity checks passed...OK"
 }
 
 
@@ -5317,13 +5313,13 @@ main_restart()
 
 # Check commandline supplied argument:
 case "$1" in
-  'start' )             show_start;
-                        sanity_check;
+  'start' )             sanity_check;
+                        show_start;
                         config_check;
                         main_start;
                         show_applied;;
-  'restart' )           show_restart;
-                        sanity_check;
+  'restart' )           sanity_check;
+                        show_restart;
                         config_check;
                         # Check whether we are actually running
                         if ! iptables -L BASE_INPUT_CHAIN >/dev/null 2>&1; then

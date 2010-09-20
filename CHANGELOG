@@ -1,3 +1,8 @@
+Version 1.9.2n-DEVEL (September 19, 2010)
+-----------------------------------
+* Sanity check should always be the first thing we do since we probably can't
+  write the log-file in case we're not root
+
 Version 1.9.2m (September 17, 2010)
 -----------------------------------
 ! Interface detection didn't work in some shells (eg. Dash). We always need to quote this type of stuff!
