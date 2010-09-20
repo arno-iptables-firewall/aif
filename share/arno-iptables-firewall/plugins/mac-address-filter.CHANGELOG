@@ -1,3 +1,7 @@
+Version 1.1 (September 19, 2010)
+-------------------------------
++ Updated to support mixed IPv4/IPv6
+
 Version 1.0a (March 10, 2009)
 -------------------------------
 ! Fixed incorrect IFS
