@@ -149,9 +149,9 @@ An explanation of the files in the package:
    and end at 192.168.1.50). Note that this only works for Class-C(/24) ranges,
    so specifying eg. 192.168.1.1-192.168.2.1 does NOT work!
 
-2) My firewall has (experimental) IPv6 support. I haven't been able to test it
+2) My firewall has (experimental) mixed IPv4/IPv6 support. I haven't been able to test it
    myself as I don't have the appropriate environment. You can switch from
-   IPv4 to IPv6 support by simplying making "IPV6_SUPPORT=1" in the config file.
+   IPv4-only to IPv4/IPv6 support by simplying making "IPV6_SUPPORT=1" in the config file.
 
 3) You can use the $ANYPORT and $ANYHOST macro's to specify "ALL ports" or
    "ALL hosts" in the configuration variables/rules.
