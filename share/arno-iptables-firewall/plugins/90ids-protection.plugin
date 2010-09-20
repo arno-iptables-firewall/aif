@@ -36,6 +36,8 @@ PLUGIN_CONF_FILE="ids-protection.conf"
 # Plugin start function
 plugin_start()
 {
+  local IPTABLES
+
   # Probe module xt_recent for IPv4/IPv6 or ipt_recent for IPv4:
   # (Allows checking for recent packets)
   if ! modprobe xt_recent 2>/dev/null; then
@@ -43,40 +45,40 @@ plugin_start()
     if [ "$IPV6_SUPPORT" = "1" ]; then
       printf "  \033[40m\033[1;31mModule 'xt_recent' not found, only protecting IPv4\033[0m\n" >&2
     fi
-    IDS_IPT="ip4tables"
+    IPTABLES="ip4tables"
   else
-    IDS_IPT="iptables"
+    IPTABLES="iptables"
   fi
 
   # Create new IDS_LOG_DROP chain for loggin' 'n droppin':
-  $IDS_IPT -N IDS_LOG_DROP 2>/dev/null
-  $IDS_IPT -F IDS_LOG_DROP
+  $IPTABLES -N IDS_LOG_DROP 2>/dev/null
+  $IPTABLES -F IDS_LOG_DROP
 
-  $IDS_IPT -A IDS_LOG_DROP -m limit --limit 1/m --limit-burst 1 -j LOG \
+  $IPTABLES -A IDS_LOG_DROP -m limit --limit 1/m --limit-burst 1 -j LOG \
     --log-level $LOGLEVEL --log-prefix "AIF:IDS violation: "
-  $IDS_IPT -A IDS_LOG_DROP -j DROP
+  $IPTABLES -A IDS_LOG_DROP -j DROP
 
   # Create new IDS_CHK to insert IDS checker + whitelist:
-  $IDS_IPT -N IDS_CHK 2>/dev/null
-  $IDS_IPT -F IDS_CHK
+  $IPTABLES -N IDS_CHK 2>/dev/null
+  $IPTABLES -F IDS_CHK
 
   if [ -n "$IDS_TRUSTED_HOSTS" ]; then
     # Create whitelist:
     echo "  Allowing bypass of IDS protection checks for: $IDS_TRUSTED_HOSTS"
     IFS=' ,'
     for host in `ip_range "$IDS_TRUSTED_HOSTS"`; do
-      $IDS_IPT -A IDS_CHK -s $host -j RETURN
+      $IPTABLES -A IDS_CHK -s $host -j RETURN
     done
   fi
 
   # We also ignore ICMP traffic since we can not reliabily check it for IDS
-  $IDS_IPT -A IDS_CHK -p icmp -j RETURN
+  $IPTABLES -A IDS_CHK -p icmp -j RETURN
   
   if [ -n "$IDS_EXCLUDE_TCP" ]; then
     echo "  Excluding IDS check for TCP port(s): $IDS_EXCLUDE_TCP"
     IFS=' ,'
     for port in $IDS_EXCLUDE_TCP; do
-      $IDS_IPT -A IDS_CHK -p tcp --dport $port -j RETURN
+      $IPTABLES -A IDS_CHK -p tcp --dport $port -j RETURN
     done
   fi
 
@@ -84,12 +86,12 @@ plugin_start()
     echo "  Excluding IDS check for UDP port(s): $IDS_EXCLUDE_UDP"
     IFS=' ,'
     for port in $IDS_EXCLUDE_UDP; do
-      $IDS_IPT -A IDS_CHK -p udp --dport $port -j RETURN
+      $IPTABLES -A IDS_CHK -p udp --dport $port -j RETURN
     done
   fi
 
-  $IDS_IPT -A IDS_CHK -m recent --set --name idschk
-  $IDS_IPT -A IDS_CHK -m recent --update --name idschk
+  $IPTABLES -A IDS_CHK -m recent --set --name idschk
+  $IPTABLES -A IDS_CHK -m recent --update --name idschk
 
   if [ -z "$IDS_INTERFACE" ]; then
     IDS_INTERFACE="$EXT_IF"
@@ -98,11 +100,11 @@ plugin_start()
   IFS=' ,'
   for interface in $IDS_INTERFACE; do
     # Create rate1 & rate2 checker:
-    $IDS_IPT -A INPUT_CHAIN -i $interface -m recent --rcheck --seconds $IDS_MAX_TIME1 --hitcount $IDS_MAX_RATE1 --name idschk -j IDS_LOG_DROP
-    $IDS_IPT -A INPUT_CHAIN -i $interface -m recent --rcheck --seconds $IDS_MAX_TIME2 --hitcount $IDS_MAX_RATE2 --name idschk -j IDS_LOG_DROP
+    $IPTABLES -A INPUT_CHAIN -i $interface -m recent --rcheck --seconds $IDS_MAX_TIME1 --hitcount $IDS_MAX_RATE1 --name idschk -j IDS_LOG_DROP
+    $IPTABLES -A INPUT_CHAIN -i $interface -m recent --rcheck --seconds $IDS_MAX_TIME2 --hitcount $IDS_MAX_RATE2 --name idschk -j IDS_LOG_DROP
 
     # Insert rule into the POST_INPUT_CHAIN chain:
-    $IDS_IPT -A POST_INPUT_DROP_CHAIN -i $interface -m state --state NEW -j IDS_CHK
+    $IPTABLES -A POST_INPUT_DROP_CHAIN -i $interface -m state --state NEW -j IDS_CHK
   done
 
   return 0
@@ -112,16 +114,18 @@ plugin_start()
 # Plugin stop function
 plugin_stop()
 {
+  local IPTABLES
+
   if ! modprobe xt_recent 2>/dev/null; then
-    IDS_IPT="ip4tables"
+    IPTABLES="ip4tables"
   else
-    IDS_IPT="iptables"
+    IPTABLES="iptables"
   fi
   
-  $IDS_IPT -F IDS_CHK
-  $IDS_IPT -X IDS_CHK 2>/dev/null
-  $IDS_IPT -F IDS_LOG_DROP
-  $IDS_IPT -X IDS_LOG_DROP 2>/dev/null
+  $IPTABLES -F IDS_CHK
+  $IPTABLES -X IDS_CHK 2>/dev/null
+  $IPTABLES -F IDS_LOG_DROP
+  $IPTABLES -X IDS_LOG_DROP 2>/dev/null
 
   return 0
 }

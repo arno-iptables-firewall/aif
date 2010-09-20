@@ -36,6 +36,8 @@ PLUGIN_CONF_FILE="ssh-brute-force-protection.conf"
 # Plugin start function
 plugin_start()
 {
+  local IPTABLES
+
   # Probe module xt_recent for IPv4/IPv6 or ipt_recent for IPv4:
   # (Allows checking for recent packets)
   if ! modprobe xt_recent 2>/dev/null; then
@@ -43,37 +45,37 @@ plugin_start()
     if [ "$IPV6_SUPPORT" = "1" ]; then
       printf "  \033[40m\033[1;31mModule 'xt_recent' not found, only protecting IPv4\033[0m\n" >&2
     fi
-    SSH_BFP_IPT="ip4tables"
+    IPTABLES="ip4tables"
   else
-    SSH_BFP_IPT="iptables"
+    IPTABLES="iptables"
   fi
 
   # Create new SSH_CHK to insert SSH checker + whitelist:
-  $SSH_BFP_IPT -N SSH_CHK 2>/dev/null
-  $SSH_BFP_IPT -F SSH_CHK
+  $IPTABLES -N SSH_CHK 2>/dev/null
+  $IPTABLES -F SSH_CHK
 
   # Create new SSH_LOG_DROP chain for loggin' 'n droppin':
-  $SSH_BFP_IPT -N SSH_LOG_DROP 2>/dev/null
-  $SSH_BFP_IPT -F SSH_LOG_DROP
+  $IPTABLES -N SSH_LOG_DROP 2>/dev/null
+  $IPTABLES -F SSH_LOG_DROP
 
-  $SSH_BFP_IPT -A SSH_LOG_DROP -m limit --limit 1/m --limit-burst 1 -j LOG \
+  $IPTABLES -A SSH_LOG_DROP -m limit --limit 1/m --limit-burst 1 -j LOG \
     --log-level $LOGLEVEL --log-prefix "AIF:SSH Brute force attack?: "
-  $SSH_BFP_IPT -A SSH_LOG_DROP -j DROP
+  $IPTABLES -A SSH_LOG_DROP -j DROP
 
   if [ -n "$SSH_BFP_TRUSTED_HOSTS" ]; then
     # Create whitelist:
     echo "  Allowing bypass of SSH protection checks for: $SSH_BFP_TRUSTED_HOSTS"
     IFS=' ,'
     for host in `ip_range "$SSH_BFP_TRUSTED_HOSTS"`; do
-      $SSH_BFP_IPT -A SSH_CHK -s $host -j RETURN
+      $IPTABLES -A SSH_CHK -s $host -j RETURN
     done
   fi
 
   # Create rate1 & rate2 checker:
-  $SSH_BFP_IPT -A SSH_CHK -m recent --name sshchk --set
-  $SSH_BFP_IPT -A SSH_CHK -m recent --name sshchk --update \
+  $IPTABLES -A SSH_CHK -m recent --name sshchk --set
+  $IPTABLES -A SSH_CHK -m recent --name sshchk --update \
     --seconds $SSH_BFP_MAX_TIME1 --hitcount $SSH_BFP_MAX_RATE1 -j SSH_LOG_DROP
-  $SSH_BFP_IPT -A SSH_CHK -m recent --name sshchk --update \
+  $IPTABLES -A SSH_CHK -m recent --name sshchk --update \
     --seconds $SSH_BFP_MAX_TIME2 --hitcount $SSH_BFP_MAX_RATE2 -j SSH_LOG_DROP
 
   # If no ports were not configured, use default of 22
@@ -86,7 +88,7 @@ plugin_start()
   # Insert rule into the EXTERNAL INPUT chain:
   IFS=' ,'
   for port in $SSH_BFP_PORTS; do
-    $SSH_BFP_IPT -A EXT_INPUT_CHAIN -p tcp --dport $port -m state --state NEW -j SSH_CHK
+    $IPTABLES -A EXT_INPUT_CHAIN -p tcp --dport $port -m state --state NEW -j SSH_CHK
   done
 
   return 0
@@ -96,16 +98,18 @@ plugin_start()
 # Plugin stop function
 plugin_stop()
 {
+  local IPTABLES
+
   if ! modprobe xt_recent 2>/dev/null; then
-    SSH_BFP_IPT="ip4tables"
+    IPTABLES="ip4tables"
   else
-    SSH_BFP_IPT="iptables"
+    IPTABLES="iptables"
   fi
 
-  $SSH_BFP_IPT -F SSH_CHK
-  $SSH_BFP_IPT -X SSH_CHK 2>/dev/null
-  $SSH_BFP_IPT -F SSH_LOG_DROP
-  $SSH_BFP_IPT -X SSH_LOG_DROP 2>/dev/null
+  $IPTABLES -F SSH_CHK
+  $IPTABLES -X SSH_CHK 2>/dev/null
+  $IPTABLES -F SSH_LOG_DROP
+  $IPTABLES -X SSH_LOG_DROP 2>/dev/null
 
   return 0
 }
