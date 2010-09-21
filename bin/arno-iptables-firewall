@@ -5054,7 +5054,11 @@ stop_firewall()
   ip4tables -t mangle -X
   ip4tables -t nat -F
   ip4tables -t nat -X
-  
+
+  # Attempt to flush all IPv4 chains
+  ip4tables -F
+  ip4tables -X
+
   if [ "$IPV6_DETECTED" = "1" ]; then
     # Set default IPv6 policies
     ip6tables -P INPUT ACCEPT
@@ -5069,11 +5073,11 @@ stop_firewall()
     # Flush rules in the mangle table
     ip6tables -t mangle -F
     ip6tables -t mangle -X
-  fi
 
-  # Attempt to flush all chains
-  iptables -F
-  iptables -X
+    # Attempt to flush all IPv6 chains
+    ip6tables -F
+    ip6tables -X
+  fi
 }
 
 
@@ -5142,6 +5146,10 @@ stop_block_firewall()
   ip4tables -t nat -F
   ip4tables -t nat -X
 
+  # Attempt to flush all IPv4 chains
+  ip4tables -F
+  ip4tables -X
+
   if [ "$IPV6_DETECTED" = "1" ]; then
     # Temporarely set default IPv6 policies to DROP,
     # to not even have a small window of opportunity
@@ -5158,12 +5166,12 @@ stop_block_firewall()
     # Flush mangle table rules
     ip6tables -t mangle -F
     ip6tables -t mangle -X
+
+    # Attempt to flush all IPv6 chains
+    ip6tables -F
+    ip6tables -X
   fi
 
-  # Attempt to flush all chains
-  iptables -F
-  iptables -X
-  
   # Deny traffic from our internet interfaces
   IFS=' ,'
   for interface in $EXT_IF; do
