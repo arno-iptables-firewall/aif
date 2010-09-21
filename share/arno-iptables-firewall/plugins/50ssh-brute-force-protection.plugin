@@ -5,11 +5,12 @@ PLUGIN_NAME="SSH Brute-Force Protection plugin"
 PLUGIN_VERSION="1.1"
 PLUGIN_CONF_FILE="ssh-brute-force-protection.conf"
 #
-# Last changed          : September 20, 2010
-# Requirements          : kernel 2.6 + ipt_recent
+# Last changed          : September 21, 2010
+# Requirements          : kernel 2.6 + ipt_recent or xt_recent
+#                       : AIF 1.9.2k (and later)
 # Comments              : This plugin protects port 22 (SSH) for brute force cracking by
 #                         limiting the amount of connection attempts for each source IP
-#                         in specific time slot
+#                         in specific time slot.
 #                         Updated for mixed IPv4/IPv6
 #
 # Author                : (C) Copyright 2006-2010 by Arno van Amersfoort
@@ -36,19 +37,9 @@ PLUGIN_CONF_FILE="ssh-brute-force-protection.conf"
 # Plugin start function
 plugin_start()
 {
-  local IPTABLES
-
   # Probe module xt_recent for IPv4/IPv6 or ipt_recent for IPv4:
   # (Allows checking for recent packets)
-  if ! modprobe xt_recent 2>/dev/null; then
-    modprobe ipt_recent
-    if [ "$IPV6_SUPPORT" = "1" ]; then
-      printf "  \033[40m\033[1;31mModule 'xt_recent' not found, only protecting IPv4\033[0m\n" >&2
-    fi
-    IPTABLES="ip4tables"
-  else
-    IPTABLES="iptables"
-  fi
+  modprobe_multi xt_recent ipt_recent
 
   # Create new SSH_CHK to insert SSH checker + whitelist:
   $IPTABLES -N SSH_CHK 2>/dev/null
@@ -98,14 +89,6 @@ plugin_start()
 # Plugin stop function
 plugin_stop()
 {
-  local IPTABLES
-
-  if ! modprobe xt_recent 2>/dev/null; then
-    IPTABLES="ip4tables"
-  else
-    IPTABLES="iptables"
-  fi
-
   $IPTABLES -F SSH_CHK
   $IPTABLES -X SSH_CHK 2>/dev/null
   $IPTABLES -F SSH_LOG_DROP
@@ -159,6 +142,15 @@ else
     # Show who we are:
     echo " $PLUGIN_NAME v$PLUGIN_VERSION"
 
+    if [ "$SSH_BFP_IPV6_ENABLE" = "0" ]; then
+      IPTABLES="ip4tables"
+      if [ "$IPV6_SUPPORT" = "1" ]; then
+        echo "  SSH BFP - Only IPv4 is protected."
+      fi
+    else
+      IPTABLES="iptables"
+    fi
+
     # Only proceed if environment ok
     if plugin_sanity_check; then
       case $PLUGIN_CMD in
@@ -168,6 +160,7 @@ else
         *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m  ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
       esac
     fi
+    unset IPTABLES
   else
     PLUGIN_RET_VAL=0
   fi
