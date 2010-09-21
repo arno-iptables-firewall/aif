@@ -663,10 +663,10 @@ init_firewall_chains()
   # Set INDENT for functions
   INDENT='  '
 
-  # Attempt to flush all chains
-  #############################
-  iptables -F
-  iptables -X
+  # Attempt to flush all IPv4 chains
+  ##################################
+  ip4tables -F
+  ip4tables -X
 
   # Flush builtin IPv4 chains
   ###########################
@@ -682,6 +682,11 @@ init_firewall_chains()
   ip4tables -t mangle -X
   
   if [ "$IPV6_DETECTED" = "1" ]; then
+    # Attempt to flush all IPv6 chains
+    ##################################
+    ip6tables -F
+    ip6tables -X
+
     # Flush builtin IPv6 chains
     ###########################
     ip6tables -F INPUT
