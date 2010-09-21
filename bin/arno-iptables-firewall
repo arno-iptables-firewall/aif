@@ -763,18 +763,20 @@ setup_default_policies()
   if [ "$IPV6_SUPPORT" = "1" ]; then
     echo "IPv4/IPv6 mixed mode selected"
   elif [ "$IPV6_DETECTED" = "1" ]; then
-    echo "IPv4 mode selected but IPv6 available, setting simple default policy for IPv6"
+    echo "IPv4 mode selected but IPv6 available, DROP all IPv6 traffic"
     ip6tables -P INPUT DROP
     ip6tables -P FORWARD DROP
-    ip6tables -P OUTPUT ACCEPT
+    ip6tables -P OUTPUT DROP
 
+    # Allow IPv6 traffic from the loopback (localhost)
     ip6tables -A INPUT -i lo -j ACCEPT
     ip6tables -A FORWARD -i lo -j ACCEPT
+    ip6tables -A OUTPUT -o lo -j ACCEPT
 
-    IFS=' ,'
-    for interface in $INT_IF $TRUSTED_IF; do
-      ip6tables -A INPUT -i $interface -j ACCEPT
-    done
+    # DROP all IPv6 traffic
+    ip6tables -A INPUT -j DROP
+    ip6tables -A FORWARD -j DROP
+    ip6tables -A OUTPUT -j DROP
   else
     echo "IPv4 mode selected, no IPv6 available"
   fi
