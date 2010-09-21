@@ -154,7 +154,7 @@ setup_conf_file()
         done
       
         if [ -n "$EXTERNAL_NET" ]; then
-          echo "* Auto-detected external net(s): $EXTERNAL_NET"
+          echo "* Auto-detected external IPv4 net(s): $EXTERNAL_NET"
           change_conf_var "$FIREWALL_CONF" "EXTERNAL_NET" "$EXTERNAL_NET"
 
           if get_user_yn "Do you want to allow full access for your external subnet (Y/N)?" "n"; then
@@ -165,7 +165,7 @@ setup_conf_file()
         fi
         
         if [ -n "$EXT_NET_BCAST_ADDRESS" ]; then
-          echo "* Auto-detected external broadcast address(es): $EXT_NET_BCAST_ADDRESS"
+          echo "* Auto-detected external IPv4 broadcast address(es): $EXT_NET_BCAST_ADDRESS"
           change_conf_var "$FIREWALL_CONF" "EXT_NET_BCAST_ADDRESS" "$EXT_NET_BCAST_ADDRESS"
         fi
       fi
@@ -219,12 +219,12 @@ setup_conf_file()
           done
         
           if [ -n "$INTERNAL_NET" ]; then
-            echo "* Auto-detected internal net(s): $INTERNAL_NET"
+            echo "* Auto-detected internal IPv4 net(s): $INTERNAL_NET"
             change_conf_var "$FIREWALL_CONF" "INTERNAL_NET" "$INTERNAL_NET"
           fi
 
           if [ -n "$INT_NET_BCAST_ADDRESS" ]; then
-            echo "* Auto-detected external broadcast address(es): $INT_NET_BCAST_ADDRESS"
+            echo "* Auto-detected external IPv4 broadcast address(es): $INT_NET_BCAST_ADDRESS"
             change_conf_var "$FIREWALL_CONF" "INT_NET_BCAST_ADDRESS" "$INT_NET_BCAST_ADDRESS"
           fi
           
