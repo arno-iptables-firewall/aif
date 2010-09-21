@@ -43,7 +43,7 @@ for LINE in `cat "$LOG_FILE" |sort -n --key=3 --reverse`; do
   size="$(echo "$LINE" |cut -s -d' ' -f3)"
 
 
-  if [ "$hostname" = "0/0" ] || [ "$hostname" = "0.0.0.0/0" ]; then
+  if [ "$hostname" = "0/0" -o "$hostname" = "0.0.0.0/0" -o "$hostname" = "::/0" ]; then
     hostname="Other traffic"
   fi
 
@@ -64,7 +64,7 @@ for LINE in `cat "$LOG_FILE" |sort -n --key=4 --reverse`; do
   ip="$(echo "$LINE" |cut -s -d' ' -f2)"
   size="$(echo "$LINE" |cut -s -d' ' -f4)"
 
-  if [ "$hostname" = "0/0" ] || [ "$hostname" = "0.0.0.0/0" ]; then
+  if [ "$hostname" = "0/0" -o "$hostname" = "0.0.0.0/0" -o "$hostname" = "::/0" ]; then
     hostname="Other traffic"
   fi
 

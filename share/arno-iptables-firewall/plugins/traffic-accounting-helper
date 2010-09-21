@@ -197,9 +197,14 @@ traffic_accounting_setup_rules()
     echo "-------------------------"
   fi
   
+  # Also include default unicast route addresses, (0.0.0.0/0 and ::/0)
+  DEFAULT_ADDR="0.0.0.0/0"
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    DEFAULT_ADDR="$DEFAULT_ADDR ::/0"
+  fi
+
   IFS=' ,'
-  # Also add catch all rule (0.0.0.0/0)
-  for host in $TRAFFIC_ACCOUNTING_HOSTS 0.0.0.0/0; do
+  for host in $TRAFFIC_ACCOUNTING_HOSTS $DEFAULT_ADDR; do
     if [ "$VERBOSE" = "1" ]; then
       printf "Host=$host "
     fi
@@ -236,23 +241,49 @@ traffic_accounting_setup_rules()
     # Process input chain
     OLDFOUND=0
     if [ -n "$old_ip" ]; then
-      LCOUNT=0
-      IFS=$EOL
-      for LINE in `iptables -xnvL ACCOUNTING_INPUT_CHAIN |sed -e "1,2d"`; do
-        ipt_ip="$(echo "$LINE" |awk '{ print $8 }')"
+      get_numeric_ip_version "$new_ip"
+      case $? in
+      4)
+        LCOUNT=0
+        IFS=$EOL
+        for LINE in `ip4tables -xnvL ACCOUNTING_INPUT_CHAIN |sed -e "1,2d"`; do
+          ipt_ip="$(echo "$LINE" |awk '{ print $8 }')"
 
-        LCOUNT=$(($LCOUNT + 1))
-        if [ "$ipt_ip" = "$old_ip" ]; then
-          iptables -R ACCOUNTING_INPUT_CHAIN $LCOUNT -s $new_ip -j RETURN
-          if [ "$VERBOSE" = "1" ]; then
-            printf "in_action=update "
+          LCOUNT=$(($LCOUNT + 1))
+          if [ "$ipt_ip" = "$old_ip" ]; then
+            ip4tables -R ACCOUNTING_INPUT_CHAIN $LCOUNT -s $new_ip -j RETURN
+            if [ "$VERBOSE" = "1" ]; then
+              printf "in_action=update "
+            fi
+            OLDFOUND=1
+            ipt_in_value="$(echo "$LINE" |awk '{ print $2 }')"
+
+            break
           fi
-          OLDFOUND=1
-          ipt_in_value="$(echo "$LINE" |awk '{ print $2 }')"
+        done
+        ;;
+      6)
+        if [ "$IPV6_SUPPORT" = "1" ]; then
+          LCOUNT=0
+          IFS=$EOL
+          for LINE in `ip6tables -xnvL ACCOUNTING_INPUT_CHAIN |sed -e "1,2d"`; do
+            ipt_ip="$(echo "$LINE" |awk '{ print $7 }')"
 
-          break
+            LCOUNT=$(($LCOUNT + 1))
+            if [ "$ipt_ip" = "$old_ip" ]; then
+              ip6tables -R ACCOUNTING_INPUT_CHAIN $LCOUNT -s $new_ip -j RETURN
+              if [ "$VERBOSE" = "1" ]; then
+                printf "in_action=update "
+              fi
+              OLDFOUND=1
+              ipt_in_value="$(echo "$LINE" |awk '{ print $2 }')"
+
+              break
+            fi
+          done
         fi
-      done
+        ;;
+      esac
     fi
 
     if [ "$OLDFOUND" = "0" ]; then
@@ -260,8 +291,8 @@ traffic_accounting_setup_rules()
         printf "in_action=add "
       fi
       
-      if [ "$new_ip" = "0.0.0.0/0" ]; then
-        iptables -A ACCOUNTING_INPUT_CHAIN -s 0.0.0.0/0 -j RETURN
+      if [ "$new_ip" = "0.0.0.0/0" -o "$new_ip" = "::/0" ]; then
+        iptables -A ACCOUNTING_INPUT_CHAIN -s $new_ip -j RETURN
       else
         iptables -I ACCOUNTING_INPUT_CHAIN 1 -s $new_ip -j RETURN
       fi
@@ -273,23 +304,49 @@ traffic_accounting_setup_rules()
     # Process output chain
     OLDFOUND=0
     if [ -n "$old_ip" ]; then
-      LCOUNT=0
-      IFS=$EOL
-      for LINE in `iptables -xnvL ACCOUNTING_OUTPUT_CHAIN |sed -e "1,2d"`; do
-        ipt_ip="$(echo "$LINE" |awk '{ print $9 }')"
+      get_numeric_ip_version "$new_ip"
+      case $? in
+      4)
+        LCOUNT=0
+        IFS=$EOL
+        for LINE in `ip4tables -xnvL ACCOUNTING_OUTPUT_CHAIN |sed -e "1,2d"`; do
+          ipt_ip="$(echo "$LINE" |awk '{ print $9 }')"
 
-        LCOUNT=$(($LCOUNT + 1))
-        if [ "$ipt_ip" = "$old_ip" ]; then
-          iptables -R ACCOUNTING_OUTPUT_CHAIN $LCOUNT -d $new_ip -j RETURN
-          if [ "$VERBOSE" = "1" ]; then
-            printf "out_action=update "
+          LCOUNT=$(($LCOUNT + 1))
+          if [ "$ipt_ip" = "$old_ip" ]; then
+            ip4tables -R ACCOUNTING_OUTPUT_CHAIN $LCOUNT -d $new_ip -j RETURN
+            if [ "$VERBOSE" = "1" ]; then
+              printf "out_action=update "
+            fi
+            OLDFOUND=1
+            ipt_out_value="$(echo "$LINE" |awk '{ print $2 }')"
+
+            break
           fi
-          OLDFOUND=1
-          ipt_out_value="$(echo "$LINE" |awk '{ print $2 }')"
+        done
+        ;;
+      6)
+        if [ "$IPV6_SUPPORT" = "1" ]; then
+          LCOUNT=0
+          IFS=$EOL
+          for LINE in `ip6tables -xnvL ACCOUNTING_OUTPUT_CHAIN |sed -e "1,2d"`; do
+            ipt_ip="$(echo "$LINE" |awk '{ print $8 }')"
 
-          break
+            LCOUNT=$(($LCOUNT + 1))
+            if [ "$ipt_ip" = "$old_ip" ]; then
+              ip6tables -R ACCOUNTING_OUTPUT_CHAIN $LCOUNT -d $new_ip -j RETURN
+              if [ "$VERBOSE" = "1" ]; then
+                printf "out_action=update "
+              fi
+              OLDFOUND=1
+              ipt_out_value="$(echo "$LINE" |awk '{ print $2 }')"
+
+              break
+            fi
+          done
         fi
-      done
+        ;;
+      esac
     fi
 
     if [ "$OLDFOUND" = "0" ]; then
@@ -297,8 +354,8 @@ traffic_accounting_setup_rules()
         printf "out_action=add "
       fi
 
-      if [ "$new_ip" = "0.0.0.0/0" ]; then
-        iptables -A ACCOUNTING_OUTPUT_CHAIN -d 0.0.0.0/0 -j RETURN
+      if [ "$new_ip" = "0.0.0.0/0" -o "$new_ip" = "::/0" ]; then
+        iptables -A ACCOUNTING_OUTPUT_CHAIN -d $new_ip -j RETURN
       else
         iptables -I ACCOUNTING_OUTPUT_CHAIN 1 -d $new_ip -j RETURN
       fi
