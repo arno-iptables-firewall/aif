@@ -2596,13 +2596,13 @@ setup_ext_input_chain()
     IFS=' ,'
     for net in $EXTERNAL_NET; do
       # Allow this host to be a DHCP/BOOTP-server:
-      iptables -A EXT_INPUT_CHAIN -d 255.255.255.255 -p udp --dport 67 -j ACCEPT
-      iptables -A EXT_INPUT_CHAIN -s $net -p udp --dport 67 -j ACCEPT
-#      iptables -A EXT_INPUT_CHAIN -d 255.255.255.255 -p udp --sport 68 --dport 67 -j ACCEPT
-#      iptables -A EXT_INPUT_CHAIN -s $net -p udp --sport 68 --dport 67 -j ACCEPT
+      ip4tables -A EXT_INPUT_CHAIN -d 255.255.255.255 -p udp --dport 67 -j ACCEPT
+      ip4tables -A EXT_INPUT_CHAIN -s $net -p udp --dport 67 -j ACCEPT
+#      ip4tables -A EXT_INPUT_CHAIN -d 255.255.255.255 -p udp --sport 68 --dport 67 -j ACCEPT
+#      ip4tables -A EXT_INPUT_CHAIN -s $net -p udp --sport 68 --dport 67 -j ACCEPT
 
       # Extra rules to allow packets from other dhcp servers in the same segment
-      iptables -A EXT_INPUT_CHAIN -s $net -d 255.255.255.255 -p udp --sport 67 --dport 68 -j ACCEPT
+      ip4tables -A EXT_INPUT_CHAIN -s $net -d 255.255.255.255 -p udp --sport 67 --dport 68 -j ACCEPT
     done
   fi
 
@@ -2612,7 +2612,7 @@ setup_ext_input_chain()
     echo " Enabling support for NMB-broadcasts(Samba) for subnet(s): $EXTERNAL_NET"
     IFS=' ,'
     for net in $EXTERNAL_NET; do
-      iptables -A EXT_INPUT_CHAIN -s $net -p udp --sport 137 --dport "$LOCAL_PORT_RANGE" -j ACCEPT
+      ip4tables -A EXT_INPUT_CHAIN -s $net -p udp --sport 137 --dport "$LOCAL_PORT_RANGE" -j ACCEPT
     done
   fi
 
