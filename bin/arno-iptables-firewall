@@ -5342,8 +5342,8 @@ case "$1" in
   'restart' )           sanity_check;
                         show_restart;
                         config_check;
-                        # Check whether we are actually running
-                        if ! iptables -n -L BASE_INPUT_CHAIN >/dev/null 2>&1; then
+                        # Check whether we are actually running, check for IPv4 chains
+                        if ! ip4tables -n -L BASE_INPUT_CHAIN >/dev/null 2>&1; then
                           main_start;
                         else
                           main_restart;
