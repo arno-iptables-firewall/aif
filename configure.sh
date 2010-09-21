@@ -159,6 +159,8 @@ setup_conf_file()
 
           if get_user_yn "Do you want to allow full access for your external subnet (Y/N)?" "n"; then
             change_conf_var "$FIREWALL_CONF" "FULL_ACCESS_HOSTS" '\$EXTERNAL_NET'
+          else
+            change_conf_var "$FIREWALL_CONF" "FULL_ACCESS_HOSTS" ''
           fi
         fi
         
@@ -174,18 +176,30 @@ setup_conf_file()
   
   if get_user_yn "Does your external interface get its IP through DHCP (Y/N)?" "n"; then
     change_conf_var "$FIREWALL_CONF" "EXT_IF_DHCP_IP" "1"
+  else
+    change_conf_var "$FIREWALL_CONF" "EXT_IF_DHCP_IP" "0"
   fi
 
-  if get_user_yn "Do you want to be pingable from the internet (Y/N)?" "n"; then
-    change_conf_var "$FIREWALL_CONF" "OPEN_ICMP" "1"
+  if get_user_yn "Do you want to enable IPv6 support (Y/N)?" "y"; then
+    change_conf_var "$FIREWALL_CONF" "IPV6_SUPPORT" "1"
+  else
+    change_conf_var "$FIREWALL_CONF" "IPV6_SUPPORT" "0"
   fi
-
-  get_conf_var "Which TCP ports do you want to allow from the internet? (eg. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_TCP" ""
-  get_conf_var "Which UDP ports do you want to allow from the internet? (eg. 53=DNS, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_UDP" ""
-
+  
   if get_user_yn "Does this machine run an DHCP server for hosts connected to the external interface (Y/N)?" "n"; then
     change_conf_var "$FIREWALL_CONF" "EXTERNAL_DHCP_SERVER" "1"
+  else
+    change_conf_var "$FIREWALL_CONF" "EXTERNAL_DHCP_SERVER" "0"
   fi
+  
+  if get_user_yn "Do you want to be pingable from the internet (Y/N)?" "n"; then
+    change_conf_var "$FIREWALL_CONF" "OPEN_ICMP" "1"
+  else
+    change_conf_var "$FIREWALL_CONF" "OPEN_ICMP" "0"
+  fi
+  
+  get_conf_var "Which TCP ports do you want to allow from the internet? (eg. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_TCP" ""
+  get_conf_var "Which UDP ports do you want to allow from the internet? (eg. 53=DNS, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_UDP" ""
 
   if get_user_yn "Do you have an internal(aka LAN) interface that you want to setup (Y/N)?" "n"; then
     while true; do
@@ -218,6 +232,8 @@ setup_conf_file()
             if get_user_yn "Do you want to enable NAT/masquerading for your internal subnet (Y/N)?" "n"; then
               change_conf_var "$FIREWALL_CONF" "NAT" "1"
               change_conf_var "$FIREWALL_CONF" "NAT_INTERNAL_NET" '\$INTERNAL_NET'
+            else
+              change_conf_var "$FIREWALL_CONF" "NAT" "0"
             fi
           fi
         fi
@@ -255,6 +271,8 @@ fi
 
 if get_user_yn "Do you want the init script to be verbose (print out what it's doing) (Y/N)?" "n"; then
   change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "1"
+else
+  change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "0"
 fi
 
 if diff ./etc/arno-iptables-firewall/firewall.conf "$FIREWALL_CONF" >/dev/null; then

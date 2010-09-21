@@ -1,5 +1,6 @@
 Version 1.9.9 (September 19, 2010)
 ----------------------------------
++ Added option to the configure script to enable/disable IPv6 + several tweaks
 * Sanity check should always be the first thing we do since we probably can't
   write the log-file in case we're not root
 + Automatically disable IPV6_SUPPORT if IPv6 is not detected in the kernel
