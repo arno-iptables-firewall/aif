@@ -972,42 +972,63 @@ setup_reserved_net_chk_chain()
 {
   # Log access from reserved addresses
   ####################################
-  if [ "$RESERVED_NET_LOG" != "0" ]; then
+  if [ "$RESERVED_NET_LOG" = "1" ]; then
     echo "Logging of access from reserved addresses enabled"
     ip4tables -A RESERVED_NET_CHK -s 10.0.0.0/8 \
-      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class A address: "
+      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv4 Private address: "
 
     ip4tables -A RESERVED_NET_CHK -s 172.16.0.0/12 \
-      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class B address: "
+      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv4 Private address: "
 
     ip4tables -A RESERVED_NET_CHK -s 192.168.0.0/16 \
-      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class C address: "
+      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv4 Private address: "
 
     ip4tables -A RESERVED_NET_CHK -s 169.254.0.0/16 \
-      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Class M$ address: "
+      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv4 Link-local address: "
     
     ip4tables -A RESERVED_NET_CHK -s 224.0.0.0/24 \
-      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Multicast address: "
+      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv4 Multicast address: "
     
     ip4tables -A RESERVED_NET_CHK -s 239.0.0.0/24 \
-      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Multicast address: "
+      -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv4 Multicast address: "
+
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      # IPv6 fc00::/7 is Unique Local Unicast, pseudo-routable, don't LOG or DROP
+      ip6tables -A RESERVED_NET_CHK -s fc00::/7 -j RETURN
+
+      # IPv6 fe80::/64 is Link Local Unicast, non-routable
+      ip6tables -A RESERVED_NET_CHK -s fe80::/64 \
+        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv6 Link-local address: "
+
+      # IPv6 2000::/3 is Global Unicast, routable, LOG all others
+      ip6tables -A RESERVED_NET_CHK ! -s 2000::/3 \
+        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv6 non-Global address: "
+    fi
   else
-    echo "Logging of access from reserved IPv4 addresses disabled"
+    echo "Logging of access from reserved addresses disabled"
   fi
 
-  # rp_filter drops some of these addresses, but just to be sure :)
-  ################################################################
-  #echo "Denying access from reserved addresses..."
-  ip4tables -A RESERVED_NET_CHK -s 10.0.0.0/8 -j POST_INPUT_DROP_CHAIN
-  ip4tables -A RESERVED_NET_CHK -s 172.16.0.0/12 -j POST_INPUT_DROP_CHAIN
-  ip4tables -A RESERVED_NET_CHK -s 192.168.0.0/16 -j POST_INPUT_DROP_CHAIN
-  ip4tables -A RESERVED_NET_CHK -s 169.254.0.0/16 -j POST_INPUT_DROP_CHAIN
-  ip4tables -A RESERVED_NET_CHK -s 224.0.0.0/24 -j POST_INPUT_DROP_CHAIN
-  ip4tables -A RESERVED_NET_CHK -s 239.0.0.0/24 -j POST_INPUT_DROP_CHAIN
+  if [ "$DROP_PRIVATE_ADDRESSES" = "1" ]; then
+    # rp_filter drops some of these addresses, but just to be sure :)
+    ################################################################
+    #echo "Denying access from reserved addresses..."
+    ip4tables -A RESERVED_NET_CHK -s 10.0.0.0/8 -j POST_INPUT_DROP_CHAIN
+    ip4tables -A RESERVED_NET_CHK -s 172.16.0.0/12 -j POST_INPUT_DROP_CHAIN
+    ip4tables -A RESERVED_NET_CHK -s 192.168.0.0/16 -j POST_INPUT_DROP_CHAIN
+    ip4tables -A RESERVED_NET_CHK -s 169.254.0.0/16 -j POST_INPUT_DROP_CHAIN
+    ip4tables -A RESERVED_NET_CHK -s 224.0.0.0/24 -j POST_INPUT_DROP_CHAIN
+    ip4tables -A RESERVED_NET_CHK -s 239.0.0.0/24 -j POST_INPUT_DROP_CHAIN
 
-  if [ "$IPV6_SUPPORT" = "1" ]; then
-    # Currently only 2000::/3 are unicast/internet routable for IPv6 (correct me if I am wrong)
-    ip6tables -A RESERVED_NET_CHK ! -s 2000::/3 -j POST_INPUT_DROP_CHAIN
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      # IPv6 fc00::/7 is Unique Local Unicast, pseudo-routable, don't DROP
+      ip6tables -A RESERVED_NET_CHK -s fc00::/7 -j RETURN
+
+      # IPv6 fe80::/64 is Link Local Unicast, non-routable
+      ip6tables -A RESERVED_NET_CHK -s fe80::/64 -j POST_INPUT_DROP_CHAIN
+
+      # IPv6 2000::/3 is Global Unicast, routable, DROP all others
+      ip6tables -A RESERVED_NET_CHK ! -s 2000::/3 -j POST_INPUT_DROP_CHAIN
+    fi
   fi
 }
 
@@ -3223,9 +3244,11 @@ setup_ext_input_chain()
   #################################
   if [ "$DROP_PRIVATE_ADDRESSES" = "1" ]; then
     echo " Packets will be checked for private source addresses"
-    iptables -A EXT_INPUT_CHAIN -j RESERVED_NET_CHK
   else
     echo " Packets will NOT be checked for private source addresses"
+  fi
+  if [ "$DROP_PRIVATE_ADDRESSES" = "1" -o "$RESERVED_NET_LOG" = "1" ]; then
+    iptables -A EXT_INPUT_CHAIN -j RESERVED_NET_CHK
   fi
 
   # Do NOT allow DRDOS abuse (Distributed Reflection Denial Of Service attack)
@@ -4661,7 +4684,7 @@ setup_firewall_rules()
 
   # Check if incoming packet sources are (in)valid
   ################################################
-  if [ "$DROP_PRIVATE_ADDRESSES" != "0" ]; then
+  if [ "$DROP_PRIVATE_ADDRESSES" = "1" -o "$RESERVED_NET_LOG" = "1" ]; then
     iptables -A EXT_FORWARD_IN_CHAIN -j RESERVED_NET_CHK
   fi
 

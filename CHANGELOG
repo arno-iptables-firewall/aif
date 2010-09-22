@@ -1,5 +1,7 @@
-Version 1.9.9 (September 19, 2010)
+Version 1.9.9 (September 22, 2010)
 ----------------------------------
++ Added IPv6 reserved network support, label logs by IPv4 and IPv6
+! Fixed RESERVED_NET_LOG is now independant from DROP_PRIVATE_ADDRESSES
 + Added option to the configure script to enable/disable IPv6 + several tweaks
 * Sanity check should always be the first thing we do since we probably can't
   write the log-file in case we're not root
