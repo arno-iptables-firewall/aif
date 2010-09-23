@@ -5391,8 +5391,7 @@ case "$1" in
                         show_stop_blocked;;
   'status' )            shift;
                         show_status $@;;
-  'check-conf' )        sanity_check;
-                        config_check;;
+  'check-conf' )        config_check;;
   * )                   printf "\033[40m\033[1;31mERROR: Bad or missing parameter(s)\033[0m\n" >&2;
                         show_help;;
 esac
