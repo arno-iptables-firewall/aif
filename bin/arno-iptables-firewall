@@ -3482,7 +3482,7 @@ setup_ext_input_chain()
   #####################################################
   if [ "$NAT_LOCAL_REDIRECT" = "1" ]; then
     echo " Enabling support for NAT local redirect"
-    iptables -A EXT_INPUT_CHAIN -m conntrack --ctstate DNAT -j ACCEPT
+    ip4tables -A EXT_INPUT_CHAIN -m conntrack --ctstate DNAT -j ACCEPT
   fi
 
   # Finally drop all in the broadcast chain
