@@ -342,9 +342,8 @@ echo "**       /etc/arno-iptables-firewall/firewall.conf!                       
 echo "-------------------------------------------------------------------------------"
 echo ""
 
-if get_user_yn "Start firewall (Y/N)?"; then
-  /usr/local/sbin/arno-iptables-firewall stop 2>/dev/null
-  /usr/local/sbin/arno-iptables-firewall start
+if get_user_yn "(Re)start firewall (Y/N)?"; then
+  /usr/local/sbin/arno-iptables-firewall restart
 fi
 
 exit 0
