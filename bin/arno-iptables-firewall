@@ -3327,13 +3327,27 @@ setup_ext_input_chain()
     done
   done
 
-  # Allow world to send ICMP packets?
-  ###################################
+  # Allow world to send IPv4 ICMP packets?
+  ########################################
   if [ "$OPEN_ICMP" = "1" ]; then
-    echo " Allowing ANYHOST to send ICMP-requests(ping)"
-    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+    echo " Allowing ANYHOST to send IPv4 ICMP-requests (ping)"
+    ip4tables -A EXT_INPUT_CHAIN -p icmp --icmp-type echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
   else
-    echo " Denying ANYHOST to send ICMP-requests(ping)"
+    echo " Denying ANYHOST to send IPv4 ICMP-requests (ping)"
+  fi
+
+  # Allow world to send IPv6 ICMPv6 packets?
+  ##########################################
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    if [ "$OPEN_ICMPV6" != "0" ]; then
+      echo " Allowing ANYHOST to send IPv6 ICMPv6-requests"
+      ip6tables -A EXT_INPUT_CHAIN -p icmpv6 --icmpv6-type echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+      for icmpv6_type in 1 2 3 4 133 134 135 136; do
+        ip6tables -A EXT_INPUT_CHAIN -p icmpv6 --icmpv6-type $icmpv6_type -j ACCEPT
+      done
+    else
+      echo " Denying ANYHOST to send IPv6 ICMPv6-requests"
+    fi
   fi
 
   # Log incoming ICMP-request packets
