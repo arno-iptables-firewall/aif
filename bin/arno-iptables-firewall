@@ -3354,43 +3354,8 @@ setup_ext_input_chain()
     fi
   fi
 
-  # Log incoming ICMP-request packets
-  ###################################
-  if [ "$ICMP_REQUEST_LOG" != "0" ]; then
-    echo " Logging of dropped ICMP-request(ping) packets enabled"
-    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type echo-request \
-      -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
-  else
-    echo " Logging of dropped ICMP-request(ping) packets disabled"
-  fi
-  #FIXME:
-  if [ "$ICMP_OTHER_LOG" != "0" ]; then
-    echo " Logging of dropped other ICMP packets enabled"
-
-    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type destination-unreachable \
-      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-unreachable: "
-
-    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type time-exceeded \
-      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-time-exceeded: "
-
-    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type parameter-problem \
-      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-param.-problem: "
-
-#    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type source-quench \
-#      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-source-quench: "
-
-    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type destination-unreachable -j POST_INPUT_DROP_CHAIN
-    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type time-exceeded -j POST_INPUT_DROP_CHAIN
-    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type parameter-problem -j POST_INPUT_DROP_CHAIN
-    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type echo-request -j POST_INPUT_DROP_CHAIN
-    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type echo-reply -j POST_INPUT_DROP_CHAIN
-
-  else
-    echo " Logging of dropped other ICMP packets disabled"
-  fi
-
   # Logging of possible stealth scans
-  ##########################
+  ###################################
   if [ "$POSSIBLE_SCAN_LOG" = "1" ]; then
     echo " Logging of possible stealth scans enabled"
     if [ "$UNPRIV_TCP_LOG" != "0" ]; then
@@ -3509,6 +3474,24 @@ setup_ext_input_chain()
   # Jump into the POST_INPUT_CHAIN before we start to DROP
   iptables -A EXT_INPUT_CHAIN -j POST_INPUT_CHAIN
   
+  if [ "$ICMP_REQUEST_LOG" != "0" ]; then
+    echo " Logging of dropped ICMP-request(ping) packets enabled"
+    iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type echo-request \
+      -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
+  else
+    echo " Logging of dropped ICMP-request(ping) packets disabled"
+  fi
+  
+  iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type echo-request -j POST_INPUT_DROP_CHAIN
+
+  if [ "$ICMP_OTHER_LOG" != "0" ]; then
+    echo " Logging of dropped other ICMP packets enabled"
+    iptables -A EXT_INPUT_CHAIN -p icmp \
+      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-other: "
+  else
+    echo " Logging of dropped other ICMP packets disabled"
+  fi
+
   # Drop all "standard" IP protocols
   ##################################
   iptables -A EXT_INPUT_CHAIN -p tcp -j POST_INPUT_DROP_CHAIN
