@@ -947,7 +947,11 @@ setup_valid_chk_chain()
 
   # Drop invalid packets
   ######################
-  iptables -A VALID_CHK -m state --state INVALID -j POST_INPUT_DROP_CHAIN
+  ip4tables -A VALID_CHK -m state --state INVALID -j POST_INPUT_DROP_CHAIN
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    # We must not drop INVALID icmpv6 packets since CONNTRACK only handles a few icmpv6 types
+    ip6tables -A VALID_CHK ! -p icmpv6 -m state --state INVALID -j POST_INPUT_DROP_CHAIN
+  fi
 
   # Fragmentation cannot happen with IPV6 (and maybe even not with iptables/ipv4?)
   ## Log fragmented packets
@@ -4584,11 +4588,21 @@ setup_firewall_rules()
     iptables -A INPUT -i $interface ! -p icmp -m state --state NEW -j EXT_INPUT_CHAIN
 
     # ICMP traffic (rate limited):
-    iptables -A INPUT -i $interface -p icmp -m state --state NEW \
+    ip4tables -A INPUT -i $interface -p icmp -m state --state NEW \
       -m limit --limit 60/second --limit-burst 100 -j EXT_INPUT_CHAIN
 
     # ICMP traffic (flood)
-    iptables -A INPUT -i $interface -p icmp -m state --state NEW -j EXT_ICMP_FLOOD_CHAIN
+    ip4tables -A INPUT -i $interface -p icmp -m state --state NEW -j EXT_ICMP_FLOOD_CHAIN
+
+    if [ "$IPV6_DETECTED" = "1" ]; then
+      # We must process INVALID icmpv6 packets since CONNTRACK only handles a few icmpv6 types
+      # ICMPv6 traffic (rate limited):
+      ip6tables -A INPUT -i $interface -p icmpv6 -m state --state NEW,INVALID \
+        -m limit --limit 60/second --limit-burst 100 -j EXT_INPUT_CHAIN
+
+      # ICMPv6 traffic (flood)
+      ip6tables -A INPUT -i $interface -p icmpv6 -m state --state NEW,INVALID -j EXT_ICMP_FLOOD_CHAIN
+    fi
   done
 
 
