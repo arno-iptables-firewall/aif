@@ -4577,7 +4577,7 @@ setup_firewall_rules()
     # ICMP traffic (flood)
     ip4tables -A INPUT -i $interface -p icmp -m state --state NEW -j EXT_ICMP_FLOOD_CHAIN
 
-    if [ "$IPV6_DETECTED" = "1" ]; then
+    if [ "$IPV6_SUPPORT" = "1" ]; then
       # We must process INVALID icmpv6 packets since CONNTRACK only handles a few icmpv6 types
       # ICMPv6 traffic (rate limited):
       ip6tables -A INPUT -i $interface -p icmpv6 -m state --state NEW,INVALID \
