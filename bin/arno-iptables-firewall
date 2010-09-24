@@ -3346,7 +3346,7 @@ setup_ext_input_chain()
     if [ "$OPEN_ICMPV6" != "0" ]; then
       echo " Allowing ANYHOST to send IPv6 ICMPv6-requests"
       ip6tables -A EXT_INPUT_CHAIN -p icmpv6 --icmpv6-type echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
-      for icmpv6_type in 1 2 3 4 133 134 135 136; do
+      for icmpv6_type in 133 134 135 136; do
         ip6tables -A EXT_INPUT_CHAIN -p icmpv6 --icmpv6-type $icmpv6_type -j ACCEPT
       done
     else
