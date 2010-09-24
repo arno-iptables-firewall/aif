@@ -997,14 +997,7 @@ setup_reserved_net_chk_chain()
       -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv4 Multicast address: "
 
     if [ "$IPV6_SUPPORT" = "1" ]; then
-      # IPv6 fc00::/7 is Unique Local Unicast, pseudo-routable, don't LOG or DROP
-      ip6tables -A RESERVED_NET_CHK -s fc00::/7 -j RETURN
-
-      # IPv6 fe80::/64 is Link Local Unicast, non-routable
-      ip6tables -A RESERVED_NET_CHK -s fe80::/64 \
-        -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv6 Link-local address: "
-
-      # IPv6 2000::/3 is Global Unicast, routable, LOG all others
+      # IPv6 not 2000::/3 is non-Global Unicast
       ip6tables -A RESERVED_NET_CHK ! -s 2000::/3 \
         -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv6 non-Global address: "
     fi
@@ -1024,13 +1017,7 @@ setup_reserved_net_chk_chain()
     ip4tables -A RESERVED_NET_CHK -s 239.0.0.0/24 -j POST_INPUT_DROP_CHAIN
 
     if [ "$IPV6_SUPPORT" = "1" ]; then
-      # IPv6 fc00::/7 is Unique Local Unicast, pseudo-routable, don't DROP
-      ip6tables -A RESERVED_NET_CHK -s fc00::/7 -j RETURN
-
-      # IPv6 fe80::/64 is Link Local Unicast, non-routable
-      ip6tables -A RESERVED_NET_CHK -s fe80::/64 -j POST_INPUT_DROP_CHAIN
-
-      # IPv6 2000::/3 is Global Unicast, routable, DROP all others
+      # IPv6 not 2000::/3 is non-Global Unicast
       ip6tables -A RESERVED_NET_CHK ! -s 2000::/3 -j POST_INPUT_DROP_CHAIN
     fi
   fi
