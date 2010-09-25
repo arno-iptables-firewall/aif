@@ -4679,6 +4679,10 @@ setup_firewall_rules()
   # Check if the incoming packet is (in)valid
   ###########################################
   iptables -A EXT_FORWARD_IN_CHAIN -j VALID_CHK
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    # Since IPv6 INVALID icmpv6 packets make it through VALID_CHK, drop them
+    ip6tables -A EXT_FORWARD_IN_CHAIN -p icmpv6 -m state --state INVALID -j POST_INPUT_DROP_CHAIN
+  fi
 
   # Check if incoming packet sources are (in)valid
   ################################################
