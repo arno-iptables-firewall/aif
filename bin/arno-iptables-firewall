@@ -1433,7 +1433,7 @@ setup_inet_dmz_forward_chain()
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
     dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
-    protos=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+    protos=`get_ports_hp "$dhosts_ports"`
 
     echo "  $(show_if_ip "$interfaces")Denying $shosts(INET) to $dhosts(DMZ) for IP protocol(s): $protos"
 
