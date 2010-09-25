@@ -1,5 +1,6 @@
 Version 1.9.9 (September 22, 2010)
 ----------------------------------
+! Fixed handling of INET_DMZ_DENY_TCP
 ! Fixed variable typo, INET_DMZ_HOST_DENY_TCP was not handled
 + Added IPv6 reserved network support, label logs by IPv4 and IPv6
 ! Fixed RESERVED_NET_LOG is now independant from DROP_PRIVATE_ADDRESSES
