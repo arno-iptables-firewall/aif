@@ -1378,7 +1378,7 @@ setup_inet_dmz_forward_chain()
   # TCP ports to DENY for certain INET hosts
   #########################################
   unset IFS
-  for rule in $INET_DMZ_HOST_DENY_UDP; do
+  for rule in $INET_DMZ_HOST_DENY_TCP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts"`
     destips=`get_ips "$if_shosts"`
