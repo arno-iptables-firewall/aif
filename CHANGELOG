@@ -1,7 +1,7 @@
 Version 1.9.9 (September 27, 2010)
 ----------------------------------
-+ Added a new set of variables IPV6_FORWARD_xxx to allow forwarding INET IPV6 packets to other interfaces.
-  The format is similar to the IPv4 NAT_FORWARD_xxx without port mapping.
++ Added a new set of variables INET_FORWARD_xxx to allow forwarding INET IPv6 and non-NAT'ed IPv4 packets
+  to other interfaces.  The format is similar to the IPv4 NAT_FORWARD_xxx without port mapping.
 + Added a new variable OPEN_ICMPV6 to allow independent control of ICMP for IPv4 and IPv6, enabled by default.
 ! Fixed handling of INET_DMZ_HOST_OPEN_xxx variables
 ! Fixed handling of INET_DMZ_HOST_DENY_xxx variables

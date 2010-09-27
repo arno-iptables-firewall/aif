@@ -1070,15 +1070,15 @@ setup_spoof_chk_chain()
 }
 
 
-############################################
-# Setup rules to forward INET IPv6 traffic #
-############################################
-setup_ipv6_forward_rules()
+################################################################
+# Setup rules to forward INET IPv6 and non-NAT'ed IPv4 traffic #
+################################################################
+setup_inet_forward_rules()
 {
   # TCP ports to ALLOW for certain INET hosts
   #########################################
   unset IFS
-  for rule in $IPV6_FORWARD_TCP; do
+  for rule in $INET_FORWARD_TCP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts" "$EXT_IF"`
     shosts=`get_hosts_ih "$if_shosts"`
@@ -1086,14 +1086,14 @@ setup_ipv6_forward_rules()
     dhosts=`get_hosts_hp "$dhosts_ports"`
     ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
 
-    echo "$(show_if_ip "$interfaces")Forwarding(IPv6) TCP port(s): $ports from $shosts(INET) to $dhosts"
+    echo "$(show_if_ip "$interfaces")Forwarding(non-NAT) TCP port(s): $ports from $shosts(INET) to $dhosts"
 
     IFS=','
     for shost in `ip_range "$shosts"`; do
       for dhost in `ip_range "$dhosts"`; do
         for port in $ports; do
           for interface in $interfaces; do
-            ip6tables -A FORWARD -i $interface ! -o $interface -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+            iptables -A FORWARD -i $interface ! -o $interface -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
           done
         done
       done
@@ -1103,7 +1103,7 @@ setup_ipv6_forward_rules()
   # UDP ports to ALLOW for certain INET hosts
   #########################################
   unset IFS
-  for rule in $IPV6_FORWARD_UDP; do
+  for rule in $INET_FORWARD_UDP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts" "$EXT_IF"`
     shosts=`get_hosts_ih "$if_shosts"`
@@ -1111,14 +1111,14 @@ setup_ipv6_forward_rules()
     dhosts=`get_hosts_hp "$dhosts_ports"`
     ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
 
-    echo "$(show_if_ip "$interfaces")Forwarding(IPv6) UDP port(s): $ports from $shosts(INET) to $dhosts"
+    echo "$(show_if_ip "$interfaces")Forwarding(non-NAT) UDP port(s): $ports from $shosts(INET) to $dhosts"
 
     IFS=','
     for shost in `ip_range "$shosts"`; do
       for dhost in `ip_range "$dhosts"`; do
         for port in $ports; do
           for interface in $interfaces; do
-            ip6tables -A FORWARD -i $interface ! -o $interface -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+            iptables -A FORWARD -i $interface ! -o $interface -s $shost -d $dhost -p udp --dport $port -j ACCEPT
           done
         done
       done
@@ -1128,7 +1128,7 @@ setup_ipv6_forward_rules()
   # (Other) IP protocols to ALLOW for certain INET hosts
   ######################################################
   unset IFS
-  for rule in $IPV6_FORWARD_IP; do
+  for rule in $INET_FORWARD_IP; do
     if_shosts=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts" "$EXT_IF"`
     shosts=`get_hosts_ih "$if_shosts"`
@@ -1136,14 +1136,14 @@ setup_ipv6_forward_rules()
     dhosts=`get_hosts_hp "$dhosts_ports"`
     protos=`get_ports_hp "$dhosts_ports"`
 
-    echo "$(show_if_ip "$interfaces")Forwarding(IPv6) IP protocol(s): $protos from $shosts(INET) to $dhosts"
+    echo "$(show_if_ip "$interfaces")Forwarding(non-NAT) IP protocol(s): $protos from $shosts(INET) to $dhosts"
 
     IFS=','
     for shost in `ip_range "$shosts"`; do
       for dhost in `ip_range "$dhosts"`; do
         for proto in $protos; do
           for interface in $interfaces; do
-            ip6tables -A FORWARD -i $interface ! -o $interface -s $shost -d $dhost -p $proto -j ACCEPT
+            iptables -A FORWARD -i $interface ! -o $interface -s $shost -d $dhost -p $proto -j ACCEPT
           done
         done
       done
@@ -4985,10 +4985,8 @@ setup_firewall_rules()
     done
   done
 
-  if [ "$IPV6_SUPPORT" = "1" ]; then
-    # Setup rules to allow INET IPv6 traffic in FORWARD chain
-    setup_ipv6_forward_rules;
-  fi
+  # Setup rules to allow INET IPv6 and non-NAT'ed IPv4 traffic in FORWARD chain
+  setup_inet_forward_rules;
 
   # Do we want to loose the forward chain to make use of protocols like UPnP possible?
   ####################################################################################
