@@ -1244,7 +1244,7 @@ setup_dmz_input_chain()
     echo " Allowing ICMP-requests(ping)"
     iptables -A DMZ_INPUT_CHAIN -p icmp --icmp-type echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
     if [ "$IPV6_SUPPORT" = "1" ]; then
-      for icmpv6_type in $DMZ_ICMPV6_SPECIAL_TYPES; do
+      for icmpv6_type in $ICMPV6_SPECIAL_TYPES; do
         ip6tables -A DMZ_INPUT_CHAIN -p icmpv6 --icmpv6-type $icmpv6_type -j ACCEPT
       done
     fi
@@ -4614,7 +4614,7 @@ setup_firewall_rules()
     # We must allow special icmpv6 packets since CONNTRACK doesn't handle all icmpv6 types:
     #######################################################################################
     if [ "$IPV6_SUPPORT" = "1" -a "$OPEN_ICMPV6" != "0" ]; then
-      for icmpv6_type in $EXT_ICMPV6_SPECIAL_TYPES; do
+      for icmpv6_type in $ICMPV6_SPECIAL_TYPES; do
         ip6tables -A INPUT -i $interface -p icmpv6 --icmpv6-type $icmpv6_type -j ACCEPT
       done
     fi
