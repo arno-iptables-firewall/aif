@@ -1,7 +1,10 @@
-Version 1.9.9 (September 25, 2010)
+Version 1.9.9 (September 27, 2010)
 ----------------------------------
-! Fixed handling of INET_DMZ_HOST_OPEN_TCP, INET_DMZ_HOST_OPEN_UDP and INET_DMZ_HOST_OPEN_IP
-! Fixed handling of INET_DMZ_HOST_DENY_TCP, INET_DMZ_HOST_DENY_UDP and INET_DMZ_HOST_DENY_IP
++ Added a new set of variables IPV6_FORWARD_xxx to allow forwarding INET IPV6 packets to other interfaces.
+  The format is similar to the IPv4 NAT_FORWARD_xxx without port mapping.
++ Added a new variable OPEN_ICMPV6 to allow independent control of ICMP for IPv4 and IPv6, enabled by default.
+! Fixed handling of INET_DMZ_HOST_OPEN_xxx variables
+! Fixed handling of INET_DMZ_HOST_DENY_xxx variables
 ! Fixed handling of INET_DMZ_DENY_TCP
 ! Fixed variable typo, INET_DMZ_HOST_DENY_TCP was not handled
 + Added IPv6 reserved network support, label logs by IPv4 and IPv6
