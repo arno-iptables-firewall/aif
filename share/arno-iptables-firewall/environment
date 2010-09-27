@@ -1387,6 +1387,12 @@ if [ -z "$NAT_INTERNAL_NET" ]; then
   NAT_INTERNAL_NET="$INTERNAL_NET"
 fi
 
+# IPv6 ICMPv6 types that are allowed, not including echo-request (128)
+######################################################################
+EXT_ICMPV6_SPECIAL_TYPES="133 134 135 136"
+
+DMZ_ICMPV6_SPECIAL_TYPES="133 134 135 136"
+
 # Check plugin bin path and fallback in case it's empty
 #######################################################
 if [ -z "$PLUGIN_BIN_PATH" ]; then
