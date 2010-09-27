@@ -1279,8 +1279,8 @@ setup_dmz_lan_forward_chain()
   ##########################################
   unset IFS
   for rule in $DMZ_LAN_HOST_OPEN_TCP; do
-    shosts=`get_hosts_ih $(echo "$rule" |cut -s -d'>' -f1 ) "$ANYHOST"`
-    dhosts=`get_hosts_hp $(echo "$rule" |cut -s -d'>' -f2 ) "$ANYHOST"`
+    shosts=`get_hosts_ih $(echo "$rule" |cut -s -d'>' -f1) "$ANYHOST"`
+    dhosts=`get_hosts_hp $(echo "$rule" |cut -s -d'>' -f2)`
     ports=`get_ports_hp $(echo "$rule" |cut -s -d'>' -f2) "$ANYPORT"`
 
     echo "  Allowing $shosts(DMZ) to $dhosts(LAN) for TCP port(s): $ports"
@@ -1300,7 +1300,7 @@ setup_dmz_lan_forward_chain()
   unset IFS
   for rule in $DMZ_LAN_HOST_OPEN_UDP; do
     shosts=`get_hosts_ih $(echo "$rule" |cut -s -d'>' -f1) "$ANYHOST"`
-    dhosts=`get_hosts_hp $(echo "$rule" |cut -s -d'>' -f2) "$ANYHOST"`
+    dhosts=`get_hosts_hp $(echo "$rule" |cut -s -d'>' -f2)`
     ports=`get_ports_hp $(echo "$rule" |cut -s -d'>' -f2) "$ANYPORT"`
 
     echo "  Allowing $shosts(DMZ) to $dhosts(LAN) for UDP port(s): $ports"
@@ -1320,7 +1320,7 @@ setup_dmz_lan_forward_chain()
   unset IFS
   for rule in $DMZ_LAN_HOST_OPEN_IP; do
     shosts=`get_hosts_ih $(echo "$rule" |cut -s -d'>' -f1) "$ANYHOST"`
-    dhosts=`get_hosts_hp $(echo "$rule" |cut -s -d'>' -f2) "$ANYHOST"`
+    dhosts=`get_hosts_hp $(echo "$rule" |cut -s -d'>' -f2)`
     protos=`get_ports_hp $(echo "$rule" |cut -s -d'>' -f2)`
 
     echo "  Allowing $shosts(DMZ) to $dhosts(LAN) for IP protocol(s): $protos"
@@ -1376,7 +1376,7 @@ setup_inet_dmz_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts"`
     dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_ports"`
     ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
 
     echo "  $(show_if_ip "$interfaces")Allowing $shosts(INET) to $dhosts(DMZ) for TCP port(s): $ports"
@@ -1401,7 +1401,7 @@ setup_inet_dmz_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts"`
     dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_ports"`
     ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
 
     echo "  $(show_if_ip "$interfaces")Allowing $shosts(INET) to $dhosts(DMZ) for UDP port(s): $ports"
@@ -1426,7 +1426,7 @@ setup_inet_dmz_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts"`
     dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_ports"`
     protos=`get_ports_hp "$dhosts_ports"`
 
     echo "  $(show_if_ip "$interfaces")Allowing $shosts(INET) to $dhosts(DMZ) for IP protocol(s): $protos"
@@ -1452,7 +1452,7 @@ setup_inet_dmz_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_ports"`
     ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
 
     echo "  $(show_if_ip "$interfaces")Denying $shosts(INET) to $dhosts(DMZ) for TCP port(s): $ports"
@@ -1481,7 +1481,7 @@ setup_inet_dmz_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_ports"`
     ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
 
     echo "  $(show_if_ip "$interfaces")Denying $shosts(INET) to $dhosts(DMZ) for UDP port(s): $ports"
@@ -1510,7 +1510,7 @@ setup_inet_dmz_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_ports"`
     protos=`get_ports_hp "$dhosts_ports"`
 
     echo "  $(show_if_ip "$interfaces")Denying $shosts(INET) to $dhosts(DMZ) for IP protocol(s): $protos"
@@ -1736,7 +1736,7 @@ setup_dmz_inet_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_ports"`
     ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
 
     echo "  $(show_if_ip "$interfaces" "$destips")Allowing $shosts(DMZ) to $dhosts(INET) for TCP port(s): $ports"
@@ -1761,7 +1761,7 @@ setup_dmz_inet_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_ports"`
     ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
 
     echo "  $(show_if_ip "$interfaces")Allowing $shosts(DMZ) to $dhosts(INET) for UDP port(s): $ports"
@@ -1786,7 +1786,7 @@ setup_dmz_inet_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_protos=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_protos" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_protos"`
     protos=`get_ports_hp "$dhosts_protos"`
 
     echo "  $(show_if_ip "$interfaces")Allowing $shosts(DMZ) to $dhosts(INET) for IP protocol(s): $protos"
@@ -1812,7 +1812,7 @@ setup_dmz_inet_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_ports"`
     ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
 
     echo "  $(show_if_ip "$interfaces")Denying $shosts(DMZ) to $dhosts(INET) for TCP port(s): $ports"
@@ -1841,7 +1841,7 @@ setup_dmz_inet_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_ports"`
     ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
 
     echo "  $(show_if_ip "$interfaces")Denying $shosts(DMZ) to $dhosts(INET) for UDP port(s): $ports"
@@ -1870,7 +1870,7 @@ setup_dmz_inet_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_protos=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_protos" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_protos"`
     protos=`get_ports_hp "$dhosts_protos"`
 
     echo "  $(show_if_ip "$interfaces")Denying $shosts(DMZ) to $dhosts(INET) for IP protocol(s): $protos"
@@ -2304,7 +2304,7 @@ setup_lan_inet_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_ports"`
     ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
 
     echo "  $(show_if_ip "$interfaces")Allowing $shosts(LAN) to $dhosts(INET) for TCP port(s): $ports"
@@ -2329,7 +2329,7 @@ setup_lan_inet_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_ports"`
     ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
 
     echo "  $(show_if_ip "$interfaces")Allowing $shosts(LAN) to $dhosts(INET) for UDP port(s): $ports"
@@ -2354,7 +2354,7 @@ setup_lan_inet_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_protos=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_protos" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_protos"`
     protos=`get_ports_hp "$dhosts_protos"`
 
     echo "  $(show_if_ip "$interfaces")Allowing $shosts(LAN) to $dhosts(INET) for IP protocol(s): $protos"
@@ -2379,7 +2379,7 @@ setup_lan_inet_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_ports"`
     ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
 
     echo "  $(show_if_ip "$interfaces")Denying $shosts(LAN) to $dhosts(INET) for TCP port(s): $ports"
@@ -2408,7 +2408,7 @@ setup_lan_inet_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_ports"`
     ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
 
     echo "  $(show_if_ip "$interfaces")Denying $shosts(LAN) to $dhosts(INET) for UDP port(s): $ports"
@@ -2437,7 +2437,7 @@ setup_lan_inet_forward_chain()
     interfaces=`get_ifs "$if_shosts"`
     shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
     dhosts_protos=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_protos" "$ANYHOST"`
+    dhosts=`get_hosts_hp "$dhosts_protos"`
     protos=`get_ports_hp "$dhosts_protos"`
 
     echo "  $(show_if_ip "$interfaces")Denying $shosts(LAN) to $dhosts(INET) for IP protocol(s): $protos"
