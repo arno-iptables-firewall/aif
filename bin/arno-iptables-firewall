@@ -5005,7 +5005,12 @@ setup_firewall_rules()
   iptables -A FORWARD -j POST_FORWARD_CHAIN
   
   # Everything else is logged & dropped in FORWARD
-  iptables -A FORWARD -m limit --limit 1/m  --limit-burst 3 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Dropped FORWARD packet: "
+  if [ "$FORWARD_DROP_LOG" != "0" ]; then
+    echo " Logging of dropped FORWARD packets enabled"
+    iptables -A FORWARD -m limit --limit 1/m  --limit-burst 3 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Dropped FORWARD packet: "
+  else
+    echo " Logging of dropped FORWARD packets disabled"
+  fi
   iptables -A FORWARD -j DROP
 
   # Post/pre routing post chains
