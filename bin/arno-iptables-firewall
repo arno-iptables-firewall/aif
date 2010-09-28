@@ -1093,7 +1093,7 @@ setup_inet_forward_rules()
       for dhost in `ip_range "$dhosts"`; do
         for port in $ports; do
           for interface in $interfaces; do
-            iptables -A FORWARD -i $interface ! -o $interface -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+            iptables -A EXT_FORWARD_IN_CHAIN -i $interface ! -o $interface -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
           done
         done
       done
@@ -1118,7 +1118,7 @@ setup_inet_forward_rules()
       for dhost in `ip_range "$dhosts"`; do
         for port in $ports; do
           for interface in $interfaces; do
-            iptables -A FORWARD -i $interface ! -o $interface -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+            iptables -A EXT_FORWARD_IN_CHAIN -i $interface ! -o $interface -s $shost -d $dhost -p udp --dport $port -j ACCEPT
           done
         done
       done
@@ -1143,7 +1143,7 @@ setup_inet_forward_rules()
       for dhost in `ip_range "$dhosts"`; do
         for proto in $protos; do
           for interface in $interfaces; do
-            iptables -A FORWARD -i $interface ! -o $interface -s $shost -d $dhost -p $proto -j ACCEPT
+            iptables -A EXT_FORWARD_IN_CHAIN -i $interface ! -o $interface -s $shost -d $dhost -p $proto -j ACCEPT
           done
         done
       done
@@ -4914,7 +4914,7 @@ setup_firewall_rules()
 
             ip4tables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p tcp --dport $sport -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
             if [ -n "$dhost" ]; then
-              ip4tables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p tcp --dport $dport -j ACCEPT
+              ip4tables -A EXT_FORWARD_IN_CHAIN -i $eif ! -o $eif -s $shost -d $dhost -p tcp --dport $dport -j ACCEPT
             fi
           done
         done
@@ -4948,7 +4948,7 @@ setup_firewall_rules()
 
             ip4tables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p udp --dport $sport -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
             if [ -n "$dhost" ]; then
-              ip4tables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p udp --dport $dport -j ACCEPT
+              ip4tables -A EXT_FORWARD_IN_CHAIN -i $eif ! -o $eif -s $shost -d $dhost -p udp --dport $dport -j ACCEPT
             fi
           done
         done
@@ -4977,7 +4977,7 @@ setup_firewall_rules()
           for eif in $interfaces; do
             ip4tables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p $proto -j DNAT --to-destination $dhost
             if [ -n "$dhost" ]; then
-              ip4tables -A FORWARD -i $eif ! -o $eif -s $shost -d $dhost -p $proto -j ACCEPT
+              ip4tables -A EXT_FORWARD_IN_CHAIN -i $eif ! -o $eif -s $shost -d $dhost -p $proto -j ACCEPT
             fi
           done
         done
