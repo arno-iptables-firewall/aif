@@ -1,5 +1,6 @@
 Version 1.9.2n-DEVEL (September 28, 2010)
 -----------------------------------
+! Fixed handling of INET_DMZ_HOST_DENY_xxx variables
 ! Fixed handling of INET_DMZ_DENY_TCP
 ! Fixed variable typo, INET_DMZ_HOST_DENY_TCP was not handled
 * Sanity check should always be the first thing we do since we probably can't
