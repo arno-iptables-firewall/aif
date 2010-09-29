@@ -1,5 +1,6 @@
-Version 1.9.2n-DEVEL (September 19, 2010)
+Version 1.9.2n-DEVEL (September 28, 2010)
 -----------------------------------
+! Fixed variable typo, INET_DMZ_HOST_DENY_TCP was not handled
 * Sanity check should always be the first thing we do since we probably can't
   write the log-file in case we're not root
 
