@@ -1539,11 +1539,13 @@ setup_inet_dmz_forward_chain()
     IFS=','
     for port in $ports; do
       for destip in $destips; do
-        if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-          iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -m limit \
-            --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
-        fi
-        iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -j DROP
+        for interface in $interfaces; do
+          if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -m limit \
+              --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
+          fi
+          iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -j DROP
+        done
       done
     done
   done
