@@ -1,5 +1,6 @@
-Version 1.9.9 (September 28, 2010)
+Version 1.9.9 (September 29, 2010)
 ----------------------------------
++ Added DHCPv6 support for the EXT_IF_DHCP_IP variable.
 + Added a new variable FORWARD_DROP_LOG to disable logging dropped forwards when set to 0, defaults to 1.
 ! Fixed handling of destination host~port fields where only the host was specified.
 + Added a new set of variables INET_FORWARD_xxx to allow forwarding INET IPv6 and non-NAT'ed IPv4 packets

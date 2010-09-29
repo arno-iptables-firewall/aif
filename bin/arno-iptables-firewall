@@ -2668,7 +2668,11 @@ setup_ext_input_chain()
   if [ "$EXT_IF_DHCP_IP" = "1" ]; then
     echo " Enabling support for DHCP-assigned-IP (DHCP client)"
     # Allow this host to be an DHCP client:
-    iptables -A EXT_INPUT_CHAIN -p udp --sport 67 --dport 68 -j ACCEPT
+    ip4tables -A EXT_INPUT_CHAIN -p udp --sport 67 --dport 68 -j ACCEPT
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      # Allow this host to be an DHCPv6 client:
+      ip6tables -A EXT_INPUT_CHAIN -p udp --sport 547 --dport 546 -j ACCEPT
+    fi
   fi
 
   # Here we add support for a DHCP/BootP service on the EXTERNAL interface
