@@ -1,5 +1,7 @@
-Version 1.9.9 (September 29, 2010)
+Version 1.9.9 (September 30, 2010)
 ----------------------------------
++ Added LINK_LOCAL_DROP_LOG variable which controls logging of dropped IPv6 Link-Local addresses.
++ Added FORWARD_LINK_LOCAL variable which, by default (0), disables forwarding of IPv6 Link-Local addresses.
 + Added EXT_MULTICAST_CHAIN to handle external-inbound multicast traffic
 + Added DHCPv6 support for the EXT_IF_DHCP_IP variable.
 + Added a new variable FORWARD_DROP_LOG to disable logging dropped forwards when set to 0, defaults to 1.

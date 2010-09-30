@@ -793,6 +793,15 @@ setup_default_policies()
     iptables -A HOST_BLOCK_DROP -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s): "
   fi
   iptables -A HOST_BLOCK_DROP -j DROP
+
+  # The LINK_LOCAL_DROP chain should always DROP
+  ###########################################################
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    if [ "$LINK_LOCAL_DROP_LOG" != "0" ]; then
+      ip6tables -A LINK_LOCAL_DROP -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Dropped Link-Local: "
+    fi
+    ip6tables -A LINK_LOCAL_DROP -j DROP
+  fi
 }
 
 
@@ -4730,6 +4739,17 @@ setup_firewall_rules()
   # FORWARD rules                                                                               #
   ###############################################################################################
 
+  # Drop forward traffic to/from IPv6 Link Local Addresses
+  ########################################################
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    if [ "$FORWARD_LINK_LOCAL" != "1" ]; then
+      ip6tables -A FORWARD -s fe80::/10 -j LINK_LOCAL_DROP
+      ip6tables -A FORWARD -d fe80::/10 -j LINK_LOCAL_DROP
+    else
+      echo "IPv6 Link-Local Addresses are forwarded!"
+    fi
+  fi
+
   # Allow forward traffic from "trusted-if"
   #########################################
   if [ -n "$TRUSTED_IF" ]; then
@@ -5090,6 +5110,10 @@ create_user_chains()
   ip4tables -t nat -N POST_NAT_PREROUTING_CHAIN
   ip4tables -t nat -N POST_NAT_POSTROUTING_CHAIN
 
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    ip6tables -N LINK_LOCAL_DROP
+  fi
+
   # Interface-2-interface chains
   iptables -N DMZ_LAN_FORWARD_CHAIN
   iptables -N INET_DMZ_FORWARD_CHAIN
@@ -5141,6 +5165,10 @@ flush_user_chains()
   ip4tables -t nat -F NAT_POSTROUTING_CHAIN
   ip4tables -t nat -F POST_NAT_PREROUTING_CHAIN
   ip4tables -t nat -F POST_NAT_POSTROUTING_CHAIN
+
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    ip6tables -F LINK_LOCAL_DROP
+  fi
 
   # Interface-2-interface chains
   iptables -F DMZ_LAN_FORWARD_CHAIN
