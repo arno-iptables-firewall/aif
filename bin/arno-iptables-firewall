@@ -3431,8 +3431,8 @@ setup_ext_input_chain()
   iptables -A EXT_INPUT_CHAIN -p tcp ! --syn -j POST_INPUT_DROP_CHAIN
 
   # Setup IPv4 chain to handle broadcast traffic
+  ##############################################
   ip4tables -A EXT_INPUT_CHAIN -d 255.255.255.255 -j EXT_BROADCAST_CHAIN
-  ip4tables -A EXT_INPUT_CHAIN -d 224.0.0.0/24 -j EXT_BROADCAST_CHAIN
 
   # ip4tables -A EXT_INPUT_CHAIN -m pkttype --pkt-type broadcast -j EXT_BROADCAST_CHAIN
   # ip4tables -A EXT_INPUT_CHAIN -m addrtype --dst-type BROADCAST -j EXT_BROADCAST_CHAIN
@@ -3464,6 +3464,8 @@ setup_ext_input_chain()
     echo " Logging of (other) packets to PRIVILEGED TCP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p tcp --dport :1023 \
       -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV TCP packet: "
+    iptables -A EXT_MULTICAST_CHAIN -p tcp --dport :1023 \
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV TCP multicast: "
     iptables -A EXT_BROADCAST_CHAIN -p tcp --dport :1023 \
       -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV TCP broadcast: "
   else
@@ -3476,6 +3478,8 @@ setup_ext_input_chain()
     echo " Logging of (other) packets to PRIVILEGED UDP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p udp --dport :1023 \
       -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV UDP packet: "
+    iptables -A EXT_MULTICAST_CHAIN -p udp --dport :1023 \
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV UDP multicast: "
     iptables -A EXT_BROADCAST_CHAIN -p udp --dport :1023 \
       -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:PRIV UDP broadcast: "
   else
@@ -3488,6 +3492,8 @@ setup_ext_input_chain()
     echo " Logging of (other) packets to UNPRIVILEGED TCP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p tcp --dport 1024: \
       -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV TCP packet: "
+    iptables -A EXT_MULTICAST_CHAIN -p tcp --dport 1024: \
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV TCP multicast: "
     iptables -A EXT_BROADCAST_CHAIN -p tcp --dport 1024: \
       -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV TCP broadcast: "
   else
@@ -3500,6 +3506,8 @@ setup_ext_input_chain()
     echo " Logging of (other) packets to UNPRIVILEGED UDP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p udp --dport 1024: \
       -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV UDP packet: "
+    iptables -A EXT_MULTICAST_CHAIN -p udp --dport 1024 \
+      -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV UDP multicast: "
     iptables -A EXT_BROADCAST_CHAIN -p udp --dport 1024 \
       -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV UDP broadcast: "
   else
@@ -3533,20 +3541,25 @@ setup_ext_input_chain()
     echo " Logging of dropped ICMP-request(ping) packets enabled"
     iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
+    iptables -A EXT_MULTICAST_CHAIN -p icmp --icmp-type echo-request \
+      -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-multicast-request: "
   else
     echo " Logging of dropped ICMP-request(ping) packets disabled"
   fi
   
-  iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type echo-request -j POST_INPUT_DROP_CHAIN
-
   if [ "$ICMP_OTHER_LOG" != "0" ]; then
     echo " Logging of dropped other ICMP packets enabled"
-    iptables -A EXT_INPUT_CHAIN -p icmp \
+    iptables -A EXT_INPUT_CHAIN -p icmp ! --icmp-type echo-request \
       -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-other: "
+    iptables -A EXT_MULTICAST_CHAIN -p icmp ! --icmp-type echo-request \
+      -m limit --limit 12/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-multicast-other: "
   else
     echo " Logging of dropped other ICMP packets disabled"
   fi
 
+  # Drop all in the multicast chain
+  iptables -A EXT_MULTICAST_CHAIN -j DROP
+    
   # Drop all "standard" IP protocols
   ##################################
   iptables -A EXT_INPUT_CHAIN -p tcp -j POST_INPUT_DROP_CHAIN
@@ -3799,6 +3812,13 @@ setup_ext_output_chain()
       done
     done
   done
+}
+
+
+# Helper chain to catch multicast traffic
+setup_ext_multicast_chain()
+{
+  :
 }
 
 
@@ -4588,6 +4608,7 @@ setup_firewall_rules()
 
   # Setup helper chains for EXTERNAL input traffic:
   echo "Setting up external(INET) INPUT policy"
+  setup_ext_multicast_chain;
   setup_ext_broadcast_chain;
   setup_ext_icmp_flood_chain;
   setup_ext_input_chain;
@@ -4627,6 +4648,13 @@ setup_firewall_rules()
     #################################################################
     # Check packets for invalid flags:
     iptables -A INPUT -i $interface -j VALID_CHK
+
+    # Handle multicast traffic
+    ##########################
+    ip4tables -A INPUT -i $interface -d 224.0.0.0/4 -j EXT_MULTICAST_CHAIN
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      ip6tables -A INPUT -i $interface -d ff00::/8 -j EXT_MULTICAST_CHAIN
+    fi
 
     # Perform check:
     ################
@@ -5069,6 +5097,7 @@ create_user_chains()
   iptables -N LAN_INET_FORWARD_CHAIN
 
   # Chains for the external interface
+  iptables -N EXT_MULTICAST_CHAIN
   iptables -N EXT_BROADCAST_CHAIN
   iptables -N EXT_ICMP_FLOOD_CHAIN
   iptables -N EXT_INPUT_CHAIN
@@ -5120,6 +5149,7 @@ flush_user_chains()
   iptables -F LAN_INET_FORWARD_CHAIN
 
   # Chains for the external interface
+  iptables -F EXT_MULTICAST_CHAIN
   iptables -F EXT_BROADCAST_CHAIN
   iptables -F EXT_ICMP_FLOOD_CHAIN
   iptables -F EXT_INPUT_CHAIN
