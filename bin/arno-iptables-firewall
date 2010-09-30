@@ -3827,7 +3827,15 @@ setup_ext_output_chain()
 # Helper chain to catch multicast traffic
 setup_ext_multicast_chain()
 {
-  :
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    if [ "$OPEN_ICMPV6" != "0" ]; then
+      # Allow Link-Local multicast ICMP traffic
+      ip6tables -A EXT_MULTICAST_CHAIN -s fe80::/10 -p icmpv6 --icmpv6-type echo-request \
+        -m state --state NEW \
+        -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+    fi
+  fi
+  # Note: all remaining multicast traffic will be logged and dropped
 }
 
 
