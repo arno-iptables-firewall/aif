@@ -2654,8 +2654,8 @@ setup_ext_input_chain()
     fi
   fi
 
-  # Here we add support for a DHCP/BootP service on the EXTERNAL interface
-  ########################################################################
+  # Support for a DHCP/BootP service on the EXTERNAL interface
+  ############################################################
   if [ "$EXTERNAL_DHCP_SERVER" = "1" ]; then
     echo " Enabling support for DHCP/BOOTP (DHCP server) for subnet(s): $EXTERNAL_NET"
     IFS=' ,'
@@ -2669,6 +2669,15 @@ setup_ext_input_chain()
       # Extra rules to allow packets from other dhcp servers in the same segment
       ip4tables -A EXT_INPUT_CHAIN -s $net -d 255.255.255.255 -p udp --sport 67 --dport 68 -j ACCEPT
     done
+  fi
+
+  # Support for a DHCPv6 service on the EXTERNAL interface
+  ########################################################
+  if [ "$IPV6_SUPPORT" = "1" -a "$EXTERNAL_DHCPV6_SERVER" = "1" ]; then
+    echo " Enabling support for DHCPv6 server on external interface(s)"
+    # Allow only Link-Local clients
+    ip6tables -A EXT_INPUT_CHAIN -s fe80::/10 -p udp --dport 547 -j ACCEPT
+    # Additionally, multicast packets in EXT_MULTICAST_CHAIN must be handled
   fi
 
   # This is the fix(hack) for nmb broadcast packets (nmblookup/Samba)
@@ -3798,6 +3807,10 @@ setup_ext_output_chain()
 setup_ext_multicast_chain()
 {
   if [ "$IPV6_SUPPORT" = "1" ]; then
+    if [ "$EXTERNAL_DHCPV6_SERVER" = "1" ]; then
+      # Allow Link-Local multicast to ALL-DHCP-AGENTS
+      ip6tables -A EXT_MULTICAST_CHAIN -s fe80::/10 -d ff02::1:2 -p udp --dport 547 -j ACCEPT
+    fi
     if [ "$OPEN_ICMPV6" != "0" ]; then
       # Allow Link-Local multicast ICMP traffic
       ip6tables -A EXT_MULTICAST_CHAIN -s fe80::/10 -p icmpv6 --icmpv6-type echo-request \

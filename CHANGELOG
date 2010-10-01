@@ -1,5 +1,6 @@
-Version 1.9.9 (September 30, 2010)
-----------------------------------
+Version 1.9.9 (October 1, 2010)
+-------------------------------
++ Added EXTERNAL_DHCPV6_SERVER variable to allow DHCPv6 clients on the *external* interface
 * The default INET->DMZ policy is now DROP.  Common variables this change may effect are:
   INET_DMZ_HOST_OPEN_xxx and INET_DMZ_OPEN_xxx
 + Added support for Link-Local-Multicast ICMPv6 echo-request packets
