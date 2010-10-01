@@ -764,7 +764,7 @@ setup_default_policies()
   if [ "$IPV6_SUPPORT" = "1" ]; then
     echo "IPv4/IPv6 mixed mode selected"
   elif [ "$IPV6_DETECTED" = "1" ]; then
-    echo "IPv4 mode selected but IPv6 available, DROP all IPv6 traffic"
+    echo "IPv4 mode selected but IPv6 available, DROP all IPv6 packets"
     ip6tables -P INPUT DROP
     ip6tables -P FORWARD DROP
     ip6tables -P OUTPUT DROP
@@ -4691,7 +4691,7 @@ setup_firewall_rules()
   # Accept all packets on "other" interfaces
   ##########################################
   if [ -n "$TRUSTED_IF" ]; then
-    echo "Accepting ALL INPUT traffic from trusted interface(s): $TRUSTED_IF"
+    echo "Accepting ALL INPUT packets from trusted interface(s): $TRUSTED_IF"
     IFS=' ,'
     for interface in $TRUSTED_IF; do
       iptables -A INPUT -i $interface -j ACCEPT
@@ -4731,7 +4731,7 @@ setup_firewall_rules()
   # Allow forward traffic from "trusted-if"
   #########################################
   if [ -n "$TRUSTED_IF" ]; then
-    echo "Accepting ALL FORWARD traffic for trusted interface(s): $TRUSTED_IF"
+    echo "Accepting ALL FORWARD packets for trusted interface(s): $TRUSTED_IF"
     IFS=' ,'
     for interface in $TRUSTED_IF; do
       # Allow forward traffic in:
@@ -5431,7 +5431,7 @@ show_help()
   echo "Usage: `basename $0` { start | stop | restart | force-reload | status }" >&2
   echo "start                       = Start firewall" >&2
   echo "stop                        = Stop firewall" >&2
-  echo "stop-block                  = Stop firewall & block all internet traffic" >&2
+  echo "stop-block                  = Stop firewall & block all internet packets" >&2
   echo "restart                     = Restart firewall" >&2
   echo "force-reload                = Reload blocked hosts (blackhole) file" >&2
   echo "check-conf                  = Check configuration file (only)" >&2
