@@ -1603,7 +1603,7 @@ setup_inet_dmz_forward_chain()
   # Allow ICMP-requests(ping) for INET->DMZ?
   ##########################################
   if [ "$INET_DMZ_OPEN_ICMP" = "1" ]; then
-    echo " Allowing ICMP-requests(ping)"
+    echo "  Allowing ICMP-requests(ping)"
     iptables -A INET_DMZ_FORWARD_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 20/second --limit-burst 100 -j ACCEPT
   fi
@@ -1687,46 +1687,16 @@ setup_inet_dmz_forward_chain()
       -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
   fi
 
+  echo "  Denying all other INET->DMZ packets"
+
   # Drop ICMP packets
   iptables -A INET_DMZ_FORWARD_CHAIN -p icmp --icmp-type echo-request -j DROP
 
-  # Set the default policy (switch to DROP for a protocol when xxx_OPEN_xxx variable is used)
-  ###########################################################################################
-  if [ -z "$INET_DMZ_OPEN_TCP" ]; then
-    echo "  Allowing all (other) TCP ports"
-    iptables -A INET_DMZ_FORWARD_CHAIN -p tcp -j ACCEPT
-  else
-    if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-      iptables -A INET_DMZ_FORWARD_CHAIN -p tcp -m limit \
-        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
-    fi
-    echo "  Denying all (other) TCP ports"
-    iptables -A INET_DMZ_FORWARD_CHAIN -p tcp -j DROP
+  if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+    iptables -A INET_DMZ_FORWARD_CHAIN \
+      -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
   fi
-
-  if [ -z "$INET_DMZ_OPEN_UDP" ]; then
-    echo "  Allowing all (other) UDP ports"
-    iptables -A INET_DMZ_FORWARD_CHAIN -p udp -j ACCEPT
-  else
-    if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-      iptables -A INET_DMZ_FORWARD_CHAIN -p udp -m limit \
-        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
-    fi
-    echo "  Denying all (other) UDP ports"
-    iptables -A INET_DMZ_FORWARD_CHAIN -p udp -j DROP
-  fi
-
-  if [ -z "$INET_DMZ_OPEN_IP" ]; then
-    echo "  Allowing all (other) protocols"
-    iptables -A INET_DMZ_FORWARD_CHAIN -j ACCEPT
-  else
-    if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-      iptables -A INET_DMZ_FORWARD_CHAIN -m limit \
-        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
-    fi
-    echo "  Denying all (other) protocols"
-    iptables -A INET_DMZ_FORWARD_CHAIN -j DROP
-  fi
+  iptables -A INET_DMZ_FORWARD_CHAIN -j DROP
 }
 
 
@@ -1954,7 +1924,7 @@ setup_dmz_inet_forward_chain()
   # Allow ICMP-requests(ping) for DMZ->INET?
   ##########################################
   if [ "$DMZ_INET_OPEN_ICMP" != "0" ]; then
-    echo " Allowing ICMP-requests(ping)"
+    echo "  Allowing ICMP-requests(ping)"
     iptables -A DMZ_INET_FORWARD_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 20/second --limit-burst 100 -j ACCEPT
   fi

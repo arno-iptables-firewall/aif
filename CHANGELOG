@@ -1,5 +1,7 @@
 Version 1.9.9 (September 30, 2010)
 ----------------------------------
+* The default INET->DMZ policy is now DROP.  Common variables this change may effect are:
+  INET_DMZ_HOST_OPEN_xxx and INET_DMZ_OPEN_xxx
 + Added support for Link-Local-Multicast ICMPv6 echo-request packets
 + Added LINK_LOCAL_DROP_LOG variable which controls logging of dropped IPv6 Link-Local addresses.
 + Added FORWARD_LINK_LOCAL variable which, by default (0), disables forwarding of IPv6 Link-Local addresses.
