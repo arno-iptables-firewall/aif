@@ -1379,6 +1379,7 @@ fi
 if [ "$TRACE" = "1" ]; then
   TRACEFILE="/tmp/aif-trace.`date '+%Y%m%d-%H:%M:%S'`"
   cp /dev/null $TRACEFILE
+  DISABLE_IPTABLES_BATCH=1
 fi
 
 # Default NAT_INTERNAL_NET to INTERNAL_NET, if not specified
