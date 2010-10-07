@@ -1097,7 +1097,7 @@ setup_inet_forward_rules()
 
     echo "$(show_if_ip "$interfaces")Forwarding(non-NAT) TCP port(s): $ports from $shosts(INET) to $dhosts"
 
-    IFS=','
+    IFS=' ,'
     for shost in `ip_range "$shosts"`; do
       for dhost in `ip_range "$dhosts"`; do
         for port in $ports; do
@@ -1122,7 +1122,7 @@ setup_inet_forward_rules()
 
     echo "$(show_if_ip "$interfaces")Forwarding(non-NAT) UDP port(s): $ports from $shosts(INET) to $dhosts"
 
-    IFS=','
+    IFS=' ,'
     for shost in `ip_range "$shosts"`; do
       for dhost in `ip_range "$dhosts"`; do
         for port in $ports; do
@@ -1147,7 +1147,7 @@ setup_inet_forward_rules()
 
     echo "$(show_if_ip "$interfaces")Forwarding(non-NAT) IP protocol(s): $protos from $shosts(INET) to $dhosts"
 
-    IFS=','
+    IFS=' ,'
     for shost in `ip_range "$shosts"`; do
       for dhost in `ip_range "$dhosts"`; do
         for proto in $protos; do
