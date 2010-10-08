@@ -456,18 +456,17 @@ setup_kernel_settings()
   ####################################################
   if [ "$IP_FORWARDING" != "0" ]; then
     echo " Enabling packet forwarding"
-    # sysctlset_all net.ipv4.conf" "forwarding" 1
-    if ! sysctl -w net.ipv4.ip_forward=1; then
-      printf "\033[40m\033[1;31m WARNING: net.ipv4.ip_forward could not be set! If you're using\033[0m\n" >&2
+    sysctl_set_all "net.ipv4.conf" "forwarding" 1 || sysctl -w net.ipv4.ip_forward=1 ||
+    {
+      printf "\033[40m\033[1;31m WARNING: net.ipv4.conf.*.forwarding (or net.ipv4.ip_forward) could not be set! If you're using\033[0m\n" >&2
       printf "\033[40m\033[1;31m          NAT or any other type of forwarding this may be a problem.\033[0m\n" >&2
-    fi
+    }
     if [ "$IPV6_SUPPORT" = "1" ]; then
       sysctl_set_all "net.ipv6.conf" "forwarding" 1
     fi
   else
     echo " DISABLING packet forwarding"
-    # sysctlset_all net.ipv4.conf" "forwarding" 0 2>/dev/null
-    sysctl -w -e net.ipv4.ip_forward=0 2>/dev/null
+    sysctl_set_all net.ipv4.conf" "forwarding" 0 2>/dev/null || sysctl -w -e net.ipv4.ip_forward=0 2>/dev/null
     if [ "$IPV6_SUPPORT" = "1" ]; then
       sysctl_set_all "net.ipv6.conf" "forwarding" 0 2>/dev/null
     fi
