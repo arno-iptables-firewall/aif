@@ -2,10 +2,10 @@
 #            -= Arno's iptables firewall - IDS-protection plugin =-
 #
 PLUGIN_NAME="IDS-protection plugin"
-PLUGIN_VERSION="1.1"
+PLUGIN_VERSION="1.1a"
 PLUGIN_CONF_FILE="ids-protection.conf"
 #
-# Last changed          : September 21, 2010
+# Last changed          : October 8, 2010
 # Requirements          : kernel 2.6 + ipt_recent or xt_recent
 #                       : AIF 1.9.2k (and later)
 # Comments              : This implements IDS protection aka Intrusion-Detection-System.
@@ -37,6 +37,10 @@ PLUGIN_CONF_FILE="ids-protection.conf"
 # Plugin start function
 plugin_start()
 {
+  if [ "$IPV6_DETECTED" = "1" ] && [ "$IDS_IPV6_ENABLE" = "0" ]; then
+    echo "  NOTE: Only IPv4 is protected."
+  fi
+
   # Probe module xt_recent for IPv4/IPv6 or ipt_recent for IPv4:
   # (Allows checking for recent packets)
   modprobe_multi xt_recent ipt_recent
@@ -159,9 +163,6 @@ else
 
     if [ "$IDS_IPV6_ENABLE" = "0" ]; then
       IPTABLES="ip4tables"
-      if [ "$IPV6_SUPPORT" = "1" ]; then
-        echo "  IDS - Only IPv4 is protected."
-      fi
     else
       IPTABLES="iptables"
     fi
