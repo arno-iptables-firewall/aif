@@ -1,5 +1,6 @@
-Version 1.9.9-BETA1-DEVEL (October 7, 2010)
--------------------------------------------
+Version 1.9.9-BETA1 (October 8, 2010)
+-------------------------------------
+* Refactor setting kernel parameters
 ! Revert change that didn't masquerade IPv6/proto 41, so outgoing forwarded connections work properly
 + Added EXTERNAL_DHCPV6_SERVER variable to allow DHCPv6 clients on the *external* interface
 * The default INET->DMZ policy is now DROP.  Common variables this change may effect are:
