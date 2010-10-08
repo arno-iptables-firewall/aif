@@ -415,11 +415,14 @@ setup_kernel_settings()
 
   # Always set IPv4 options for IPv4 or IPv4/IPv6
   ######################################################
-  echo "Configuring IPv4 kernel parameters:"
+  echo "Configuring kernel parameters:"
 
   # Disable ICMP send_redirect
   ############################
   sysctl_set_all "net.ipv4.conf" "send_redirects" 0
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    sysctl_set_all "net.ipv6.conf" "send_redirects" 0
+  fi
 
   # Don't accept source routed packets.
   # Attackers can use source routing to generate
@@ -430,9 +433,15 @@ setup_kernel_settings()
   if [ "$SOURCE_ROUTE_PROTECTION" = "0" ]; then
     echo " DISABLING protection against source routed packets"
     sysctl_set_all "net.ipv4.conf" "accept_source_route" 1
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      sysctl_set_all "net.ipv6.conf" "accept_source_route" 1
+    fi
   else
     echo " Enabling protection against source routed packets"
     sysctl_set_all "net.ipv4.conf" "accept_source_route" 0
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      sysctl_set_all "net.ipv6.conf" "accept_source_route" 0
+    fi
   fi
 
   # ICMP Broadcasting protection (smurf amplifier protection)
@@ -447,15 +456,21 @@ setup_kernel_settings()
   ####################################################
   if [ "$IP_FORWARDING" != "0" ]; then
     echo " Enabling packet forwarding"
-    # sysctl -w -e net.ipv4.conf.all.forwarding=1
+    # sysctlset_all net.ipv4.conf" "forwarding" 1
     if ! sysctl -w net.ipv4.ip_forward=1; then
       printf "\033[40m\033[1;31m WARNING: net.ipv4.ip_forward could not be set! If you're using\033[0m\n" >&2
       printf "\033[40m\033[1;31m          NAT or any other type of forwarding this may be a problem.\033[0m\n" >&2
     fi
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      sysctl_set_all "net.ipv6.conf" "forwarding" 1
+    fi
   else
     echo " DISABLING packet forwarding"
-    # sysctl -w -e net.ipv4.conf.all.forwarding=0
+    # sysctlset_all net.ipv4.conf" "forwarding" 0 2>/dev/null
     sysctl -w -e net.ipv4.ip_forward=0 2>/dev/null
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      sysctl_set_all "net.ipv6.conf" "forwarding" 0 2>/dev/null
+    fi
   fi
 
   # Enable some general settings
@@ -549,9 +564,15 @@ setup_kernel_settings()
   if [ "$ICMP_REDIRECT" = "1" ]; then
     echo " Enabling the acception of ICMP-redirect messages"
     sysctl_set_all "net.ipv4.conf" "accept_redirects" 1
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      sysctl_set_all "net.ipv6.conf" "accept_redirects" 1
+    fi
   else
     echo " Disabling the acception of ICMP-redirect messages"
     sysctl_set_all "net.ipv4.conf" "accept_redirects" 0
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      sysctl_set_all "net.ipv6.conf" "accept_redirects" 0
+    fi
   fi
 
   # Time To Live (TTL) is the term for a data field in the internet protocol.
@@ -606,47 +627,7 @@ setup_kernel_settings()
 
   echo " Flushing route table"
   sysctl -w net.ipv4.route.flush=1
-
   if [ "$IPV6_SUPPORT" = "1" ]; then
-    echo "Configuring IPv6 kernel parameters:"
-
-    # Disable ICMP send_redirect
-    ############################
-    sysctl_set_all "net.ipv6.conf" "send_redirects" 0
-
-    # Don't accept source routed packets.
-    # Attackers can use source routing to generate
-    # traffic pretending to be from inside your network, but which is routed back along
-    # the path from which it came, namely outside, so attackers can compromise your
-    # network. Source routing is rarely used for legitimate purposes.
-    ###################################################################################
-    if [ "$SOURCE_ROUTE_PROTECTION" = "0" ]; then
-      echo " DISABLING protection against source routed packets"
-      sysctl_set_all "net.ipv6.conf" "accept_source_route" 1
-    else
-      echo " Enabling protection against source routed packets"
-      sysctl_set_all "net.ipv6.conf" "accept_source_route" 0
-    fi
-
-    # Accept ICMP redirect messages?
-    ################################
-    if [ "$ICMP_REDIRECT" = "1" ]; then
-      echo " Enabling the acception of ICMP-redirect messages"
-      sysctl_set_all "net.ipv6.conf" "accept_redirects" 1
-    else
-      echo " Disabling the acception of ICMP-redirect messages"
-      sysctl_set_all "net.ipv6.conf" "accept_redirects" 0
-    fi
-
-    # Enable IP forwarding?
-    #######################
-    if [ "$IP_FORWARDING" != "0" ]; then
-      sysctl_set_all "net.ipv6.conf" "forwarding" 1
-    else
-      sysctl_set_all "net.ipv6.conf" "forwarding" 0 2>/dev/null
-    fi
-
-    echo " Flushing route table"
     sysctl -w net.ipv6.route.flush=1
   fi
 
