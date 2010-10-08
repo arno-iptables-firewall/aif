@@ -1,3 +1,7 @@
+Version 1.9.9-BETA2-DEVEL (October 8, 2010)
+-------------------------------------------
++ Added IPV6_OVER_IPV4_SERVER variable for ipv6-over-ipv4 plugin, restricting 6to4 source packets
+
 Version 1.9.9-BETA1 (October 8, 2010)
 -------------------------------------
 * Refactor setting kernel parameters
