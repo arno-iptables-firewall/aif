@@ -36,9 +36,9 @@ plugin_start()
 {
   local src interface
   
-  # Enable (allow) 6in4 traffic?
-  ##############################
-  echo "  Allowing 6in4 tunnel for $IPV6_OVER_IPV4_SERVER (INET) to interface(s): $IPV6_OVER_IPV4_IF"
+  # Enable (allow) IPv6 tunnel traffic
+  ####################################
+  echo "  Allowing IPv6 tunnel for $IPV6_OVER_IPV4_SERVER (INET) to interface(s): $IPV6_OVER_IPV4_IF"
   IFS=' ,'
   for src in $IPV6_OVER_IPV4_SERVER; do
     for interface in $IPV6_OVER_IPV4_IF; do
