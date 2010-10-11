@@ -8,9 +8,12 @@ PLUGIN_CONF_FILE="ssh-brute-force-protection.conf"
 # Last changed          : October 8, 2010
 # Requirements          : kernel 2.6 + ipt_recent or xt_recent
 #                       : AIF 1.9.2k (and later)
-# Comments              : This plugin protects port 22 (SSH) for brute force cracking by
-#                         limiting the amount of connection attempts for each source IP
-#                         in specific time slot.
+# Comments              : This plugin implements protecting for brute force
+#                         cracking by limiting the amount of connection attempts
+#                         for each source IP in specific time slot. Its
+#                         primarely intended for SSH/port 22 but in principle
+#                         it can be used for any TCP protocol
+#                         (eg. FTP/SMTP/IMAP etc.
 #                         Updated for mixed IPv4/IPv6
 #
 # Author                : (C) Copyright 2006-2010 by Arno van Amersfoort
