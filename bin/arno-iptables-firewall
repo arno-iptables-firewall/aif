@@ -463,12 +463,24 @@ setup_kernel_settings()
     }
     if [ "$IPV6_SUPPORT" = "1" ]; then
       sysctl_set_all "net.ipv6.conf" "forwarding" 1
+      echo " Disabling Local IPv6 Auto-Configuration"
+      sysctl_set_all "net.ipv6.conf" "autoconf" 0
+      sysctl_set_all "net.ipv6.conf" "accept_ra" 0
     fi
   else
     echo " DISABLING packet forwarding"
     sysctl_set_all "net.ipv4.conf" "forwarding" 0 2>/dev/null || sysctl -w -e net.ipv4.ip_forward=0 2>/dev/null
     if [ "$IPV6_SUPPORT" = "1" ]; then
       sysctl_set_all "net.ipv6.conf" "forwarding" 0 2>/dev/null
+      if [ "$IPV6_AUTO_CONFIGURATION" != "0" ]; then
+        echo " Enabling IPv6 Auto-Configuration"
+        sysctl_set_all "net.ipv6.conf" "autoconf" 1
+        sysctl_set_all "net.ipv6.conf" "accept_ra" 1
+      else
+        echo " DISABLING IPv6 Auto-Configuration"
+        sysctl_set_all "net.ipv6.conf" "autoconf" 0
+        sysctl_set_all "net.ipv6.conf" "accept_ra" 0
+      fi
     fi
   fi
 
