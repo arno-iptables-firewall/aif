@@ -485,17 +485,6 @@ modprobe_multi()
 }
 
 
-
-# Legacy function
-#################
-module_probe()
-{
-  printf "\033[40m\033[1;31mWARNING: Function module_probe() will soon be deprecated, please use modprobe() instead!\033[0m\n" >&2
-  modprobe "$@"
-  return $?
-}
-
-
 # sysctl binary wrapper
 #######################
 sysctl()
