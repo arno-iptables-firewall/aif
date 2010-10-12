@@ -4420,6 +4420,9 @@ setup_tcp_mss()
 
 plugins_start()
 {
+  # Set indent
+  INDENT=' '
+
   # Truncate/create file
   cp -f /dev/null "$PLUGIN_LOAD_FILE"
 
@@ -4459,6 +4462,9 @@ plugins_start()
 
 plugins_stop()
 {
+  # Set indent
+  INDENT=' '
+
   if [ -e "$PLUGIN_LOAD_FILE" ]; then
     echo "Stopping (user) plugins..."
   
@@ -4499,6 +4505,9 @@ plugins_stop()
 
 plugins_status()
 {
+  # Set indent
+  INDENT=' '
+
   # Load/insert user plugins
   if [ -e "$PLUGIN_LOAD_FILE" ]; then
     printf "\nShowing status of (user) plugins:\n"
