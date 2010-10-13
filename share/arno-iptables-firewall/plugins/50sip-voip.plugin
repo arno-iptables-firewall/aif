@@ -2,14 +2,14 @@
 #            -= Arno's iptables firewall - SIP-VOIP plugin =-
 #
 PLUGIN_NAME="SIP-VOIP plugin"
-PLUGIN_VERSION="0.22BETA (EXPERIMENTAL!)"
+PLUGIN_VERSION="0.3BETA"
 PLUGIN_CONF_FILE="sip-voip.conf"
 #
-# Last changed          : August 23, 2009
+# Last changed          : October 13, 2010
 # Requirements          : kernel 2.6 + ip_conntrack_sip
 # Comments              : This plugin will allow/enable SIP (VOIP) support
 #
-# Author                : (C) Copyright 2009 by Arno van Amersfoort
+# Author                : (C) Copyright 2010 by Arno van Amersfoort
 # Credits               : Philip Prindeville for his initial idea
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
@@ -34,18 +34,23 @@ PLUGIN_CONF_FILE="sip-voip.conf"
 # Plugin start function
 plugin_start()
 {
+  local port ports="" host IFS
+
   if [ -z "$SIP_VOIP_PORTS" ]; then
     SIP_VOIP_PORTS="5060"
   fi
 
+  if [ -z "$SIP_VOIP_REMOTE_HOSTS" ]; then
+    SIP_VOIP_REMOTE_HOSTS="0/0"
+  fi
+
   # Some required modules are already loaded by the main script:
   modprobe ip_nat
-#   modprobe ip_table
+  # modprobe ip_table
 
-  echo "  Using SIP UDP port(s): $SIP_VOIP_PORTS"
+  echo "  Using SIP UDP for $SIP_VOIP_REMOTE_HOSTS (INET) to port(s): $SIP_VOIP_PORTS"
 
   # We need the SIP module loaded of course
-  ports=""
   IFS=' ,'
   for port in $SIP_VOIP_PORTS; do
     # Check for kernel 2.6.25 or newer
@@ -65,8 +70,10 @@ plugin_start()
   fi
 
   IFS=' ,'
-  for port in $SIP_VOIP_PORTS; do
-    iptables -A EXT_INPUT_CHAIN -p udp --dport $port -j ACCEPT
+  for host in $SIP_VOIP_REMOTE_HOSTS; do
+    for port in $SIP_VOIP_PORTS; do
+      iptables -A EXT_INPUT_CHAIN -s $host -p udp --dport $port -j ACCEPT
+    done
   done
 
   return 0

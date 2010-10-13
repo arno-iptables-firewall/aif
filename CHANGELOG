@@ -1,5 +1,6 @@
-Version 1.9.9-BETA2-DEVEL (October 12, 2010)
+Version 1.9.9-BETA2-DEVEL (October 13, 2010)
 --------------------------------------------
++ Added SIP_VOIP_REMOTE_HOSTS variable to sip-voip plugin to limit access by source address
 - Removed obsolete module_probe() function. Use modprobe() instead
 + Added IPV6_AUTO_CONFIGURATION variable to control autoconf when IP_FORWARDING = 0
 + Added IPV6_OVER_IPV4_SERVER variable for ipv6-over-ipv4 plugin, restricting 6to4 source packets
