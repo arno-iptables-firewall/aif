@@ -478,7 +478,7 @@ modprobe_multi()
       return 1
     fi
   elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-    echo "${INDENT}NOTE: Kernel has no module support. Assuming compiled-in-kerel for module(s) \"$(echo "$MODULES" |tr ' ' '|')\""
+    echo "${INDENT}NOTE: Kernel has no module support. Assuming compiled-in-kernel for module(s) \"$(echo "$MODULES" |tr ' ' '|')\""
   fi
   
   return 0
