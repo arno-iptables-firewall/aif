@@ -58,7 +58,7 @@ plugin_start()
   #########################################################################
   if [ -n "$MODEM_IF_IP" ]; then
     if [ -n "$MODEM_IP" ]; then
-      echo "  Using MODEM IP $MODEM_IP"
+      echo "${INDENT}Using MODEM IP $MODEM_IP"
 
       # Only allow traffic from the MODEM (check IP) to this machine
       ##############################################################
@@ -70,7 +70,7 @@ plugin_start()
     fi
   else
     if [ -n "$MODEM_IP" ]; then
-      echo "  Using MODEM IP $MODEM_IP"
+      echo "${INDENT}Using MODEM IP $MODEM_IP"
 
       # Only allow traffic from the MODEM (check IP) to this machine
       ##############################################################
@@ -101,7 +101,7 @@ plugin_start()
   # Manage your modemsettings from computers on your LAN. For example with your browser via http://{MODEM_IP}
   ###########################################################################################################
   if [ -n "$MODEM_IP" -a -n "$MODEM_INTERNAL_NET" ]; then
-    echo "  Enabling (ADSL) modem (@$MODEM_IP) management for hosts(s): $MODEM_INTERNAL_NET"
+    echo "${INDENT}Enabling (ADSL) modem (@$MODEM_IP) management for hosts(s): $MODEM_INTERNAL_NET"
     IFS=' ,'
     for net in `ip_range "$MODEM_INTERNAL_NET"`; do
       ip4tables -A FORWARD -o $MODEM_IF -s $net -j ACCEPT
@@ -139,14 +139,14 @@ plugin_status()
 plugin_sanity_check()
 {
   if [ -z "$MODEM_IF" ]; then
-    printf "\033[40m\033[1;31m  ERROR: The plugin config file is not properly set!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not properly set!\033[0m\n" >&2
     return 1
   fi
 
   # Check whether MODEM_IF exists
   ###############################
   if ! check_interface $MODEM_IF; then
-    printf "\033[40m\033[1;31m  NOTE: Modem interface \"$MODEM_IF\" does NOT exist (yet?)\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}NOTE: Modem interface \"$MODEM_IF\" does NOT exist (yet?)\033[0m\n" >&2
   fi
 
   # Make sure EXT_IF != MODEM_IF
@@ -154,8 +154,8 @@ plugin_sanity_check()
   IFS=' ,'
   for eif in $EXT_IF; do
     if [ "$eif" = "$MODEM_IF" ]; then
-      printf "\033[40m\033[1;31m  ERROR: One or more interfaces specified in EXT_IF is the same as the\033[0m\n" >&2
-      printf "\033[40m\033[1;31m         MODEM_IF! Please, check the configuration file.\033[0m\n" >&2
+      printf "\033[40m\033[1;31m${INDENT}ERROR: One or more interfaces specified in EXT_IF is the same as the\033[0m\n" >&2
+      printf "\033[40m\033[1;31m${INDENT}       MODEM_IF! Please, check the configuration file.\033[0m\n" >&2
       return 2
     fi
   done
@@ -165,8 +165,8 @@ plugin_sanity_check()
   IFS=' ,'
   for iif in $INT_IF; do
     if [ "$iif" = "$MODEM_IF" ]; then
-      printf "\033[40m\033[1;31m  ERROR: One or more interfaces specified in INT_IF is the same as the one in\033[0m\n" >&2
-      printf "\033[40m\033[1;31m         MODEM_IF! Please, check the configuration file.\033[0m\n" >&2
+      printf "\033[40m\033[1;31m${INDENT}ERROR: One or more interfaces specified in INT_IF is the same as the one in\033[0m\n" >&2
+      printf "\033[40m\033[1;31m${INDENT}       MODEM_IF! Please, check the configuration file.\033[0m\n" >&2
       return 3
     fi
   done
@@ -174,8 +174,8 @@ plugin_sanity_check()
   # Make sure MODEM_IF != lo / 127.0.0.1
   ######################################
   if [ "$MODEM_IF" = "lo" -o "$MODEM_IF" = "127.0.0.1" ]; then
-    printf "\033[40m\033[1;31m  ERROR: The interface specified in MODEM_IF has the address or name of the local\033[0m\n" >&2
-    printf "\033[40m\033[1;31m         loopback device! Please, check the configuration file.\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The interface specified in MODEM_IF has the address or name of the local\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}       loopback device! Please, check the configuration file.\033[0m\n" >&2
     return 4
   fi
 
@@ -206,7 +206,10 @@ else
      [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
      [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
     # Show who we are:
-    echo " $PLUGIN_NAME v$PLUGIN_VERSION"
+    echo "${INDENT}$PLUGIN_NAME v$PLUGIN_VERSION"
+    
+    # Increment indention
+    INDENT="$INDENT "
 
     # Only proceed if environment ok
     if plugin_sanity_check; then
@@ -214,11 +217,10 @@ else
         start|'') plugin_start; PLUGIN_RET_VAL=$?;;
         stop    ) plugin_stop; PLUGIN_RET_VAL=$?;;
         status  ) plugin_status; PLUGIN_RET_VAL=$?;;
-        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m  ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
       esac
     fi
   else
     PLUGIN_RET_VAL=0
   fi
 fi
-

@@ -106,7 +106,10 @@ else
      [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
      [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
     # Show who we are:
-    echo " $PLUGIN_NAME v$PLUGIN_VERSION"
+    echo "${INDENT}$PLUGIN_NAME v$PLUGIN_VERSION"
+
+    # Increment indention
+    INDENT="$INDENT "
 
     # Only proceed if environment ok
     if plugin_sanity_check; then
@@ -114,7 +117,7 @@ else
         start|'') plugin_start; PLUGIN_RET_VAL=$?;;
         stop    ) plugin_stop; PLUGIN_RET_VAL=$?;;
         status  ) plugin_status; PLUGIN_RET_VAL=$?;;
-        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m  ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
       esac
     fi
   else

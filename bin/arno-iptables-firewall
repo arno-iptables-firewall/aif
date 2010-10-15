@@ -400,7 +400,7 @@ setup_kernel_settings()
   #          echo 30 > /proc/sys/net/ipv4/netfilter/ip_conntrack_icmp_timeout
   #          echo 1200 > /proc/sys/net/ipv4/netfilter/ip_conntrack_generic_timeout
   ###############################################################################
-  echo " Setting default conntrack timeouts"
+#  echo " Setting default conntrack timeouts"
 
   # This is to fix issues with DNS:
 #  sysctl_multi -w net.netfilter.nf_conntrack_udp_timeout=60 \
@@ -419,6 +419,7 @@ setup_kernel_settings()
 
   # Disable ICMP send_redirect
   ############################
+  echo " Disabling send redirects"
   sysctl_set_all "net.ipv4.conf" "send_redirects" 0
   if [ "$IPV6_SUPPORT" = "1" ]; then
     sysctl_set_all "net.ipv6.conf" "send_redirects" 0
@@ -4292,8 +4293,7 @@ setup_hostblock_chain()
           unset IFS
         fi
       done
-      echo ""
-      echo "  $total_cnt line(s) read."
+      echo " $total_cnt line(s) read."
     else
       printf "\033[40m\033[1;31mNOTE: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
     fi

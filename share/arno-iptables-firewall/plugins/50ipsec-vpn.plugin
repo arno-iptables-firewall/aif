@@ -46,7 +46,7 @@ plugin_start()
 
   # If the user has specified a subset of remote networks, only allow those.
   if [ -n "$IPSEC_VPN_NETS" ]; then
-    echo "  Applying rules for VPN nets $IPSEC_VPN_NETS"
+    echo "${INDENT}Applying rules for VPN nets $IPSEC_VPN_NETS"
     IFS=' ,'
     for vnet in $IPSEC_VPN_NETS; do
       iptables -A VPN_INPUT -s $vnet -j ACCEPT
@@ -65,7 +65,7 @@ plugin_start()
   # internal traffic.
   iptables -A EXT_INPUT_CHAIN -m policy --pol ipsec --dir in -j VPN_INPUT
 
-  echo "  Allowing internet hosts $IPSEC_ALLOWED_HOSTS to access the VPN service"
+  echo "${INDENT}Allowing internet hosts $IPSEC_ALLOWED_HOSTS to access the VPN service"
   IFS=' ,'
   for host in `ip_range "$IPSEC_ALLOWED_HOSTS"`; do
     iptables -A EXT_INPUT_CHAIN -p udp --dport 500 -s $host -j ACCEPT
@@ -135,7 +135,7 @@ plugin_sanity_check()
 {
   # Sanity check
   if [ -z "$IPSEC_ALLOWED_HOSTS" ]; then
-    printf "\033[40m\033[1;31m  ERROR: The plugin config file is not properly set!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not properly set!\033[0m\n" >&2
     return 1
   fi
 
@@ -166,8 +166,11 @@ else
      [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
      [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
     # Show who we are:
-    echo " $PLUGIN_NAME v$PLUGIN_VERSION"
+    echo "${INDENT}$PLUGIN_NAME v$PLUGIN_VERSION"
 
+    # Increment indention
+    INDENT="$INDENT "
+    
     # Only proceed if environment ok
     if plugin_sanity_check; then
       case $PLUGIN_CMD in

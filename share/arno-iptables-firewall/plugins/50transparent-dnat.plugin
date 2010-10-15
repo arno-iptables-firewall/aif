@@ -42,9 +42,9 @@ plugin_start()
   modprobe iptable_nat
 #   modprobe ip_table
 
-  echo "  Using internal IP $DNAT_MY_INTERNAL_IP & external IP $DNAT_MY_EXTERNAL_IP"
+  echo "${INDENT}Using internal IP $DNAT_MY_INTERNAL_IP & external IP $DNAT_MY_EXTERNAL_IP"
   if [ -n "$DNAT_TCP_PORTS" ]; then
-    echo "  Enabling transparent DNAT for TCP port(s): $DNAT_TCP_PORTS"
+    echo "${INDENT}Enabling transparent DNAT for TCP port(s): $DNAT_TCP_PORTS"
     IFS=' ,'
     for interface in $INT_IF; do
       for port in $DNAT_TCP_PORTS; do
@@ -54,11 +54,11 @@ plugin_start()
       done
     done
   else
-    echo "  No TCP ports configured"
+    echo "${INDENT}No TCP ports configured"
   fi
 
   if [ -n "$DNAT_UDP_PORTS" ]; then
-    echo "  Enabling transparent DNAT for UDP port(s): $DNAT_UDP_PORTS"
+    echo "${INDENT}Enabling transparent DNAT for UDP port(s): $DNAT_UDP_PORTS"
     IFS=' ,'
     for interface in $INT_IF; do
       for port in $DNAT_UDP_PORTS; do
@@ -68,7 +68,7 @@ plugin_start()
       done
     done
   else
-    echo "  No UDP ports configured"
+    echo "${INDENT}No UDP ports configured"
   fi
 
   return 0
@@ -93,7 +93,7 @@ plugin_status()
 plugin_sanity_check()
 {
   if [ -z "$DNAT_MY_INTERNAL_IP" -o -z "$DNAT_MY_EXTERNAL_IP" ]; then
-    printf "\033[40m\033[1;31m  ERROR: The plugin config file is not properly set!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not properly set!\033[0m\n" >&2
     return 1
   fi
 
@@ -124,7 +124,10 @@ else
      [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
      [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
     # Show who we are:
-    echo " $PLUGIN_NAME v$PLUGIN_VERSION"
+    echo "${INDENT}$PLUGIN_NAME v$PLUGIN_VERSION"
+    
+    # Increment indention
+    INDENT="$INDENT "
 
     # Only proceed if environment ok
     if plugin_sanity_check; then
@@ -132,7 +135,7 @@ else
         start|'') plugin_start; PLUGIN_RET_VAL=$?;;
         stop    ) plugin_stop; PLUGIN_RET_VAL=$?;;
         status  ) plugin_status; PLUGIN_RET_VAL=$?;;
-        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m  ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
       esac
     fi
   else
