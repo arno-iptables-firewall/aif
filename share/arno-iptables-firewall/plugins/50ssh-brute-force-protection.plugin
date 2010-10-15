@@ -81,7 +81,7 @@ plugin_start()
     SSH_BFP_PORTS="22"
   fi
 
-  echo "${IDENT}Protecting TCP port(s): $SSH_BFP_PORTS"
+  echo "${INDENT}Protecting TCP port(s): $SSH_BFP_PORTS"
 
   # Insert rule into the EXTERNAL INPUT chain:
   IFS=' ,'
