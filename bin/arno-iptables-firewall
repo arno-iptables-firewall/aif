@@ -4420,9 +4420,6 @@ setup_tcp_mss()
 
 plugins_start()
 {
-  # Set indent
-  INDENT=' '
-
   # Truncate/create file
   cp -f /dev/null "$PLUGIN_LOAD_FILE"
 
@@ -4438,6 +4435,9 @@ plugins_start()
       # Preset ENABLED=0 to make sure the plugin only
       # gets loaded if the config has an explicit ENABLED=1:
       ENABLED=0
+
+      # Set indent
+      INDENT=' '
 
       # Explicit unset IFS, just in case
       unset IFS
@@ -4462,9 +4462,6 @@ plugins_start()
 
 plugins_stop()
 {
-  # Set indent
-  INDENT=' '
-
   if [ -e "$PLUGIN_LOAD_FILE" ]; then
     echo "Stopping (user) plugins..."
   
@@ -4486,6 +4483,9 @@ plugins_stop()
           # gets loaded if the config has an explicit ENABLED=1:
           ENABLED=0
           
+          # Set indent
+          INDENT=' '
+
           PLUGIN_CMD=stop
 
           # Explicit unset IFS, just in case
@@ -4505,9 +4505,6 @@ plugins_stop()
 
 plugins_status()
 {
-  # Set indent
-  INDENT=' '
-
   # Load/insert user plugins
   if [ -e "$PLUGIN_LOAD_FILE" ]; then
     printf "\nShowing status of (user) plugins:\n"
@@ -4521,6 +4518,9 @@ plugins_status()
         # gets loaded if the config has an explicit ENABLED=1:
         ENABLED=0
         
+        # Set indent
+        INDENT=' '
+
         PLUGIN_CMD=status
         
         # Source the plugin:
