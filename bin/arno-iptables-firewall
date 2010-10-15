@@ -243,7 +243,7 @@ load_modules()
   # Set indent for functions
   INDENT=' '
 
-  echo "Checking/probing IPv4 Iptables modules:"
+  echo "Checking/probing Iptables modules:"
   
   # Required; all IPv4 modules depend on this one
   modprobe ip_tables
@@ -316,8 +316,6 @@ load_modules()
   fi
 
   if [ "$IPV6_SUPPORT" = "1" ]; then
-    echo "Checking/probing IPv6 Iptables modules:"
-
     modprobe ip6_tables              # Required; all ipv6 modules depend on this one
 
     modprobe nf_conntrack_ipv6       # Allows connection tracking state match, which allows you to
