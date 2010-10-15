@@ -202,12 +202,9 @@ plugin_start_hfsc()
   modprobe ip_nat
   # modprobe ip_table
 
-  if ! modprobe sch_hfsc; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: Couldn't load kernel module sch_hfsc!\033[m\n" >&2
-    return 1
-  fi
+  modprobe sch_hfsc
 
-  printf " Shaping as %d/%d kb/s using %s\n" $DOWNLINK $UPLINK 'hfsc'
+  printf "${INDENT}Shaping as %d/%d kb/s using %s\n" $DOWNLINK $UPLINK 'hfsc'
 
   iptables -t mangle -N SHAPER_CHAIN
 
