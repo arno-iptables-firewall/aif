@@ -625,6 +625,7 @@ setup_kernel_settings()
     echo " Enabling kernel support for dynamic IPs"
     sysctl -w net.ipv4.ip_dynaddr=1
   else
+    echo " Disabling kernel support for dynamic IPs"
     sysctl -w net.ipv4.ip_dynaddr=0
   fi
 
@@ -634,6 +635,7 @@ setup_kernel_settings()
     echo " Disabling PMTU discovery"
     sysctl -w net.ipv4.ip_no_pmtu_disc=1
   else
+    echo " Enabling PMTU discovery"
     sysctl -w net.ipv4.ip_no_pmtu_disc=0
   fi
 
