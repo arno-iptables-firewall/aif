@@ -372,7 +372,7 @@ setup_kernel_settings()
   # Set INDENT value for functions
   INDENT='  '
   
-  echo "Configuring General kernel parameters:"
+  echo "Configuring general kernel parameters:"
 
   # Set the maximum number of connections to track.
   # The kernel "default" depends on the available amount of RAM, 128 MB of RAM -> 8192
@@ -4293,7 +4293,7 @@ setup_hostblock_chain()
           unset IFS
         fi
       done
-      echo " $total_cnt line(s) read."
+      echo ".........$total_cnt line(s) read."
     else
       printf "\033[40m\033[1;31mNOTE: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
     fi
