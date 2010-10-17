@@ -1,3 +1,7 @@
+Version 1.2.04 (October 17, 2010)
+--------------------------------
++ Added SHAPER_IF variable to specify a single interface should EXT_IF contain more than one
+
 Version 1.2.02 (September 11, 2009)
 --------------------------------
 + Reformat informational message about down- and up-load speeds.

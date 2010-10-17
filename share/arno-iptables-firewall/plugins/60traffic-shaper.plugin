@@ -2,10 +2,10 @@
 #      -= Arno's iptables firewall - HTB & HFSC traffic shaper plugin =-
 #
 PLUGIN_NAME="Traffic-Shaper plugin"
-PLUGIN_VERSION="1.2.03 (htb: well tested, hfsc: experimental)"
+PLUGIN_VERSION="1.2.04 (htb: well tested, hfsc: experimental)"
 PLUGIN_CONF_FILE="traffic-shaper.conf"
 #
-# Last changed          : March 07, 2010
+# Last changed          : October 17, 2010
 # Requirements          : kernel 2.6 + iproute
 # Comments              : This plugin will shape traffic. It borrows heavily on
 #                         the logic of Maciej's original script (below), with
@@ -204,7 +204,7 @@ plugin_start_hfsc()
 
   modprobe sch_hfsc
 
-  printf "${INDENT}Shaping as %d/%d kb/s using %s\n" $DOWNLINK $UPLINK 'hfsc'
+  printf "${INDENT}Shaping as %d/%d kb/s using '%s' for interface: %s\n" $DOWNLINK $UPLINK hfsc "$SHAPER_IF"
 
   iptables -t mangle -N SHAPER_CHAIN
 
@@ -215,7 +215,7 @@ plugin_start_hfsc()
   classify_by_dscp_class
 
   IFS=' ,'
-  for eif in $EXT_IF; do
+  for eif in $SHAPER_IF; do
 
     # tc doesn't take wildcards, so we need expansion done here
     for eif1 in $(wildcard_ifs $eif); do
@@ -273,7 +273,7 @@ plugin_start_htb()
   # Some required modules are already loaded by the main script:
   modprobe ip_nat
 
-  printf "${INDENT}Shaping as %d/%d kb/s using %s\n" $DOWNLINK $UPLINK 'htb'
+  printf "${INDENT}Shaping as %d/%d kb/s using '%s' for interface: %s\n" $DOWNLINK $UPLINK htb "$SHAPER_IF"
 
   iptables -t mangle -N SHAPER_CHAIN
 
@@ -284,7 +284,7 @@ plugin_start_htb()
   classify_by_dscp_class
 
   IFS=' ,'
-  for eif in $EXT_IF; do
+  for eif in $SHAPER_IF; do
 
     # tc doesn't take wildcards, so we need expansion done here
     for eif1 in $(wildcard_ifs $eif); do
@@ -335,7 +335,7 @@ plugin_start_htb()
 plugin_stop()
 {
   IFS=' ,'
-  for eif in $EXT_IF; do
+  for eif in $SHAPER_IF; do
 
     # tc doesn't take wildcards, so we need expansion done here
     for eif1 in $(wildcard_ifs $eif); do
@@ -360,7 +360,7 @@ plugin_status()
 {
   IFS=' ,'
   # tc doesn't take wildcards, so we need expansion done here
-  for eif in $(wildcard_ifs $EXT_IF); do
+  for eif in $(wildcard_ifs $SHAPER_IF); do
     echo "${INDENT}[qdisc]"
     tc -s qdisc show dev $eif
 
@@ -391,11 +391,11 @@ plugin_sanity_check()
 
   count=0
   IFS=' ,'
-  for eif in $EXT_IF; do
+  for eif in $SHAPER_IF; do
     count=$((count+1))
   done
   if [ "$count" -ne 1 ]; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: Multiple external interfaces are not supported!\n\033[0m" >&2
+    printf "\033[40m\033[1;31m${INDENT}ERROR: Only one external interface is supported!\n\033[0m" >&2
     return 1
   fi
 
@@ -411,6 +411,9 @@ plugin_sanity_check()
 ############
 # Mainline #
 ############
+
+# Set default for old config file
+SHAPER_IF="$EXT_IF"
 
 # Check where to find conf
 if [ -n "$PLUGIN_CONF_PATH" ]; then
