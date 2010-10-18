@@ -373,6 +373,9 @@ load_modules()
 
 setup_misc()
 {
+  # Remove any stale plugin restart file
+  rm -f "$PLUGIN_LOAD_FILE_RESTART"
+  
   # Most people don't want to get any firewall logs being spit to the console
   # This option makes the kernel ring buffer to only log messages with level "panic"
   if [ "$DMESG_PANIC_ONLY" = "1" ]; then
@@ -4438,6 +4441,8 @@ setup_tcp_mss()
 
 plugins_start()
 {
+  local restart
+  
   # Truncate/create file
   cp -f /dev/null "$PLUGIN_LOAD_FILE"
 
@@ -4457,9 +4462,25 @@ plugins_start()
       # Set indent
       INDENT=' '
 
-      # Explicit unset IFS, just in case
+      restart=""
+      if [ -e "$PLUGIN_LOAD_FILE_RESTART" ]; then
+        IFS=$EOL
+        for plugin_restart in `cat "$PLUGIN_LOAD_FILE_RESTART"`; do
+          if [ "$plugin_restart" = "$plugin" ]; then
+            if grep -q "^plugin_restart\(\)" "$plugin"; then
+              restart="restart"
+            fi
+            break
+          fi
+        done
+      fi
+      
       unset IFS
-      PLUGIN_CMD=start
+      if [ "$restart" = "restart" ]; then
+        PLUGIN_CMD=restart
+      else
+        PLUGIN_CMD=start
+      fi
       
       # Source the plugin:
       . "$plugin"
@@ -4471,6 +4492,7 @@ plugins_start()
         plugin_count=$(($plugin_count + 1))
       fi
     done
+    rm -f "$PLUGIN_LOAD_FILE_RESTART"
     echo " Loaded $plugin_count plugin(s)..."
   else
     echo "None found"
@@ -4480,9 +4502,14 @@ plugins_start()
 
 plugins_stop()
 {
+  local restart="$1"
+  
+  # Remove any stale plugin restart file
+  rm -f "$PLUGIN_LOAD_FILE_RESTART"
+  
   if [ -e "$PLUGIN_LOAD_FILE" ]; then
     echo "Stopping (user) plugins..."
-  
+
     IFS=$EOL
     for plugin in `cat "$PLUGIN_LOAD_FILE"`; do
       plugin_name="$(basename "$plugin" |sed 's/^[0-9]*//')"
@@ -4504,7 +4531,12 @@ plugins_stop()
           # Set indent
           INDENT=' '
 
-          PLUGIN_CMD=stop
+          if [ "$restart" = "restart" ] && grep -q "^plugin_restart\(\)" "$plugin_file"; then
+            echo "$plugin" >> "$PLUGIN_LOAD_FILE_RESTART"
+            PLUGIN_CMD=stop-restart
+          else
+            PLUGIN_CMD=stop
+          fi
 
           # Explicit unset IFS, just in case
           unset IFS
@@ -5484,7 +5516,7 @@ main_start()
 
 main_restart()
 {
-  plugins_stop;
+  plugins_stop restart;
   load_modules;
 #  setup_misc;
   setup_kernel_settings;

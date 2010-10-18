@@ -1,5 +1,7 @@
 Version 1.9.9-BETA2-DEVEL (October 18, 2010)
 --------------------------------------------
++ Added support for an optional plugin_restart() function in plugins using a new plugin template,
+  while supporting previous plugins without a plugin_restart() function
 * Allow modprobe_multi() function arguments to be grouped by a comma
 + Added SHAPER_IF variable to traffic-shaper plugin to specify a single external interface
   should the default EXT_IF value contain more than one interface
