@@ -424,7 +424,7 @@ modprobe()
 }
 
 
-# Multi modprobe - Modprobe different modules until one succeeds
+# Multi modprobe - Modprobe different modules until one succeeds, group modules with a comma
 modprobe_multi()
 {
   local OPTIONS=
@@ -444,32 +444,40 @@ modprobe_multi()
     # Make sure environment variable is not set
     MODPROBE_OPTIONS=""
 
-    local retval
-    local result
+    local retval result module modules fail IFS
+    local modprobe_commandline
     
-    local IFS=' '
-    for module in $MODULES; do
-      local modprobe_commandline="$MODPROBE"
-      if [ -n "$OPTIONS" ]; then
-        modprobe_commandline="$modprobe_commandline $OPTIONS"
-      fi
-      modprobe_commandline="$modprobe_commandline $module"
-
-      result=`trace $modprobe_commandline 2>&1`
-      retval=$?
-
-      if [ "$retval" != "0" ]; then
-        if ! echo "$result" |grep -q -e "Module .* not found" -e "Can't locate module"; then
-          # Show any (error) messages in red
-          printf "\033[40m\033[1;31m${modprobe_commandline}: ($retval) $result\033[0m\n" >&2
+    IFS=' '
+    for modules in $MODULES; do
+      fail=0
+      IFS=','
+      for module in $modules; do
+        modprobe_commandline="$MODPROBE"
+        if [ -n "$OPTIONS" ]; then
+          modprobe_commandline="$modprobe_commandline $OPTIONS"
         fi
-      else
-        if echo "$result" |grep -q -e '^WARNING:'; then
-          # Show any (warning) messages in red
-          printf "\033[40m\033[1;31m${modprobe_commandline}: $result\033[0m\n" >&2
+        modprobe_commandline="$modprobe_commandline $module"
+
+        IFS=' '
+        result=`trace $modprobe_commandline 2>&1`
+        retval=$?
+
+        if [ "$retval" != "0" ]; then
+          if ! echo "$result" |grep -q -e "Module .* not found" -e "Can't locate module"; then
+            # Show any (error) messages in red
+            printf "\033[40m\033[1;31m${modprobe_commandline}: ($retval) $result\033[0m\n" >&2
+          fi
+          fail=1
         else
-          echo "${INDENT}Loaded kernel module $module. $result"
+          if echo "$result" |grep -q -e '^WARNING:'; then
+            # Show any (warning) messages in red
+            printf "\033[40m\033[1;31m${modprobe_commandline}: $result\033[0m\n" >&2
+          else
+            echo "${INDENT}Loaded kernel module $module. $result"
+          fi
         fi
+      done
+      if [ "$fail" = "0" ]; then
         return 0
       fi
     done
