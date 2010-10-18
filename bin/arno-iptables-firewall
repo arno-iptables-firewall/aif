@@ -247,43 +247,93 @@ load_modules()
   
   # Required; all IPv4 modules depend on this one
   modprobe ip_tables
-  
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    modprobe ip6_tables
+  fi
+
   # Allows connection tracking state match, which allows you to
   # write rules matching the state of a connection
   modprobe_multi nf_conntrack ip_conntrack
-
-  # Permits active FTP; requires ip_conntrack 
-  modprobe_multi nf_conntrack_ftp ip_conntrack_ftp
-  
-  # Allows tracking for various protocols, placing entries in the conntrack table etc. 
-  modprobe_multi xt_conntrack ipt_conntrack
-  
-  # Allows log limits
-  modprobe_multi xt_limit ipt_limit
-  
-  # Permits packet state checking (SYN, SYN-ACK, ACK, and so on). 
-  modprobe_multi xt_state ipt_state
-  
-  # Allows packet specifications on multiple ports
-  modprobe_multi xt_multiport ipt_multiport
-
-  modprobe iptable_filter          # Implements the filter table
-  modprobe iptable_mangle          # Implements the mangle table
-
-  # Explicitly load some targets
-  modprobe ipt_REJECT              # Implements the REJECT target
-  modprobe ipt_LOG                 # Implements the LOG target
-  
-  if [ "$SET_MSS" != "0" ]; then
-    modprobe_multi xt_TCPMSS ipt_TCPMSS             # Load the TCPMSS target
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    modprobe nf_conntrack_ipv6
   fi
 
+  # Permits active FTP; requires ip_conntrack
+  modprobe_multi nf_conntrack_ftp ip_conntrack_ftp
+  
+  # Allows tracking for various protocols, placing entries in the conntrack table etc.
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    modprobe_multi xt_conntrack ipt_conntrack,ip6t_conntrack
+  else
+    modprobe_multi xt_conntrack ipt_conntrack
+  fi
+  
+  # Allows log limits
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    modprobe_multi xt_limit ipt_limit,ip6t_limit
+  else
+    modprobe_multi xt_limit ipt_limit
+  fi
+  
+  # Permits packet state checking (SYN, SYN-ACK, ACK, and so on).
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    modprobe_multi xt_state ipt_state,ip6t_state
+  else
+    modprobe_multi xt_state ipt_state
+  fi
+  
+  # Allows packet specifications on multiple ports
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    modprobe_multi xt_multiport ipt_multiport,ip6t_multiport
+  else
+    modprobe_multi xt_multiport ipt_multiport
+  fi
+  
+  # Implements the filter table:
+  modprobe iptable_filter
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    modprobe ip6table_filter
+  fi
+  
+  # Implements the mangle table
+  modprobe iptable_mangle
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    modprobe ip6table_mangle
+  fi
+
+  # Implements the REJECT target:
+  modprobe ipt_REJECT
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    modprobe ip6t_REJECT
+  fi
+  
+  # Implements the LOG target:
+  modprobe ipt_LOG
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    modprobe ip6t_LOG
+  fi
+  
+  if [ "$SET_MSS" != "0" ]; then
+    # Load the TCPMSS target:
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      modprobe_multi xt_TCPMSS ipt_TCPMSS,ip6t_TCPMSS
+    else
+      modprobe_multi xt_TCPMSS ipt_TCPMSS
+    fi
+  fi
+  
   if [ "$MANGLE_TOS" != "0" ]; then
-    modprobe_multi xt_DSCP ipt_DSCP ipt_TOS                # Load the TOS target
+    # Load the TOS target:
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      modprobe_multi xt_DSCP ipt_DSCP,ip6t_DSCP ipt_TOS,ip6t_TOS
+    else
+      modprobe_multi xt_DSCP ipt_DSCP ipt_TOS
+    fi
   fi
 
   if [ "$PACKET_TTL" = "1" -o "$TTL_INC" = "1" ]; then
-    modprobe ipt_TTL                # Load the TTL target
+    # Load the TTL target:
+    modprobe ipt_TTL
   fi
 
   # (Currently) unused modules:
@@ -308,44 +358,12 @@ load_modules()
   fi
   
   if [ "$NAT" = "1" -o -n "$NAT_FORWARD_TCP" -o -n "$NAT_FORWARD_UDP" -o -n "$NAT_FORWARD_IP" ]; then
-    modprobe iptable_nat            # Implements the NAT table
+    # Implements the NAT table:
+    modprobe iptable_nat
 
     if [ -z "$NAT_STATIC_IP" ]; then
-      modprobe ipt_MASQUERADE         # Load the MASQUERADE target
-    fi
-  fi
-
-  if [ "$IPV6_SUPPORT" = "1" ]; then
-    modprobe ip6_tables              # Required; all ipv6 modules depend on this one
-
-    modprobe nf_conntrack_ipv6       # Allows connection tracking state match, which allows you to
-                                     # write rules matching the state of a connection
-    
-    # Allows tracking for various protocols, placing entries in the conntrack table etc.
-    modprobe_multi xt_conntrack ip6t_conntrack
-
-    # Allows log limits
-    modprobe_multi xt_limit ip6t_limit
-
-    # Permits packet state checking (SYN, SYN-ACK, ACK, and so on).
-    modprobe_multi xt_state ip6t_state
-
-    # Allows packet specifications on multiple ports
-    modprobe_multi xt_multiport ip6t_multiport
-
-    modprobe ip6table_filter         # Implements the filter table
-    modprobe ip6table_mangle         # Implements the mangle table
-
-    # Explicitly load some targets
-    modprobe ip6t_REJECT             # Implements the REJECT target
-    modprobe ip6t_LOG                # Implements the LOG target
-  
-    if [ "$SET_MSS" != "0" ]; then
-      modprobe_multi xt_TCPMSS ip6t_TCPMSS             # Load the TCPMSS target
-    fi
-
-    if [ "$MANGLE_TOS" != "0" ]; then
-      modprobe_multi xt_DSCP ip6t_DSCP ip6t_TOS                # Load the TOS target
+      # Load the MASQUERADE target:
+      modprobe ipt_MASQUERADE
     fi
   fi
 
