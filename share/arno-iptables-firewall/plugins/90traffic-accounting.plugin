@@ -5,8 +5,8 @@ PLUGIN_NAME="Traffic Accounting plugin"
 PLUGIN_VERSION="1.1BETA (EXPERIMENTAL!)"
 PLUGIN_CONF_FILE="traffic-accounting.conf"
 #
-# Last changed          : September 21, 2010
-# Requirements          : AIF 1.9.2l (or later)
+# Last changed          : October 19, 2010
+# Requirements          : AIF 2.0.0 (or later)
 # Comments              : This implements support for traffic accounting. It is
 #                         works with dynamic hostnames (non-static IPs).
 #                         Updated for mixed IPv4/IPv6
@@ -59,6 +59,22 @@ plugin_start()
     echo "${INDENT}Running helper script..."
     "$PLUGIN_BIN_PATH/traffic-accounting-helper"
   fi
+
+  return 0
+}
+
+
+# Plugin restart function
+plugin_restart()
+{
+  ## Re-add standard chain rules that are flushed on a restart
+  echo "${INDENT}Restarting..."
+  
+  # Insert rule in the INPUT chain
+  iptables -I INPUT 1 -j ACCOUNTING_INPUT_CHAIN
+
+  # Insert rule in the OUTPUT chain
+  iptables -I OUTPUT 1 -j ACCOUNTING_OUTPUT_CHAIN
 
   return 0
 }
@@ -139,12 +155,13 @@ else
   # Source the plugin config file
   . "$CONF_FILE"
 
-  if [ "$ENABLED" = "1" ] ||
+  if [ "$ENABLED" = "1" -a "$PLUGIN_CMD" != "stop-restart" ] ||
+     [ "$ENABLED" = "0" -a "$PLUGIN_CMD" = "stop-restart" ] ||
      [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
      [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
     # Show who we are:
     echo "${INDENT}$PLUGIN_NAME v$PLUGIN_VERSION"
-    
+
     # Increment indention
     INDENT="$INDENT "
 
@@ -152,7 +169,8 @@ else
     if plugin_sanity_check; then
       case $PLUGIN_CMD in
         start|'') plugin_start; PLUGIN_RET_VAL=$?;;
-        stop    ) plugin_stop; PLUGIN_RET_VAL=$?;;
+        restart ) plugin_restart; PLUGIN_RET_VAL=$?;;
+        stop|stop-restart) plugin_stop; PLUGIN_RET_VAL=$?;;
         status  ) plugin_status; PLUGIN_RET_VAL=$?;;
         *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
       esac

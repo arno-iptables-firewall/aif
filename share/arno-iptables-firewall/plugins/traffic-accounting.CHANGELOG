@@ -1,5 +1,6 @@
-Version 1.1BETA (September 21, 2010)
+Version 1.1BETA (October 19, 2010)
 ------------------------------------
+* Added plugin_restart() function support for AIF 2.0.0
 * Updated for mixed IPv4/IPv6
 
 Version 1.01BETA (March 1, 2010)
