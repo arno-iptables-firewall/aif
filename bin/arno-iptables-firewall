@@ -4441,8 +4441,6 @@ setup_tcp_mss()
 
 plugins_start()
 {
-  local restart
-  
   # Truncate/create file
   cp -f /dev/null "$PLUGIN_LOAD_FILE"
 
@@ -4455,33 +4453,29 @@ plugins_start()
     
     unset IFS
     for plugin in "$PLUGIN_BIN_PATH"/*.plugin; do
-      # Preset ENABLED=0 to make sure the plugin only
-      # gets loaded if the config has an explicit ENABLED=1:
-      ENABLED=0
-
-      # Set indent
-      INDENT=' '
-
-      restart=""
+      PLUGIN_CMD=start
       if [ -e "$PLUGIN_LOAD_FILE_RESTART" ]; then
         IFS=$EOL
         for plugin_restart in `cat "$PLUGIN_LOAD_FILE_RESTART"`; do
           if [ "$plugin_restart" = "$plugin" ]; then
             if grep -q "^plugin_restart\(\)" "$plugin"; then
-              restart="restart"
+              PLUGIN_CMD=restart
             fi
             break
           fi
         done
       fi
       
+      # Preset ENABLED=0 to make sure the plugin only
+      # gets loaded if the config has an explicit ENABLED=1:
+      ENABLED=0
+
+      # Set indent
+      INDENT=' '
+   
+      # Explicit unset IFS, just in case
       unset IFS
-      if [ "$restart" = "restart" ]; then
-        PLUGIN_CMD=restart
-      else
-        PLUGIN_CMD=start
-      fi
-      
+     
       # Source the plugin:
       . "$plugin"
 
@@ -4531,11 +4525,10 @@ plugins_stop()
           # Set indent
           INDENT=' '
 
+          PLUGIN_CMD=stop
           if [ "$restart" = "restart" ] && grep -q "^plugin_restart\(\)" "$plugin_file"; then
             echo "$plugin" >> "$PLUGIN_LOAD_FILE_RESTART"
             PLUGIN_CMD=stop-restart
-          else
-            PLUGIN_CMD=stop
           fi
 
           # Explicit unset IFS, just in case
