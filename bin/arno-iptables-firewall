@@ -263,28 +263,28 @@ load_modules()
   
   # Allows tracking for various protocols, placing entries in the conntrack table etc.
   if [ "$IPV6_SUPPORT" = "1" ]; then
-    modprobe_multi xt_conntrack ipt_conntrack,ip6t_conntrack
+    modprobe_multi xt_conntrack "ipt_conntrack,ip6t_conntrack"
   else
     modprobe_multi xt_conntrack ipt_conntrack
   fi
   
   # Allows log limits
   if [ "$IPV6_SUPPORT" = "1" ]; then
-    modprobe_multi xt_limit ipt_limit,ip6t_limit
+    modprobe_multi xt_limit "ipt_limit,ip6t_limit"
   else
     modprobe_multi xt_limit ipt_limit
   fi
   
   # Permits packet state checking (SYN, SYN-ACK, ACK, and so on).
   if [ "$IPV6_SUPPORT" = "1" ]; then
-    modprobe_multi xt_state ipt_state,ip6t_state
+    modprobe_multi xt_state "ipt_state,ip6t_state"
   else
     modprobe_multi xt_state ipt_state
   fi
   
   # Allows packet specifications on multiple ports
   if [ "$IPV6_SUPPORT" = "1" ]; then
-    modprobe_multi xt_multiport ipt_multiport,ip6t_multiport
+    modprobe_multi xt_multiport "ipt_multiport,ip6t_multiport"
   else
     modprobe_multi xt_multiport ipt_multiport
   fi
@@ -316,7 +316,7 @@ load_modules()
   if [ "$SET_MSS" != "0" ]; then
     # Load the TCPMSS target:
     if [ "$IPV6_SUPPORT" = "1" ]; then
-      modprobe_multi xt_TCPMSS ipt_TCPMSS,ip6t_TCPMSS
+      modprobe_multi xt_TCPMSS "ipt_TCPMSS,ip6t_TCPMSS"
     else
       modprobe_multi xt_TCPMSS ipt_TCPMSS
     fi
@@ -325,7 +325,7 @@ load_modules()
   if [ "$MANGLE_TOS" != "0" ]; then
     # Load the TOS target:
     if [ "$IPV6_SUPPORT" = "1" ]; then
-      modprobe_multi xt_DSCP ipt_DSCP,ip6t_DSCP ipt_TOS,ip6t_TOS
+      modprobe_multi xt_DSCP "ipt_DSCP,ip6t_DSCP" "ipt_TOS,ip6t_TOS"
     else
       modprobe_multi xt_DSCP ipt_DSCP ipt_TOS
     fi
