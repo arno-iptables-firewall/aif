@@ -240,6 +240,7 @@ config_check()
 
 load_modules()
 {
+  unset IFS
   # Set indent for functions
   INDENT=' '
 

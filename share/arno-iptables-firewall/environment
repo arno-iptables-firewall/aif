@@ -391,6 +391,8 @@ ip6tables_restore()
 ###############################
 modprobe()
 {
+  local IFS=' '
+
   # Module support available?
   if [ -e /proc/modules ]; then
     # Make sure environment variable is not set
@@ -427,8 +429,8 @@ modprobe()
 # Multi modprobe - Modprobe different modules until one succeeds, group modules with a comma
 modprobe_multi()
 {
-  local OPTIONS=
-  local MODULES=
+  local OPTIONS="" MODULES="" IFS=' '
+
   # Split options and modules
   while [ -n "$1" ]; do
     case "$1" in
@@ -444,7 +446,7 @@ modprobe_multi()
     # Make sure environment variable is not set
     MODPROBE_OPTIONS=""
 
-    local retval result module modules fail IFS
+    local retval result module modules fail
     local modprobe_commandline
     
     IFS=' '
