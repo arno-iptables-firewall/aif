@@ -1,3 +1,7 @@
+Version 1.2BETA (October 19, 2010)
+----------------------------------
+* Added plugin_restart() function support for AIF 2.0.0
+
 Version 1.1BETA (January 21, 2010)
 ----------------------------------
 + Adding proper caches + additional (tweak) settings for the config file

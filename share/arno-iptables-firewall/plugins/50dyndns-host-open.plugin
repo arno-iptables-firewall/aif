@@ -2,11 +2,11 @@
 #            -= Arno's iptables firewall - DynDNS Host Open plugin =-
 #
 PLUGIN_NAME="DynDNS Host Open plugin"
-PLUGIN_VERSION="1.1BETA (EXPERIMENTAL!)"
+PLUGIN_VERSION="1.2BETA (EXPERIMENTAL!)"
 PLUGIN_CONF_FILE="dyndns-host-open.conf"
 #
-# Last changed          : February 25, 2010
-# Requirements          : kernel 2.6 + AIF 1.9.2i or better
+# Last changed          : October 19, 2010
+# Requirements          : kernel 2.6 + AIF 2.0.0 or better
 # Comments              : This implements support to open ports for DynDNS hosts
 #
 # Author                : (C) Copyright 2008-2010 by Arno van Amersfoort
@@ -42,7 +42,8 @@ plugin_start()
   # Insert rule into the main chain:
   iptables -A EXT_INPUT_CHAIN -j DYNDNS_CHAIN
 
-  # TODO: Future versions (which properly implement restart()) should probably remove the cache file here 
+  # Remove the cache file
+  rm -f "$DYNDNS_HOST_CACHE"
   
   # Create cron job
   echo "$DYNDNS_HOST_OPEN_CRON        root    $PLUGIN_BIN_PATH/dyndns-host-open-helper >/dev/null" >/etc/cron.d/dyndns-host-open
@@ -57,13 +58,27 @@ plugin_start()
 }
 
 
+# Plugin restart function
+plugin_restart()
+{
+  ## Re-add standard chain rules that are flushed on a restart
+  echo "${INDENT}Restarting..."
+  
+  # Insert rule into the main chain:
+  iptables -A EXT_INPUT_CHAIN -j DYNDNS_CHAIN
+
+  return 0
+}
+
+
 # Plugin stop function
 plugin_stop()
 {
   # Remove cron job
   rm -f /etc/cron.d/dyndns-host-open
   
-  # TODO: Future versions (which properly implement restart()) should probably remove the cache file here 
+  # Remove the cache file
+  rm -f "$DYNDNS_HOST_CACHE"
   
   iptables -D EXT_INPUT_CHAIN -j DYNDNS_CHAIN 2>/dev/null
 
@@ -137,7 +152,8 @@ else
   # Source the plugin config file
   . "$CONF_FILE"
 
-  if [ "$ENABLED" = "1" ] ||
+  if [ "$ENABLED" = "1" -a "$PLUGIN_CMD" != "stop-restart" ] ||
+     [ "$ENABLED" = "0" -a "$PLUGIN_CMD" = "stop-restart" ] ||
      [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
      [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
     # Show who we are:
@@ -150,7 +166,8 @@ else
     if plugin_sanity_check; then
       case $PLUGIN_CMD in
         start|'') plugin_start; PLUGIN_RET_VAL=$?;;
-        stop    ) plugin_stop; PLUGIN_RET_VAL=$?;;
+        restart ) plugin_restart; PLUGIN_RET_VAL=$?;;
+        stop|stop-restart) plugin_stop; PLUGIN_RET_VAL=$?;;
         status  ) plugin_status; PLUGIN_RET_VAL=$?;;
         *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
       esac
