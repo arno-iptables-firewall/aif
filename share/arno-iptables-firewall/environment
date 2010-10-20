@@ -67,9 +67,9 @@ find_command()
 # Check whether a certain command is available
 check_command()
 {
-  local path
+  local path IFS
 
-  local IFS=' '
+  IFS=' '
   for cmd in $*; do
     case "$cmd" in
       /*) path="" ;;
@@ -94,6 +94,8 @@ check_command()
 # Check whether a binary is available and if not, generate an error and stop program execution
 check_command_error()
 {
+  local IFS=' '
+
   if ! check_command "$@"; then
     printf "\033[40m\033[1;31mERROR  : Command(s) \"$(echo "$@" |tr ' ' '|')\" is/are not available!\033[0m\n" >&2
     printf "\033[40m\033[1;31m         Please investigate. Quitting...\033[0m\n" >&2
@@ -106,10 +108,12 @@ check_command_error()
 # Check whether a binary is available and if not, generate a warning but continue program execution
 check_command_warning()
 {
-  check_command "$@"
-  local retval=$?
+  local retval IFS=' '
 
-  if [ "$retval" != "0" ]; then
+  check_command "$@"
+  retval=$?
+
+  if [ $retval -ne 0 ]; then
     printf "\033[40m\033[1;31mWARNING: Command(s) \"$(echo "$@" |tr ' ' '|')\" is/are not available!\033[0m\n" >&2
     printf "\033[40m\033[1;31m         Please investigate. This *may* be a problem!\033[0m\n" >&2
     echo ""
@@ -287,10 +291,12 @@ iptables()
 
 ip4tables()
 {
+  local result retval IFS=' '
+
   result=`trace $IP4TABLES "$@" 2>&1`
   retval=$?
 
-  if [ "$retval" != "0" ]; then
+  if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m$IP4TABLES: ($retval) $result\033[0m\n" >&2
     if note_iptables_error "$@"; then
@@ -306,10 +312,12 @@ ip4tables()
 
 ip6tables()
 {
+  local result retval IFS=' '
+
   result=`trace $IP6TABLES "$@" 2>&1`
   retval=$?
 
-  if [ "$retval" != "0" ]; then
+  if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m$IP6TABLES: ($retval) $result\033[0m\n" >&2
     if note_iptables_error "$@"; then
@@ -325,10 +333,12 @@ ip6tables()
 
 ip4tables_save()
 {
+  local retval IFS=' '
+
   $IP4TABLES_SAVE "$@"
   retval=$?
 
-  if [ "$retval" != "0" ]; then
+  if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m$IP4TABLES_SAVE: Error ($retval) \033[0m\n" >&2
     IPTABLES_ERROR=1
@@ -340,10 +350,12 @@ ip4tables_save()
 
 ip4tables_restore()
 {
+  local result retval IFS=' '
+
   result=`$IP4TABLES_RESTORE "$@" 2>&1`
   retval=$?
 
-  if [ "$retval" != "0" ]; then
+  if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m$IP4TABLES_RESTORE: ($retval) $result\033[0m\n" >&2
     IPTABLES_ERROR=1
@@ -357,10 +369,12 @@ ip4tables_restore()
 
 ip6tables_save()
 {
+  local retval IFS=' '
+
   $IP6TABLES_SAVE "$@"
   retval=$?
 
-  if [ "$retval" != "0" ]; then
+  if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m$IP6TABLES_SAVE: Error ($retval) \033[0m\n" >&2
     IPTABLES_ERROR=1
@@ -372,10 +386,12 @@ ip6tables_save()
 
 ip6tables_restore()
 {
+  local result retval IFS=' '
+
   result=`$IP6TABLES_RESTORE "$@" 2>&1`
   retval=$?
 
-  if [ "$retval" != "0" ]; then
+  if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m$IP6TABLES_RESTORE: ($retval) $result\033[0m\n" >&2
     IPTABLES_ERROR=1
@@ -391,7 +407,7 @@ ip6tables_restore()
 ###############################
 modprobe()
 {
-  local IFS=' '
+  local result retval IFS=' '
 
   # Module support available?
   if [ -e /proc/modules ]; then
@@ -401,7 +417,7 @@ modprobe()
     result=`trace $MODPROBE $@ 2>&1`
     retval=$?
 
-    if [ "$retval" != "0" ]; then
+    if [ $retval -ne 0 ]; then
       if ! echo "$result" |grep -q -e "Module .* not found" -e "Can't locate module"; then
         # Show any (error) messages in red
         printf "\033[40m\033[1;31m${MODPROBE} $@: ($retval) $result\033[0m\n" >&2
@@ -429,7 +445,7 @@ modprobe()
 # Multi modprobe - Modprobe different modules until one succeeds, group modules with a comma
 modprobe_multi()
 {
-  local OPTIONS="" MODULES="" IFS=' '
+  local result retval OPTIONS="" MODULES="" IFS=' '
 
   # Split options and modules
   while [ -n "$1" ]; do
@@ -446,8 +462,7 @@ modprobe_multi()
     # Make sure environment variable is not set
     MODPROBE_OPTIONS=""
 
-    local retval result module modules fail
-    local modprobe_commandline
+    local module modules fail modprobe_commandline
     
     IFS=' '
     for modules in $MODULES; do
@@ -464,7 +479,7 @@ modprobe_multi()
         result=`trace $modprobe_commandline 2>&1`
         retval=$?
 
-        if [ "$retval" != "0" ]; then
+        if [ $retval -ne 0 ]; then
           if ! echo "$result" |grep -q -e "Module .* not found" -e "Can't locate module"; then
             # Show any (error) messages in red
             printf "\033[40m\033[1;31m${modprobe_commandline}: ($retval) $result\033[0m\n" >&2
@@ -479,7 +494,7 @@ modprobe_multi()
           fi
         fi
       done
-      if [ "$fail" = "0" ]; then
+      if [ $fail -eq 0 ]; then
         return 0
       fi
     done
@@ -499,10 +514,12 @@ modprobe_multi()
 #######################
 sysctl()
 {
+  local result retval IFS=' '
+
   result=`trace $SYSCTL "$@" 2>&1`
   retval=$?
 
-  if [ "$retval" != "0" ]; then
+  if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m$SYSCTL $@: ($retval) $result\033[0m\n" >&2
     return $retval
@@ -519,8 +536,7 @@ sysctl()
 # Multi sysctl - Try sysctl-variables until one succeeds
 sysctl_multi()
 {
-  local OPTIONS=
-  local VARIABLES=
+  local result retval OPTIONS="" VARIABLES="" IFS=' '
 
   while [ -n "$1" ]; do
     # Combine options and exit on first non-option
@@ -531,7 +547,7 @@ sysctl_multi()
     shift
   done
 
-  local IFS=' '
+  IFS=' '
   for variable in $VARIABLES; do
     if $SYSCTL "$(echo "$variable" |cut -d'=' -f1)" >/dev/null 2>&1; then
       local sysctl_commandline="$SYSCTL"
@@ -543,7 +559,7 @@ sysctl_multi()
       result=`trace $sysctl_commandline 2>&1`
       retval=$?
 
-      if [ "$retval" = "0" ]; then
+      if [ $retval -eq 0 ]; then
         if [ -n "$result" ]; then
           echo "${INDENT}$result"
         fi
@@ -930,7 +946,7 @@ gethostbyaddr()
   result="$(dig -x "$@" "$host")"
   retval=$?
 
-  if [ "$retval" = "0" ]; then
+  if [ $retval -eq 0 ]; then
     if [ -n "$result" ]; then
       echo "$result"
       return 0
@@ -960,7 +976,7 @@ gethostbyname()
   result="$(dig "$@" "$host")"
   retval=$?
 
-  if [ "$retval" = "0" ]; then
+  if [ $retval -eq 0 ]; then
     if [ -n "$result" ]; then
       echo "$result"
       return 0
@@ -976,10 +992,9 @@ gethostbyname()
 # Helper function to show (resolved) ip~hostname
 show_hostname()
 {
-  local hostname=""
-  local FIRST=0
+  local hostname="" FIRST=0 IFS
   
-  local IFS=' ,'
+  IFS=' ,'
   # Argument(s) contains IP(s)
   for host in $1; do
     if [ "$RESOLV_IPS" = "1" ]; then
@@ -988,7 +1003,7 @@ show_hostname()
       hostname=""
     fi
 
-    if [ "$FIRST" = "0" ]; then
+    if [ $FIRST -eq 0 ]; then
       FIRST=1
     else
       printf ","
@@ -1035,7 +1050,7 @@ show_hosts_ports()
 # Helper function to translate host ranges from variable
 ip_range()
 {
-  local IFS
+  local FIRST IFS=' '
   
   # Return the args if there is no '-' for improved execution speed
   case "$@" in
@@ -1056,7 +1071,7 @@ ip_range()
     if [ -n "$stop" -a -n "$start" ]; then
       IFS=' '
       for x in `seq -s' ' $start $stop`; do
-        if [ "$FIRST" = "1" ]; then
+        if [ $FIRST -eq 1 ]; then
           FIRST=0
         else
           printf ","
@@ -1064,7 +1079,7 @@ ip_range()
         printf "$host_base$x"
       done
     else
-      if [ "$FIRST" = "1" ]; then
+      if [ $FIRST -eq 1 ]; then
         FIRST=0
       else
         printf ","
