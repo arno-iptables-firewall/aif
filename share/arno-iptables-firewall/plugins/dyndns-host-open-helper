@@ -140,7 +140,7 @@ dyndns_host_to_cache()
     echo "$host_ip"
     echo "$host $host_ip" >>"$DYNDNS_HOST_CACHE".new 
   fi
-}      
+}
 
 
 # Setup host->ip cache
