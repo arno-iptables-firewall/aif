@@ -133,10 +133,6 @@ dyndns_host_to_cache()
       if [ -z "$host_ip" ]; then
         printf "\033[40m\033[1;31mFAILED!\033[0m\n"
         echo "** ERROR($retval): Unresolvable host \"$host\", and no old IP to fallback on! **" >&2 
-      
-        # Create dummy entry, so the others know we failed
-        echo "$host " >>"$DYNDNS_HOST_CACHE".new
-        return $retval
       else
         echo "** WARNING($retval): Unresolvable host \"$host\". Re-using old IP ($host_ip)! **" >&2 
       fi
@@ -144,8 +140,6 @@ dyndns_host_to_cache()
     echo "$host_ip"
     echo "$host $host_ip" >>"$DYNDNS_HOST_CACHE".new 
   fi
-  
-  return 0
 }      
 
 
