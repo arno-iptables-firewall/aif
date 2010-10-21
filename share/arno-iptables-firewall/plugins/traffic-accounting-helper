@@ -65,18 +65,16 @@ sanity_check()
     return 1
   fi
 
-  ## Note: remove this fatal sanity check since a restart will flush
-  ## the INPUT and OUTPUT chains, therefore being unavailable for a few seconds.
-  ## Log only.
   # Check if chains inserted in the main chains
   if ! iptables -nL INPUT |grep -q '^ACCOUNTING_INPUT_CHAIN '; then
     echo "** ERROR: ACCOUNTING_INPUT_CHAIN is not inserted in the INPUT chain! **" >&2
+    return 1
   fi
 
   if ! iptables -nL OUTPUT |grep -q '^ACCOUNTING_OUTPUT_CHAIN '; then
     echo "** ERROR: ACCOUNTING_OUTPUT_CHAIN is not inserted in the OUTPUT chain! **" >&2
+    return 1
   fi
-  ##
 
   if ! check_command dig nslookup; then
     echo "** ERROR: Required command dig (or nslookup) is not available!" >&2
