@@ -55,23 +55,23 @@ sanity_check()
   fi
 
   # Check whether chains exists
-  if ! iptables -nL ACCOUNTING_INPUT_CHAIN >/dev/null 2>&1; then
+  if ! ip4tables -nL ACCOUNTING_INPUT_CHAIN >/dev/null 2>&1; then
     echo "** ERROR: ACCOUNTING_INPUT_CHAIN does not exist! **" >&2
     return 1
   fi
 
-  if ! iptables -nL ACCOUNTING_OUTPUT_CHAIN >/dev/null 2>&1; then
+  if ! ip4tables -nL ACCOUNTING_OUTPUT_CHAIN >/dev/null 2>&1; then
     echo "** ERROR: ACCOUNTING_OUTPUT_CHAIN does not exist! **" >&2
     return 1
   fi
 
   # Check if chains inserted in the main chains
-  if ! iptables -nL INPUT |grep -q '^ACCOUNTING_INPUT_CHAIN '; then
+  if ! ip4tables -nL INPUT |grep -q '^ACCOUNTING_INPUT_CHAIN '; then
     echo "** ERROR: ACCOUNTING_INPUT_CHAIN is not inserted in the INPUT chain! **" >&2
     return 1
   fi
 
-  if ! iptables -nL OUTPUT |grep -q '^ACCOUNTING_OUTPUT_CHAIN '; then
+  if ! ip4tables -nL OUTPUT |grep -q '^ACCOUNTING_OUTPUT_CHAIN '; then
     echo "** ERROR: ACCOUNTING_OUTPUT_CHAIN is not inserted in the OUTPUT chain! **" >&2
     return 1
   fi
