@@ -123,13 +123,6 @@ check_command_warning()
 }
 
 
-check_binary()
-{
-  printf "\033[40m\033[1;31mWARNING: Function check_binary() will soon be deprecated, please use check_command_error() instead!\033[0m\n" >&2
-  check_command_error "$@"
-}
-
-
 # Check if the current kernel is at least a certain version (or newer)
 # Arguments: major minor rev (eg. "2 6 25")
 # Return   : 0 = kernel is equal or newer, 1 = kernel is older
