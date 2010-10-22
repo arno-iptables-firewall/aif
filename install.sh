@@ -67,6 +67,12 @@ sanity_check()
   check_command_error logger
   check_command_error chmod
   check_command_error chown
+  check_command_error diff
+  check_command_error find
+  check_command_error cp
+  check_command_error rm
+  check_command_error mkdir
+  check_command_error rmdir
   check_command_warning dig nslookup
 }
 
@@ -269,7 +275,7 @@ check_plugins()
     unset IFS
     for plugin in ./share/arno-iptables-firewall/plugins/*.plugin; do
       plugin_name="$(basename "$plugin" |sed 's/^[0-9]*//')"
-        
+      
       find /usr/local/share/arno-iptables-firewall/plugins/ -maxdepth 1 -name "*.plugin" |grep "/[0-9]*$plugin_name$" |grep -v "/$(basename "$plugin")$" |while read fn; do
         echo "* Removing old plugin: $fn"
         rm -fv "$fn"
