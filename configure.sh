@@ -52,6 +52,13 @@ sanity_check()
   check_command_error sed
   check_command_error chmod
   check_command_error chown
+  check_command_error cp
+  check_command_error ln
+  check_command_error rm
+  check_command_error ip
+  check_command_error cut
+  check_command_error diff
+  check_command_error sed
 }
 
 
@@ -172,7 +179,7 @@ setup_conf_file()
 
       break
     fi
-  done  
+  done
   
   if get_user_yn "Does your external interface get its IP through DHCP (Y/N)?" "n"; then
     change_conf_var "$FIREWALL_CONF" "EXT_IF_DHCP_IP" "1"

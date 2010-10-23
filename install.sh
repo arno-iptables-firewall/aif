@@ -73,6 +73,7 @@ sanity_check()
   check_command_error rm
   check_command_error mkdir
   check_command_error rmdir
+  check_command_error ln
   check_command_warning dig nslookup
 }
 
