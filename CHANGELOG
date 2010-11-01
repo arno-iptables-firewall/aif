@@ -1,5 +1,5 @@
-Version 1.9.2n-DEVEL (October 7, 2010)
---------------------------------------
+Version 1.9.2n (November 1, 2010)
+---------------------------------
 ! Revert change that didn't masquerade IPv6/proto 41, so outgoing forwarded connections work properly
 ! Fixed handling of destination host~port fields where only the host was specified.
 ! Fixed handling of INET_DMZ_HOST_OPEN_xxx variables
