@@ -1,3 +1,8 @@
+Version 0.82BETA (November 2, 2010)
+-----------------------------------
++ Added IPv6 support for matching AH headers
+* removed unnecessary EXT_INPUT_CHAIN rule
+
 Version 0.81BETA (September 19, 2010)
 ----------------------------------
 * Changed '-t nat' calls via ip4tables

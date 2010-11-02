@@ -1,5 +1,7 @@
 Version 1.9.9-RC2-DEVEL (November 2, 2010)
 ------------------------------------------
+* ipsec-vpn plugin, removed unnecessary EXT_INPUT_CHAIN rule and added IPv6 support
+  for matching AH headers
 
 Version 1.9.9-RC1 (October 25, 2010)
 ------------------------------------
