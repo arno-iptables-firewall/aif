@@ -6,7 +6,7 @@ PLUGIN_VERSION="0.82BETA"
 PLUGIN_CONF_FILE="ipsec-vpn.conf"
 #
 # Last changed          : November 2, 2010
-# Requirements          : kernel 2.6 + ipt_policy + iptable_nat
+# Requirements          : AIF 2.0.0+ and kernel 2.6 + ipt_policy + iptable_nat
 # Comments              : This plugin adds all required rules for using Racoon IPSEC.
 #
 # Author                : (C) Copyright 2006-2010 by Philip Prindeville & Arno van Amersfoort
@@ -33,7 +33,7 @@ PLUGIN_CONF_FILE="ipsec-vpn.conf"
 # Plugin start function
 plugin_start()
 {
-  local eif net IFS
+  local eif net ipver IFS
 
   modprobe ipt_policy              # Allows use of policy match
   modprobe iptable_nat             # We need the NAT table
@@ -70,8 +70,18 @@ plugin_start()
   IFS=' ,'
   for host in `ip_range "$IPSEC_ALLOWED_HOSTS"`; do
     iptables -A EXT_INPUT_CHAIN -p udp --dport 500 -s $host -j ACCEPT
-    iptables -A EXT_INPUT_CHAIN -p esp -s $host -j ACCEPT
-    iptables -A EXT_INPUT_CHAIN -p ah -s $host -j ACCEPT
+    get_numeric_ip_version "$host"
+    ipver=$?
+    if [ $ipver -eq 4 -o $ipver -eq 0 ]; then
+      ip4tables -A EXT_INPUT_CHAIN -p esp -s $host -j ACCEPT
+      ip4tables -A EXT_INPUT_CHAIN -p ah -s $host -j ACCEPT
+    fi
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      if [ $ipver -eq 6 -o $ipver -eq 0 ]; then
+        ip6tables -A EXT_INPUT_CHAIN -m esp -p esp -s $host -j ACCEPT
+        ip6tables -A EXT_INPUT_CHAIN -m ah -s $host -j ACCEPT
+      fi
+    fi
 
     if [ "$IPSEC_NAT_TRAVERSAL" = "1" ]; then
       iptables -A EXT_INPUT_CHAIN -p udp --dport 4500 -s $host -j ACCEPT
