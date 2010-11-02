@@ -1,3 +1,6 @@
+Version 1.9.9-RC2-DEVEL (November 2, 2010)
+------------------------------------------
+
 Version 1.9.9-RC1 (October 25, 2010)
 ------------------------------------
 - Removed deprecated check_binary() function from environment
