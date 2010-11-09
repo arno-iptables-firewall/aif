@@ -670,7 +670,7 @@ dig()
         cnt=$((cnt + 1))
         if [ $cnt -gt 2 ]; then
           case "$line" in
-            Address*) addr="$(echo "$line" |sed -e 's/^Address.*: *//' -e 's/ .*$//')"
+            Address*) addr="$(echo "$line" |sed -n -r -e 's/^Address.*: *([0-9.]{7,}).*$/\1/p')"
                       name="$(echo "$line" |sed -e 's/^.* //')"
                       ;;
             *'canonical name = '*) addr=""
