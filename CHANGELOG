@@ -1,5 +1,6 @@
-Version 1.9.9-RC2-DEVEL (November 2, 2010)
+Version 1.9.9-RC2-DEVEL (November 8, 2010)
 ------------------------------------------
+! dig wrapper using nslookup, extract IPv4 addresses over IPv6 addresses
 * ipsec-vpn plugin, removed unnecessary EXT_INPUT_CHAIN rule and added IPv6 support
   for matching AH headers
 
