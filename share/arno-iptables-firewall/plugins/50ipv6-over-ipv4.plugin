@@ -2,7 +2,7 @@
 #            -= Arno's iptables firewall - IPv6-over-IPv4 plugin =-
 #
 PLUGIN_NAME="IPv6-over-IPv4 plugin"
-PLUGIN_VERSION="0.2BETA"
+PLUGIN_VERSION="0.21BETA"
 PLUGIN_CONF_FILE="ipv6-over-ipv4.conf"
 #
 # Last changed          : October 8, 2010
@@ -36,7 +36,11 @@ plugin_start()
 {
   local src interface
   
-  # Enable (allow) IPv6 tunnel traffic
+  if [ -z "$IPV6_OVER_IPV4_SERVER" ]; then
+    IPV6_OVER_IPV4_SERVER="0/0"
+  fi
+
+# Enable (allow) IPv6 tunnel traffic
   ####################################
   echo "${INDENT}Allowing IPv6 tunnel for $IPV6_OVER_IPV4_SERVER (INET) to interface(s): $IPV6_OVER_IPV4_IF"
   IFS=' ,'
@@ -66,7 +70,7 @@ plugin_status()
 # Check sanity of eg. environment
 plugin_sanity_check()
 {
-  if [ -z "$IPV6_OVER_IPV4_IF" -o -z "$IPV6_OVER_IPV4_SERVER" ]; then
+  if [ -z "$IPV6_OVER_IPV4_IF" ]; then
     printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not properly set!\033[0m\n" >&2
     return 1
   fi
@@ -116,3 +120,4 @@ else
     PLUGIN_RET_VAL=0
   fi
 fi
+
