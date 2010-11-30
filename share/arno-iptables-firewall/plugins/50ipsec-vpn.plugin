@@ -1,0 +1,197 @@
+# ------------------------------------------------------------------------------
+#               -= Arno's iptables firewall - IPsec VPN plugin =-
+#
+PLUGIN_NAME="IPsec VPN plugin"
+PLUGIN_VERSION="0.82BETA"
+PLUGIN_CONF_FILE="ipsec-vpn.conf"
+#
+# Last changed          : November 2, 2010
+# Requirements          : AIF 2.0.0+ and kernel 2.6 + ipt_policy + iptable_nat
+# Comments              : This plugin adds all required rules for using Racoon IPSEC.
+#
+# Author                : (C) Copyright 2006-2010 by Philip Prindeville & Arno van Amersfoort
+# Homepage              : http://rocky.eld.leidenuniv.nl/
+# Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
+# Email                 : philipp AT redfish-solutions DOT com
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------
+
+# Plugin start function
+plugin_start()
+{
+  local eif net ipver IFS
+
+  modprobe ipt_policy              # Allows use of policy match
+  modprobe iptable_nat             # We need the NAT table
+
+  iptables -N VPN_INPUT 2>/dev/null
+  iptables -F VPN_INPUT
+
+  iptables -N VPN_FORWARD 2>/dev/null
+  iptables -F VPN_FORWARD
+
+  # If the user has specified a subset of remote networks, only allow those.
+  if [ -n "$IPSEC_VPN_NETS" ]; then
+    echo "${INDENT}Applying rules for VPN nets $IPSEC_VPN_NETS"
+    IFS=' ,'
+    for vnet in $IPSEC_VPN_NETS; do
+      iptables -A VPN_INPUT -s $vnet -j ACCEPT
+      iptables -A VPN_FORWARD -s $vnet -j ACCEPT
+    done
+    iptables -A VPN_INPUT -j DROP
+    iptables -A VPN_FORWARD -j DROP
+  else
+    # Otherwise, we allow everything.
+    iptables -A VPN_INPUT -j ACCEPT
+    iptables -A VPN_FORWARD -j ACCEPT
+  fi
+
+  # Don't apply the usual filters for the external interface on
+  # traffic that's just been decapulated.  We treat it mostly like
+  # internal traffic.
+  # iptables -A EXT_INPUT_CHAIN -m policy --pol ipsec --dir in -j VPN_INPUT
+  # (unnecessary since the -A INPUT...-j VPN_INPUT rule below supersedes this rule)
+
+  echo "${INDENT}Allowing internet hosts $IPSEC_ALLOWED_HOSTS to access the VPN service"
+  IFS=' ,'
+  for host in `ip_range "$IPSEC_ALLOWED_HOSTS"`; do
+    iptables -A EXT_INPUT_CHAIN -p udp --dport 500 -s $host -j ACCEPT
+    get_numeric_ip_version "$host"
+    ipver=$?
+    if [ $ipver -eq 4 -o $ipver -eq 0 ]; then
+      ip4tables -A EXT_INPUT_CHAIN -p esp -s $host -j ACCEPT
+      ip4tables -A EXT_INPUT_CHAIN -p ah -s $host -j ACCEPT
+    fi
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      if [ $ipver -eq 6 -o $ipver -eq 0 ]; then
+        ip6tables -A EXT_INPUT_CHAIN -m esp -p esp -s $host -j ACCEPT
+        ip6tables -A EXT_INPUT_CHAIN -m ah -s $host -j ACCEPT
+      fi
+    fi
+
+    if [ "$IPSEC_NAT_TRAVERSAL" = "1" ]; then
+      iptables -A EXT_INPUT_CHAIN -p udp --dport 4500 -s $host -j ACCEPT
+    fi
+  done
+
+  local -i cnt=0
+  IFS=' ,'
+  for eif in $EXT_IF; do
+    for net in $INTERNAL_NET; do
+      let cnt++
+      iptables -I SPOOF_CHK $cnt -i $eif -s $net -m policy --pol ipsec --dir in -j RETURN
+    done
+  done
+
+  IFS=' ,'
+  for eif in $EXT_IF; do
+    # Allow IPSEC packets in after decapsulation
+    ip4tables -t nat -A PREROUTING -i $eif -m policy --pol ipsec --dir in -j ACCEPT
+
+    iptables -A FORWARD -i $eif -m policy --pol ipsec --dir in -j VPN_FORWARD
+    iptables -A INPUT -i $eif -m policy --pol ipsec --dir in -j VPN_INPUT
+
+    # Do not apply masquerading to outbound traffic
+    ip4tables -t nat -A POSTROUTING -o $eif -m policy --pol ipsec --dir out -j ACCEPT
+  done
+
+  return 0
+}
+
+
+# Plugin stop function
+plugin_stop()
+{
+  local eif net IFS
+
+  iptables -F VPN_INPUT
+  iptables -X VPN_INPUT 2>/dev/null
+  iptables -F VPN_FORWARD
+  iptables -X VPN_FORWARD 2>/dev/null
+
+  IFS=' ,'
+  for eif in $EXT_IF; do
+    for net in $INTERNAL_NET; do
+      iptables -D SPOOF_CHK -i $eif -s $net -m policy --pol ipsec --dir in -j RETURN
+    done
+  done
+
+  return 0
+}
+
+
+# Plugin status function
+plugin_status()
+{
+  return 0
+}
+
+
+# Check sanity of eg. environment
+plugin_sanity_check()
+{
+  # Sanity check
+  if [ -z "$IPSEC_ALLOWED_HOSTS" ]; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not properly set!\033[0m\n" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+
+############
+# Mainline #
+############
+
+# Check where to find the config file
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+else
+  CONF_FILE="$PLUGIN_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Check if the config file exists
+if [ ! -e "$CONF_FILE" ]; then
+  printf "NOTE: Config file \"$CONF_FILE\" not found!\n        Plugin \"$PLUGIN_NAME v$PLUGIN_VERSION\" ignored!\n" >&2
+  PLUGIN_RET_VAL=0
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  if [ "$ENABLED" = "1" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
+    # Show who we are:
+    echo "${INDENT}$PLUGIN_NAME v$PLUGIN_VERSION"
+
+    # Increment indention
+    INDENT="$INDENT "
+    
+    # Only proceed if environment ok
+    if plugin_sanity_check; then
+      case $PLUGIN_CMD in
+        start|'') plugin_start; PLUGIN_RET_VAL=$?;;
+        stop    ) plugin_stop; PLUGIN_RET_VAL=$?;;
+        status  ) plugin_status; PLUGIN_RET_VAL=$?;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m  ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
+      esac
+    fi
+  else
+    PLUGIN_RET_VAL=0
+  fi
+fi

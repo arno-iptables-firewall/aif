@@ -1,0 +1,197 @@
+# ------------------------------------------------------------------------------
+#                  -= Arno's iptables firewall - Multirouting plugin =-
+#
+PLUGIN_NAME="Multirouting plugin"
+PLUGIN_VERSION="0.31BETA (EXPERIMENTAL!)"
+PLUGIN_CONF_FILE="multiroute.conf"
+#
+# Last changed          : March 17, 2009
+# Requirements          : iproute2 (package) + kernel 2.6 with the following options set in:
+#                         Networking, Networking support, TCP/IP networking:
+#                               CONFIG_IP_ADVANCED_ROUTER=y (IP: advanced router)
+#                               CONFIG_IP_MULTIPLE_TABLES=y (IP: policy routing)
+#                               CONFIG_IP_ROUTE_MULTIPATH=y (IP: equal cost multipath)
+#
+# Comments              : This plugin enables IP multirouting (load balancing). Note
+#                         that it does NOT support redundant connections (fallback when
+#                         one of the links is down). This is NOT a limitation of this
+#                         plugin, but of the current Linux kernel that does not support
+#                         this(yet). To obtain the information needed to configure this plugin
+#                         use the 'ifconfig' and 'route' commands.
+#
+# Author                : (C) Copyright 2005-2009 by Arno van Amersfoort
+# Homepage              : http://rocky.eld.leidenuniv.nl/
+# Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
+# Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------
+
+# Plugin start function
+plugin_start()
+{
+  if [ "$RP_FILTER_DISABLE" = "1" ]; then
+    # In some cases the rp_filter gives some problems, so we disable it and
+    # rely on the anti-spoof rules in the firewall
+    echo "${INDENT}Disabling RP_FILTER..."
+    echo "0" >/proc/sys/net/ipv4/conf/$MULTIROUTE_EXT_IF1/rp_filter
+    echo "0" >/proc/sys/net/ipv4/conf/$MULTIROUTE_EXT_IF2/rp_filter
+  fi
+
+  # Purge, just in case
+  ip rule del from $MULTIROUTE_EXT_IP1 lookup 1 2>/dev/null
+  ip rule del from $MULTIROUTE_EXT_IP2 lookup 2 2>/dev/null
+
+  # Setup source IP routing rules for external interface 1
+  echo "${INDENT}Setup source IP routing for $MULTIROUTE_EXT_IP1"
+  ip rule add from $MULTIROUTE_EXT_IP1 lookup 1
+#    ip route replace 0/0 via $MULTIROUTE_EXT_ROUTER1 table 1
+
+  echo "${INDENT}Setting default route for $MULTIROUTE_EXT_IF1 to $MULTIROUTE_EXT_ROUTER1 (table 1)"
+  ip route replace default via $MULTIROUTE_EXT_ROUTER1 dev $MULTIROUTE_EXT_IF1 table 1
+
+  echo "  Setting route for $MULTIROUTE_INT_NET to $MULTIROUTE_INT_IP (table 1)"
+  ip route replace $MULTIROUTE_INT_NET via $MULTIROUTE_INT_IP table 1
+
+  # Setup source IP routing rules for external interface 2
+  echo "${INDENT}Setup source IP routing for $MULTIROUTE_EXT_IP2"
+  ip rule add from $MULTIROUTE_EXT_IP2 lookup 2
+#    ip route replace 0/0 via $MULTIROUTE_EXT_ROUTER2 table 2
+
+  echo "${INDENT}Setting default route for $MULTIROUTE_EXT_IF2 to $MULTIROUTE_EXT_ROUTER2 (table 2)"
+  ip route replace default via $MULTIROUTE_EXT_ROUTER2 dev $MULTIROUTE_EXT_IF2 table 2
+
+  echo "${INDENT}Setting route for $MULTIROUTE_INT_NET to $MULTIROUTE_INT_IP (table 2)"
+  ip route replace $MULTIROUTE_INT_NET via $MULTIROUTE_INT_IP table 2
+
+  # Destroy old routes
+  ip route del default via $MULTIROUTE_EXT_ROUTER1 dev $MULTIROUTE_EXT_IF1 2>/dev/null
+  ip route del default via $MULTIROUTE_EXT_ROUTER2 dev $MULTIROUTE_EXT_IF2 2>/dev/null
+  
+  # Setup the actual loadbalancing
+  echo "${INDENT}Enabling loadbalancing"
+  echo "${INDENT} Adding external interface $MULTIROUTE_EXT_IF1, gw=$MULTIROUTE_EXT_ROUTER1, weight=$MULTIROUTE_EXT_WEIGHT1"
+  echo "${INDENT} Adding external interface $MULTIROUTE_EXT_IF2, gw=$MULTIROUTE_EXT_ROUTER2, weight=$MULTIROUTE_EXT_WEIGHT2"
+  ip route add default equalize \
+    nexthop via $MULTIROUTE_EXT_ROUTER1 dev $MULTIROUTE_EXT_IF1 weight $MULTIROUTE_EXT_WEIGHT1 \
+    nexthop via $MULTIROUTE_EXT_ROUTER2 dev $MULTIROUTE_EXT_IF2 weight $MULTIROUTE_EXT_WEIGHT2
+
+  # Flush route cache
+#    echo "1" >/proc/sys/net/ipv4/route/flush
+  ip route flush cache
+
+  return 0
+}
+
+
+# Plugin stop function
+plugin_stop()
+{
+  echo "${INDENT}Removing lookup rules"
+  ip rule del from $MULTIROUTE_EXT_IP1 lookup 1
+  ip rule del from $MULTIROUTE_EXT_IP2 lookup 2
+  
+  ip route del default via $MULTIROUTE_EXT_ROUTER1 dev $MULTIROUTE_EXT_IF1 2>/dev/null
+  ip route del default via $MULTIROUTE_EXT_ROUTER2 dev $MULTIROUTE_EXT_IF2 2>/dev/null
+
+  # Set default route to the first interface
+  echo "${INDENT}Setting default (single) route to $MULTIROUTE_EXT_ROUTER1 on interface $MULTIROUTE_EXT_IF1"
+  ip route add default via $MULTIROUTE_EXT_ROUTER1 dev $MULTIROUTE_EXT_IF1
+
+  # Flush route cache
+#    echo "1" >/proc/sys/net/ipv4/route/flush
+  ip route flush cache
+    
+  return 0
+}
+
+
+# Plugin status function
+plugin_status()
+{
+  ip rule show
+  ip route show
+  
+  return 0
+}
+
+
+# Check sanity of eg. environment
+plugin_sanity_check()
+{
+  # Set default weight, if not specified
+  if [ -z "$MULTIROUTE_EXT_WEIGHT1" ]; then
+    MULTIROUTE_EXT_WEIGHT1=1
+  fi
+  
+  # Set default weight, if not specified
+  if [ -z "$MULTIROUTE_EXT_WEIGHT2" ]; then
+    MULTIROUTE_EXT_WEIGHT2=1
+  fi
+
+  if [ -z "$MULTIROUTE_EXT_IF1" -o -z "$MULTIROUTE_EXT_ROUTER1" -o -z "$MULTIROUTE_EXT_IP1" -o \
+       -z "$MULTIROUTE_EXT_IF2" -o -z "$MULTIROUTE_EXT_ROUTER2" -o -z "$MULTIROUTE_EXT_IP2" -o \
+       -z "$MULTIROUTE_INT_IP"  -o -z "$MULTIROUTE_INT_NET" -o \
+       $MULTIROUTE_EXT_WEIGHT1 -le 0 -o $MULTIROUTE_EXT_WEIGHT2 -le 0 ]; then
+    printf "\033[40m\033[1;31m  ERROR: The plugin config file is not properly set!\033[0m\n" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+
+############
+# Mainline #
+############
+
+# Check where to find the config file
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+else
+  CONF_FILE="$PLUGIN_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Check if the config file exists
+if [ ! -e "$CONF_FILE" ]; then
+  printf "NOTE: Config file \"$CONF_FILE\" not found!\n        Plugin \"$PLUGIN_NAME v$PLUGIN_VERSION\" ignored!\n" >&2
+  PLUGIN_RET_VAL=0
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  if [ "$ENABLED" = "1" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
+    # Show who we are:
+    echo "${INDENT}$PLUGIN_NAME v$PLUGIN_VERSION"
+
+    # Increment indention
+    INDENT="$INDENT "
+
+    # Only proceed if environment ok
+    if plugin_sanity_check; then
+      case $PLUGIN_CMD in
+        start|'') plugin_start; PLUGIN_RET_VAL=$?;;
+        stop    ) plugin_stop; PLUGIN_RET_VAL=$?;;
+        status  ) plugin_status; PLUGIN_RET_VAL=$?;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
+      esac
+    fi
+  else
+    PLUGIN_RET_VAL=0
+  fi
+fi

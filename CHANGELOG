@@ -1,0 +1,50 @@
+Version 2.0.0 (November 15, 2010)
+---------------------------------
+! dig wrapper using nslookup, extract IPv4 addresses over IPv6 addresses
+* ipsec-vpn plugin, removed unnecessary EXT_INPUT_CHAIN rule and added IPv6 support
+  for matching AH headers
+
+Version 1.9.9-RC1 (October 25, 2010)
+------------------------------------
+- Removed deprecated check_binary() function from environment
++ Added support for an optional plugin_restart() function in plugins using a new plugin template,
+  while supporting previous plugins without a plugin_restart() function
+* Refactor load_modules() using our new modprobe_multi() 
+* Allow modprobe_multi() function arguments to be grouped by a comma
++ Use IDENT environment variable for plugins
++ Added SHAPER_IF variable to traffic-shaper plugin to specify a single external interface
+  should the default EXT_IF value contain more than one interface
++ Added SIP_VOIP_REMOTE_HOSTS variable to sip-voip plugin to limit access by source address
+- Removed obsolete module_probe() function. Use modprobe() instead
++ Added IPV6_AUTO_CONFIGURATION variable to control autoconf when IP_FORWARDING = 0
++ Added IPV6_OVER_IPV4_SERVER variable for ipv6-over-ipv4 plugin, restricting 6to4 source packets
+* Misc. tweaks & fixes
+
+Version 1.9.9-BETA1 (October 8, 2010)
+-------------------------------------
+* Refactor setting kernel parameters
+! Revert change that didn't masquerade IPv6/proto 41, so outgoing forwarded connections work properly
++ Added EXTERNAL_DHCPV6_SERVER variable to allow DHCPv6 clients on the *external* interface
+* The default INET->DMZ policy is now DROP.  Common variables this change may effect are:
+  INET_DMZ_HOST_OPEN_xxx and INET_DMZ_OPEN_xxx
++ Added support for Link-Local-Multicast ICMPv6 echo-request packets
++ Added LINK_LOCAL_DROP_LOG variable which controls logging of dropped IPv6 Link-Local addresses.
++ Added FORWARD_LINK_LOCAL variable which, by default (0), disables forwarding of IPv6 Link-Local addresses.
++ Added EXT_MULTICAST_CHAIN to handle external-inbound multicast traffic
++ Added DHCPv6 support for the EXT_IF_DHCP_IP variable.
++ Added a new variable FORWARD_DROP_LOG to disable logging dropped forwards when set to 0, defaults to 1.
+! Fixed handling of destination host~port fields where only the host was specified.
++ Added a new set of variables INET_FORWARD_xxx to allow forwarding INET IPv6 and non-NAT'ed IPv4 packets
+  to other interfaces.  The format is similar to the IPv4 NAT_FORWARD_xxx without port mapping.
++ Added a new variable OPEN_ICMPV6 to allow independent control of INET ICMP for IPv4 and IPv6, enabled by default.
+! Fixed handling of INET_DMZ_HOST_OPEN_xxx variables
+! Fixed handling of INET_DMZ_HOST_DENY_xxx variables
+! Fixed handling of INET_DMZ_DENY_TCP
+! Fixed variable typo, INET_DMZ_HOST_DENY_TCP was not handled
++ Added IPv6 reserved network support, label logs by IPv4 and IPv6
+! Fixed RESERVED_NET_LOG is now independant from DROP_PRIVATE_ADDRESSES
++ Added option to the configure script to enable/disable IPv6 + several tweaks
+* Sanity check should always be the first thing we do since we probably can't
+  write the log-file in case we're not root
++ Automatically disable IPV6_SUPPORT if IPv6 is not detected in the kernel
++ Add support for mixed IPv4/IPv6 when IPV6_SUPPORT=1

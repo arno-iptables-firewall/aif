@@ -1,0 +1,454 @@
+# ------------------------------------------------------------------------------
+#      -= Arno's iptables firewall - HTB & HFSC traffic shaper plugin =-
+#
+PLUGIN_NAME="Traffic-Shaper plugin"
+PLUGIN_VERSION="1.2.04 (htb: well tested, hfsc: experimental)"
+PLUGIN_CONF_FILE="traffic-shaper.conf"
+#
+# Last changed          : October 17, 2010
+# Requirements          : kernel 2.6 + iproute
+# Comments              : This plugin will shape traffic. It borrows heavily on
+#                         the logic of Maciej's original script (below), with
+#                         some minor changes to the actual bins that traffic
+#                         goes into (I made the catch-all [default] for traffic
+#                         be a higher priority than browsing or bulk data
+#                         transfer).
+#                  [LRA]: Added htb support from astshape in AstLinux
+#                  [LRA]: Classify by DSCP class
+# Author                : (C) Copyright 2008-2010 by Philip Prindeville
+# Credits               : Maciej Blizinski
+# Credits               : Kristian Kielhofner
+# Credits               : Lonnie Abelbeck
+# Homepage              : http://www.voip-info.org/wiki/view/QoS+Linux+with+HFSC
+#                         http://media.blizinski.pl/code/hfsc.gz
+# Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
+# Email                 : philipp AT redfish-solutions DOT com
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------
+
+# Traffic classes:
+# 1:10 Highest Priority - Low Volume (ICMP, tcp-ACK, NTP, etc.)
+# 1:20 Streaming Media - VoIP (RTP, IAX2, etc.)
+# 1:30 Interactive - Shell (ssh, telnet, X, Vnc, etc.)
+# 1:40 Default (SIP-signaling)
+# 1:50 Bulk data transfer (HTTP, HTTPS, POP3, SMTP, FTP, etc.)
+# 1:60 Lowest priority (P2P)
+
+# Helper functions
+setclassbyport()
+{
+  local pport="$1" class="$2" port sport proto IFS
+
+  case $pport in
+    t*) proto=tcp; port="${pport#t}" ;;
+    u*) proto=udp; port="${pport#u}" ;;
+    *)  printf "\033[40m\033[1;31m${INDENT}ERROR: Unknown protocol/port $pport!\n\033[0m" >&2
+        return 1 ;;
+  esac
+
+  # We assume that on egress traffic, only the destination port is
+  # significant, i.e. that we're not running any servers locally.
+  iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --dport $port -j CLASSIFY \
+    --set-class $class
+  iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --dport $port -j RETURN
+
+  # If we are running servers locally, include the protocol/port from the
+  # SHAPER_LOCAL_SERVER_PORTS variable to also generate a --sport classify rule.
+  # Note that this could have been done using an associative array in a single pass.
+  IFS=' ,'
+  for sport in $SHAPER_LOCAL_SERVER_PORTS; do
+    if [ "$sport" = "$pport" ]; then
+      iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --sport $port -j CLASSIFY \
+        --set-class $class
+      iptables -t mangle -A SHAPER_CHAIN -m $proto -p $proto --sport $port -j RETURN
+      break
+    fi
+  done
+
+  return 0
+}
+
+classify_by_port()
+{
+  local port IFS
+
+  # Automatically set UDP 123 (NTP) to highest priority class
+  setclassbyport u123 1:10
+
+  IFS=' ,'
+  for port in $SHAPER_STREAMINGMEDIA_PORTS; do
+    setclassbyport $port 1:20
+  done
+
+  IFS=' ,'
+  for port in $SHAPER_INTERACTIVE_PORTS; do
+    setclassbyport $port 1:30
+  done
+
+  IFS=' ,'
+  for port in $SHAPER_BULKDATA_PORTS; do
+    setclassbyport $port 1:50
+  done
+
+  IFS=' ,'
+  for port in $SHAPER_P2P_PORTS; do
+    setclassbyport $port 1:60
+  done
+}
+
+classify_special_packets()
+{
+  # To speed up downloads while an upload is going on, put short ACK
+  # packets in the high priority class:
+  iptables -t mangle -A SHAPER_CHAIN \
+    -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK ACK \
+    -m length --length :64 \
+    -j CLASSIFY --set-class 1:10
+  iptables -t mangle -A SHAPER_CHAIN \
+    -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK ACK \
+    -m length --length :64 \
+    -j RETURN
+
+  # put large (512+) icmp packets in bulk category
+  iptables -t mangle -A SHAPER_CHAIN \
+    -p icmp \
+    -m length --length 512: \
+    -j CLASSIFY --set-class 1:50
+  iptables -t mangle -A SHAPER_CHAIN \
+    -p icmp \
+    -m length --length 512: \
+    -j RETURN
+
+  # ICMP in the high priority class
+  iptables -t mangle -A SHAPER_CHAIN \
+    -p icmp \
+    -m length --length :512 \
+    -j CLASSIFY --set-class 1:10
+  iptables -t mangle -A SHAPER_CHAIN \
+    -p icmp \
+    -m length --length :512 \
+    -j RETURN
+}
+
+classify_by_dscp_class()
+{
+  # Classify by DSCP class
+  # Assume VoIP audio is marked as EF, and SIP as CS3
+
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class CS7 -j CLASSIFY --set-class 1:10
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class CS6 -j CLASSIFY --set-class 1:10
+
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class EF -j CLASSIFY --set-class 1:20
+
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class CS5 -j CLASSIFY --set-class 1:30
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class CS4 -j CLASSIFY --set-class 1:30
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF41 -j CLASSIFY --set-class 1:30
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF42 -j CLASSIFY --set-class 1:30
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF43 -j CLASSIFY --set-class 1:30
+
+  # Default: --set-class 1:40
+  # CS0, CS3, AF31, AF32, AF33, AF21, AF22, AF23
+
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class CS2 -j CLASSIFY --set-class 1:50
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF11 -j CLASSIFY --set-class 1:50
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF12 -j CLASSIFY --set-class 1:50
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class AF13 -j CLASSIFY --set-class 1:50
+
+  iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class CS1 -j CLASSIFY --set-class 1:60
+}
+
+incoming_traffic_limit()
+{
+  # Try to control the incoming traffic as well.
+  # Set up ingress qdisc
+  tc qdisc add dev $1 handle ffff: ingress
+
+  # filter *everything* to it (0.0.0.0/0), drop everything that's
+  # coming in too fast:
+  tc filter add dev $1 parent ffff: protocol ip prio 100 u32 match ip src \
+     0.0.0.0/0 police rate ${DOWNLINK}kbit burst $((1*$DOWNLINK/10))k drop flowid :1
+} 
+
+# Plugin start function
+plugin_start()
+{
+  case $SHAPER_TYPE in
+  hfsc)
+    plugin_start_hfsc ;;
+
+  *)
+    plugin_start_htb ;;
+  esac
+}
+
+# HFSC start function
+plugin_start_hfsc()
+{
+  # Some required modules are already loaded by the main script:
+  modprobe ip_nat
+  # modprobe ip_table
+
+  modprobe sch_hfsc
+
+  printf "${INDENT}Shaping as %d/%d kb/s using '%s' for interface: %s\n" $DOWNLINK $UPLINK hfsc "$SHAPER_IF"
+
+  iptables -t mangle -N SHAPER_CHAIN
+
+  classify_special_packets
+
+  classify_by_port
+
+  classify_by_dscp_class
+
+  IFS=' ,'
+  for eif in $SHAPER_IF; do
+
+    # tc doesn't take wildcards, so we need expansion done here
+    for eif1 in $(wildcard_ifs $eif); do
+
+      # add HFSC root qdisc
+      tc qdisc add dev $eif1 root handle 1: hfsc default 40
+
+      # add main rate limit class
+      tc class add dev $eif1 parent 1: classid 1:1 hfsc \
+        sc rate ${UPLINK}kbit ul rate ${UPLINK}kbit
+
+      # Highest Priority: guarantee 2/10 uplink for 50ms, then 1/10
+      tc class add dev $eif1 parent 1:1 classid 1:10 hfsc \
+        sc m1 $((2*$UPLINK/10))kbit d 50ms m2 $((1*$UPLINK/10))kbit \
+        ul rate ${UPLINK}kbit
+
+      # Streaming Media: guarantee 5/10 uplink for 200ms, then 4/10
+      tc class add dev $eif1 parent 1:1 classid 1:20 hfsc \
+        sc m1 $((5*$UPLINK/10))kbit d 200ms m2 $((4*$UPLINK/10))kbit \
+        ul rate ${UPLINK}kbit
+
+      # Interactive traffic: guarantee 3/10 uplink for 50ms, then 3/10
+      tc class add dev $eif1 parent 1:1 classid 1:30 hfsc \
+        sc m1 $((3*$UPLINK/10))kbit d 50ms m2 $((3*$UPLINK/10))kbit \
+        ul rate ${UPLINK}kbit
+
+      # Default traffic: don't guarantee for 500ms, then guarentee 3/20
+      tc class add dev $eif1 parent 1:1  classid 1:40 hfsc \
+        sc m1           0 d    500ms m2 $((3*$UPLINK/20))kbit \
+        ul rate ${UPLINK}kbit
+
+      # Bulk data traffic: don't guarantee for 2 seconds, then guarantee 1/20
+      tc class add dev $eif1 parent 1:1  classid 1:50 hfsc \
+        sc m1           0 d    2s m2 $((1*$UPLINK/20))kbit \
+        ul rate ${UPLINK}kbit
+
+      # P2P traffic: don't guarantee anything
+      tc class add dev $eif1 parent 1:1  classid 1:60 hfsc \
+        sc m1           0 d    4s m2 1kbit \
+        ul rate ${UPLINK}kbit
+
+      incoming_traffic_limit $eif1
+    done
+
+    # add SHAPER_CHAIN chain to mangle table in iptables
+    iptables -t mangle -A POSTROUTING -o $eif -j SHAPER_CHAIN
+  done
+
+  return 0
+}
+
+# HTB start function
+plugin_start_htb()
+{
+  # Some required modules are already loaded by the main script:
+  modprobe ip_nat
+
+  printf "${INDENT}Shaping as %d/%d kb/s using '%s' for interface: %s\n" $DOWNLINK $UPLINK htb "$SHAPER_IF"
+
+  iptables -t mangle -N SHAPER_CHAIN
+
+  classify_special_packets
+
+  classify_by_port
+
+  classify_by_dscp_class
+
+  IFS=' ,'
+  for eif in $SHAPER_IF; do
+
+    # tc doesn't take wildcards, so we need expansion done here
+    for eif1 in $(wildcard_ifs $eif); do
+      #install root HTB, point default traffic to 1:40
+      tc qdisc add dev $eif1 root handle 1: htb default 40
+
+      #shape everything at $UPLINK speed to prevent queing
+      tc class add dev $eif1 parent 1: classid 1:1 htb rate ${UPLINK}kbit burst 6k
+
+      # highest priority class 1:10
+      tc class add dev $eif1 parent 1:1 classid 1:10 htb rate ${UPLINK}kbit burst 6k prio 1
+
+      # streaming media class 1:20
+      tc class add dev $eif1 parent 1:1 classid 1:20 htb rate ${UPLINK}kbit burst 6k prio 2
+
+      # interactive class 1:30
+      tc class add dev $eif1 parent 1:1 classid 1:30 htb rate ${UPLINK}kbit burst 6k prio 3
+
+      # default class 1:40
+      tc class add dev $eif1 parent 1:1 classid 1:40 htb rate $((9*$UPLINK/10))kbit burst 6k prio 4
+
+      # bulk class 1:50
+      tc class add dev $eif1 parent 1:1 classid 1:50 htb rate $((8*$UPLINK/10))kbit burst 6k prio 5
+
+      # p2p class 1:60
+      tc class add dev $eif1 parent 1:1 classid 1:60 htb rate $((5*$UPLINK/10))kbit burst 6k prio 6
+
+      # all get Stochastic Fairness
+      tc qdisc add dev $eif1 parent 1:10 handle 10: sfq perturb 10
+      tc qdisc add dev $eif1 parent 1:20 handle 20: sfq perturb 10
+      tc qdisc add dev $eif1 parent 1:30 handle 30: sfq perturb 10
+      tc qdisc add dev $eif1 parent 1:40 handle 40: sfq perturb 10
+      tc qdisc add dev $eif1 parent 1:50 handle 50: sfq perturb 10
+      tc qdisc add dev $eif1 parent 1:60 handle 60: sfq perturb 10
+
+      incoming_traffic_limit $eif1
+    done
+
+    # add SHAPER_CHAIN chain to mangle table in iptables
+    iptables -t mangle -A POSTROUTING -o $eif -j SHAPER_CHAIN
+  done
+
+  return 0
+}
+
+
+# Plugin stop function
+plugin_stop()
+{
+  IFS=' ,'
+  for eif in $SHAPER_IF; do
+
+    # tc doesn't take wildcards, so we need expansion done here
+    for eif1 in $(wildcard_ifs $eif); do
+      # Reset everything to a known state (cleared)
+      tc qdisc del dev $eif1 root 2>/dev/null
+      tc qdisc del dev $eif1 ingress 2>/dev/null
+    done
+
+    # Flush and delete tables
+    iptables -t mangle -D POSTROUTING -o $eif -j SHAPER_CHAIN 2>/dev/null
+  done
+
+  iptables -t mangle -F SHAPER_CHAIN
+  iptables -t mangle -X SHAPER_CHAIN 2>/dev/null
+
+  return 0
+}
+
+
+# Plugin status function
+plugin_status()
+{
+  IFS=' ,'
+  # tc doesn't take wildcards, so we need expansion done here
+  for eif in $(wildcard_ifs $SHAPER_IF); do
+    echo "${INDENT}[qdisc]"
+    tc -s qdisc show dev $eif
+
+    echo ""
+    echo "${INDENT}[class]"
+    tc -s class show dev $eif
+
+    echo ""
+    echo "${INDENT}[filter]"
+    tc -s filter show dev $eif
+  done
+
+  echo ""
+  echo "${INDENT}[iptables]"
+  iptables -t mangle -L SHAPER_CHAIN -v -x 2>/dev/null
+
+  return 0
+}
+
+
+# Sanity check environment before actual start
+plugin_sanity_check()
+{
+  if [ -z "$UPLINK" -o -z "$DOWNLINK" ]; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not properly set!\n\033[0m" >&2
+    return 1
+  fi
+
+  count=0
+  IFS=' ,'
+  for eif in $SHAPER_IF; do
+    count=$((count+1))
+  done
+  if [ "$count" -ne 1 ]; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: Only one external interface is supported!\n\033[0m" >&2
+    return 1
+  fi
+
+  if ! check_command tc; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: Required binary \"tc\" is not available!\n\033[0m" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+
+############
+# Mainline #
+############
+
+# Set default for old config file
+SHAPER_IF="$EXT_IF"
+
+# Check where to find conf
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+else
+  CONF_FILE="$PLUGIN_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Check if the config file exists
+if [ ! -e "$CONF_FILE" ]; then
+  printf "NOTE: Config file \"$CONF_FILE\" not found!\n        Plugin \"$PLUGIN_NAME v$PLUGIN_VERSION\" ignored!\n" >&2
+  PLUGIN_RET_VAL=0
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  if [ "$ENABLED" = "1" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
+    # Show who we are:
+    echo "${INDENT}$PLUGIN_NAME v$PLUGIN_VERSION"
+
+    # Increment indention
+    INDENT="$INDENT "
+
+    # Only proceed if environment ok
+    if plugin_sanity_check; then
+      case $PLUGIN_CMD in
+        start|'') plugin_start; PLUGIN_RET_VAL=$?;;
+        stop    ) plugin_stop; PLUGIN_RET_VAL=$?;;
+        status  ) plugin_status; PLUGIN_RET_VAL=$?;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2 ;;
+      esac
+    fi
+  else
+    PLUGIN_RET_VAL=0
+  fi
+fi

@@ -1,0 +1,17 @@
+Version 1.1 (September 21, 2010)
+----------------------------
+* Updated for mixed IPv4/IPv6
+
+Version 1.02 (July 27, 2009)
+----------------------------
++ Implemented TCP & UDP port excludes
+* Always ignore ICMP packets for IDS checking
+
+Version 1.01 (May 9, 2009)
+--------------------------
++ Version bump + minor tweaks
+* Option to set the interfaces to protect
+
+Version 0.21BETA (August 11, 2008)
+----------------------------------
+* First initial working version

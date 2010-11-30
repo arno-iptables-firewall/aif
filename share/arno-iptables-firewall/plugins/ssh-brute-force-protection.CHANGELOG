@@ -1,0 +1,42 @@
+Version 1.1 (September 21, 2010)
+------------------------------------
+* Updated for mixed IPv4/IPv6
+
+Version 0.34BETA (February 19, 2008)
+------------------------------------
+* Minor tweak for PLUGIN_RET_VAL
+
+Version 0.33BETA (February 13, 2008)
+------------------------------------
++ Updated according to the new plugin template
+
+Version 0.32BETA (January 30, 2008)
+------------------------------------
++ Updated for new config file location / detection
+
+Version 0.31BETA (December 18, 2007)
+------------------------------------
+* Layout changes
+! Fixed bug in port routine, rendering the plugin useless
+! No port configured will now fallback to port 22
+
+Version 0.30BETA (November 21, 2007)
+------------------------------------
+* Updated for new plugin model (with PLUGIN_CMD) + better layout
++ Added SSH_BFP_PORTS to allow the user to modify the SSH port used
+
+Version 0.24BETA (May 25, 2007)
+-------------------------------
++ Added variable sanity check
+* Changes some variable names
+
+Version 0.23BETA (December 28, 2006)
+------------------------------------
++ Added dual rate checkers. You can now use one for a short interval
+  and one for a long interval
++ Separate config file (new plugin standard)
++ Misc. cosmetic changes
+
+Version 0.2BETA (October 20, 2006)
+---------------------------------
++ Added SSH trusted hosts variable for whitelisting of certain hosts

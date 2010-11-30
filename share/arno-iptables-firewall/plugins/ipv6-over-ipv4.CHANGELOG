@@ -1,0 +1,18 @@
+Version 0.2BETA (October 8, 2010)
+------------------------------------
++ Added IPV6_OVER_IPV4_SERVER variable to restrict source packets
+! Removed IPv4 rule allowing proto 58, which is icmpv6
+  IPv6 icmpv6 packets are handled by the main script
+
+Version 0.12BETA (February 19, 2008)
+------------------------------------
+* Minor tweak for PLUGIN_RET_VAL
+
+Version 0.11BETA (February 13, 2008)
+------------------------------------
++ Updated according to the new plugin template
+
+Version 0.1BETA (December 18, 2007)
+-----------------------------------
++ First initial version.
+

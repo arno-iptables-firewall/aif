@@ -1,0 +1,81 @@
+Version 0.82BETA (November 2, 2010)
+-----------------------------------
++ Added IPv6 support for matching AH headers
+* removed unnecessary EXT_INPUT_CHAIN rule
+
+Version 0.81BETA (September 19, 2010)
+----------------------------------
+* Changed '-t nat' calls via ip4tables
+
+Version 0.80BETA (August 23, 2009)
+----------------------------------
++ Use 'modprobe' wrapper instead of module_probe.
+
+Version 0.71BETA (June 30, 2009)
+--------------------------------
+* Fixed IFS regression introduced in 0.70BETA.
+
+Version 0.70BETA (June 23, 2009)
+--------------------------------
+* Added policy support to SPOOF_CHK rule to allow spoofing of local addresses
+  on VPN connections (since IPsec address pool might come out of local
+  subnet).
+
+Version 0.61BETA (May 1, 2009)
+------------------------------
+* Corrected some comments
+
+Version 0.60BETA (March 18, 2009)
+---------------------------------
++ Support 1.9.0c stop
++ Added back support for IPSEC_VPN_NETS.
+
+Version 0.50BETA (February 26, 2009)
+------------------------------------
+* Transitioned to use the "policy" module to detect policy being applied to
+  IPSec traffic, as well as to detect its state at the various stages (pre-
+  and post-encapsulation/decapsulation).
++ Decrepecated the IPSEC_VPN_NETS variable for now, though it might come in
+  handy in the future for detecting routing problems and policy mismatches.
+
+Version 0.41BETA (February 14, 2009)
+------------------------------------
++ Reintroduced NATting regression with 0.40BETA... sigh.
+
+Version 0.40BETA (February 9, 2009)
+-----------------------------------
++ Added ipt_policy module
++ Use -m policy to see if packet is the result of decapsulating an AH or ESP
+  packet; if so, don't process it in the EXT_INPUT_CHAIN
++ Fixed NAT issue where packets that were about to be encapsulated got NATted
+
+Version 0.31BETA (August 11, 2008)
+----------------------------------
++ Unknown
+
+Version 0.30BETA (July 20, 2008)
+--------------------------------
+* Renamed plugin to "ipsec-vpn"
++ Added NAT traversal
++ Added OPEN AH UDP port (just in case)
+
+Version 0.25BETA (February 19, 2008)
+------------------------------------
+* Minor tweak for PLUGIN_RET_VAL
+
+Version 0.24BETA (February 13, 2008)
+------------------------------------
++ Updated according to the new plugin template
+
+Version 0.23BETA (January 30, 2008)
+-----------------------------------
++ Updated for new config file location / detection
+
+Version 0.22BETA (May 25, 2007)
+-------------------------------
++ Added variable sanity check
+* Changed some variable names
+
+Version 0.21BETA (January 9, 2006)
+----------------------------------
++ Updated for new plugin system (separate conf etc.)

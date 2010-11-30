@@ -1,0 +1,34 @@
+#!/bin/sh
+
+log_file="/var/log/traffic-accounting.log"
+keeps=13
+
+log_rotate()
+{
+  # $1 = filename
+  # $2 = keep count
+  filename="$1"
+
+  if [ -e "$filename.$2" ]; then
+    rm -f "$filename.$2"
+  fi
+
+  for x in `seq $(($2 + 1)) -1 1`; do
+    if [ -e "$filename.$x" ]; then
+      mv "$filename.$x" "$filename.$(($x + 1))"
+    fi
+  done
+
+  if [ -e "$filename" ]; then 
+    mv "$filename" "$filename.1"
+    
+    # Reset counters
+    cat "$filename.1" |awk '{ print $1" "$2" 0 0" }' > "$filename"
+  fi
+}
+
+
+# main
+log_rotate "$log_file" $keeps
+
+

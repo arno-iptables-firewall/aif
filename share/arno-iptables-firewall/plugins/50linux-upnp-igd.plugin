@@ -1,0 +1,126 @@
+# ------------------------------------------------------------------------------
+#            -= Arno's iptables firewall - Linux UPnP IGD plugin =-
+#
+PLUGIN_NAME="Linux UPnP IGD plugin"
+PLUGIN_VERSION="1.0"
+PLUGIN_CONF_FILE="linux-upnp-igd.conf"
+#
+# Last changed          : April 5, 2009
+# Requirements          : kernel 2.6 + linux-igd
+# Comments              : An UPnP-enabled application can tell linux-igd what public ports
+#                         have to be forwarded back to the application.
+#                         This plugin adds a new chain into the FORWARD chain
+#                         where the UPnP daemon "linuxigd" can insert its ports.
+#                         In "upnpd.conf" you must set the forward_chain_name = UPNP_FORWARD
+#
+# Author                : (C) Copyright 2007-2009 by Joerg Straube
+# Homepage              : http://joerg.li/
+# Email                 : j o e r g DOT s t r a u b e AT i a e t h DOT c h
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------
+
+# Plugin start function
+plugin_start()
+{
+  # Create new UPNP_FORWARD chain to be used by linuxigd (aka upnpd):
+  iptables -N UPNP_FORWARD 2>/dev/null
+  iptables -F UPNP_FORWARD
+  iptables -N UPNP_FORWARD_HOOK 2>/dev/null
+  iptables -F UPNP_FORWARD_HOOK
+
+  # Insert rule into the FORWARD chain:
+  IFS=' ,'
+  for eif in $EXT_IF; do
+    iptables -A UPNP_FORWARD_HOOK -i $eif -o ! $eif -j UPNP_FORWARD
+  done
+
+  iptables -A FORWARD -j UPNP_FORWARD_HOOK
+  
+  return 0
+}
+
+
+# Plugin stop function
+plugin_stop()
+{
+  iptables -D FORWARD -j UPNP_FORWARD_HOOK 2>/dev/null
+  
+  iptables -F UPNP_FORWARD_HOOK
+  iptables -X UPNP_FORWARD_HOOK 2>/dev/null
+
+  iptables -F UPNP_FORWARD
+  iptables -X UPNP_FORWARD 2>/dev/null
+
+  return 0
+}
+
+
+# Plugin status function
+plugin_status()
+{
+  return 0
+}
+
+
+# Check sanity of eg. environment
+plugin_sanity_check()
+{
+  return 0
+}
+
+
+############
+# Mainline #
+############
+
+# Check where to find the config file
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+else
+  CONF_FILE="$PLUGIN_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Check if the config file exists
+if [ ! -e "$CONF_FILE" ]; then
+  printf "NOTE: Config file \"$CONF_FILE\" not found!\n        Plugin \"$PLUGIN_NAME v$PLUGIN_VERSION\" ignored!\n" >&2
+  PLUGIN_RET_VAL=0
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  if [ "$ENABLED" = "1" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
+    # Show who we are:
+    echo "${INDENT}$PLUGIN_NAME v$PLUGIN_VERSION"
+
+    # Increment indention
+    INDENT="$INDENT "
+
+    # Only proceed if environment ok
+    if plugin_sanity_check; then
+      case $PLUGIN_CMD in
+        start|'') plugin_start; PLUGIN_RET_VAL=$?;;
+        stop    ) plugin_stop; PLUGIN_RET_VAL=$?;;
+        status  ) plugin_status; PLUGIN_RET_VAL=$?;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
+      esac
+    fi
+  else
+    PLUGIN_RET_VAL=0
+  fi
+fi

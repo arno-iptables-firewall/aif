@@ -1,0 +1,161 @@
+#!/bin/bash
+
+# This script was written by Mark Cleverdon 22/11/2007 under the GPL license
+# email: mark at lanzarote1.com
+#
+# For automatic Failover from the main external network provider on failure
+# to a dialup modem or UMTS modem connection. 
+#
+# REQUREMENTS
+# You must have IP forwarding enabled in the system.
+# ADSL connection with a static IP
+# wvdial must be installed and setup with a script that works for your service provider.
+# A firewall like arnos iptables firewall script or shorewall etc
+#
+# You can set this script in the system cron to check the connection at regular time intervals.
+#
+# METHODS USED IN THIS SCRIPT
+# We have both eth1 and ppp0 as external interfaces in iptables, if both were functioning at the same time
+# we would have load balancing (which could get expensive), but here we only need one active connection so
+# all we need to do is to adjust the dynamic IP address of the dialup connection in the firwall when there
+# is a problem in order to allow routing through the dialup device. Once the emergency is over we can can-
+# cel the dialup connection and the original routing will continue as usual with no need to adjust
+# the firewall again. When a new failure happens then the new IP address is assigned to the second external
+# interface (normally ppp0) and the firewall restarted to allow routing.
+#
+# PARAMETERS HERE
+# The normal external interface (DSL or cable etc)
+interface="eth1"
+normal_ext_ip="XXX.XXX.XXX.XXX"
+# Admin email address for failover notification
+admin_email="admin@your-domain"
+# The dialup device PCMCIA UMTS card or regular modem will normally be a ttyS0/1/2/3 etc
+# But here you need the device that wvdial returns which is generally ppp0
+dialup_if="ppp0"
+# Full path and name of your firewall script I use Arnos iptables firewall
+firewall="/etc/arno-iptables-firewall.conf"
+# The /etc/init.d/firewall-script that your system uses to restart the firewall
+firestarter="/etc/init.d/arno-iptables-firewall"
+# WARNING if you are not using arnos firewall script you will need to edit the sed commands parameters below
+# eg. on line 111 of this script  
+# sed 's/\(search string just before substitution \)[0-9]*.[0-9]*.[0-9]*.[0-9]*/\1'$OUT_IP'/g' $firewall
+#
+# The wvdial command for dialup (you must set this up previously) 
+# eg. this would be like "myserver:#/wvdial internet" on the command line
+connection="internet"
+# The following are the ip address of any reliable public server ie. google.com
+# if all three servers fail then the dialup connection will be started.
+# But beware of ping_server1, it must be the most reliable of the three because 
+# it is used in further tests on its own.
+# Further, note it is important to use IP addresses and not domain names because if
+# your system is totally isolated you will not be able to do name resolution. 
+ping_server1="64.233.167.99"
+ping_server2="216.109.112.135"
+ping_server3="66.45.254.244"
+
+route add $ping_server1 gw $normal_ext_ip
+if (ping -w 5 -nq -I $interface $ping_server1 |grep '100%\ packet\ loss' 2>&1>/dev/null) then
+	SERVER1="DOWN"
+else 
+	SERVER1="UP"
+fi
+route del $ping_server1
+route add $ping_server2 gw $normal_ext_ip
+if (ping -w 5 -nq -I $interface $ping_server2 |grep '100%\ packet\ loss' 2>&1>/dev/null) then
+	SERVER2="DOWN"
+else
+	SERVER2="UP"
+fi
+route del $ping_server2
+route add $ping_server3 gw $normal_ext_ip
+if (ping -w 5 -nq -I $interface $ping_server3 |grep '100%\ packet\ loss' 2>&1>/dev/null) then
+	SERVER3="DOWN"
+else
+	SERVER3="UP"
+fi
+route del $ping_server3
+
+
+if [ "$SERVER1" = "DOWN" ] && [ "$SERVER2" = "DOWN" ] && [  "$SERVER3" = "DOWN" ] 
+	then
+	echo "WARNING! -- We have an internet connection problem. I will attempt to discover the situation and fix it."
+	if [[ "$interface"="eth1" ]] 
+		then
+		echo .
+		# Check to see if we have any connection at all (if not we dial)
+		if (ping -w 5 -nq $ping_server1|grep '100%\ packet\ loss' 2>&1>/dev/null) 
+			then
+			# Check for existing wvdial processes that may be hungup
+			if (ps ax|grep wvdial) 
+				then
+				echo "finishing any previous hung connection"
+				killall wvdial
+				sleep 15
+			fi
+			echo .
+			echo "Dialing out ...."
+			wvdial $connection &
+			sleep 25
+			if (ping -w 5 -nq -I $dialup_if $ping_server1|grep -v '100%\ packet\ loss' 2>&1>/dev/null) 
+				then
+				# Pick up the new IP for adjusting the firewall script.
+				OUT_IP=`ifconfig|grep -A 2 $dialup_if|grep inet\ addr:|sed 's/.*inet\ addr\:\([0-9]*.[0-9]*.[0-9]*.[0-9]*\).*/\1/g'`
+				echo .
+				echo "New public IP address is <$OUT_IP> from UMTS/dialup device $dialup."
+				echo .
+				echo "Restarting the Firewall routing for new connection."
+				echo .
+				# Make sure the original firewall script is saved (here we datestamp it just in case)
+				cp -p $firewall $firewall.`date +"%d%m%Y%H%M%S"`
+				sed 's/\(NAT_STATIC_IP="$normal_ext_ip \)[0-9]*.[0-9]*.[0-9]*.[0-9]*/\1'$OUT_IP'/g' $firewall >/tmp/firewall.conf
+				mv /tmp/firewall.conf $firewall
+				$firestarter restart
+				# Get myself a copy of all this stuff for a remote firewall setup etc.
+				echo "The ADSL connection has failed">/tmp/ifconfig_ppp0
+				echo ".">>/tmp/ifconfig_ppp0
+				echo "The new IP address is $OUT_IP">>/tmp/ifconfig_ppp0
+				ifconfig $dialup_if>>/tmp/ifconfig_ppp0			
+				echo $OUT_IP>/tmp/FAILOVER_IP
+				mail -s "FAILOVER IP $OUT_IP" $admin_email </tmp/ifconfig_ppp0
+			else
+				echo "UMTS/Dialup connection has failed, I will kill it. Please try again."
+				killall wvdial
+			fi		
+		else 
+			# Failover is working 
+			echo .
+			echo "Failover system is already working"
+			OUT_IP1=`cat /tmp/FAILOVER_IP`
+			OUT_IP2=`ifconfig|grep -A 2 $dialup_if|grep inet\ addr:|sed 's/.*inet\ addr\:\([0-9]*.[0-9]*.[0-9]*.[0-9]*\).*/\1/g'`
+			# Check to see if dynamic ip has changed 
+			if [ "$OUT_IP1" = "$OUT_IP2" ]
+				then
+				echo $OUT_IP2>/tmp/FAILOVER_IP
+				echo "The ADSL connection has failed">/tmp/ifconfig_ppp0
+				echo ".">>/tmp/ifconfig_ppp0
+				echo "The new IP address is $OUT_IP2">>/tmp/ifconfig_ppp0
+				echo ".">>/tmp/ifconfig_ppp0
+				ifconfig $dialup_if>>/tmp/ifconfig_ppp0			
+				mail -s "NEW FAILOVER IP $OUT_IP2" $admin_email </tmp/ifconfig_ppp0			
+			fi
+		fi
+	fi
+	echo "Through DSL connection $ping_server1 is $SERVER1, $ping_server2 is $SERVER2, $ping_server3 is $SERVER3"
+else
+# Everything is Normal.
+	# Check if Normality is recent and if so kill off all failover devices.
+	if (ps ax|grep wvdial|grep -v grep) 
+		then
+		echo "ADSL is now OK, I will kill any UMTS/Dialup connection..."
+		killall wvdial 2>&1>/dev/null
+                echo "The ADSL connection is now working">/tmp/ifconfig
+                echo ".">>/tmp/ifconfig
+                echo "Use the original connection information to connect">>/tmp/ifconfig
+                echo ".">>/tmp/ifconfig
+ 		mail -s "FAILOVER STOPED - ADSL OK" $admin_email </tmp/ifconfig
+		echo "Through DSL connection $ping_server1 is $SERVER1, $ping_server2 is $SERVER2, $ping_server3 is $SERVER3"
+		ifdown eth1
+		sleep 10
+		ifup eth1
+	fi
+fi
