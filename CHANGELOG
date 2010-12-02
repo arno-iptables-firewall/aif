@@ -1,5 +1,8 @@
-Version 2.0.0a (December 1, 2010)
+Version 2.0.0a (December 2, 2010)
 ---------------------------------
++ Added SHAPER_P2P_HOSTS variable for the traffic-shaper plugin to specify hosts (local or remote)
+  that all outbound traffic will be given the lowest priority.  A local file server backing up
+  remotely would be an example application.
 
 Version 2.0.0 (November 15, 2010)
 ---------------------------------
