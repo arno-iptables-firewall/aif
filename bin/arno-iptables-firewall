@@ -5562,10 +5562,5 @@ case "$1" in
                         show_help;;
 esac
 
+exit $IPTABLES_ERROR
 
-if [ "$IPTABLES_ERROR" = "1" ]; then
-  exit 1
-else
-  # Return success:
-  exit 0
-fi
