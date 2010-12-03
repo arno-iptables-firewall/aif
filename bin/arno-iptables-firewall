@@ -759,6 +759,42 @@ init_firewall_chains()
 }
 
 
+# Check if the base chains are appropriate for the IPV6_SUPPORT setting
+#######################################################################
+check_for_base_chains()
+{
+  local ipv4_rtn ipv6_rtn
+
+  ip4tables -nL BASE_INPUT_CHAIN >/dev/null 2>&1
+  ipv4_rtn=$?
+  
+  if [ "$IPV6_DETECTED" = "1" ]; then
+    ip6tables -nL BASE_INPUT_CHAIN >/dev/null 2>&1
+    ipv6_rtn=$?
+  else
+    ipv6_rtn=1
+  fi
+  
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    if [ $ipv4_rtn -eq 0 -a $ipv6_rtn -eq 0 ]; then
+      echo "yes"
+    elif [ $ipv4_rtn -eq 0 ]; then
+      echo "other"
+    else
+      echo "no"
+    fi
+  else
+    if [ $ipv4_rtn -eq 0 -a $ipv6_rtn -eq 0 ]; then
+      echo "other"
+    elif [ $ipv4_rtn -eq 0 ]; then
+      echo "yes"
+    else
+      echo "no"
+    fi
+  fi
+}
+
+
 setup_default_policies()
 {
   # Set the default policies for the builtin INPUT & FORWARD tables. The
@@ -5496,6 +5532,17 @@ show_help()
 }
 
 
+main_stop()
+{
+  plugins_stop;
+  if [ "$1" = "block" ]; then
+    stop_block_firewall;
+  else
+    stop_firewall;
+  fi
+}
+
+
 main_start()
 {
   load_modules;
@@ -5529,17 +5576,22 @@ case "$1" in
   'start' )             sanity_check;
                         show_start;
                         config_check;
-                        main_start;
+                        # Check whether we are actually stopped
+                        case $(check_for_base_chains) in
+                          no)    main_start;;
+                          yes)   main_restart;;
+                          other) main_stop; main_start;;
+                        esac
                         show_applied;;
   'restart' )           sanity_check;
                         show_restart;
                         config_check;
-                        # Check whether we are actually running, check for IPv4 chains
-                        if ! ip4tables -n -L BASE_INPUT_CHAIN >/dev/null 2>&1; then
-                          main_start;
-                        else
-                          main_restart;
-                        fi;
+                        # Check whether we are actually running
+                        case $(check_for_base_chains) in
+                          no)    main_start;;
+                          yes)   main_restart;;
+                          other) main_stop; main_start;;
+                        esac
                         show_applied;;
   'force-reload' )      sanity_check;
                         config_check;
@@ -5547,13 +5599,11 @@ case "$1" in
                         show_applied;;
   'stop' )              sanity_check;
                         show_stop;
-                        plugins_stop;
-                        stop_firewall;
+                        main_stop;
                         show_disabled;;
   'stop-block' )        sanity_check;
                         show_stop;
-                        plugins_stop;
-                        stop_block_firewall;
+                        main_stop block;
                         show_stop_blocked;;
   'status' )            shift;
                         show_status $@;;
