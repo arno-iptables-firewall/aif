@@ -105,10 +105,9 @@ plugin_sanity_check()
 ############
 
 # Check where to find the config file
+CONF_FILE=""
 if [ -n "$PLUGIN_CONF_PATH" ]; then
   CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
-else
-  CONF_FILE="$PLUGIN_PATH/$PLUGIN_CONF_FILE"
 fi
 
 # Check if the config file exists

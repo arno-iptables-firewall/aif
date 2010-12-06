@@ -1410,9 +1410,6 @@ if [ -z "$PLUGIN_BIN_PATH" ]; then
   fi
 fi
 
-# Required for legacy plugins:
-PLUGIN_PATH="$PLUGIN_BIN_PATH"
-
 # Check plugin bin path and fallback in case it's empty
 #######################################################
 if [ -z "$PLUGIN_CONF_PATH" ]; then
