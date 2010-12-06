@@ -772,6 +772,8 @@ check_for_base_chains()
     ip6tables -nL BASE_INPUT_CHAIN >/dev/null 2>&1
     ipv6_rtn=$?
   else
+    # No IPv6 available, therefore no ip6tables call
+    # Set a return error result of 1 to specify no IPv6 BASE_INPUT_CHAIN
     ipv6_rtn=1
   fi
   
