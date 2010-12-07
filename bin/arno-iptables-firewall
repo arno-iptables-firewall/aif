@@ -222,17 +222,29 @@ config_check()
 
   # Check whether we know the plugin binary path
   ##############################################
-  if [ -z "$PLUGIN_BIN_PATH" ]; then
-    printf "\033[40m\033[1;31mERROR: The plugin binary path (PLUGIN_BIN_PATH) has not been specified\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+  if [ ! -d "$PLUGIN_BIN_PATH" ]; then
+    printf "\033[40m\033[1;31mERROR: The PLUGIN_BIN_PATH ($PLUGIN_BIN_PATH) does not exist!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n" >&2
     exit 2
   fi
 
   # Check whether we know the plugin config path
   ##############################################
-  if [ -z "$PLUGIN_CONF_PATH" ]; then
-    printf "\033[40m\033[1;31mERROR: The plugin config path (PLUGIN_CONF_PATH) has not been specified\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+  if [ ! -d "$PLUGIN_CONF_PATH" ]; then
+    printf "\033[40m\033[1;31mERROR: The PLUGIN_CONF_PATH ($PLUGIN_CONF_PATH) does not exist!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n" >&2
+    exit 2
+  fi
+  
+  if [ -z "$PLUGIN_LOAD_FILE" ]; then
+    printf "\033[40m\033[1;31mERROR: The PLUGIN_LOAD_FILE variable has not been set!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n" >&2
+    exit 2
+  fi
+  
+  if [ -z "$PLUGIN_LOAD_FILE_RESTART" ]; then
+    printf "\033[40m\033[1;31mERROR: The PLUGIN_LOAD_FILE_RESTART variable has not been set!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n" >&2
     exit 2
   fi
 }
