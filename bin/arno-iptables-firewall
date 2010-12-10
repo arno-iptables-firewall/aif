@@ -4318,14 +4318,14 @@ setup_hostblock_chain()
   if [ -n "$BLOCK_HOSTS_FILE" ]; then
     if [ -e "$BLOCK_HOSTS_FILE" ]; then
       local cur_cnt=0 total_cnt
-      total_cnt=$(( $(cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' |wc -l) ))
+      total_cnt=$(( $(cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' -e '/^$/d' |wc -l) ))
 
       echo "(Re)loading list of BLOCKED hosts from $BLOCK_HOSTS_FILE..."
       progress_bar $cur_cnt $total_cnt
 
       # Support both a '#' and a ';' as a comment delimiter in BLOCK_HOSTS_FILE file
       unset IFS
-      cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' |while read hosts; do
+      cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' -e '/^$/d' |while read hosts; do
         cur_cnt=$(($cur_cnt + 100))
         progress_bar $cur_cnt $total_cnt
 
