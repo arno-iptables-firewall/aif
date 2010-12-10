@@ -1085,6 +1085,7 @@ ip_range()
 
 iptables_batch()
 {
+  local IFS=' '
   # Note: this wrapper does not perform IPv4/IPv6 address type checking
   # That must be done elsewhere for speed reasons
   #
@@ -1100,7 +1101,7 @@ iptables_batch()
 # Add iptables rules in batch using iptables-save and iptables-restore
 ip4tables_batch()
 {
-  local ARGS CHAIN CHAINFILE RESULT=0
+  local ARGS CHAIN CHAINFILE RESULT=0 IFS=' '
   
   # Args must be of the form and called in this order:
   #   start
@@ -1154,7 +1155,7 @@ ip4tables_batch()
 # Add ip6tables rules in batch using ip6tables-save and ip6tables-restore
 ip6tables_batch()
 {
-  local ARGS CHAIN CHAINFILE RESULT=0
+  local ARGS CHAIN CHAINFILE RESULT=0 IFS=' '
   
   # Args must be of the form and called in this order:
   #   start
