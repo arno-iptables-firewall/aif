@@ -193,12 +193,6 @@ setup_conf_file()
     change_conf_var "$FIREWALL_CONF" "IPV6_SUPPORT" "0"
   fi
   
-  if get_user_yn "Does this machine run an DHCP server for hosts connected to the external interface (Y/N)?" "n"; then
-    change_conf_var "$FIREWALL_CONF" "EXTERNAL_DHCP_SERVER" "1"
-  else
-    change_conf_var "$FIREWALL_CONF" "EXTERNAL_DHCP_SERVER" "0"
-  fi
-  
   if get_user_yn "Do you want to be pingable from the internet (Y/N)?" "n"; then
     change_conf_var "$FIREWALL_CONF" "OPEN_ICMP" "1"
   else
