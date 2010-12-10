@@ -235,18 +235,6 @@ config_check()
     printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n" >&2
     exit 2
   fi
-  
-  if [ -z "$PLUGIN_LOAD_FILE" ]; then
-    printf "\033[40m\033[1;31mERROR: The PLUGIN_LOAD_FILE variable has not been set!\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n" >&2
-    exit 2
-  fi
-  
-  if [ -z "$PLUGIN_LOAD_FILE_RESTART" ]; then
-    printf "\033[40m\033[1;31mERROR: The PLUGIN_LOAD_FILE_RESTART variable has not been set!\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n" >&2
-    exit 2
-  fi
 }
 
 

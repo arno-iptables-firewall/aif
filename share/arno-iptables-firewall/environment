@@ -1404,15 +1404,17 @@ ICMPV6_SPECIAL_TYPES="133 134 135 136"
 # Check plugin bin path and fallback in case it's empty
 #######################################################
 if [ -z "$PLUGIN_BIN_PATH" ]; then
-  if [ -d "/usr/share/arno-iptables-firewall/plugins" ]; then
-    PLUGIN_BIN_PATH="/usr/share/arno-iptables-firewall/plugins"
-  else
+  if [ -d "/usr/local/share/arno-iptables-firewall/plugins" ]; then
     PLUGIN_BIN_PATH="/usr/local/share/arno-iptables-firewall/plugins"
+  elif [ -d "/usr/share/arno-iptables-firewall/plugins" ]; then
+    PLUGIN_BIN_PATH="/usr/share/arno-iptables-firewall/plugins"
   fi
 fi
 
 # Check plugin bin path and fallback in case it's empty
 #######################################################
 if [ -z "$PLUGIN_CONF_PATH" ]; then
-  PLUGIN_CONF_PATH="/etc/arno-iptables-firewall/plugins"
+  if [ -d "/etc/arno-iptables-firewall/plugins" ]; then
+    PLUGIN_CONF_PATH="/etc/arno-iptables-firewall/plugins"
+  fi
 fi
