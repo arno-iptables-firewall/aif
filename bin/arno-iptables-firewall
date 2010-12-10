@@ -4318,7 +4318,7 @@ setup_hostblock_chain()
   if [ -n "$BLOCK_HOSTS_FILE" ]; then
     if [ -e "$BLOCK_HOSTS_FILE" ]; then
       local cur_cnt=0 total_cnt
-      total_cnt=$(( $(cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$|| |wc -l) ))
+      total_cnt=$(( $(cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' |wc -l) ))
 
       echo "(Re)loading list of BLOCKED hosts from $BLOCK_HOSTS_FILE..."
       progress_bar $cur_cnt $total_cnt
