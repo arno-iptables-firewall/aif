@@ -2,10 +2,10 @@
 #      -= Arno's iptables firewall - HTB & HFSC traffic shaper plugin =-
 #
 PLUGIN_NAME="Traffic-Shaper plugin"
-PLUGIN_VERSION="1.2.05 (htb: well tested, hfsc: experimental)"
+PLUGIN_VERSION="1.2.04 (htb: well tested, hfsc: experimental)"
 PLUGIN_CONF_FILE="traffic-shaper.conf"
 #
-# Last changed          : December 1, 2010
+# Last changed          : October 17, 2010
 # Requirements          : kernel 2.6 + iproute
 # Comments              : This plugin will shape traffic. It borrows heavily on
 #                         the logic of Maciej's original script (below), with
@@ -80,20 +80,6 @@ setclassbyport()
   done
 
   return 0
-}
-
-classify_by_host()
-{
-  local host IFS
-
-  # Hosts that should be given the lowest priority for all outbound traffic
-  IFS=' ,'
-  for host in $SHAPER_P2P_HOSTS; do
-    iptables -t mangle -A SHAPER_CHAIN -s $host -j CLASSIFY --set-class 1:60
-    iptables -t mangle -A SHAPER_CHAIN -s $host -j RETURN
-    iptables -t mangle -A SHAPER_CHAIN -d $host -j CLASSIFY --set-class 1:60
-    iptables -t mangle -A SHAPER_CHAIN -d $host -j RETURN
-  done
 }
 
 classify_by_port()
@@ -224,8 +210,6 @@ plugin_start_hfsc()
 
   classify_special_packets
 
-  classify_by_host
-
   classify_by_port
 
   classify_by_dscp_class
@@ -294,8 +278,6 @@ plugin_start_htb()
   iptables -t mangle -N SHAPER_CHAIN
 
   classify_special_packets
-
-  classify_by_host
 
   classify_by_port
 
