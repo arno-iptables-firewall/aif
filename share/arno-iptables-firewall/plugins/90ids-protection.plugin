@@ -98,7 +98,7 @@ plugin_start()
     $IPTABLES -A INPUT_CHAIN -i $interface -m recent --rcheck --seconds $IDS_MAX_TIME1 --hitcount $IDS_MAX_RATE1 --name idschk -j IDS_LOG_DROP
     $IPTABLES -A INPUT_CHAIN -i $interface -m recent --rcheck --seconds $IDS_MAX_TIME2 --hitcount $IDS_MAX_RATE2 --name idschk -j IDS_LOG_DROP
 
-    # Insert rule into the POST_INPUT_CHAIN chain:
+    # Insert rule into the POST_INPUT_DROP_CHAIN chain:
     $IPTABLES -A POST_INPUT_DROP_CHAIN -i $interface -m state --state NEW -j IDS_CHK
   done
 
