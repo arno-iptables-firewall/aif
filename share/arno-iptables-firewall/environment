@@ -291,7 +291,7 @@ ip4tables()
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IP4TABLES $@: ($retval) $result\033[0m\n" >&2
+    printf "\033[40m\033[1;31m$IP4TABLES $@\nERROR ($retval): $result\033[0m\n" >&2
     if note_iptables_error "$@"; then
       IPTABLES_ERROR=1
     fi
@@ -312,7 +312,7 @@ ip6tables()
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IP6TABLES $@: ($retval) $result\033[0m\n" >&2
+    printf "\033[40m\033[1;31m$IP6TABLES $@\nERROR ($retval): $result\033[0m\n" >&2
     if note_iptables_error "$@"; then
       IPTABLES_ERROR=1
     fi
@@ -333,7 +333,7 @@ ip4tables_save()
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IP4TABLES_SAVE $@: Error ($retval) \033[0m\n" >&2
+    printf "\033[40m\033[1;31m$IP4TABLES_SAVE $@\nERROR ($retval) \033[0m\n" >&2
     IPTABLES_ERROR=1
   fi
 
@@ -350,7 +350,7 @@ ip4tables_restore()
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IP4TABLES_RESTORE $@: ($retval) $result\033[0m\n" >&2
+    printf "\033[40m\033[1;31m$IP4TABLES_RESTORE $@\nERROR ($retval): $result\033[0m\n" >&2
     IPTABLES_ERROR=1
   elif [ -n "$result" ]; then
     echo "${INDENT}$result"
@@ -369,7 +369,7 @@ ip6tables_save()
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IP6TABLES_SAVE $@: Error ($retval) \033[0m\n" >&2
+    printf "\033[40m\033[1;31m$IP6TABLES_SAVE $@\nERROR ($retval) \033[0m\n" >&2
     IPTABLES_ERROR=1
   fi
 
@@ -386,7 +386,7 @@ ip6tables_restore()
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IP6TABLES_RESTORE $@: ($retval) $result\033[0m\n" >&2
+    printf "\033[40m\033[1;31m$IP6TABLES_RESTORE $@\nERROR ($retval): $result\033[0m\n" >&2
     IPTABLES_ERROR=1
   elif [ -n "$result" ]; then
     echo "${INDENT}$result"
@@ -413,15 +413,15 @@ modprobe()
     if [ $retval -ne 0 ]; then
       if ! echo "$result" |grep -q -e "Module .* not found" -e "Can't locate module"; then
         # Show any (error) messages in red
-        printf "\033[40m\033[1;31m${MODPROBE} $@: ($retval) $result\033[0m\n" >&2
+        printf "\033[40m\033[1;31m${MODPROBE} $@\nERROR ($retval): $result\033[0m\n" >&2
       elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-        printf "\033[40m\033[1;31m${MODPROBE} $@: Module not found! Assuming compiled-in-kernel!\033[0m\n" >&2
+        printf "\033[40m\033[1;31m${MODPROBE} $@\nWARNING: Module not found! Assuming compiled-in-kernel!\033[0m\n" >&2
       fi
       return $retval
     else
       if echo "$result" |grep -q -e '^WARNING:'; then
         # Show any (warning) messages in red
-        printf "\033[40m\033[1;31m${MODPROBE} $@: $result\033[0m\n" >&2
+        printf "\033[40m\033[1;31m${MODPROBE} $@\nWARNING: $result\033[0m\n" >&2
       else
         echo "${INDENT}Loaded kernel module $1. $result"
       fi
@@ -475,13 +475,13 @@ modprobe_multi()
         if [ $retval -ne 0 ]; then
           if ! echo "$result" |grep -q -e "Module .* not found" -e "Can't locate module"; then
             # Show any (error) messages in red
-            printf "\033[40m\033[1;31m${modprobe_commandline}: ($retval) $result\033[0m\n" >&2
+            printf "\033[40m\033[1;31m${modprobe_commandline}\nERROR ($retval): $result\033[0m\n" >&2
           fi
           fail=1
         else
           if echo "$result" |grep -q -e '^WARNING:'; then
             # Show any (warning) messages in red
-            printf "\033[40m\033[1;31m${modprobe_commandline}: $result\033[0m\n" >&2
+            printf "\033[40m\033[1;31m${modprobe_commandline}\nWARNING: $result\033[0m\n" >&2
           else
             echo "${INDENT}Loaded kernel module $module. $result"
           fi
@@ -492,7 +492,7 @@ modprobe_multi()
       fi
     done
     if [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-      printf "\033[40m\033[1;31mWARNING: ($retval) Module(s) \"$(echo "$MODULES" |tr ' ' '|')\" failed to load. Assuming compiled-in-kernel!\033[0m\n" >&2
+      printf "\033[40m\033[1;31mWARNING: Module(s) \"$(echo "$MODULES" |tr ' ' '|')\" failed to load. Assuming compiled-in-kernel!\033[0m\n" >&2
       return 1
     fi
   elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
@@ -514,7 +514,7 @@ sysctl()
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$SYSCTL $@: ($retval) $result\033[0m\n" >&2
+    printf "\033[40m\033[1;31m$SYSCTL $@\nERROR ($retval): $result\033[0m\n" >&2
     return $retval
   fi
   
@@ -558,7 +558,8 @@ sysctl_multi()
         fi
         return 0
       else
-        printf "\033[40m\033[1;31m${sysctl_commandline}: ($retval) $result\033[0m\n" >&2
+        # Show any (error) messages in red
+        printf "\033[40m\033[1;31m${sysctl_commandline}\nERROR ($retval): $result\033[0m\n" >&2
       fi
     fi
   done
