@@ -291,7 +291,7 @@ ip4tables()
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IP4TABLES: ($retval) $result\033[0m\n" >&2
+    printf "\033[40m\033[1;31m$IP4TABLES $@: ($retval) $result\033[0m\n" >&2
     if note_iptables_error "$@"; then
       IPTABLES_ERROR=1
     fi
@@ -312,7 +312,7 @@ ip6tables()
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IP6TABLES: ($retval) $result\033[0m\n" >&2
+    printf "\033[40m\033[1;31m$IP6TABLES $@: ($retval) $result\033[0m\n" >&2
     if note_iptables_error "$@"; then
       IPTABLES_ERROR=1
     fi
@@ -333,7 +333,7 @@ ip4tables_save()
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IP4TABLES_SAVE: Error ($retval) \033[0m\n" >&2
+    printf "\033[40m\033[1;31m$IP4TABLES_SAVE $@: Error ($retval) \033[0m\n" >&2
     IPTABLES_ERROR=1
   fi
 
@@ -350,7 +350,7 @@ ip4tables_restore()
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IP4TABLES_RESTORE: ($retval) $result\033[0m\n" >&2
+    printf "\033[40m\033[1;31m$IP4TABLES_RESTORE $@: ($retval) $result\033[0m\n" >&2
     IPTABLES_ERROR=1
   elif [ -n "$result" ]; then
     echo "${INDENT}$result"
@@ -369,7 +369,7 @@ ip6tables_save()
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IP6TABLES_SAVE: Error ($retval) \033[0m\n" >&2
+    printf "\033[40m\033[1;31m$IP6TABLES_SAVE $@: Error ($retval) \033[0m\n" >&2
     IPTABLES_ERROR=1
   fi
 
@@ -386,7 +386,7 @@ ip6tables_restore()
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IP6TABLES_RESTORE: ($retval) $result\033[0m\n" >&2
+    printf "\033[40m\033[1;31m$IP6TABLES_RESTORE $@: ($retval) $result\033[0m\n" >&2
     IPTABLES_ERROR=1
   elif [ -n "$result" ]; then
     echo "${INDENT}$result"
