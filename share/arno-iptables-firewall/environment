@@ -369,7 +369,7 @@ ip6tables_save()
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m$IP6TABLES_SAVE $@\nERROR ($retval) \033[0m\n" >&2
+    printf "\033[40m\033[1;31m$IP6TABLES_SAVE $@\nERROR ($retval)\033[0m\n" >&2
     IPTABLES_ERROR=1
   fi
 
@@ -415,7 +415,7 @@ modprobe()
         # Show any (error) messages in red
         printf "\033[40m\033[1;31m${MODPROBE} $@\nERROR ($retval): $result\033[0m\n" >&2
       elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-        printf "\033[40m\033[1;31m${MODPROBE} $@\nWARNING: Module not found! Assuming compiled-in-kernel!\033[0m\n" >&2
+        printf "\033[40m\033[1;31m${MODPROBE} $@\nWARNING ($retval): $result. Assuming compiled-in-kernel!\033[0m\n" >&2
       fi
       return $retval
     else
