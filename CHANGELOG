@@ -1,11 +1,9 @@
-Version 2.0.0a-DEVEL (December 10, 2010)
+Version 2.0.0a-DEVEL (December 24, 2010)
 ---------------------------------------
 ! Set IFS=' ' in our batch-functions else the wrappers fail in some cases
 - Removed old legacy plugin support that used the PLUGIN_PATH variable
 ! Fixed an issue when the value of IPV6_SUPPORT was changed then followed with a 'restart'
-+ Added SHAPER_P2P_HOSTS variable for the traffic-shaper plugin to specify hosts (local or remote)
-  that all outbound traffic will be given the lowest priority.  A local file server backing up
-  remotely would be an example application.
+* (Cosmetic) tweaks
 
 Version 2.0.0 (November 15, 2010)
 ---------------------------------
