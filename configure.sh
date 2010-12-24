@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.02b"
+MY_VERSION="1.02c"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -64,7 +64,9 @@ sanity_check()
 
 change_conf_var()
 {
-  if [ -n "$3" ]; then
+  if ! grep -q "^$2=" "$1"; then
+    printf "\033[40m\033[1;31mERROR: Variable \"$2\" not found in \"$1\". File is probably outdated!\033[0m\n" >&2
+  elif [ -n "$3" ]; then
     sed -i -e "s~^$2=.*$~$2=\"$3\"~" -e "s~^#$2=.*$~$2=\"$3\"~" "$1"
   fi
 }
