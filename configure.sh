@@ -64,10 +64,10 @@ sanity_check()
 
 change_conf_var()
 {
-  if ! grep -q "^$2=" "$1"; then
+  if ! grep -E -q "^#?$2=" "$1"; then
     printf "\033[40m\033[1;31mERROR: Variable \"$2\" not found in \"$1\". File is probably outdated!\033[0m\n" >&2
   elif [ -n "$3" ]; then
-    sed -i -e "s~^$2=.*$~$2=\"$3\"~" -e "s~^#$2=.*$~$2=\"$3\"~" "$1"
+    sed -i -e "s~^#\?$2=.*$~$2=\"$3\"~" "$1"
   fi
 }
 
