@@ -1,5 +1,5 @@
-Version 2.0.0a-DEVEL (December 24, 2010)
----------------------------------------
+Version 2.0.0a (December 30, 2010)
+----------------------------------------
 ! Set IFS=' ' in our batch-functions else the wrappers fail in some cases
 - Removed old legacy plugin support that used the PLUGIN_PATH variable
 ! Fixed an issue when the value of IPV6_SUPPORT was changed then followed with a 'restart'
@@ -55,3 +55,4 @@ Version 1.9.9-BETA1 (October 8, 2010)
   write the log-file in case we're not root
 + Automatically disable IPV6_SUPPORT if IPv6 is not detected in the kernel
 + Add support for mixed IPv4/IPv6 when IPV6_SUPPORT=1
+
