@@ -415,7 +415,7 @@ modprobe()
         # Show any (error) messages in red
         printf "\033[40m\033[1;31m${MODPROBE} $*\nERROR ($retval): ${result}\033[0m\n" >&2
       elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-        printf "${MODPROBE} $*\nNOTE ($retval): Module \"$1\" failed to load. Assuming compiled-in-kernel.\n" >&2
+        printf "NOTE: Module \"$1\" failed to load. Assuming compiled-in-kernel.\n" >&2
       fi
       return $retval
     else
@@ -492,7 +492,7 @@ modprobe_multi()
       fi
     done
     if [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
-      printf "NOTE: Module(s) \"$(echo "$MODULES" |tr ' ' '|')\" failed to load. Assuming compiled-in-kernel.\n" >&2
+      printf "NOTE: Modules \"$(echo "$MODULES" |tr ' ' '|')\" failed to load. Assuming compiled-in-kernel.\n" >&2
       return 1
     fi
   elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
