@@ -1,3 +1,6 @@
+Version 2.0.0b-DEVEL (January 18, 2011)
+----------------------------------------
+
 Version 2.0.0a (December 30, 2010)
 ----------------------------------------
 ! Set IFS=' ' in our batch-functions else the wrappers fail in some cases
