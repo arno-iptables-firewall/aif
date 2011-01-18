@@ -3039,7 +3039,7 @@ setup_ext_input_chain()
     for host in `ip_range "$hosts"`; do
       for destip in $destips; do
         for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p icmp --icmp-type icmp-request -j POST_INPUT_DROP_CHAIN
+          iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p icmp --icmp-type echo-request -j POST_INPUT_DROP_CHAIN
         done
       done
     done
@@ -3142,10 +3142,10 @@ setup_ext_input_chain()
       for destip in $destips; do
         for interface in $interfaces; do
           if [ "$ICMP_DROP_LOG" != "0" ]; then
-            iptables -A EXT_INPUT_CHAIN -s $host -p icmp --icmp-type icmp-request -m limit --limit 1/h --limit-burst 1 \
+            iptables -A EXT_INPUT_CHAIN -s $host -p icmp --icmp-type echo-request -m limit --limit 1/h --limit-burst 1 \
               -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
           fi
-          iptables -A EXT_INPUT_CHAIN -s $host -p icmp --icmp-type icmp-request -j POST_INPUT_DROP_CHAIN
+          iptables -A EXT_INPUT_CHAIN -s $host -p icmp --icmp-type echo-request -j POST_INPUT_DROP_CHAIN
         done
       done
     done
