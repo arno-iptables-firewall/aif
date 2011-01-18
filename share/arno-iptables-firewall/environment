@@ -263,6 +263,9 @@ iptables()
     if [ $src -eq 4 -o $dst -eq 4 -o "$table" = "nat" ]; then
       ip4tables "$@"
     elif [ $src -eq 6 -o $dst -eq 6 -o "$proto" = "icmpv6" ]; then
+      if [ "$proto" = "icmp" ]; then
+        IFS='~'; set -- $(ip6tables_icmp_args "$@"); unset IFS
+      fi
       ip6tables "$@"
     elif [ "$proto" = "icmp" ]; then
       ip4tables "$@"
