@@ -1,6 +1,7 @@
 Version 2.0.0b-DEVEL (January 18, 2011)
 ---------------------------------------
-! Fixed handling HOST_OPEN_ICMP, HOST_DENY_ICMP_NOLOG and HOST_DENY_ICMP variables with IPv6 addresses
+! Fixed handling HOST_OPEN_ICMP, HOST_DENY_ICMP_NOLOG and HOST_DENY_ICMP variables
+  with IPv6 addresses. (thanks Klemen Mihevc)
 
 Version 2.0.0a (December 30, 2010)
 ----------------------------------------
