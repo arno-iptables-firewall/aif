@@ -1,5 +1,6 @@
-Version 2.0.0b-DEVEL (January 18, 2011)
+Version 2.0.0b-DEVEL (January 26, 2011)
 ---------------------------------------
++ Drop all IPv6 packets with Routing Header Type 0, new variable IPV6_DROP_RH_ZERO (thanks Klemen Mihevc)
 ! Fixed handling HOST_OPEN_ICMP, HOST_DENY_ICMP_NOLOG and HOST_DENY_ICMP variables
   with IPv6 addresses. (thanks Klemen Mihevc)
 
