@@ -736,6 +736,17 @@ init_firewall_chains()
   iptables -A BASE_FORWARD_CHAIN -m state --state RELATED -p udp --dport 1024: -j ACCEPT
   iptables -A BASE_FORWARD_CHAIN -m state --state RELATED -p icmp -j ACCEPT
 
+  # Drop all IPv6 packets with Routing Header Type 0
+  ##################################################
+  if [ "$IPV6_SUPPORT" = "1" -a "$IPV6_DROP_RH_ZERO" != "0" ]; then
+    if try_ip6tables -A BASE_INPUT_CHAIN -m rt --rt-type 0 -j DROP; then
+      ip6tables -A BASE_FORWARD_CHAIN -m rt --rt-type 0 -j DROP
+      ip6tables -A BASE_OUTPUT_CHAIN -m rt --rt-type 0 -j DROP
+    else
+      echo " WARNING: IPv6 Routing Header Type 0 matching not supported"
+    fi
+  fi
+
   # Accept all packets for the loopback device
   ############################################
   iptables -A BASE_INPUT_CHAIN -i lo -j ACCEPT

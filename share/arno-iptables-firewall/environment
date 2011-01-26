@@ -399,6 +399,22 @@ ip6tables_restore()
 }
 
 
+try_ip4tables()
+{
+  local IFS=' '
+
+  trace $IP4TABLES "$@" >/dev/null 2>&1
+}
+
+
+try_ip6tables()
+{
+  local IFS=' '
+
+  trace $IP6TABLES "$@" >/dev/null 2>&1
+}
+
+
 # Wrapper function for modprobe
 ###############################
 modprobe()
