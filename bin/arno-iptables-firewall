@@ -290,32 +290,32 @@ load_modules()
     modprobe_multi xt_multiport ipt_multiport
   fi
   
-  # Implements the filter table:
+  # Implement the filter table:
   modprobe iptable_filter
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe ip6table_filter
   fi
   
-  # Implements the mangle table
+  # Implement the mangle table
   modprobe iptable_mangle
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe ip6table_mangle
   fi
 
-  # Implements the REJECT target:
+  # Implement the REJECT target
   modprobe ipt_REJECT
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe ip6t_REJECT
   fi
   
-  # Implements the LOG target:
+  # Implement the LOG target
   modprobe ipt_LOG
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe ip6t_LOG
   fi
   
   if [ "$SET_MSS" != "0" ]; then
-    # Load the TCPMSS target:
+    # Implement the TCPMSS target
     if [ "$IPV6_SUPPORT" = "1" ]; then
       modprobe_multi xt_TCPMSS "ipt_TCPMSS,ip6t_TCPMSS"
     else
@@ -324,7 +324,7 @@ load_modules()
   fi
   
   if [ "$MANGLE_TOS" != "0" ]; then
-    # Load the TOS target:
+    # Implement the TOS target
     if [ "$IPV6_SUPPORT" = "1" ]; then
       modprobe_multi xt_DSCP "ipt_DSCP,ip6t_DSCP" "ipt_TOS,ip6t_TOS"
     else
@@ -345,26 +345,29 @@ load_modules()
   #    modprobe ipt_mark                # Allows use of mark match
   #    modprobe ip_conntrack_egg
 
+  # Implement the NAT table
+  modprobe iptable_nat
+
+  if [ "$NAT" = "1" -o -n "$NAT_FORWARD_TCP" -o -n "$NAT_FORWARD_UDP" -o -n "$NAT_FORWARD_IP" ]; then
+    # Load the module implementing DNAT/SNAT/NAT support
+    modprobe_multi nf_nat ip_nat
+  fi
+
+  if [ "$NAT" = "1" ]; then
+    modprobe_multi nf_nat_ftp ip_nat_ftp             # Permits active FTP via nat; requires ip_conntrack & iptable_nat
+    
+    if [ -z "$NAT_STATIC_IP" ]; then
+      # Load the MASQUERADE target:
+      modprobe ipt_MASQUERADE
+    fi
+  fi
+  
   if [ "$USE_IRC" = "1" ]; then
-    #      echo "Enabling IRC DCC module support..."
+#    echo "Enabling IRC DCC module support..."
     modprobe_multi nf_conntrack_irc ip_conntrack_irc        #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
 
     if [ "$NAT" = "1" ]; then
       modprobe_multi nf_nat_irc ip_nat_irc            #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
-    fi
-  fi
-
-  if [ "$NAT" = "1" ]; then
-    modprobe_multi nf_nat_ftp ip_nat_ftp             # Permits active FTP via nat; requires ip_conntrack, iptables_nat
-  fi
-  
-  if [ "$NAT" = "1" -o -n "$NAT_FORWARD_TCP" -o -n "$NAT_FORWARD_UDP" -o -n "$NAT_FORWARD_IP" ]; then
-    # Implements the NAT table:
-    modprobe iptable_nat
-
-    if [ -z "$NAT_STATIC_IP" ]; then
-      # Load the MASQUERADE target:
-      modprobe ipt_MASQUERADE
     fi
   fi
 
