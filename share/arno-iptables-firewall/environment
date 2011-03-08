@@ -182,7 +182,7 @@ note_iptables_error()
 
 ip6tables_icmp_args()
 {
-  local arg args="" action="" IFS
+  local arg args="" action="" tilde="~" IFS
 
   IFS='~'  # expand command-line args using the unique 'tilde' character
   for arg in $*; do
@@ -203,7 +203,8 @@ ip6tables_icmp_args()
       esac
     fi
     # build 'tilde' separated command-line
-    args="$args${args:+~}$arg"
+    # Note: use $tilde instead of ~ to workaround Busybox 'ash' bug
+    args="$args${args:+$tilde}$arg"
   done
   
   # return 'tilde' separated command-line
