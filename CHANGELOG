@@ -1,5 +1,6 @@
-Version 2.0.0b-DEVEL (March 3, 2011)
+Version 2.0.0b-DEVEL (March 8, 2011)
 ---------------------------------------
+! workaround Busybox 'ash' bug when IPV6_SUPPORT is enabled
 + Added pptp-vpn plugin for local PPTP server support
 ! arno-fwfilter uses incorrect URL for location lookup (Debian bug #613631, thanks to Tony Evans for the patch)
 + Drop all IPv6 packets with Routing Header Type 0, new variable IPV6_DROP_RH_ZERO (thanks Klemen Mihevc)
