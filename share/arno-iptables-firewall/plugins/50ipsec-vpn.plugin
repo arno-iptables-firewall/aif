@@ -2,10 +2,10 @@
 #               -= Arno's iptables firewall - IPsec VPN plugin =-
 #
 PLUGIN_NAME="IPsec VPN plugin"
-PLUGIN_VERSION="0.82BETA"
+PLUGIN_VERSION="0.83BETA"
 PLUGIN_CONF_FILE="ipsec-vpn.conf"
 #
-# Last changed          : November 2, 2010
+# Last changed          : March 9, 2011
 # Requirements          : AIF 2.0.0+ and kernel 2.6 + ipt_policy + iptable_nat
 # Comments              : This plugin adds all required rules for using Racoon IPSEC.
 #
@@ -88,11 +88,11 @@ plugin_start()
     fi
   done
 
-  local -i cnt=0
+  local cnt=0
   IFS=' ,'
   for eif in $EXT_IF; do
     for net in $INTERNAL_NET; do
-      let cnt++
+      cnt=$((cnt + 1))
       iptables -I SPOOF_CHK $cnt -i $eif -s $net -m policy --pol ipsec --dir in -j RETURN
     done
   done

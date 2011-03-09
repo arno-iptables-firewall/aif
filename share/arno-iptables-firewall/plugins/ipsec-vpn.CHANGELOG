@@ -1,3 +1,7 @@
+Version 0.83BETA (March 9, 2011)
+--------------------------------
+! Removed Bash-ism
+
 Version 0.82BETA (November 2, 2010)
 -----------------------------------
 + Added IPv6 support for matching AH headers
