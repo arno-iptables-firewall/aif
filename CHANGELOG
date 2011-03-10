@@ -1,6 +1,6 @@
 Version 2.0.0b-DEVEL (March 9, 2011)
 ---------------------------------------
-! remove bash-ism in ipsec-vpn plugin
+! remove bash-ism in ipsec-vpn plugin (Reported by Debian upstream, Debian bug #617510)
 ! workaround Busybox 'ash' bug when IPV6_SUPPORT is enabled
 + Added pptp-vpn plugin for local PPTP server support
 ! arno-fwfilter uses incorrect URL for location lookup (Debian bug #613631, thanks to Tony Evans for the patch)
