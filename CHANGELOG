@@ -1,5 +1,6 @@
-Version 2.0.0b-DEVEL (March 9, 2011)
+Version 2.0.0b-DEVEL (March 24, 2011)
 ---------------------------------------
+! remove bash-ism related to traffic-shaper plugin (Reported by Debian upstream, Debian bug #619496)
 ! remove bash-ism in ipsec-vpn plugin (Reported by Debian upstream, Debian bug #617510)
 ! workaround Busybox 'ash' bug when IPV6_SUPPORT is enabled
 + Added pptp-vpn plugin for local PPTP server support
