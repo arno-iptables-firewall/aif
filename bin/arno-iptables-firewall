@@ -5561,6 +5561,7 @@ main_stop()
 
 main_start()
 {
+
   load_modules;
   setup_misc;
   setup_kernel_settings;
@@ -5584,6 +5585,28 @@ main_restart()
 }
 
 
+start_restart()
+{
+  # Show uname & issue information
+  printf "Platform: $(uname -s -r -m)"
+  if [ -e "/etc/issue" ]; then
+    printf " - $(cat /etc/issue |sed s/'\\.*'//g)"
+  fi
+  printf "\n"
+
+  config_check;
+  
+  # Check whether we are actually stopped
+  case $(check_for_base_chains) in
+    no)    main_start;;
+    yes)   main_restart;;
+    other) main_stop; main_start;;
+  esac
+  
+  show_applied;
+}
+
+
 # int main (char *argv)
 #######################
 
@@ -5591,24 +5614,12 @@ main_restart()
 case "$1" in
   'start' )             sanity_check;
                         show_start;
-                        config_check;
-                        # Check whether we are actually stopped
-                        case $(check_for_base_chains) in
-                          no)    main_start;;
-                          yes)   main_restart;;
-                          other) main_stop; main_start;;
-                        esac
-                        show_applied;;
+                        start_restart;;
+                        
+
   'restart' )           sanity_check;
                         show_restart;
-                        config_check;
-                        # Check whether we are actually running
-                        case $(check_for_base_chains) in
-                          no)    main_start;;
-                          yes)   main_restart;;
-                          other) main_stop; main_start;;
-                        esac
-                        show_applied;;
+                        start_resart;;
   'force-reload' )      sanity_check;
                         config_check;
                         setup_hostblock_chain;
