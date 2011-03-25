@@ -1,5 +1,5 @@
-Version 2.0.0b-DEVEL (March 25, 2011)
----------------------------------------
+Version 2.0.0b (March 25, 2011)
+-------------------------------
 + Perform kernel check when IPv6 support is enabled
 - Don't auto detect external interface settings during configure. It's too
   confusing and fills out the wrong values for certain setups (like laptops that are moved around)
