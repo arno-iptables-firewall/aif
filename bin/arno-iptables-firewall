@@ -5619,11 +5619,9 @@ case "$1" in
   'start' )             sanity_check;
                         show_start;
                         start_restart;;
-                        
-
   'restart' )           sanity_check;
                         show_restart;
-                        start_resart;;
+                        start_restart;;
   'force-reload' )      sanity_check;
                         config_check;
                         setup_hostblock_chain;
