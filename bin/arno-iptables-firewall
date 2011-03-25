@@ -105,8 +105,10 @@ sanity_check()
     check_command_error dig nslookup
   fi
   
-  if ! kernel_ver_chk 2.6.24 && [ "$IPV6_SUPPORT" = "1" ]; then
-    printf "\033[40m\033[1;31mWARNING: IPv6 support is enabled but you kernel is rather old (<2.6.24)! This *could* cause problems...\033[0m\n" >&2
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    if ! kernel_ver_chk 2 6 24; then
+      printf "\033[40m\033[1;31mWARNING: IPv6 support is enabled but your kernel is rather old (<2.6.24)! This *could* cause problems...\033[0m\n" >&2
+    fi
   fi
 }
 
@@ -5591,12 +5593,8 @@ main_restart()
 
 start_restart()
 {
-  # Show uname & issue information
-  printf "Platform: $(uname -s -r -m)"
-  if [ -e "/etc/issue" ]; then
-    printf " - $(cat /etc/issue |sed s/'\\.*'//g)"
-  fi
-  printf "\n"
+  # Show uname information
+  echo "Platform: $(uname -s -r -m)"
 
   config_check;
   
