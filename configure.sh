@@ -197,17 +197,13 @@ setup_conf_file()
           INT_NET_BCAST_ADDRESS="$INT_NET_BCAST_ADDRESS${INT_NET_BCAST_ADDRESS:+ }$(get_network_ipv4_broadcast $interface)"
         done
       
-        if [ -n "$INTERNAL_NET" ]; then
+        if [ -n "$INTERNAL_NET" ] && [ -n "$INT_NET_BCAST_ADDRESS" ]; then
           echo "* Auto-detected internal IPv4 net(s): $INTERNAL_NET"
+          echo "* Auto-detected internal IPv4 broadcast address(es): $INT_NET_BCAST_ADDRESS"
+          
           change_conf_var "$FIREWALL_CONF" "INTERNAL_NET" "$INTERNAL_NET"
-        fi
-
-        if [ -n "$INT_NET_BCAST_ADDRESS" ]; then
-          echo "* Auto-detected external IPv4 broadcast address(es): $INT_NET_BCAST_ADDRESS"
           change_conf_var "$FIREWALL_CONF" "INT_NET_BCAST_ADDRESS" "$INT_NET_BCAST_ADDRESS"
-        fi
-        
-        if [ -n "$INTERNAL_NET" ]; then
+
           if get_user_yn "Do you want to enable NAT/masquerading for your internal subnet (Y/N)?" "n"; then
             change_conf_var "$FIREWALL_CONF" "NAT" "1"
             change_conf_var "$FIREWALL_CONF" "NAT_INTERNAL_NET" '\$INTERNAL_NET'
