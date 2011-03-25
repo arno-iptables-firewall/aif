@@ -104,6 +104,10 @@ sanity_check()
   if [ "$RESOLV_IPS" = "1" ]; then
     check_command_error dig nslookup
   fi
+
+  if ! kernel_ver_chk 2.6.24 && [ "$IPV6_SUPPORT" = "1" ]; then
+    printf "\033[40m\033[1;31mWARNING: IPv6 support is enabled but you kernel is rather old! This *could* cause problems...\033[0m\n" >&2
+  fi
 }
 
 
