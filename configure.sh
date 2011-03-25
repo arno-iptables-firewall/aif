@@ -41,6 +41,7 @@ fi
 # Allow user to override firewall.conf location (undocumented)
 FIREWALL_CONF=${1:-/etc/arno-iptables-firewall/firewall.conf}
 
+
 sanity_check()
 {
   # root check
@@ -119,6 +120,7 @@ get_user_yn()
   fi
 }
 
+
 verify_interfaces()
 {
   if [ -z "$1" ]; then
@@ -139,6 +141,7 @@ verify_interfaces()
   return 0
 }
 
+
 setup_conf_file()
 {
   # Create backup of old config
@@ -151,33 +154,7 @@ setup_conf_file()
     read EXT_IF
     
     if verify_interfaces $EXT_IF; then
-      if [ -n "$EXT_IF" ]; then
-        change_conf_var "$FIREWALL_CONF" "EXT_IF" "$EXT_IF"
-      
-        local EXTERNAL_NET=""
-        local EXT_NET_BCAST_ADDRESS=""
-        IFS=' ,'
-        for interface in $EXT_IF; do
-          EXTERNAL_NET="$EXTERNAL_NET${EXTERNAL_NET:+ }$(get_network_ipv4_address_mask $interface)"
-          EXT_NET_BCAST_ADDRESS="$EXT_NET_BCAST_ADDRESS${EXT_NET_BCAST_ADDRESS:+ }$(get_network_ipv4_broadcast $interface)"
-        done
-      
-        if [ -n "$EXTERNAL_NET" ]; then
-          echo "* Auto-detected external IPv4 net(s): $EXTERNAL_NET"
-          change_conf_var "$FIREWALL_CONF" "EXTERNAL_NET" "$EXTERNAL_NET"
-
-          if get_user_yn "Do you want to allow full access for your external subnet (Y/N)?" "n"; then
-            change_conf_var "$FIREWALL_CONF" "FULL_ACCESS_HOSTS" '\$EXTERNAL_NET'
-          else
-            change_conf_var "$FIREWALL_CONF" "FULL_ACCESS_HOSTS" ''
-          fi
-        fi
-        
-        if [ -n "$EXT_NET_BCAST_ADDRESS" ]; then
-          echo "* Auto-detected external IPv4 broadcast address(es): $EXT_NET_BCAST_ADDRESS"
-          change_conf_var "$FIREWALL_CONF" "EXT_NET_BCAST_ADDRESS" "$EXT_NET_BCAST_ADDRESS"
-        fi
-      fi
+      change_conf_var "$FIREWALL_CONF" "EXT_IF" "$EXT_IF"
 
       break
     fi
@@ -210,36 +187,35 @@ setup_conf_file()
       read INT_IF
       
       if verify_interfaces $INT_IF; then
-        if [ -n "$INT_IF" ]; then
-          change_conf_var "$FIREWALL_CONF" "INT_IF" "$INT_IF"
-        
-          local INTERNAL_NET=""
-          local INT_NET_BCAST_ADDRESS=""
-          IFS=' ,'
-          for interface in $INT_IF; do
-            INTERNAL_NET="$INTERNAL_NET${INTERNAL_NET:+ }$(get_network_ipv4_address_mask $interface)"
-            INT_NET_BCAST_ADDRESS="$INT_NET_BCAST_ADDRESS${INT_NET_BCAST_ADDRESS:+ }$(get_network_ipv4_broadcast $interface)"
-          done
-        
-          if [ -n "$INTERNAL_NET" ]; then
-            echo "* Auto-detected internal IPv4 net(s): $INTERNAL_NET"
-            change_conf_var "$FIREWALL_CONF" "INTERNAL_NET" "$INTERNAL_NET"
-          fi
+        change_conf_var "$FIREWALL_CONF" "INT_IF" "$INT_IF"
+      
+        local INTERNAL_NET=""
+        local INT_NET_BCAST_ADDRESS=""
+        IFS=' ,'
+        for interface in $INT_IF; do
+          INTERNAL_NET="$INTERNAL_NET${INTERNAL_NET:+ }$(get_network_ipv4_address_mask $interface)"
+          INT_NET_BCAST_ADDRESS="$INT_NET_BCAST_ADDRESS${INT_NET_BCAST_ADDRESS:+ }$(get_network_ipv4_broadcast $interface)"
+        done
+      
+        if [ -n "$INTERNAL_NET" ]; then
+          echo "* Auto-detected internal IPv4 net(s): $INTERNAL_NET"
+          change_conf_var "$FIREWALL_CONF" "INTERNAL_NET" "$INTERNAL_NET"
+        fi
 
-          if [ -n "$INT_NET_BCAST_ADDRESS" ]; then
-            echo "* Auto-detected external IPv4 broadcast address(es): $INT_NET_BCAST_ADDRESS"
-            change_conf_var "$FIREWALL_CONF" "INT_NET_BCAST_ADDRESS" "$INT_NET_BCAST_ADDRESS"
-          fi
-          
-          if [ -n "$INTERNAL_NET" ]; then
-            if get_user_yn "Do you want to enable NAT/masquerading for your internal subnet (Y/N)?" "n"; then
-              change_conf_var "$FIREWALL_CONF" "NAT" "1"
-              change_conf_var "$FIREWALL_CONF" "NAT_INTERNAL_NET" '\$INTERNAL_NET'
-            else
-              change_conf_var "$FIREWALL_CONF" "NAT" "0"
-            fi
+        if [ -n "$INT_NET_BCAST_ADDRESS" ]; then
+          echo "* Auto-detected external IPv4 broadcast address(es): $INT_NET_BCAST_ADDRESS"
+          change_conf_var "$FIREWALL_CONF" "INT_NET_BCAST_ADDRESS" "$INT_NET_BCAST_ADDRESS"
+        fi
+        
+        if [ -n "$INTERNAL_NET" ]; then
+          if get_user_yn "Do you want to enable NAT/masquerading for your internal subnet (Y/N)?" "n"; then
+            change_conf_var "$FIREWALL_CONF" "NAT" "1"
+            change_conf_var "$FIREWALL_CONF" "NAT_INTERNAL_NET" '\$INTERNAL_NET'
+          else
+            change_conf_var "$FIREWALL_CONF" "NAT" "0"
           fi
         fi
+
         break
       fi
     done
@@ -297,4 +273,3 @@ echo "** Configuration done **"
 echo ""
 
 exit 0
-

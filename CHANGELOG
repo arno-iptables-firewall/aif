@@ -1,5 +1,7 @@
 Version 2.0.0b-DEVEL (March 25, 2011)
 ---------------------------------------
+- Don't auto detect external interface settings during configure. It's too
+  confusing and fills out the wrong values for certain setups (like laptops that are moved around)
 + Show platform information on start/restart when verbose
 ! remove bash-ism related to traffic-shaper plugin (Reported by Debian upstream, Debian bug #619496)
 ! remove bash-ism in ipsec-vpn plugin (Reported by Debian upstream, Debian bug #617510)
