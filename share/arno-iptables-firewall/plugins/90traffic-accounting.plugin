@@ -2,16 +2,16 @@
 #            -= Arno's iptables firewall - Traffic Accounting plugin =-
 #
 PLUGIN_NAME="Traffic Accounting plugin"
-PLUGIN_VERSION="1.1BETA (EXPERIMENTAL!)"
+PLUGIN_VERSION="1.11"
 PLUGIN_CONF_FILE="traffic-accounting.conf"
 #
-# Last changed          : October 19, 2010
+# Last changed          : May 13, 2011
 # Requirements          : AIF 2.0.0 (or later)
-# Comments              : This implements support for traffic accounting. It is
-#                         works with dynamic hostnames (non-static IPs).
-#                         Updated for mixed IPv4/IPv6
+# Comments              : This implements support for traffic accounting. It also
+#                         works with dynamic hostnames (non-static IPs) and
+#                         both IPv4 and IPv6 addresses
 #
-# Author                : (C) Copyright 2008-2010 by Arno van Amersfoort
+# Author                : (C) Copyright 2008-2011 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
@@ -32,6 +32,8 @@ PLUGIN_CONF_FILE="traffic-accounting.conf"
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
+TRAFFIC_ACCOUNTING_HOST_CACHE="/var/tmp/aif_traffic_accounting_host_cache"
+
 # Plugin start function
 plugin_start()
 {
@@ -50,6 +52,9 @@ plugin_start()
 
   # Insert rule in the OUTPUT chain
   iptables -I OUTPUT 1 -j ACCOUNTING_OUTPUT_CHAIN
+
+  # Remove the cache file
+  rm -f "$TRAFFIC_ACCOUNTING_HOST_CACHE"
 
   # Create hourly cron job
   echo "$TRAFFIC_ACCOUNTING_CRON        root    \"$PLUGIN_BIN_PATH/traffic-accounting-helper\" >/dev/null" >|/etc/cron.d/traffic-accounting
@@ -88,6 +93,9 @@ plugin_stop()
 
   # Store current values
   "$PLUGIN_BIN_PATH/traffic-accounting-helper" >/dev/null
+
+  # Remove the cache file
+  rm -f "$TRAFFIC_ACCOUNTING_HOST_CACHE"
 
   iptables -D INPUT -j ACCOUNTING_INPUT_CHAIN 2>/dev/null
   iptables -D OUTPUT -j ACCOUNTING_OUTPUT_CHAIN 2>/dev/null

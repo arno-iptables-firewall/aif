@@ -37,7 +37,7 @@ else
 fi
 
 # Define some global variables
-DYNDNS_HOST_CACHE="/var/tmp/aif-dyndns-host-cache"
+DYNDNS_HOST_CACHE="/var/tmp/aif_dyndns_host_cache"
 DNS_SERVER_FAILURE=0
 INDENT='   '
 

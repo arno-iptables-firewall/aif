@@ -1,3 +1,8 @@
+Version 1.11 (May 13, 2011)
+---------------------------
+* Since we have support for the restart() command now the DNS cache file can be
+  removed on stop/start
+  
 Version 1.1BETA (October 19, 2010)
 ------------------------------------
 * Added plugin_restart() function support for AIF 2.0.0

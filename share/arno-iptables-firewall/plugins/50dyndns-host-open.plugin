@@ -2,14 +2,14 @@
 #            -= Arno's iptables firewall - DynDNS Host Open plugin =-
 #
 PLUGIN_NAME="DynDNS Host Open plugin"
-PLUGIN_VERSION="1.2BETA (EXPERIMENTAL!)"
+PLUGIN_VERSION="1.21"
 PLUGIN_CONF_FILE="dyndns-host-open.conf"
 #
-# Last changed          : October 19, 2010
+# Last changed          : May 13, 2011
 # Requirements          : kernel 2.6 + AIF 2.0.0 or better
 # Comments              : This implements support to open ports for DynDNS hosts
 #
-# Author                : (C) Copyright 2008-2010 by Arno van Amersfoort
+# Author                : (C) Copyright 2008-2011 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
@@ -30,7 +30,7 @@ PLUGIN_CONF_FILE="dyndns-host-open.conf"
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
-DYNDNS_HOST_CACHE="/var/tmp/aif-dyndns-host-cache"
+DYNDNS_HOST_CACHE="/var/tmp/aif_dyndns_host_cache"
 
 # Plugin start function
 plugin_start()
