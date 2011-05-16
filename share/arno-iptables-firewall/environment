@@ -894,30 +894,6 @@ get_ports_ip()
 }
 
 
-# Is IPv4 numeric?
-is_numeric_ipv4()
-{
-  get_numeric_ip_version "$1"
-  if [ $? -eq 4 ]; then
-    return 0
-  fi
-
-  return 1
-}
-
-
-# Is IPv6 numeric?
-is_numeric_ipv6()
-{
-  get_numeric_ip_version "$1"
-  if [ $? -eq 6 ]; then
-    return 0
-  fi
-
-  return 1
-}
-
-
 get_numeric_ip_version()
 {
   case $1 in
@@ -938,6 +914,42 @@ get_numeric_ip_version()
 }
 
 
+# Is argument IPv4 numeric?
+is_numeric_ipv4()
+{
+  get_numeric_ip_version "$1"
+  if [ $? -eq 4 ]; then
+    return 0
+  fi
+
+  return 1
+}
+
+
+# Is argument IPv6 numeric?
+is_numeric_ipv6()
+{
+  get_numeric_ip_version "$1"
+  if [ $? -eq 6 ]; then
+    return 0
+  fi
+
+  return 1
+}
+
+
+# Is argument a (numeric) IP?
+is_numeric_ip()
+{
+  get_numeric_ip_version "$1"
+  if [ $? -eq 0 ]; then
+    return 1
+  fi
+  
+  return 0
+}
+
+
 # Helper function to resolve an IP to a DNS name
 # $1 = IP. $2 (optional) = Additional arguments for dig. stdout = DNS name
 gethostbyaddr()
@@ -950,7 +962,7 @@ gethostbyaddr()
   esac
 
   # Don't try to resolve DNS names:
-  if ! is_numeric_ipv4 "$host" && ! is_numeric_ipv6 "$host"; then
+  if ! is_numeric_ip "$host"; then
     # It's a DNS name already, so just return it
     echo "$host"
     return 0
@@ -980,7 +992,7 @@ gethostbyname()
   local host="$1" result retval=0
 
   # Don't try to resolve IPs:
-  if is_numeric_ipv4 "$host" || is_numeric_ipv6 "$host"; then
+  if is_numeric_ip "$host"; then
     # It's an IP already, so just return it
     echo "$host"
     return 0

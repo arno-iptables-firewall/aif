@@ -89,7 +89,7 @@ traffic_accounting_get_cached_host()
 {
   local host="$1"
   
-  if is_numeric_ipv4 "$host" || is_numeric_ipv6 "$host"; then
+  if is_numeric_ip "$host"; then
     echo "$host"
     return 0
   fi
@@ -115,7 +115,7 @@ traffic_accounting_host_to_cache()
   local retval=0
   
   # Check whether we already have it in our (new) cache and don't try to resolve stuff that's already numeric
-  if ! is_numeric_ipv4 "$host" && ! is_numeric_ipv6 "$host" && ! grep -q "^$host " "$TRAFFIC_ACCOUNTING_HOST_CACHE".new; then
+  if ! is_numeric_ip "$host" && ! grep -q "^$host " "$TRAFFIC_ACCOUNTING_HOST_CACHE".new; then
     printf "${INDENT}Resolving host \"$host\" -> "
 
     if [ "$DNS_SERVER_FAILURE" = "1" ]; then
