@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.02c"
+MY_VERSION="1.02d"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -8,7 +8,7 @@ MY_VERSION="1.02c"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2010 by Arno van Amersfoort
+# (C) Copyright 2001-2011 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
@@ -218,7 +218,7 @@ setup_conf_file()
   fi
   
   # Set the correct permissions on the config file
-  chmod 755 /etc/init.d/arno-iptables-firewall 
+  chmod 755 /etc/init.d/arno-iptables-firewall
   chown 0:0 "$FIREWALL_CONF" /etc/init.d/arno-iptables-firewall
   chmod 600 "$FIREWALL_CONF"
 }
@@ -241,6 +241,12 @@ if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/) (Y/
     ln -sv /etc/init.d/arno-iptables-firewall /etc/rcS.d/S41arno-iptables-firewall
   else
     ln -sv /etc/init.d/arno-iptables-firewall /etc/rc2.d/S11arno-iptables-firewall
+  fi
+
+  # Check for insserv. Used for dependency based booting on eg. Debian
+  INSSERV="$(find_command /sbin/insserv)"
+  if [ -n "$INSSERV" ]; then
+    "$INSSERV" arno-iptables-firewall
   fi
 fi
 
@@ -269,3 +275,4 @@ echo "** Configuration done **"
 echo ""
 
 exit 0
+
