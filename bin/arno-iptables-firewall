@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="2.0.0b"
+MY_VERSION="2.0.0c-DEVEL"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -3519,6 +3519,13 @@ setup_ext_input_chain()
     done
   fi
 
+  # Handle multicast traffic
+  ##########################
+  ip4tables -A EXT_INPUT_CHAIN -d 224.0.0.0/4 -j EXT_MULTICAST_CHAIN
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    ip6tables -A EXT_INPUT_CHAIN -d ff00::/8 -j EXT_MULTICAST_CHAIN
+  fi
+
   # Log packets to privileged TCP ports?
   ##################################################
   if [ "$PRIV_TCP_LOG" != "0" ]; then
@@ -4752,13 +4759,6 @@ setup_firewall_rules()
     # Check packets for invalid flags:
     iptables -A INPUT -i $interface -j VALID_CHK
 
-    # Handle multicast traffic
-    ##########################
-    ip4tables -A INPUT -i $interface -d 224.0.0.0/4 -j EXT_MULTICAST_CHAIN
-    if [ "$IPV6_SUPPORT" = "1" ]; then
-      ip6tables -A INPUT -i $interface -d ff00::/8 -j EXT_MULTICAST_CHAIN
-    fi
-
     # Perform check:
     ################
     # Non-ICMP traffic:
@@ -4770,7 +4770,6 @@ setup_firewall_rules()
 
     # ICMP traffic (flood)
     iptables -A INPUT -i $interface -p icmp -m state --state NEW -j EXT_ICMP_FLOOD_CHAIN
-
   done
 
 

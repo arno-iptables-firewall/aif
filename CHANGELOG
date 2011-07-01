@@ -1,7 +1,9 @@
-Version 2.0.0c-DEVEL (May 18, 2011)
+Version 2.0.0c-DEVEL (July 1, 2011)
 -----------------------------------
 * Call insserv during configure, when available. This is required for eg.
   Debian/Ubuntu systems that use dependency based booting
+! Fixed MULTICAST jumping just be done at the end of the EXT_INPUT_CHAIN, not
+  at the beginning else users won't be able create "normal" rules for it
 
 Version 2.0.0b (March 25, 2011)
 -------------------------------
