@@ -2750,7 +2750,6 @@ setup_ext_input_chain()
     echo " Enabling support for DHCPv6 server on external interface(s)"
     # Allow only Link-Local clients
     ip6tables -A EXT_INPUT_CHAIN -s fe80::/10 -p udp --dport 547 -j ACCEPT
-    # Additionally, multicast packets in EXT_MULTICAST_CHAIN must be handled
   fi
 
   # This is the fix(hack) for nmb broadcast packets (nmblookup/Samba)
@@ -3883,25 +3882,6 @@ setup_ext_output_chain()
 }
 
 
-# Helper chain to catch multicast traffic
-setup_ext_multicast_chain()
-{
-  if [ "$IPV6_SUPPORT" = "1" ]; then
-    if [ "$EXTERNAL_DHCPV6_SERVER" = "1" ]; then
-      # Allow Link-Local multicast to ALL-DHCP-AGENTS
-      ip6tables -A EXT_MULTICAST_CHAIN -s fe80::/10 -d ff02::1:2 -p udp --dport 547 -j ACCEPT
-    fi
-    if [ "$OPEN_ICMPV6" != "0" ]; then
-      # Allow Link-Local multicast ICMP traffic
-      ip6tables -A EXT_MULTICAST_CHAIN -s fe80::/10 -p icmpv6 --icmpv6-type echo-request \
-        -m state --state NEW \
-        -m limit --limit 20/second --limit-burst 100 -j ACCEPT
-    fi
-  fi
-  # Note: all remaining multicast traffic will be logged and dropped
-}
-
-
 # Helper chain to catch broadcast traffic
 setup_ext_broadcast_chain()
 {
@@ -4718,7 +4698,6 @@ setup_firewall_rules()
 
   # Setup helper chains for EXTERNAL input traffic:
   echo "Setting up external(INET) INPUT policy"
-  setup_ext_multicast_chain;
   setup_ext_broadcast_chain;
   setup_ext_icmp_flood_chain;
   setup_ext_input_chain;
