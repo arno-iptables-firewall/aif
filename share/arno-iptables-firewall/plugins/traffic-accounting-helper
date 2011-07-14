@@ -408,16 +408,17 @@ else
   if [ "$ENABLED" = "1" ]; then
     # Only proceed if environment ok
     if sanity_check; then
-      # This is a cricital section so we use a lockfile
-      lockfile="/var/tmp/traffic-accounting-helper.lock"
+      # This is a critical section so we use a lockfile
+      lockfile="/var/tmp/aif_traffic_accounting_helper.lock"
       if ( set -o noclobber; echo "$$" > "$lockfile") 2> /dev/null; then
         # Setup int handler
         trap 'rm -f "$lockfile"; exit $?' INT TERM EXIT
 
-        # Call our function
-        traffic_accounting_setup_cache
-        traffic_accounting_setup_rules
-        ret=$?
+        # Setup our name cache
+        traffic_accounting_setup_cache;
+        
+        # Create actual rules
+        traffic_accounting_setup_rules;
 
         # Remove lockfile
         rm -f "$lockfile"
@@ -425,7 +426,7 @@ else
         # Disable int handler
         trap - INT TERM EXIT
         
-        exit $ret
+        exit 0
       else
         echo "Failed to acquire lockfile: $lockfile." >&2
         echo "Held by $(cat $lockfile)" >&2

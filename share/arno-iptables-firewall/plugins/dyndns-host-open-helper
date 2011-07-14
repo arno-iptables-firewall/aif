@@ -328,7 +328,7 @@ fi
 
 # Check if the config file exists
 if [ ! -e "$CONF_FILE" ]; then
-  echo "** ERROR: Config file \"$CONF_FILE\" not found!" >&2
+  echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
   exit 1
 else
   # Source the plugin config file
@@ -336,10 +336,31 @@ else
 
   if [ "$ENABLED" = "1" ]; then
     # Only proceed if environment ok
-    sanity_check       &&
-    dyndns_setup_cache &&
-    dyndns_host_open   &&
-    exit 0;
+    if sanity_check; then
+      # This is a critical section so we use a lockfile
+      lockfile="/var/tmp/aif_dyndns_helper.lock"
+      if ( set -o noclobber; echo "$$" > "$lockfile") 2> /dev/null; then
+        # Setup int handler
+        trap 'rm -f "$lockfile"; exit $?' INT TERM EXIT
+
+        # Setup our name cache
+        dyndns_setup_cache;
+        
+        # Create actual rules
+        dyndns_host_open;
+        
+        # Remove lockfile
+        rm -f "$lockfile"
+
+        # Disable int handler
+        trap - INT TERM EXIT
+        
+        exit 0
+      else
+        echo "Failed to acquire lockfile: $lockfile." >&2
+        echo "Held by $(cat $lockfile)" >&2
+      fi
+    fi
   fi
 fi
 

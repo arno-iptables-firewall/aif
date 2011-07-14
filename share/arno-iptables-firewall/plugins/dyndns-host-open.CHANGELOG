@@ -1,3 +1,8 @@
+Version 1.23 (July 14, 2011)
+----------------------------
+* Add proper locking for our helper script (like we already did for the traffic
+  accounting plugin)
+  
 Version 1.22 (July 14, 2011)
 ----------------------------
 ! We should call the helper script on a restart(), if required
