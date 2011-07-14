@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 TOTAL_IN=0
 TOTAL_OUT=0
