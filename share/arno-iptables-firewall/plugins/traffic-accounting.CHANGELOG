@@ -1,3 +1,7 @@
+Version 1.12 (July 14, 2011)
+---------------------------
+! We should call the helper script on a restart(), if required
+
 Version 1.11 (May 13, 2011)
 ---------------------------
 * Since we have support for the restart() command now the DNS cache file can be

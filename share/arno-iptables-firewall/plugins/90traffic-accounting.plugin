@@ -2,10 +2,10 @@
 #            -= Arno's iptables firewall - Traffic Accounting plugin =-
 #
 PLUGIN_NAME="Traffic Accounting plugin"
-PLUGIN_VERSION="1.11"
+PLUGIN_VERSION="1.12"
 PLUGIN_CONF_FILE="traffic-accounting.conf"
 #
-# Last changed          : May 13, 2011
+# Last changed          : July 14, 2011
 # Requirements          : AIF 2.0.0 (or later)
 # Comments              : This implements support for traffic accounting. It also
 #                         works with dynamic hostnames (non-static IPs) and
@@ -80,6 +80,12 @@ plugin_restart()
 
   # Insert rule in the OUTPUT chain
   iptables -I OUTPUT 1 -j ACCOUNTING_OUTPUT_CHAIN
+
+  # Call the host-accounting-helper script at startup?
+  if [ "$TRAFFIC_ACCOUNTING_RUN_AT_START" = "1" ]; then
+    echo "${INDENT}Running helper script..."
+    "$PLUGIN_BIN_PATH/traffic-accounting-helper"
+  fi
 
   return 0
 }

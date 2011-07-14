@@ -1,3 +1,11 @@
+Version 1.22 (July 14, 2011)
+----------------------------
+! We should call the helper script on a restart(), if required
+
+Version 1.21 (May 13, 2011)
+---------------------------
+* Change default DYNDNS_HOST_CACHE filename to be more consistent
+
 Version 1.2BETA (October 19, 2010)
 ----------------------------------
 * Added plugin_restart() function support for AIF 2.0.0
