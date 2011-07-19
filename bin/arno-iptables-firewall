@@ -2515,7 +2515,7 @@ setup_lan_inet_forward_chain()
   unset IFS
   for rule in $LAN_INET_OPEN_TCP; do
     interfaces=`get_ifs "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    ports=`get_ports_ip "$rule"`
 
     echo "  $(show_if_ip "$interfaces")Allowing TCP port(s): $ports"
 
@@ -2532,7 +2532,7 @@ setup_lan_inet_forward_chain()
   unset IFS
   for rule in $LAN_INET_OPEN_UDP; do
     interfaces=`get_ifs "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    ports=`get_ports_ip "$rule"`
 
     echo "  $(show_if_ip "$interfaces")Allowing UDP port(s): $ports"
 
@@ -2549,7 +2549,7 @@ setup_lan_inet_forward_chain()
   unset IFS
   for rule in $LAN_INET_OPEN_IP; do
     interfaces=`get_ifs "$rule"`
-    protos=`get_ports_ihp "$rule"`
+    protos=`get_ports_ip "$rule"`
 
     echo "  $(show_if_ip "$interfaces")Allowing IP protocol(s): $protos"
 
@@ -2574,7 +2574,7 @@ setup_lan_inet_forward_chain()
   unset IFS
   for rule in $LAN_INET_DENY_TCP; do
     interfaces=`get_ifs "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    ports=`get_ports_ip "$rule"`
 
     echo "  $(show_if_ip "$interfaces")Denying TCP port(s): $ports"
 
@@ -2595,7 +2595,7 @@ setup_lan_inet_forward_chain()
   unset IFS
   for rule in $LAN_INET_DENY_UDP; do
     interfaces=`get_ifs "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    ports=`get_ports_ip "$rule"`
 
     echo "  $(show_if_ip "$interfaces")Denying UDP port(s): $ports"
 
@@ -2616,7 +2616,7 @@ setup_lan_inet_forward_chain()
   unset IFS
   for rule in $LAN_INET_DENY_IP; do
     interfaces=`get_ifs "$rule"`
-    protos=`get_ports_ihp "$rule"`
+    protos=`get_ports_ip "$rule"`
 
     echo "  $(show_if_ip "$interfaces")Denying IP protocol(s): $protos"
 
