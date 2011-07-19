@@ -5019,8 +5019,15 @@ setup_firewall_rules()
     if_shosts_sports=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts_sports" "$EXT_IF"`
     destips=`get_ips "$if_shosts_sports"`
+
     shosts=`get_hosts_ihp "$if_shosts_sports" "$ANYHOST"`
-    sports=`get_ports_ihp "$if_shosts_sports"`
+    # Get ports, assume ports only if no hosts component
+    if [ -z "$shosts" ]; then
+      sports=`get_ports_ip "$if_shosts_sports"`
+    else
+      sports=`get_ports_ihp "$if_shosts_sports"`
+    fi
+
     dhost_dport=`echo "$rule" |cut -s -d'>' -f2`
     dhost=`get_hosts_hp "$dhost_dport"`
 
@@ -5053,8 +5060,15 @@ setup_firewall_rules()
     if_shosts_sports=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts_sports" "$EXT_IF"`
     destips=`get_ips "$if_shosts_sports"`
+
     shosts=`get_hosts_ihp "$if_shosts_sports" "$ANYHOST"`
-    sports=`get_ports_ihp "$if_shosts_sports"`
+    # Get ports, assume ports only if no hosts component
+    if [ -z "$shosts" ]; then
+      sports=`get_ports_ip "$if_shosts_sports"`
+    else
+      sports=`get_ports_ihp "$if_shosts_sports"`
+    fi
+
     dhost_dport=`echo "$rule" |cut -s -d'>' -f2`
     dhost=`get_hosts_hp "$dhost_dport"`
 
@@ -5087,8 +5101,15 @@ setup_firewall_rules()
     if_shosts_protos=`echo "$rule" |cut -s -d'>' -f1`
     interfaces=`get_ifs "$if_shosts_protos" "$EXT_IF"`
     destips=`get_ips "$if_shosts_protos"`
+
     shosts=`get_hosts_ihp "$if_shosts_protos" "$ANYHOST"`
-    protos=`get_ports_ihp "$if_shosts_protos"`
+    # Get protos, assume protos only if no hosts component
+    if [ -z "$shosts" ]; then
+      protos=`get_ports_ip "$if_shosts_protos"`
+    else
+      protos=`get_ports_ihp "$if_shosts_protos"`
+    fi
+
     dhost=`echo "$rule" |cut -s -d'>' -f2`
 
     echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) IP protocol(s) $(show_hosts_ports "$shosts" "$protos") to $dhost"
