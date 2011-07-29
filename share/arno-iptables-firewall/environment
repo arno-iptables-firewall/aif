@@ -837,7 +837,7 @@ get_ports_ihp()
     echo "$2"
     return 1
   else
-    # When we have no seperator, assume port(s) only and no host(s)
+    # When we have no separator, assume port(s) only and no host(s)
     echo "$result" |tr '-' ':'
     return 0
   fi
@@ -857,7 +857,7 @@ get_hosts_hp()
     echo "$2"
     return 1
   else
-    # When we have no seperator, assume host(s) only and no port(s)
+    # When we have no separator, assume host(s) only and no port(s)
     echo "$result"
     return 0
   fi

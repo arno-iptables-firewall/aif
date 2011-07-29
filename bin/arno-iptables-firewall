@@ -5020,12 +5020,12 @@ setup_firewall_rules()
     interfaces=`get_ifs "$if_shosts_sports" "$EXT_IF"`
     destips=`get_ips "$if_shosts_sports"`
 
-    # Check for seperator(SEP)
+    # Check for separator(SEP)
     if echo "$if_shosts_sports" |grep -q "$SEP"; then
       sports=`get_ports_ihp "$if_shosts_sports"`
       shosts=`get_hosts_ihp "$if_shosts_sports"`
     else
-      # Assume ports only if no seperator
+      # Assume ports only if no separator
       sports=`get_ports_ip "$if_shosts_sports"`
       shosts="$ANYHOST"
     fi
@@ -5063,12 +5063,12 @@ setup_firewall_rules()
     interfaces=`get_ifs "$if_shosts_sports" "$EXT_IF"`
     destips=`get_ips "$if_shosts_sports"`
 
-    # Check for seperator(SEP)
+    # Check for separator(SEP)
     if echo "$if_shosts_sports" |grep -q "$SEP"; then
       sports=`get_ports_ihp "$if_shosts_sports"`
       shosts=`get_hosts_ihp "$if_shosts_sports"`
     else
-      # Assume ports only if no seperator
+      # Assume ports only if no separator
       sports=`get_ports_ip "$if_shosts_sports"`
       shosts="$ANYHOST"
     fi
@@ -5106,12 +5106,12 @@ setup_firewall_rules()
     interfaces=`get_ifs "$if_shosts_protos" "$EXT_IF"`
     destips=`get_ips "$if_shosts_protos"`
 
-    # Check for seperator(SEP)
+    # Check for separator(SEP)
     if echo "$if_shosts_sprotos" |grep -q "$SEP"; then
       sprotos=`get_ports_ihp "$if_shosts_sprotos"`
       shosts=`get_hosts_ihp "$if_shosts_sprotos"`
     else
-      # Assume protos only if no seperator
+      # Assume protos only if no separator
       sprotos=`get_ports_ip "$if_shosts_sprotos"`
       shosts="$ANYHOST"
     fi
