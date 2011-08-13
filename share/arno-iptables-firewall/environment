@@ -806,7 +806,35 @@ parse_rule()
     fi
     protos="$ports"
     ;;
-    
+
+  interfaces-shosts-dhosts-ports-ANYPORT)
+    left_rule=$(echo "$rule" |cut -s -d'>' -f1)
+    right_rule=$(echo "$rule" |cut -s -d'>' -f2)
+
+    interfaces=$(get_ifs "$left_rule" "$EXT_IF")
+    shosts=$(get_hosts_ih "$left_rule")
+    dhosts=$(get_hosts_hp "$right_rule")
+    ports=$(get_ports_hp "$right_rule" "$ANYPORT")
+    if [ -z "$shosts" -o -z "$dhosts" ]; then
+      parse_rule_warning "$rule"
+      return 1
+    fi
+    ;;
+
+  interfaces-shosts-dhosts-protos)
+    left_rule=$(echo "$rule" |cut -s -d'>' -f1)
+    right_rule=$(echo "$rule" |cut -s -d'>' -f2)
+
+    interfaces=$(get_ifs "$left_rule" "$EXT_IF")
+    shosts=$(get_hosts_ih "$left_rule")
+    dhosts=$(get_hosts_hp "$right_rule")
+    protos=$(get_ports_hp "$right_rule")
+    if [ -z "$shosts" -o -z "$dhosts" -o -z "$protos" ]; then
+      parse_rule_warning "$rule"
+      return 1
+    fi
+    ;;
+
   interfaces-destips-shosts-ports-dhost_dport|interfaces-destips-shosts-protos-dhost)
     left_rule=$(echo "$rule" |cut -s -d'>' -f1)
     right_rule=$(echo "$rule" |cut -s -d'>' -f2)
