@@ -748,6 +748,110 @@ wildcard_ifs()
 }
 
 
+parse_rule()
+{
+  local rule="$1" var="$2" type="$3" left_rule right_rule
+
+  case $type in
+
+  hosts-ports|hosts-protos)
+    hosts=$(get_hosts_ihp "$rule")
+    ports=$(get_ports_ihp "$rule")
+    if [ -z "$ports" ]; then
+      parse_rule_warning "$rule"
+      return 1
+    fi
+    protos="$ports"
+    ;;
+
+  interfaces-ports|interfaces-protos)
+    interfaces=$(get_ifs "$rule")
+    ports=$(get_ports_ip "$rule")
+    if [ -z "$ports" ]; then
+      parse_rule_warning "$rule"
+      return 1
+    fi
+    protos="$ports"
+    ;;
+
+  interfaces-destips-ports|interfaces-destips-protos)
+    interfaces=$(get_ifs "$rule")
+    destips=$(get_ips "$rule")
+    ports=$(get_ports_ip "$rule")
+    if [ -z "$ports" ]; then
+      parse_rule_warning "$rule"
+      return 1
+    fi
+    protos="$ports"
+    ;;
+
+  interfaces-destips-hosts)
+    interfaces=$(get_ifs "$rule")
+    destips=$(get_ips "$rule")
+    hosts=$(get_hosts_ih "$rule")
+    if [ -z "$hosts" ]; then
+      parse_rule_warning "$rule"
+      return 1
+    fi
+    ;;
+
+  interfaces-destips-hosts-ports|interfaces-destips-hosts-protos)
+    interfaces=$(get_ifs "$rule")
+    destips=$(get_ips "$rule")
+    hosts=$(get_hosts_ihp "$rule")
+    ports=$(get_ports_ihp "$rule")
+    if [ -z "$hosts" -o -z "$ports" ]; then
+      parse_rule_warning "$rule"
+      return 1
+    fi
+    protos="$ports"
+    ;;
+    
+  interfaces-destips-shosts-ports-dhost_dport|interfaces-destips-shosts-protos-dhost)
+    left_rule=$(echo "$rule" |cut -s -d'>' -f1)
+    right_rule=$(echo "$rule" |cut -s -d'>' -f2)
+
+    interfaces=$(get_ifs "$left_rule" "$EXT_IF")
+    destips=$(get_ips "$left_rule")
+
+    # Check for separator(SEP)
+    if echo "$left_rule" |grep -q "$SEP"; then
+      shosts=$(get_hosts_ihp "$left_rule")
+      ports=$(get_ports_ihp "$left_rule")
+    else
+      # Assume ports/protos only if no separator
+      shosts="$ANYHOST"
+      ports=$(get_ports_ip "$left_rule")
+    fi
+  
+    dhost_dport="$right_rule"
+    if [ -z "$shosts" -o -z "$ports" ]; then
+      parse_rule_warning "$rule"
+      return 1
+    fi
+    protos="$ports"
+    dhost="$dhost_dport"
+    ;;
+
+  *)
+    echo "** ERROR: Invalid rule parse type! **" >&2
+    return 1
+    ;;
+
+  esac
+
+  return 0
+}
+
+
+parse_rule_warning()
+{
+  local rule="$1"
+
+  echo "** WARNING: In Variable $var, Rule: \"$rule\" is ignored." >&2
+}
+
+
 # Helper function to get interface(s) from variable
 get_ifs()
 {

@@ -1617,60 +1617,57 @@ setup_inet_dmz_forward_chain()
   #############################################################
   unset IFS
   for rule in $INET_DMZ_OPEN_TCP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" INET_DMZ_OPEN_TCP "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Allowing TCP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Allowing TCP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -j ACCEPT
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -j ACCEPT
+          done
         done
       done
-    done
+    fi
   done
 
   # Allow only certain UDP ports to be used from the INET->DMZ?
   #############################################################
   unset IFS
   for rule in $INET_DMZ_OPEN_UDP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" INET_DMZ_OPEN_UDP "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Allowing UDP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Allowing UDP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p udp --dport $port -j ACCEPT
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p udp --dport $port -j ACCEPT
+          done
         done
       done
-    done
+    fi
   done
 
   # Allow only certain IP protocols to be used from the INET->DMZ?
   ################################################################
   unset IFS
   for rule in $INET_DMZ_OPEN_IP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    protos=`get_ports_ip "$rule"`
+    if parse_rule "$rule" INET_DMZ_OPEN_IP "interfaces-destips-protos"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Allowing IP protocol(s): $protos"
+      echo " $(show_if_ip "$interfaces" "$destips")Allowing IP protocol(s): $protos"
 
-    IFS=','
-    for proto in $protos; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p $proto -j ACCEPT
+      IFS=','
+      for proto in $protos; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p $proto -j ACCEPT
+          done
         done
       done
-    done
+    fi
   done
 
   # Allow ICMP-requests(ping) for INET->DMZ?
@@ -1685,72 +1682,69 @@ setup_inet_dmz_forward_chain()
   #################################
   unset IFS
   for rule in $INET_DMZ_DENY_TCP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" INET_DMZ_DENY_TCP "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying TCP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Denying TCP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -m limit \
-              --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
-          fi
-          iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -j DROP
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -m limit \
+                --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
+            fi
+            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -j DROP
+          done
         done
       done
-    done
+    fi
   done
 
   # UDP ports to DENY for INET->DMZ
   #################################
   unset IFS
   for rule in $INET_DMZ_DENY_UDP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" INET_DMZ_DENY_UDP "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying UDP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Denying UDP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p udp --dport $port -m limit \
-              --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
-          fi
-          iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p udp --dport $port -j DROP
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p udp --dport $port -m limit \
+                --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
+            fi
+            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p udp --dport $port -j DROP
+          done
         done
       done
-    done
+    fi
   done
 
   # IP protocols to DENY for INET->DMZ
   ####################################
   unset IFS
   for rule in $INET_DMZ_DENY_IP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    protos=`get_ports_ip "$rule"`
+    if parse_rule "$rule" INET_DMZ_DENY_IP "interfaces-destips-protos"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying IP protocol(s): $protos"
+      echo " $(show_if_ip "$interfaces" "$destips")Denying IP protocol(s): $protos"
 
-    IFS=','
-    for proto in $protos; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p $proto -m limit \
-              --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
-          fi
-          iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p $proto -j DROP
+      IFS=','
+      for proto in $protos; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p $proto -m limit \
+                --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
+            fi
+            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p $proto -j DROP
+          done
         done
       done
-    done
+    fi
   done
 
   # Log incoming ICMP-request packets?
@@ -2782,23 +2776,21 @@ setup_ext_input_chain()
   ##########################################
   unset IFS
   for rule in $HOST_OPEN_TCP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_OPEN_TCP "interfaces-destips-hosts-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Allowing $hosts for TCP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Allowing $hosts for TCP port(s): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j ACCEPT
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j ACCEPT
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -2806,23 +2798,21 @@ setup_ext_input_chain()
   ##########################################
   unset IFS
   for rule in $HOST_OPEN_UDP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_OPEN_UDP "interfaces-destips-hosts-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Allowing $hosts for UDP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Allowing $hosts for UDP port(s): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j ACCEPT
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j ACCEPT
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -2830,24 +2820,21 @@ setup_ext_input_chain()
   #############################################
   unset IFS
   for rule in $HOST_OPEN_IP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    protos=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_OPEN_IP "interfaces-destips-hosts-protos"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Allowing $hosts for IP protocol(s): $protos"
+      echo " $(show_if_ip "$interfaces" "$destips")Allowing $hosts for IP protocol(s): $protos"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
       IFS=','
-      for proto in $protos; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p $proto -j ACCEPT
+      for host in `ip_range "$hosts"`; do
+        for proto in $protos; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p $proto -j ACCEPT
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -2855,20 +2842,19 @@ setup_ext_input_chain()
   #####################################
   unset IFS
   for rule in $HOST_OPEN_ICMP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ih "$rule"`
+    if parse_rule "$rule" HOST_OPEN_ICMP "interfaces-destips-hosts"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Allowing $hosts for ICMP-requests(ping)"
+      echo " $(show_if_ip "$interfaces" "$destips")Allowing $hosts for ICMP-requests(ping)"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p icmp --icmp-type echo-request -j ACCEPT
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p icmp --icmp-type echo-request -j ACCEPT
+          done
         done
       done
-    done
+    fi
   done
 
 
@@ -2876,23 +2862,21 @@ setup_ext_input_chain()
   ##########################################################
   unset IFS
   for rule in $HOST_REJECT_TCP_NOLOG; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_REJECT_TCP_NOLOG "interfaces-destips-hosts-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for TCP port(s) (NO LOG): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for TCP port(s) (NO LOG): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -2900,23 +2884,21 @@ setup_ext_input_chain()
   ######################################################
   unset IFS
   for rule in $HOST_REJECT_UDP_NOLOG; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_REJECT_UDP_NOLOG "interfaces-destips-hosts-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for UDP port(s) (NO LOG): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for UDP port(s) (NO LOG): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -2924,26 +2906,24 @@ setup_ext_input_chain()
   ###########################################
   unset IFS
   for rule in $HOST_REJECT_TCP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_REJECT_TCP "interfaces-destips-hosts-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for TCP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for TCP port(s): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port \
-              -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise TCP rejected: "
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port \
+                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise TCP rejected: "
 
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -2951,26 +2931,24 @@ setup_ext_input_chain()
   ###########################################
   unset IFS
   for rule in $HOST_REJECT_UDP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_REJECT_UDP "interfaces-destips-hosts-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for UDP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Rejecting $hosts for UDP port(s): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port \
-              -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise UDP rejected: "
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port \
+                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise UDP rejected: "
 
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -2978,23 +2956,21 @@ setup_ext_input_chain()
   ########################################################
   unset IFS
   for rule in $HOST_DENY_TCP_NOLOG; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_DENY_TCP_NOLOG "interfaces-destips-hosts-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for TCP port(s) (NO LOG): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for TCP port(s) (NO LOG): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -3002,66 +2978,61 @@ setup_ext_input_chain()
   ########################################################
   unset IFS
   for rule in $HOST_DENY_UDP_NOLOG; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_DENY_UDP_NOLOG "interfaces-destips-hosts-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for UDP port(s) (NO LOG): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for UDP port(s) (NO LOG): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # Add IP protocols to DENY for certain hosts but NOT logged
   ###########################################################
   unset IFS
   for rule in $HOST_DENY_IP_NOLOG; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    protos=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_DENY_IP_NOLOG "interfaces-destips-hosts-protos"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for IP protocol(s) (NO LOG): $protos"
+      echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for IP protocol(s) (NO LOG): $protos"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for proto in $protos; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p $proto -j POST_INPUT_DROP_CHAIN
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for proto in $protos; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p $proto -j POST_INPUT_DROP_CHAIN
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # Add ICMP-request to DENY for certain hosts but NOT logged
   ############################################################
   unset IFS
   for rule in $HOST_DENY_ICMP_NOLOG; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ih "$rule"`
+    if parse_rule "$rule" HOST_DENY_ICMP_NOLOG "interfaces-destips-hosts"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for ICMP-requests(ping)"
+      echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for ICMP-requests(ping)"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p icmp --icmp-type echo-request -j POST_INPUT_DROP_CHAIN
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p icmp --icmp-type echo-request -j POST_INPUT_DROP_CHAIN
+          done
         done
       done
-    done
+    fi
   done
 
 
@@ -3069,26 +3040,24 @@ setup_ext_input_chain()
   #########################################
   unset IFS
   for rule in $HOST_DENY_TCP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_DENY_TCP "interfaces-destips-hosts-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for TCP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for TCP port(s): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port \
-              -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port \
+                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
 
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -3096,26 +3065,24 @@ setup_ext_input_chain()
   #########################################
   unset IFS
   for rule in $HOST_DENY_UDP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_DENY_UDP "interfaces-destips-hosts-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for UDP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for UDP port(s): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port \
-              -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port \
+                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
 
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -3123,26 +3090,24 @@ setup_ext_input_chain()
   ############################################
   unset IFS
   for rule in $HOST_DENY_IP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    protos=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_DENY_IP "interfaces-destips-hosts-protos"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for IP protocol(s): $protos"
+      echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for IP protocol(s): $protos"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for proto in $protos; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -s $host -p $proto \
-               -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for proto in $protos; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A EXT_INPUT_CHAIN -s $host -p $proto \
+                 -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
 
-            iptables -A EXT_INPUT_CHAIN -s $host -p $proto -j POST_INPUT_DROP_CHAIN
+              iptables -A EXT_INPUT_CHAIN -s $host -p $proto -j POST_INPUT_DROP_CHAIN
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -3150,216 +3115,206 @@ setup_ext_input_chain()
   ############################################
   unset IFS
   for rule in $HOST_DENY_ICMP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ih "$rule"`
+    if parse_rule "$rule" HOST_DENY_ICMP "interfaces-destips-hosts"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for ICMP-requests(ping)"
+      echo " $(show_if_ip "$interfaces" "$destips")Denying $hosts for ICMP-requests(ping)"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          if [ "$ICMP_DROP_LOG" != "0" ]; then
-            iptables -A EXT_INPUT_CHAIN -s $host -p icmp --icmp-type echo-request -m limit --limit 1/h --limit-burst 1 \
-              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
-          fi
-          iptables -A EXT_INPUT_CHAIN -s $host -p icmp --icmp-type echo-request -j POST_INPUT_DROP_CHAIN
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            if [ "$ICMP_DROP_LOG" != "0" ]; then
+              iptables -A EXT_INPUT_CHAIN -s $host -p icmp --icmp-type echo-request -m limit --limit 1/h --limit-burst 1 \
+                -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
+            fi
+            iptables -A EXT_INPUT_CHAIN -s $host -p icmp --icmp-type echo-request -j POST_INPUT_DROP_CHAIN
+          done
         done
       done
-    done
+    fi
   done
 
   # Adding TCP ports to be denied for everyone
   ############################################
   unset IFS
   for rule in $DENY_TCP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" DENY_TCP "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for TCP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for TCP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port \
-            -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-INPUT denied: "
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port \
+              -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-INPUT denied: "
 
-          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+          done
         done
       done
-    done
+    fi
   done
 
   # Adding UDP ports to be denied for everyone
   ############################################
   unset IFS
   for rule in $DENY_UDP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" DENY_UDP "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for UDP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for UDP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port \
-            -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-INPUT denied: "
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port \
+              -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-INPUT denied: "
 
-          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+          done
         done
       done
-    done
+    fi
   done
 
   # Adding TCP ports to be rejected for everyone
   ##############################################
   unset IFS
   for rule in $REJECT_TCP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" REJECT_TCP "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for TCP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for TCP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port \
-            -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Rejected TCP port: "
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port \
+              -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Rejected TCP port: "
 
-          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+          done
         done
       done
-    done
+    fi
   done
 
   # Adding UDP ports to be rejected for everyone
   ##############################################
   unset IFS
   for rule in $REJECT_UDP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" REJECT_UDP "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for UDP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for UDP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -p udp --dport $port \
-            -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Rejected UDP port: "
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -p udp --dport $port \
+              -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Rejected UDP port: "
 
-          iptables -A EXT_INPUT_CHAIN -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+            iptables -A EXT_INPUT_CHAIN -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+          done
         done
       done
-    done
+    fi
   done
 
   # Adding the "full access hosts"
   ################################
   unset IFS
   for rule in $FULL_ACCESS_HOSTS; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ih "$rule"`
+    if parse_rule "$rule" FULL_ACCESS_HOSTS "interfaces-destips-hosts"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Allowing $hosts full (inbound) access"
+      echo " $(show_if_ip "$interfaces" "$destips")Allowing $hosts full (inbound) access"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -j ACCEPT
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -j ACCEPT
+          done
         done
       done
-    done
+    fi
   done
 
   # TCP ports to DENY but NOT to LOG
   ##################################
   unset IFS
   for rule in $DENY_TCP_NOLOG; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" DENY_TCP_NOLOG "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for TCP port(s) (NO LOG): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for TCP port(s) (NO LOG): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+          done
         done
       done
-    done
+    fi
   done
 
   # UDP ports to DENY but NOT to LOG
   ##################################
   unset IFS
   for rule in $DENY_UDP_NOLOG; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" DENY_UDP_NOLOG "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for UDP port(s) (NO LOG): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Denying ANYHOST for UDP port(s) (NO LOG): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+          done
         done
       done
-    done
+    fi
   done
 
   # TCP ports to REJECT but NOT to LOG
   ####################################
   unset IFS
   for rule in $REJECT_TCP_NOLOG; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" REJECT_TCP_NOLOG "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for TCP port(s) (NO LOG): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for TCP port(s) (NO LOG): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+          done
         done
       done
-    done
+    fi
   done
 
   # UDP ports to REJECT but NOT to LOG
   ####################################
   unset IFS
   for rule in $REJECT_UDP_NOLOG; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" REJECT_UDP_NOLOG "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for UDP port(s) (NO LOG): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Rejecting ANYHOST for UDP port(s) (NO LOG): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+          done
         done
       done
-    done
+    fi
   done
 
   # Check the packet source address
@@ -3391,20 +3346,19 @@ setup_ext_input_chain()
   #######################################
   unset IFS
   for rule in $OPEN_TCP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" OPEN_TCP "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Allowing ANYHOST for TCP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Allowing ANYHOST for TCP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j ACCEPT
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j ACCEPT
+          done
         done
       done
-    done
+    fi
   done
 
 
@@ -3412,20 +3366,19 @@ setup_ext_input_chain()
   #######################################
   unset IFS
   for rule in $OPEN_UDP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" OPEN_UDP "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Allowing ANYHOST for UDP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Allowing ANYHOST for UDP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j ACCEPT
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j ACCEPT
+          done
         done
       done
-    done
+    fi
   done
 
 
@@ -3433,20 +3386,19 @@ setup_ext_input_chain()
   ##########################################
   unset IFS
   for rule in $OPEN_IP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    protos=`get_ports_ip "$rule"`
+    if parse_rule "$rule" OPEN_IP "interfaces-destips-protos"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Allowing ANYHOST for IP protocol(s): $protos"
+      echo " $(show_if_ip "$interfaces" "$destips")Allowing ANYHOST for IP protocol(s): $protos"
 
-    IFS=','
-    for proto in $protos; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p $proto -j ACCEPT
+      IFS=','
+      for proto in $protos; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p $proto -j ACCEPT
+          done
         done
       done
-    done
+    fi
   done
 
   # Allow world to send IPv4 ICMP packets?
@@ -3889,36 +3841,34 @@ setup_ext_broadcast_chain()
   #####################################################################
   unset IFS
   for rule in $BROADCAST_TCP_NOLOG; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" BROADCAST_TCP_NOLOG "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Logging of external subnet broadcasts disabled for TCP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Logging of external subnet broadcasts disabled for TCP port(s): $ports"
 
-    IFS=' ,'
-    for port in $ports; do
-      for interface in $interfaces; do
-        iptables -A EXT_BROADCAST_CHAIN -i $interface -p tcp --dport $port -j DROP
+      IFS=' ,'
+      for port in $ports; do
+        for interface in $interfaces; do
+          iptables -A EXT_BROADCAST_CHAIN -i $interface -p tcp --dport $port -j DROP
+        done
       done
-    done
+    fi
   done
 
   # Disable logging of certain UDP broadcasts on the external interface
   ##########################################################################################
   unset IFS
   for rule in $BROADCAST_UDP_NOLOG; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" BROADCAST_UDP_NOLOG "interfaces-destips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$destips")Logging of external subnet broadcasts disabled for UDP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$destips")Logging of external subnet broadcasts disabled for UDP port(s): $ports"
 
-    IFS=' ,'
-    for port in $ports; do
-      for interface in $interfaces; do
-        iptables -A EXT_BROADCAST_CHAIN -i $interface -p udp --dport $port -j DROP
+      IFS=' ,'
+      for port in $ports; do
+        for interface in $interfaces; do
+          iptables -A EXT_BROADCAST_CHAIN -i $interface -p udp --dport $port -j DROP
+        done
       done
-    done
+    fi
   done
 }
 
@@ -3931,21 +3881,20 @@ setup_input_log()
   ############################################
   unset IFS
   for rule in $LOG_INPUT_TCP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" LOG_INPUT_TCP "interfaces-destips-ports"; then
 
-    echo "$(show_if_ip "$interfaces" "$destips")Logging incoming TCP port(s): $ports"
+      echo "$(show_if_ip "$interfaces" "$destips")Logging incoming TCP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A INPUT -i $interface -d $destip -p tcp --dport $port -m state --state NEW -m limit \
-            --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:TCP INPUT log: "
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A INPUT -i $interface -d $destip -p tcp --dport $port -m state --state NEW -m limit \
+              --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:TCP INPUT log: "
+          done
         done
       done
-    done
+    fi
   done
 
 
@@ -3953,42 +3902,40 @@ setup_input_log()
   ###########################################
   unset IFS
   for rule in $LOG_INPUT_UDP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" LOG_INPUT_UDP "interfaces-destips-ports"; then
 
-    echo "$(show_if_ip "$interfaces" "$destips")Logging incoming UDP port(s): $ports"
+      echo "$(show_if_ip "$interfaces" "$destips")Logging incoming UDP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A INPUT -i $interface -d $destip -p udp --dport $port -m state --state NEW -m limit \
-            --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UDP INPUT log: "
+      IFS=','
+      for port in $ports; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A INPUT -i $interface -d $destip -p udp --dport $port -m state --state NEW -m limit \
+              --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UDP INPUT log: "
+          done
         done
       done
-    done
+    fi
   done
 
   # This rule is for local INPUT IP watching
   ##########################################
   unset IFS
   for rule in $LOG_INPUT_IP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    protos=`get_ports_ip "$rule"`
+    if parse_rule "$rule" LOG_INPUT_IP "interfaces-destips-protos"; then
 
-    echo "$(show_if_ip "$interfaces" "$destips")Logging incoming IP protocol(s): $protos"
+      echo "$(show_if_ip "$interfaces" "$destips")Logging incoming IP protocol(s): $protos"
 
-    IFS=','
-    for proto in $protos; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A INPUT -i $interface -d $destip -p $proto -m state --state NEW -m limit \
-            --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IP INPUT log: "
+      IFS=','
+      for proto in $protos; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A INPUT -i $interface -d $destip -p $proto -m state --state NEW -m limit \
+              --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IP INPUT log: "
+          done
         done
       done
-    done
+    fi
   done
 
 
@@ -3996,47 +3943,44 @@ setup_input_log()
   ###############################################
   unset IFS
   for rule in $LOG_HOST_INPUT; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ih "$rule"`
+    if parse_rule "$rule" LOG_HOST_INPUT "interfaces-destips-hosts"; then
 
-    echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of: $hosts"
+      echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of: $hosts"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for destip in $destips; do
-        for interface in $interfaces; do
-          iptables -A INPUT -i $interface -s $host -d $destip -m state --state NEW \
-            -m limit --limit 12/m --limit-burst 50 \
-            -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise INPUT log: "
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for destip in $destips; do
+          for interface in $interfaces; do
+            iptables -A INPUT -i $interface -s $host -d $destip -m state --state NEW \
+              -m limit --limit 12/m --limit-burst 50 \
+              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise INPUT log: "
+          done
         done
       done
-    done
+    fi
   done
 
   # Hostwise logging of certain TCP port connection attempts
   ##########################################################
   unset IFS
   for rule in $LOG_HOST_INPUT_TCP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" LOG_HOST_INPUT_TCP "interfaces-destips-hosts-ports"; then
 
-    echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of $hosts to TCP port(s): $ports"
+      echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of $hosts to TCP port(s): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A INPUT -i $interface -s $host -d $destip -p tcp --dport $port -m state --state NEW \
-              -m limit --limit 12/m --limit-burst 5 \
-              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise TCP log (IN): "
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A INPUT -i $interface -s $host -d $destip -p tcp --dport $port -m state --state NEW \
+                -m limit --limit 12/m --limit-burst 5 \
+                -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise TCP log (IN): "
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -4044,50 +3988,46 @@ setup_input_log()
   ##########################################################
   unset IFS
   for rule in $LOG_HOST_INPUT_UDP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" LOG_HOST_INPUT_UDP "interfaces-destips-hosts-ports"; then
 
-    echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of $hosts to UDP port(s): $ports"
+      echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of $hosts to UDP port(s): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A INPUT -i $interface -s $host -d $destip -p udp --dport $port -m state --state NEW \
-              -m limit --limit 12/m --limit-burst 5 \
-              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise UDP INPUT log: "
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A INPUT -i $interface -s $host -d $destip -p udp --dport $port -m state --state NEW \
+                -m limit --limit 12/m --limit-burst 5 \
+                -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise UDP INPUT log: "
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # Hostwise logging of certain IP protocols connection attempts
   ##############################################################
   unset IFS
   for rule in $LOG_HOST_INPUT_IP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    protos=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" LOG_HOST_INPUT_IP "interfaces-destips-hosts-protos"; then
 
-    echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of $hosts to IP protocol(s): $protos"
+      echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of $hosts to IP protocol(s): $protos"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for proto in $protos; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            iptables -A INPUT -i $interface -s $host -d $destip -p $proto -m state --state NEW \
-              -m limit --limit 12/m --limit-burst 5 \
-              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise IP INPUT log: "
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for proto in $protos; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              iptables -A INPUT -i $interface -s $host -d $destip -p $proto -m state --state NEW \
+                -m limit --limit 12/m --limit-burst 5 \
+                -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise IP INPUT log: "
+            done
           done
         done
       done
-    done
+    fi
   done
 }
 
@@ -5016,42 +4956,29 @@ setup_firewall_rules()
   #######################
   unset IFS
   for rule in $NAT_FORWARD_TCP; do
-    if_shosts_sports=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts_sports" "$EXT_IF"`
-    destips=`get_ips "$if_shosts_sports"`
+    if parse_rule "$rule" NAT_FORWARD_TCP "interfaces-destips-shosts-ports-dhost_dport"; then
 
-    # Check for separator(SEP)
-    if echo "$if_shosts_sports" |grep -q "$SEP"; then
-      sports=`get_ports_ihp "$if_shosts_sports"`
-      shosts=`get_hosts_ihp "$if_shosts_sports"`
-    else
-      # Assume ports only if no separator
-      sports=`get_ports_ip "$if_shosts_sports"`
-      shosts="$ANYHOST"
-    fi
+      echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) TCP port(s) $(show_hosts_ports "$shosts" "$ports") to $(echo "$dhost_dport" |tr "$SEP-" '::')"
 
-    dhost_dport=`echo "$rule" |cut -s -d'>' -f2`
-    dhost=`get_hosts_hp "$dhost_dport"`
+      IFS=' ,'
+      for shost in `ip_range "$shosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            # Portforward for all specified interfaces
+            for eif in $interfaces; do
+              # This code makes it possible to forward to a different port on the internal host
+              dport=`get_ports_hp "$dhost_dport" "$port"`
 
-    echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) TCP port(s) $(show_hosts_ports "$shosts" "$sports") to $(echo "$dhost_dport" |tr "$SEP-" '::')"
-
-    IFS=' ,'
-    for shost in `ip_range "$shosts"`; do
-      for sport in $sports; do
-        for destip in $destips; do
-          # Portforward for all specified interfaces
-          for eif in $interfaces; do
-            # This code makes it possible to forward to a different port on the internal host
-            dport=`get_ports_hp "$dhost_dport" "$sport"`
-
-            ip4tables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p tcp --dport $sport -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
-            if [ -n "$dhost" ]; then
-              ip4tables -A EXT_FORWARD_IN_CHAIN -i $eif ! -o $eif -s $shost -d $dhost -p tcp --dport $dport -j ACCEPT
-            fi
+              ip4tables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p tcp --dport $port -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
+              dhost=`get_hosts_hp "$dhost_dport"`
+              if [ -n "$dhost" ]; then
+                ip4tables -A EXT_FORWARD_IN_CHAIN -i $eif ! -o $eif -s $shost -d $dhost -p tcp --dport $dport -j ACCEPT
+              fi
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -5059,42 +4986,29 @@ setup_firewall_rules()
   #######################
   unset IFS
   for rule in $NAT_FORWARD_UDP; do
-    if_shosts_sports=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts_sports" "$EXT_IF"`
-    destips=`get_ips "$if_shosts_sports"`
+    if parse_rule "$rule" NAT_FORWARD_UDP "interfaces-destips-shosts-ports-dhost_dport"; then
 
-    # Check for separator(SEP)
-    if echo "$if_shosts_sports" |grep -q "$SEP"; then
-      sports=`get_ports_ihp "$if_shosts_sports"`
-      shosts=`get_hosts_ihp "$if_shosts_sports"`
-    else
-      # Assume ports only if no separator
-      sports=`get_ports_ip "$if_shosts_sports"`
-      shosts="$ANYHOST"
-    fi
+      echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) UDP port(s) $(show_hosts_ports "$shosts" "$ports") to $(echo "$dhost_dport" |tr "$SEP-" '::')"
 
-    dhost_dport=`echo "$rule" |cut -s -d'>' -f2`
-    dhost=`get_hosts_hp "$dhost_dport"`
+      IFS=' ,'
+      for shost in `ip_range "$shosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            # Portforward for all specified interfaces
+            for eif in $interfaces; do
+              # This code makes it possible to forward to a different port on the internal host
+              dport=`get_ports_hp "$dhost_dport" "$port"`
 
-    echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) UDP port(s) $(show_hosts_ports "$shosts" "$sports") to $(echo "$dhost_dport" |tr "$SEP-" '::')"
-
-    IFS=' ,'
-    for shost in `ip_range "$shosts"`; do
-      for sport in $sports; do
-        for destip in $destips; do
-          # Portforward for all specified interfaces
-          for eif in $interfaces; do
-            # This code makes it possible to forward to a different port on the internal host
-            dport=`get_ports_hp "$dhost_dport" "$sport"`
-
-            ip4tables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p udp --dport $sport -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
-            if [ -n "$dhost" ]; then
-              ip4tables -A EXT_FORWARD_IN_CHAIN -i $eif ! -o $eif -s $shost -d $dhost -p udp --dport $dport -j ACCEPT
-            fi
+              ip4tables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p udp --dport $port -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
+              dhost=`get_hosts_hp "$dhost_dport"`
+              if [ -n "$dhost" ]; then
+                ip4tables -A EXT_FORWARD_IN_CHAIN -i $eif ! -o $eif -s $shost -d $dhost -p udp --dport $dport -j ACCEPT
+              fi
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -5102,37 +5016,24 @@ setup_firewall_rules()
   ############################################
   unset IFS
   for rule in $NAT_FORWARD_IP; do
-    if_shosts_protos=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts_protos" "$EXT_IF"`
-    destips=`get_ips "$if_shosts_protos"`
+    if parse_rule "$rule" NAT_FORWARD_IP "interfaces-destips-shosts-protos-dhost"; then
 
-    # Check for separator(SEP)
-    if echo "$if_shosts_sprotos" |grep -q "$SEP"; then
-      sprotos=`get_ports_ihp "$if_shosts_sprotos"`
-      shosts=`get_hosts_ihp "$if_shosts_sprotos"`
-    else
-      # Assume protos only if no separator
-      sprotos=`get_ports_ip "$if_shosts_sprotos"`
-      shosts="$ANYHOST"
-    fi
+      echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) IP protocol(s) $(show_hosts_ports "$shosts" "$protos") to $dhost"
 
-    dhost=`echo "$rule" |cut -s -d'>' -f2`
-
-    echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) IP protocol(s) $(show_hosts_ports "$shosts" "$protos") to $dhost"
-
-    IFS=' ,'
-    for shost in `ip_range "$shosts"`; do
-      for proto in $protos; do
-        for destip in $destips; do
-          for eif in $interfaces; do
-            ip4tables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p $proto -j DNAT --to-destination $dhost
-            if [ -n "$dhost" ]; then
-              ip4tables -A EXT_FORWARD_IN_CHAIN -i $eif ! -o $eif -s $shost -d $dhost -p $proto -j ACCEPT
-            fi
+      IFS=' ,'
+      for shost in `ip_range "$shosts"`; do
+        for proto in $protos; do
+          for destip in $destips; do
+            for eif in $interfaces; do
+              ip4tables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p $proto -j DNAT --to-destination $dhost
+              if [ -n "$dhost" ]; then
+                ip4tables -A EXT_FORWARD_IN_CHAIN -i $eif ! -o $eif -s $shost -d $dhost -p $proto -j ACCEPT
+              fi
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # Setup rules to allow INET IPv6 and non-NAT'ed IPv4 traffic in FORWARD chain
