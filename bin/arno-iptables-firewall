@@ -1161,7 +1161,7 @@ setup_inet_forward_rules()
   #########################################
   unset IFS
   for rule in $INET_FORWARD_TCP; do
-    if parse_rule "$rule" INET_FORWARD_TCP "interfaces-shosts-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" INET_FORWARD_TCP "interfaces-EXT_IF-shosts-dhosts-ports-ANYPORT"; then
 
       echo "$(show_if_ip "$interfaces")Forwarding(non-NAT) TCP port(s): $ports from $shosts(INET) to $dhosts"
 
@@ -1182,7 +1182,7 @@ setup_inet_forward_rules()
   #########################################
   unset IFS
   for rule in $INET_FORWARD_UDP; do
-    if parse_rule "$rule" INET_FORWARD_UDP "interfaces-shosts-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" INET_FORWARD_UDP "interfaces-EXT_IF-shosts-dhosts-ports-ANYPORT"; then
 
       echo "$(show_if_ip "$interfaces")Forwarding(non-NAT) UDP port(s): $ports from $shosts(INET) to $dhosts"
 
@@ -1203,7 +1203,7 @@ setup_inet_forward_rules()
   ######################################################
   unset IFS
   for rule in $INET_FORWARD_IP; do
-    if parse_rule "$rule" INET_FORWARD_IP "interfaces-shosts-dhosts-protos"; then
+    if parse_rule "$rule" INET_FORWARD_IP "interfaces-EXT_IF-shosts-dhosts-protos"; then
 
       echo "$(show_if_ip "$interfaces")Forwarding(non-NAT) IP protocol(s): $protos from $shosts(INET) to $dhosts"
 
@@ -1442,75 +1442,63 @@ setup_inet_dmz_forward_chain()
   #########################################
   unset IFS
   for rule in $INET_DMZ_HOST_OPEN_TCP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts"`
-    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports"`
-    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+    if parse_rule "$rule" INET_DMZ_HOST_OPEN_TCP "interfaces-shosts-dhosts-ports-ANYPORT"; then
 
-    echo "  $(show_if_ip "$interfaces")Allowing $shosts(INET) to $dhosts(DMZ) for TCP port(s): $ports"
+      echo "  $(show_if_ip "$interfaces")Allowing $shosts(INET) to $dhosts(DMZ) for TCP port(s): $ports"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for port in $ports; do
-          for interface in $interfaces; do
-            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # UDP ports to ALLOW for certain INET hosts
   #########################################
   unset IFS
   for rule in $INET_DMZ_HOST_OPEN_UDP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts"`
-    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports"`
-    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+    if parse_rule "$rule" INET_DMZ_HOST_OPEN_UDP "interfaces-shosts-dhosts-ports-ANYPORT"; then
 
-    echo "  $(show_if_ip "$interfaces")Allowing $shosts(INET) to $dhosts(DMZ) for UDP port(s): $ports"
+      echo "  $(show_if_ip "$interfaces")Allowing $shosts(INET) to $dhosts(DMZ) for UDP port(s): $ports"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for port in $ports; do
-          for interface in $interfaces; do
-            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # (Other) IP protocols to ALLOW for certain INET hosts
   ######################################################
   unset IFS
   for rule in $INET_DMZ_HOST_OPEN_IP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts"`
-    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports"`
-    protos=`get_ports_hp "$dhosts_ports"`
+    if parse_rule "$rule" INET_DMZ_HOST_OPEN_IP "interfaces-shosts-dhosts-protos"; then
 
-    echo "  $(show_if_ip "$interfaces")Allowing $shosts(INET) to $dhosts(DMZ) for IP protocol(s): $protos"
+      echo "  $(show_if_ip "$interfaces")Allowing $shosts(INET) to $dhosts(DMZ) for IP protocol(s): $protos"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for proto in $protos; do
-          for interface in $interfaces; do
-            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p $proto -j ACCEPT
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for proto in $protos; do
+            for interface in $interfaces; do
+              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p $proto -j ACCEPT
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -4944,7 +4932,7 @@ setup_firewall_rules()
   #######################
   unset IFS
   for rule in $NAT_FORWARD_TCP; do
-    if parse_rule "$rule" NAT_FORWARD_TCP "interfaces-destips-shosts-ports-dhost_dport"; then
+    if parse_rule "$rule" NAT_FORWARD_TCP "interfaces-EXT_IF-destips-shosts-ports-dhost_dport"; then
 
       echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) TCP port(s) $(show_hosts_ports "$shosts" "$ports") to $(echo "$dhost_dport" |tr "$SEP-" '::')"
 
@@ -4974,7 +4962,7 @@ setup_firewall_rules()
   #######################
   unset IFS
   for rule in $NAT_FORWARD_UDP; do
-    if parse_rule "$rule" NAT_FORWARD_UDP "interfaces-destips-shosts-ports-dhost_dport"; then
+    if parse_rule "$rule" NAT_FORWARD_UDP "interfaces-EXT_IF-destips-shosts-ports-dhost_dport"; then
 
       echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) UDP port(s) $(show_hosts_ports "$shosts" "$ports") to $(echo "$dhost_dport" |tr "$SEP-" '::')"
 
@@ -5004,7 +4992,7 @@ setup_firewall_rules()
   ############################################
   unset IFS
   for rule in $NAT_FORWARD_IP; do
-    if parse_rule "$rule" NAT_FORWARD_IP "interfaces-destips-shosts-protos-dhost"; then
+    if parse_rule "$rule" NAT_FORWARD_IP "interfaces-EXT_IF-destips-shosts-protos-dhost"; then
 
       echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) IP protocol(s) $(show_hosts_ports "$shosts" "$protos") to $dhost"
 
