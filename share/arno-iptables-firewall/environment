@@ -774,6 +774,39 @@ parse_rule()
     protos="$ports"
     ;;
 
+  interfaces-srcips-ports|interfaces-srcips-protos)
+    interfaces=$(get_ifs "$rule")
+    srcips=$(get_ips "$rule")
+    ports=$(get_ports_ip "$rule")
+    if [ -z "$ports" ]; then
+      parse_rule_warning "$rule"
+      return 1
+    fi
+    protos="$ports"
+    ;;
+
+  interfaces-srcips-hosts)
+    interfaces=$(get_ifs "$rule")
+    srcips=$(get_ips "$rule")
+    hosts=$(get_hosts_ih "$rule")
+    if [ -z "$hosts" ]; then
+      parse_rule_warning "$rule"
+      return 1
+    fi
+    ;;
+
+  interfaces-srcips-hosts-ports|interfaces-srcips-hosts-protos)
+    interfaces=$(get_ifs "$rule")
+    srcips=$(get_ips "$rule")
+    hosts=$(get_hosts_ihp "$rule")
+    ports=$(get_ports_ihp "$rule")
+    if [ -z "$hosts" -o -z "$ports" ]; then
+      parse_rule_warning "$rule"
+      return 1
+    fi
+    protos="$ports"
+    ;;
+
   interfaces-destips-ports|interfaces-destips-protos)
     interfaces=$(get_ifs "$rule")
     destips=$(get_ips "$rule")

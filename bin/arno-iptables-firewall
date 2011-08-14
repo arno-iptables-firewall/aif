@@ -3579,173 +3579,163 @@ setup_ext_output_chain()
   ###############################################
   unset IFS
   for rule in $HOST_DENY_TCP_OUTPUT; do
-    interfaces=`get_ifs "$rule"`
-    srcips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_DENY_TCP_OUTPUT "interfaces-srcips-hosts-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for TCP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for TCP port(s): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for interface in $interfaces; do
-          for srcip in $srcips; do
-            if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
-              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p tcp --dport $port \
-                -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
-            fi
-            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p tcp --dport $port -j DROP
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for interface in $interfaces; do
+            for srcip in $srcips; do
+              if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
+                iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p tcp --dport $port \
+                  -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
+              fi
+              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p tcp --dport $port -j DROP
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # This rule is for hostwise OUTPUT UDP blocking
   ###############################################
   unset IFS
   for rule in $HOST_DENY_UDP_OUTPUT; do
-    interfaces=`get_ifs "$rule"`
-    srcips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_DENY_UDP_OUTPUT "interfaces-srcips-hosts-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for UDP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for UDP port(s): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for interface in $interfaces; do
-          for srcip in $srcips; do
-            if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
-              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p udp --dport $port \
-                -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
-            fi
-            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p udp --dport $port -j DROP
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for interface in $interfaces; do
+            for srcip in $srcips; do
+              if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
+                iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p udp --dport $port \
+                  -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
+              fi
+              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p udp --dport $port -j DROP
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # This rule is for hostwise OUTPUT IP blocking
   ##############################################
   unset IFS
   for rule in $HOST_DENY_IP_OUTPUT; do
-    interfaces=`get_ifs "$rule"`
-    srcips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    protos=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_DENY_IP_OUTPUT "interfaces-srcips-hosts-protos"; then
 
-    echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for IP protocol(s): $protos"
+      echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for IP protocol(s): $protos"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for proto in $protos; do
-        for interface in $interfaces; do
-          for srcip in $srcips; do
-            if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
-              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p $proto \
-                -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
-            fi
-            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p $proto -j DROP
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for proto in $protos; do
+          for interface in $interfaces; do
+            for srcip in $srcips; do
+              if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
+                iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p $proto \
+                  -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
+              fi
+              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p $proto -j DROP
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # Adding the "full access hosts"
   ################################
   unset IFS
   for rule in $FULL_ACCESS_HOSTS; do
-    interfaces=`get_ifs "$rule"`
-    srcips=`get_ips "$rule"`
-    hosts=`get_hosts_ih "$rule"`
+    if parse_rule "$rule" FULL_ACCESS_HOSTS "interfaces-srcips-hosts"; then
 
-    echo " $(show_if_ip "$interfaces")Allowing $hosts full (outbound) access"
+      echo " $(show_if_ip "$interfaces")Allowing $hosts full (outbound) access"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for interface in $interfaces; do
-        for srcip in $srcips; do
-          iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -j ACCEPT
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for interface in $interfaces; do
+          for srcip in $srcips; do
+            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -j ACCEPT
+          done
         done
       done
-    done
+    fi
   done
 
   # This rule is for local OUTPUT TCP blocking
   ############################################
   unset IFS
   for rule in $DENY_TCP_OUTPUT; do
-    interfaces=`get_ifs "$rule"`
-    srcips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" DENY_TCP_OUTPUT "interfaces-srcips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$srcips")Denying TCP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$srcips")Denying TCP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for interface in $interfaces; do
-        for srcip in $srcips; do
-          if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
-            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p tcp --dport $port \
-              -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
-          fi
-          iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p tcp --dport $port -j DROP
+      IFS=','
+      for port in $ports; do
+        for interface in $interfaces; do
+          for srcip in $srcips; do
+            if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
+              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p tcp --dport $port \
+                -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
+            fi
+            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p tcp --dport $port -j DROP
+          done
         done
       done
-    done
+    fi
   done
 
   # This rule is for local OUTPUT UDP blocking
   ############################################
   unset IFS
   for rule in $DENY_UDP_OUTPUT; do
-    interfaces=`get_ifs "$rule"`
-    srcips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" DENY_UDP_OUTPUT "interfaces-srcips-ports"; then
 
-    echo " $(show_if_ip "$interfaces" "$srcips")Denying UDP port(s): $ports"
+      echo " $(show_if_ip "$interfaces" "$srcips")Denying UDP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for interface in $interfaces; do
-        for srcip in $srcips; do
-          if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
-            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p udp --dport $port \
-              -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
-          fi
-          iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p udp --dport $port -j DROP
+      IFS=','
+      for port in $ports; do
+        for interface in $interfaces; do
+          for srcip in $srcips; do
+            if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
+              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p udp --dport $port \
+                -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
+            fi
+            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p udp --dport $port -j DROP
+          done
         done
       done
-    done
+    fi
   done
 
   # This rule is for local OUTPUT IP blocking
   ############################################
   unset IFS
   for rule in $DENY_IP_OUTPUT; do
-    interfaces=`get_ifs "$rule"`
-    srcips=`get_ips "$rule"`
-    protos=`get_ports_ip "$rule"`
+    if parse_rule "$rule" DENY_IP_OUTPUT "interfaces-srcips-protos"; then
 
-    echo " $(show_if_ip "$interfaces" "$srcips")Denying IP protocol(s): $protos"
+      echo " $(show_if_ip "$interfaces" "$srcips")Denying IP protocol(s): $protos"
 
-    IFS=','
-    for proto in $DENY_IP_OUTPUT; do
-      for interface in $interfaces; do
-        for srcip in $srcips; do
-          if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
-            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p $proto \
-              -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
-          fi
-          iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p $proto -j DROP
+      IFS=','
+      for proto in $protos; do
+        for interface in $interfaces; do
+          for srcip in $srcips; do
+            if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
+              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p $proto \
+                -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
+            fi
+            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p $proto -j DROP
+          done
         done
       done
-    done
+    fi
   done
 }
 
@@ -3956,85 +3946,81 @@ setup_output_log()
   ############################################
   unset IFS
   for rule in $LOG_OUTPUT_TCP; do
-    interfaces=`get_ifs "$rule"`
-    srcips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" LOG_OUTPUT_TCP "interfaces-srcips-ports"; then
 
-    echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing TCP port(s): $ports"
+      echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing TCP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for interface in $interfaces; do
-        for srcip in $srcips; do
-          iptables -A OUTPUT -o $interface -s $srcip -p tcp --dport $port -m state --state NEW -m limit \
-            --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:TCP OUTPUT log: "
+      IFS=','
+      for port in $ports; do
+        for interface in $interfaces; do
+          for srcip in $srcips; do
+            iptables -A OUTPUT -o $interface -s $srcip -p tcp --dport $port -m state --state NEW -m limit \
+              --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:TCP OUTPUT log: "
+          done
         done
       done
-    done
+    fi
   done
 
   # This rule is for local OUTPUT UDP watching
   ############################################
   unset IFS
   for rule in $LOG_OUTPUT_UDP; do
-    interfaces=`get_ifs "$rule"`
-    srcips=`get_ips "$rule"`
-    ports=`get_ports_ip "$rule"`
+    if parse_rule "$rule" LOG_OUTPUT_UDP "interfaces-srcips-ports"; then
 
-    echo "$(show_if_ip "$interfaces")Logging outgoing UDP port(s): $ports"
+      echo "$(show_if_ip "$interfaces")Logging outgoing UDP port(s): $ports"
 
-    IFS=','
-    for port in $ports; do
-      for interface in $interfaces; do
-        for srcip in $srcips; do
-          iptables -A OUTPUT -o $interface -s $srcip -p udp --dport $port -m state --state NEW -m limit \
-            --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UDP OUTPUT log: "
+      IFS=','
+      for port in $ports; do
+        for interface in $interfaces; do
+          for srcip in $srcips; do
+            iptables -A OUTPUT -o $interface -s $srcip -p udp --dport $port -m state --state NEW -m limit \
+              --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UDP OUTPUT log: "
+          done
         done
       done
-    done
+    fi
   done
 
   # This rule is for local OUTPUT IP watching
   ###########################################
   unset IFS
   for rule in $LOG_OUTPUT_IP; do
-    interfaces=`get_ifs "$rule"`
-    srcips=`get_ips "$rule"`
-    protos=`get_ports_ip "$rule"`
+    if parse_rule "$rule" LOG_OUTPUT_IP "interfaces-srcips-protos"; then
 
-    echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing IP protocol(s): $protos"
+      echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing IP protocol(s): $protos"
 
-    IFS=','
-    for proto in $protos; do
-      for interface in $interfaces; do
-        for srcip in $srcips; do
-          iptables -A OUTPUT -o $interface -s $srcip -p $proto -m state --state NEW -m limit \
-            --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IP OUTPUT log: "
+      IFS=','
+      for proto in $protos; do
+        for interface in $interfaces; do
+          for srcip in $srcips; do
+            iptables -A OUTPUT -o $interface -s $srcip -p $proto -m state --state NEW -m limit \
+              --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IP OUTPUT log: "
+          done
         done
       done
-    done
+    fi
   done
 
   # Hostwise logging of output connection attempts
   ################################################
   unset IFS
   for rule in $LOG_HOST_OUTPUT; do
-    interfaces=`get_ifs "$rule"`
-    srcips=`get_ips "$rule"`
-    hosts=`get_hosts_ih "$rule"`
+    if parse_rule "$rule" LOG_HOST_OUTPUT "interfaces-srcips-hosts"; then
 
-    echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections to: $hosts"
+      echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections to: $hosts"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for interface in $interfaces; do
-        for srcip in $srcips; do
-          iptables -A OUTPUT -o $interface -s $srcip -d $host -m state --state NEW \
-            -m limit --limit 12/m --limit-burst 50 \
-            -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise OUTPUT log: "
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for interface in $interfaces; do
+          for srcip in $srcips; do
+            iptables -A OUTPUT -o $interface -s $srcip -d $host -m state --state NEW \
+              -m limit --limit 12/m --limit-burst 50 \
+              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise OUTPUT log: "
+          done
         done
       done
-    done
+    fi
   done
 
 
@@ -4042,25 +4028,23 @@ setup_output_log()
   ##########################################################
   unset IFS
   for rule in $LOG_HOST_OUTPUT_TCP; do
-    interfaces=`get_ifs "$rule"`
-    srcips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"` 
+    if parse_rule "$rule" LOG_HOST_OUTPUT_TCP "interfaces-srcips-hosts-ports"; then
 
-    echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections of $hosts to TCP port(s): $ports"
+      echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections of $hosts to TCP port(s): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for interface in $interfaces; do
-          for srcip in $srcips; do
-            iptables -A OUTPUT -o $interface -s $srcip -d $host -p tcp --dport $port -m state --state NEW \
-              -m limit --limit 12/m --limit-burst 5 \
-              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host TCP log (OUT): "
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for interface in $interfaces; do
+            for srcip in $srcips; do
+              iptables -A OUTPUT -o $interface -s $srcip -d $host -p tcp --dport $port -m state --state NEW \
+                -m limit --limit 12/m --limit-burst 5 \
+                -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host TCP log (OUT): "
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -4068,50 +4052,46 @@ setup_output_log()
   ##########################################################
   unset IFS
   for rule in $LOG_HOST_OUTPUT_UDP; do
-    interfaces=`get_ifs "$rule"`
-    srcips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" LOG_HOST_OUTPUT_UDP "interfaces-srcips-hosts-ports"; then
 
-    echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections of $hosts to UDP port(s): $ports"
+      echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections of $hosts to UDP port(s): $ports"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for interface in $interfaces; do
-          for srcip in $srcips; do
-            iptables -A OUTPUT -o $interface -s $srcip -d $host -p udp --dport $port -m state --state NEW \
-              -m limit --limit 12/m --limit-burst 5 \
-              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host UDP log (OUT): "
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for interface in $interfaces; do
+            for srcip in $srcips; do
+              iptables -A OUTPUT -o $interface -s $srcip -d $host -p udp --dport $port -m state --state NEW \
+                -m limit --limit 12/m --limit-burst 5 \
+                -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host UDP log (OUT): "
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # Hostwise logging of certain IP protocols connection attempts
   ##############################################################
   unset IFS
   for rule in $LOG_HOST_OUTPUT_IP; do
-    interfaces=`get_ifs "$rule"`
-    srcips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    protos=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" LOG_HOST_OUTPUT_IP "interfaces-srcips-hosts-protos"; then
 
-    echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections of $hosts to IP protocol(s): $protos"
+      echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections of $hosts to IP protocol(s): $protos"
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for proto in $protos; do
-        for interface in $interfaces; do
-          for srcip in $srcips; do
-            iptables -A OUTPUT -o $interface -s $srcip -d $host -p $proto -m state --state NEW \
-              -m limit --limit 12/m --limit-burst 5 \
-              -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host IP log (OUT): "
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for proto in $protos; do
+          for interface in $interfaces; do
+            for srcip in $srcips; do
+              iptables -A OUTPUT -o $interface -s $srcip -d $host -p $proto -m state --state NEW \
+                -m limit --limit 12/m --limit-burst 5 \
+                -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host IP log (OUT): "
+            done
           done
         done
       done
-    done
+    fi
   done
 }
 
