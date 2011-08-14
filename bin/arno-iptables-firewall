@@ -1161,7 +1161,7 @@ setup_inet_forward_rules()
   #########################################
   unset IFS
   for rule in $INET_FORWARD_TCP; do
-    if parse_rule "$rule" INET_FORWARD_TCP "interfaces-EXT_IF-shosts-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" INET_FORWARD_TCP "interfaces:EXT_IF-shosts-dhosts-ports:ANYPORT"; then
 
       echo "$(show_if_ip "$interfaces")Forwarding(non-NAT) TCP port(s): $ports from $shosts(INET) to $dhosts"
 
@@ -1182,7 +1182,7 @@ setup_inet_forward_rules()
   #########################################
   unset IFS
   for rule in $INET_FORWARD_UDP; do
-    if parse_rule "$rule" INET_FORWARD_UDP "interfaces-EXT_IF-shosts-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" INET_FORWARD_UDP "interfaces:EXT_IF-shosts-dhosts-ports:ANYPORT"; then
 
       echo "$(show_if_ip "$interfaces")Forwarding(non-NAT) UDP port(s): $ports from $shosts(INET) to $dhosts"
 
@@ -1203,7 +1203,7 @@ setup_inet_forward_rules()
   ######################################################
   unset IFS
   for rule in $INET_FORWARD_IP; do
-    if parse_rule "$rule" INET_FORWARD_IP "interfaces-EXT_IF-shosts-dhosts-protos"; then
+    if parse_rule "$rule" INET_FORWARD_IP "interfaces:EXT_IF-shosts-dhosts-protos"; then
 
       echo "$(show_if_ip "$interfaces")Forwarding(non-NAT) IP protocol(s): $protos from $shosts(INET) to $dhosts"
 
@@ -1442,7 +1442,7 @@ setup_inet_dmz_forward_chain()
   #########################################
   unset IFS
   for rule in $INET_DMZ_HOST_OPEN_TCP; do
-    if parse_rule "$rule" INET_DMZ_HOST_OPEN_TCP "interfaces-shosts-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" INET_DMZ_HOST_OPEN_TCP "interfaces-shosts-dhosts-ports:ANYPORT"; then
 
       echo "  $(show_if_ip "$interfaces")Allowing $shosts(INET) to $dhosts(DMZ) for TCP port(s): $ports"
 
@@ -1463,7 +1463,7 @@ setup_inet_dmz_forward_chain()
   #########################################
   unset IFS
   for rule in $INET_DMZ_HOST_OPEN_UDP; do
-    if parse_rule "$rule" INET_DMZ_HOST_OPEN_UDP "interfaces-shosts-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" INET_DMZ_HOST_OPEN_UDP "interfaces-shosts-dhosts-ports:ANYPORT"; then
 
       echo "  $(show_if_ip "$interfaces")Allowing $shosts(INET) to $dhosts(DMZ) for UDP port(s): $ports"
 
@@ -1506,7 +1506,7 @@ setup_inet_dmz_forward_chain()
   #########################################
   unset IFS
   for rule in $INET_DMZ_HOST_DENY_TCP; do
-    if parse_rule "$rule" INET_DMZ_HOST_DENY_TCP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" INET_DMZ_HOST_DENY_TCP "interfaces-shosts:ANYHOST-dhosts-ports:ANYPORT"; then
 
       echo "  $(show_if_ip "$interfaces")Denying $shosts(INET) to $dhosts(DMZ) for TCP port(s): $ports"
 
@@ -1531,7 +1531,7 @@ setup_inet_dmz_forward_chain()
   #########################################
   unset IFS
   for rule in $INET_DMZ_HOST_DENY_UDP; do
-    if parse_rule "$rule" INET_DMZ_HOST_DENY_UDP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" INET_DMZ_HOST_DENY_UDP "interfaces-shosts:ANYHOST-dhosts-ports:ANYPORT"; then
 
       echo "  $(show_if_ip "$interfaces")Denying $shosts(INET) to $dhosts(DMZ) for UDP port(s): $ports"
 
@@ -1556,7 +1556,7 @@ setup_inet_dmz_forward_chain()
   #####################################################
   unset IFS
   for rule in $INET_DMZ_HOST_DENY_IP; do
-    if parse_rule "$rule" INET_DMZ_HOST_DENY_IP "interfaces-shosts-ANYHOST-dhosts-protos"; then
+    if parse_rule "$rule" INET_DMZ_HOST_DENY_IP "interfaces-shosts:ANYHOST-dhosts-protos"; then
 
       echo "  $(show_if_ip "$interfaces")Denying $shosts(INET) to $dhosts(DMZ) for IP protocol(s): $protos"
 
@@ -1742,7 +1742,7 @@ setup_dmz_inet_forward_chain()
   #########################################
   unset IFS
   for rule in $DMZ_INET_HOST_OPEN_TCP; do
-    if parse_rule "$rule" DMZ_INET_HOST_OPEN_TCP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" DMZ_INET_HOST_OPEN_TCP "interfaces-shosts:ANYHOST-dhosts-ports:ANYPORT"; then
 
       echo "  $(show_if_ip "$interfaces" "$destips")Allowing $shosts(DMZ) to $dhosts(INET) for TCP port(s): $ports"
 
@@ -1763,7 +1763,7 @@ setup_dmz_inet_forward_chain()
   #########################################
   unset IFS
   for rule in $DMZ_INET_HOST_OPEN_UDP; do
-    if parse_rule "$rule" DMZ_INET_HOST_OPEN_UDP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" DMZ_INET_HOST_OPEN_UDP "interfaces-shosts:ANYHOST-dhosts-ports:ANYPORT"; then
 
       echo "  $(show_if_ip "$interfaces")Allowing $shosts(DMZ) to $dhosts(INET) for UDP port(s): $ports"
 
@@ -1784,7 +1784,7 @@ setup_dmz_inet_forward_chain()
   #####################################################
   unset IFS
   for rule in $DMZ_INET_HOST_OPEN_IP; do
-    if parse_rule "$rule" DMZ_INET_HOST_OPEN_IP "interfaces-shosts-ANYHOST-dhosts-protos"; then
+    if parse_rule "$rule" DMZ_INET_HOST_OPEN_IP "interfaces-shosts:ANYHOST-dhosts-protos"; then
 
       echo "  $(show_if_ip "$interfaces")Allowing $shosts(DMZ) to $dhosts(INET) for IP protocol(s): $protos"
 
@@ -1806,7 +1806,7 @@ setup_dmz_inet_forward_chain()
   #########################################
   unset IFS
   for rule in $DMZ_INET_HOST_DENY_TCP; do
-    if parse_rule "$rule" DMZ_INET_HOST_DENY_TCP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" DMZ_INET_HOST_DENY_TCP "interfaces-shosts:ANYHOST-dhosts-ports:ANYPORT"; then
 
       echo "  $(show_if_ip "$interfaces")Denying $shosts(DMZ) to $dhosts(INET) for TCP port(s): $ports"
 
@@ -1831,7 +1831,7 @@ setup_dmz_inet_forward_chain()
   #########################################
   unset IFS
   for rule in $DMZ_INET_HOST_DENY_UDP; do
-    if parse_rule "$rule" DMZ_INET_HOST_DENY_UDP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" DMZ_INET_HOST_DENY_UDP "interfaces-shosts:ANYHOST-dhosts-ports:ANYPORT"; then
 
       echo "  $(show_if_ip "$interfaces")Denying $shosts(DMZ) to $dhosts(INET) for UDP port(s): $ports"
 
@@ -1856,7 +1856,7 @@ setup_dmz_inet_forward_chain()
   #####################################################
   unset IFS
   for rule in $DMZ_INET_HOST_DENY_IP; do
-    if parse_rule "$rule" DMZ_INET_HOST_DENY_IP "interfaces-shosts-ANYHOST-dhosts-protos"; then
+    if parse_rule "$rule" DMZ_INET_HOST_DENY_IP "interfaces-shosts:ANYHOST-dhosts-protos"; then
 
       echo "  $(show_if_ip "$interfaces")Denying $shosts(DMZ) to $dhosts(INET) for IP protocol(s): $protos"
 
@@ -2286,7 +2286,7 @@ setup_lan_inet_forward_chain()
   #########################################
   unset IFS
   for rule in $LAN_INET_HOST_OPEN_TCP; do
-    if parse_rule "$rule" LAN_INET_HOST_OPEN_TCP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" LAN_INET_HOST_OPEN_TCP "interfaces-shosts:ANYHOST-dhosts-ports:ANYPORT"; then
 
       echo "  $(show_if_ip "$interfaces")Allowing $shosts(LAN) to $dhosts(INET) for TCP port(s): $ports"
 
@@ -2307,7 +2307,7 @@ setup_lan_inet_forward_chain()
   #########################################
   unset IFS
   for rule in $LAN_INET_HOST_OPEN_UDP; do
-    if parse_rule "$rule" LAN_INET_HOST_OPEN_UDP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" LAN_INET_HOST_OPEN_UDP "interfaces-shosts:ANYHOST-dhosts-ports:ANYPORT"; then
 
       echo "  $(show_if_ip "$interfaces")Allowing $shosts(LAN) to $dhosts(INET) for UDP port(s): $ports"
 
@@ -2328,7 +2328,7 @@ setup_lan_inet_forward_chain()
   #####################################################
   unset IFS
   for rule in $LAN_INET_HOST_OPEN_IP; do
-    if parse_rule "$rule" LAN_INET_HOST_OPEN_IP "interfaces-shosts-ANYHOST-dhosts-protos"; then
+    if parse_rule "$rule" LAN_INET_HOST_OPEN_IP "interfaces-shosts:ANYHOST-dhosts-protos"; then
 
       echo "  $(show_if_ip "$interfaces")Allowing $shosts(LAN) to $dhosts(INET) for IP protocol(s): $protos"
 
@@ -2349,7 +2349,7 @@ setup_lan_inet_forward_chain()
   #########################################
   unset IFS
   for rule in $LAN_INET_HOST_DENY_TCP; do
-    if parse_rule "$rule" LAN_INET_HOST_DENY_TCP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" LAN_INET_HOST_DENY_TCP "interfaces-shosts:ANYHOST-dhosts-ports:ANYPORT"; then
 
       echo "  $(show_if_ip "$interfaces")Denying $shosts(LAN) to $dhosts(INET) for TCP port(s): $ports"
 
@@ -2374,7 +2374,7 @@ setup_lan_inet_forward_chain()
   #########################################
   unset IFS
   for rule in $LAN_INET_HOST_DENY_UDP; do
-    if parse_rule "$rule" LAN_INET_HOST_DENY_UDP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
+    if parse_rule "$rule" LAN_INET_HOST_DENY_UDP "interfaces-shosts:ANYHOST-dhosts-ports:ANYPORT"; then
 
       echo "  $(show_if_ip "$interfaces")Denying $shosts(LAN) to $dhosts(INET) for UDP port(s): $ports"
 
@@ -2399,7 +2399,7 @@ setup_lan_inet_forward_chain()
   #####################################################
   unset IFS
   for rule in $LAN_INET_HOST_DENY_IP; do
-    if parse_rule "$rule" LAN_INET_HOST_DENY_IP "interfaces-shosts-ANYHOST-dhosts-protos"; then
+    if parse_rule "$rule" LAN_INET_HOST_DENY_IP "interfaces-shosts:ANYHOST-dhosts-protos"; then
 
       echo "  $(show_if_ip "$interfaces")Denying $shosts(LAN) to $dhosts(INET) for IP protocol(s): $protos"
 
@@ -4872,7 +4872,7 @@ setup_firewall_rules()
   #######################
   unset IFS
   for rule in $NAT_FORWARD_TCP; do
-    if parse_rule "$rule" NAT_FORWARD_TCP "interfaces-EXT_IF-destips-shosts-ports-dhost_dport"; then
+    if parse_rule "$rule" NAT_FORWARD_TCP "interfaces:EXT_IF-destips-shosts-ports-dhost_dport"; then
 
       echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) TCP port(s) $(show_hosts_ports "$shosts" "$ports") to $(echo "$dhost_dport" |tr "$SEP-" '::')"
 
@@ -4902,7 +4902,7 @@ setup_firewall_rules()
   #######################
   unset IFS
   for rule in $NAT_FORWARD_UDP; do
-    if parse_rule "$rule" NAT_FORWARD_UDP "interfaces-EXT_IF-destips-shosts-ports-dhost_dport"; then
+    if parse_rule "$rule" NAT_FORWARD_UDP "interfaces:EXT_IF-destips-shosts-ports-dhost_dport"; then
 
       echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) UDP port(s) $(show_hosts_ports "$shosts" "$ports") to $(echo "$dhost_dport" |tr "$SEP-" '::')"
 
@@ -4932,7 +4932,7 @@ setup_firewall_rules()
   ############################################
   unset IFS
   for rule in $NAT_FORWARD_IP; do
-    if parse_rule "$rule" NAT_FORWARD_IP "interfaces-EXT_IF-destips-shosts-protos-dhost"; then
+    if parse_rule "$rule" NAT_FORWARD_IP "interfaces:EXT_IF-destips-shosts-protos-dhost"; then
 
       echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) IP protocol(s) $(show_hosts_ports "$shosts" "$protos") to $dhost"
 

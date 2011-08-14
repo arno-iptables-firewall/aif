@@ -807,14 +807,14 @@ parse_rule()
     protos="$ports"
     ;;
 
-  interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT|interfaces-shosts-ANYHOST-dhosts-protos)
+  interfaces-shosts:ANYHOST-dhosts-ports:ANYPORT|interfaces-shosts:ANYHOST-dhosts-protos)
     left_rule=$(echo "$rule" |cut -s -d'>' -f1)
     right_rule=$(echo "$rule" |cut -s -d'>' -f2)
 
     interfaces=$(get_ifs "$left_rule")
     shosts=$(get_hosts_ih "$left_rule" "$ANYHOST")
     dhosts=$(get_hosts_hp "$right_rule")
-    if [ "$type" = "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT" ]; then
+    if [ "$type" = "interfaces-shosts:ANYHOST-dhosts-ports:ANYPORT" ]; then
       ports=$(get_ports_hp "$right_rule" "$ANYPORT")
     else
       ports=$(get_ports_hp "$right_rule")
@@ -826,14 +826,14 @@ parse_rule()
     protos="$ports"
     ;;
 
-  interfaces-shosts-dhosts-ports-ANYPORT|interfaces-shosts-dhosts-protos)
+  interfaces-shosts-dhosts-ports:ANYPORT|interfaces-shosts-dhosts-protos)
     left_rule=$(echo "$rule" |cut -s -d'>' -f1)
     right_rule=$(echo "$rule" |cut -s -d'>' -f2)
 
     interfaces=$(get_ifs "$left_rule")
     shosts=$(get_hosts_ih "$left_rule")
     dhosts=$(get_hosts_hp "$right_rule")
-    if [ "$type" = "interfaces-shosts-dhosts-ports-ANYPORT" ]; then
+    if [ "$type" = "interfaces-shosts-dhosts-ports:ANYPORT" ]; then
       ports=$(get_ports_hp "$right_rule" "$ANYPORT")
     else
       ports=$(get_ports_hp "$right_rule")
@@ -845,14 +845,14 @@ parse_rule()
     protos="$ports"
     ;;
 
-  interfaces-EXT_IF-shosts-dhosts-ports-ANYPORT|interfaces-EXT_IF-shosts-dhosts-protos)
+  interfaces:EXT_IF-shosts-dhosts-ports:ANYPORT|interfaces:EXT_IF-shosts-dhosts-protos)
     left_rule=$(echo "$rule" |cut -s -d'>' -f1)
     right_rule=$(echo "$rule" |cut -s -d'>' -f2)
 
     interfaces=$(get_ifs "$left_rule" "$EXT_IF")
     shosts=$(get_hosts_ih "$left_rule")
     dhosts=$(get_hosts_hp "$right_rule")
-    if [ "$type" = "interfaces-EXT_IF-shosts-dhosts-ports-ANYPORT" ]; then
+    if [ "$type" = "interfaces:EXT_IF-shosts-dhosts-ports:ANYPORT" ]; then
       ports=$(get_ports_hp "$right_rule" "$ANYPORT")
     else
       ports=$(get_ports_hp "$right_rule")
@@ -864,7 +864,7 @@ parse_rule()
     protos="$ports"
     ;;
 
-  interfaces-EXT_IF-destips-shosts-ports-dhost_dport|interfaces-EXT_IF-destips-shosts-protos-dhost)
+  interfaces:EXT_IF-destips-shosts-ports-dhost_dport|interfaces:EXT_IF-destips-shosts-protos-dhost)
     left_rule=$(echo "$rule" |cut -s -d'>' -f1)
     right_rule=$(echo "$rule" |cut -s -d'>' -f2)
 
