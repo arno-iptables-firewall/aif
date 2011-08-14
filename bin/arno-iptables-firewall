@@ -1506,87 +1506,75 @@ setup_inet_dmz_forward_chain()
   #########################################
   unset IFS
   for rule in $INET_DMZ_HOST_DENY_TCP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
-    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports"`
-    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+    if parse_rule "$rule" INET_DMZ_HOST_DENY_TCP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
 
-    echo "  $(show_if_ip "$interfaces")Denying $shosts(INET) to $dhosts(DMZ) for TCP port(s): $ports"
+      echo "  $(show_if_ip "$interfaces")Denying $shosts(INET) to $dhosts(DMZ) for TCP port(s): $ports"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for port in $ports; do
-          for interface in $interfaces; do
-            if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p tcp --dport $port \
-                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET->DMZ denied: "
-            fi
-            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p tcp --dport $port -j DROP
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+                iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p tcp --dport $port \
+                  -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET->DMZ denied: "
+              fi
+              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p tcp --dport $port -j DROP
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # UDP ports to DENY for certain INET hosts
   #########################################
   unset IFS
   for rule in $INET_DMZ_HOST_DENY_UDP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
-    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports"`
-    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+    if parse_rule "$rule" INET_DMZ_HOST_DENY_UDP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
 
-    echo "  $(show_if_ip "$interfaces")Denying $shosts(INET) to $dhosts(DMZ) for UDP port(s): $ports"
+      echo "  $(show_if_ip "$interfaces")Denying $shosts(INET) to $dhosts(DMZ) for UDP port(s): $ports"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for port in $ports; do
-          for interface in $interfaces; do
-            if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p udp --dport $port \
-                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET->DMZ denied: "
-            fi
-            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p udp --dport $port -j DROP
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+                iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p udp --dport $port \
+                  -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET->DMZ denied: "
+              fi
+              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p udp --dport $port -j DROP
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # (Other) IP protocols to DENY for certain INET hosts
   #####################################################
   unset IFS
   for rule in $INET_DMZ_HOST_DENY_IP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
-    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports"`
-    protos=`get_ports_hp "$dhosts_ports"`
+    if parse_rule "$rule" INET_DMZ_HOST_DENY_IP "interfaces-shosts-ANYHOST-dhosts-protos"; then
 
-    echo "  $(show_if_ip "$interfaces")Denying $shosts(INET) to $dhosts(DMZ) for IP protocol(s): $protos"
+      echo "  $(show_if_ip "$interfaces")Denying $shosts(INET) to $dhosts(DMZ) for IP protocol(s): $protos"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for proto in $protos; do
-          for interface in $interfaces; do
-            if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p $proto \
-                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET->DMZ denied: "
-            fi
-            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p $proto -j DROP
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for proto in $protos; do
+            for interface in $interfaces; do
+              if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
+                iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p $proto \
+                  -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET->DMZ denied: "
+              fi
+              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p $proto -j DROP
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # Allow only certain TCP ports to be used from the INET->DMZ?
@@ -1754,75 +1742,63 @@ setup_dmz_inet_forward_chain()
   #########################################
   unset IFS
   for rule in $DMZ_INET_HOST_OPEN_TCP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
-    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports"`
-    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+    if parse_rule "$rule" DMZ_INET_HOST_OPEN_TCP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
 
-    echo "  $(show_if_ip "$interfaces" "$destips")Allowing $shosts(DMZ) to $dhosts(INET) for TCP port(s): $ports"
+      echo "  $(show_if_ip "$interfaces" "$destips")Allowing $shosts(DMZ) to $dhosts(INET) for TCP port(s): $ports"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for port in $ports; do
-          for interface in $interfaces; do
-            iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # UDP ports to ALLOW for certain DMZ hosts
   #########################################
   unset IFS
   for rule in $DMZ_INET_HOST_OPEN_UDP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
-    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports"`
-    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+    if parse_rule "$rule" DMZ_INET_HOST_OPEN_UDP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
 
-    echo "  $(show_if_ip "$interfaces")Allowing $shosts(DMZ) to $dhosts(INET) for UDP port(s): $ports"
+      echo "  $(show_if_ip "$interfaces")Allowing $shosts(DMZ) to $dhosts(INET) for UDP port(s): $ports"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for port in $ports; do
-          for interface in $interfaces; do
-            iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # (Other) IP protocols to ALLOW for certain DMZ hosts
   #####################################################
   unset IFS
   for rule in $DMZ_INET_HOST_OPEN_IP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
-    dhosts_protos=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_protos"`
-    protos=`get_ports_hp "$dhosts_protos"`
+    if parse_rule "$rule" DMZ_INET_HOST_OPEN_IP "interfaces-shosts-ANYHOST-dhosts-protos"; then
 
-    echo "  $(show_if_ip "$interfaces")Allowing $shosts(DMZ) to $dhosts(INET) for IP protocol(s): $protos"
+      echo "  $(show_if_ip "$interfaces")Allowing $shosts(DMZ) to $dhosts(INET) for IP protocol(s): $protos"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for proto in $protos; do
-          for interface in $interfaces; do
-            iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j ACCEPT
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for proto in $protos; do
+            for interface in $interfaces; do
+              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j ACCEPT
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -1830,87 +1806,75 @@ setup_dmz_inet_forward_chain()
   #########################################
   unset IFS
   for rule in $DMZ_INET_HOST_DENY_TCP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
-    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports"`
-    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+    if parse_rule "$rule" DMZ_INET_HOST_DENY_TCP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
 
-    echo "  $(show_if_ip "$interfaces")Denying $shosts(DMZ) to $dhosts(INET) for TCP port(s): $ports"
+      echo "  $(show_if_ip "$interfaces")Denying $shosts(DMZ) to $dhosts(INET) for TCP port(s): $ports"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for port in $ports; do
-          for interface in $interfaces; do
-            if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
-              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port \
-                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host DMZ->INET denied: "
-            fi
-            iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j DROP
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
+                iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port \
+                  -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host DMZ->INET denied: "
+              fi
+              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j DROP
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # UDP ports to DENY for certain DMZ hosts
   #########################################
   unset IFS
   for rule in $DMZ_INET_HOST_DENY_UDP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
-    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports"`
-    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+    if parse_rule "$rule" DMZ_INET_HOST_DENY_UDP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
 
-    echo "  $(show_if_ip "$interfaces")Denying $shosts(DMZ) to $dhosts(INET) for UDP port(s): $ports"
+      echo "  $(show_if_ip "$interfaces")Denying $shosts(DMZ) to $dhosts(INET) for UDP port(s): $ports"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for port in $ports; do
-          for interface in $interfaces; do
-            if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
-              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port \
-                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host DMZ->INET denied: "
-            fi
-            iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j DROP
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
+                iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port \
+                  -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host DMZ->INET denied: "
+              fi
+              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j DROP
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # (Other) IP protocols to DENY for certain DMZ hosts
   #####################################################
   unset IFS
   for rule in $DMZ_INET_HOST_DENY_IP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
-    dhosts_protos=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_protos"`
-    protos=`get_ports_hp "$dhosts_protos"`
+    if parse_rule "$rule" DMZ_INET_HOST_DENY_IP "interfaces-shosts-ANYHOST-dhosts-protos"; then
 
-    echo "  $(show_if_ip "$interfaces")Denying $shosts(DMZ) to $dhosts(INET) for IP protocol(s): $protos"
+      echo "  $(show_if_ip "$interfaces")Denying $shosts(DMZ) to $dhosts(INET) for IP protocol(s): $protos"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for proto in $protos; do
-          for interface in $interfaces; do
-            if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
-              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto \
-                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host DMZ->INET denied: "
-            fi
-            iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j DROP
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for proto in $protos; do
+            for interface in $interfaces; do
+              if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
+                iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto \
+                  -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host DMZ->INET denied: "
+              fi
+              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j DROP
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # Allow only certain TCP ports to be used from the DMZ->INET?
@@ -2322,162 +2286,138 @@ setup_lan_inet_forward_chain()
   #########################################
   unset IFS
   for rule in $LAN_INET_HOST_OPEN_TCP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
-    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports"`
-    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+    if parse_rule "$rule" LAN_INET_HOST_OPEN_TCP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
 
-    echo "  $(show_if_ip "$interfaces")Allowing $shosts(LAN) to $dhosts(INET) for TCP port(s): $ports"
+      echo "  $(show_if_ip "$interfaces")Allowing $shosts(LAN) to $dhosts(INET) for TCP port(s): $ports"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for port in $ports; do
-          for interface in $interfaces; do
-            iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # UDP ports to ALLOW for certain LAN hosts
   #########################################
   unset IFS
   for rule in $LAN_INET_HOST_OPEN_UDP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
-    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports"`
-    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+    if parse_rule "$rule" LAN_INET_HOST_OPEN_UDP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
 
-    echo "  $(show_if_ip "$interfaces")Allowing $shosts(LAN) to $dhosts(INET) for UDP port(s): $ports"
+      echo "  $(show_if_ip "$interfaces")Allowing $shosts(LAN) to $dhosts(INET) for UDP port(s): $ports"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for port in $ports; do
-          for interface in $interfaces; do
-            iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # (Other) IP protocols to ALLOW for certain LAN hosts
   #####################################################
   unset IFS
   for rule in $LAN_INET_HOST_OPEN_IP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
-    dhosts_protos=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_protos"`
-    protos=`get_ports_hp "$dhosts_protos"`
+    if parse_rule "$rule" LAN_INET_HOST_OPEN_IP "interfaces-shosts-ANYHOST-dhosts-protos"; then
 
-    echo "  $(show_if_ip "$interfaces")Allowing $shosts(LAN) to $dhosts(INET) for IP protocol(s): $protos"
+      echo "  $(show_if_ip "$interfaces")Allowing $shosts(LAN) to $dhosts(INET) for IP protocol(s): $protos"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for proto in $protos; do
-          for interface in $interfaces; do
-            iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j ACCEPT
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for proto in $protos; do
+            for interface in $interfaces; do
+              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j ACCEPT
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # udp ports to DENY for certain LAN hosts
   #########################################
   unset IFS
   for rule in $LAN_INET_HOST_DENY_TCP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
-    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports"`
-    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+    if parse_rule "$rule" LAN_INET_HOST_DENY_TCP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
 
-    echo "  $(show_if_ip "$interfaces")Denying $shosts(LAN) to $dhosts(INET) for TCP port(s): $ports"
+      echo "  $(show_if_ip "$interfaces")Denying $shosts(LAN) to $dhosts(INET) for TCP port(s): $ports"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for port in $ports; do
-          for interface in $interfaces; do
-            if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
-              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port \
-                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host LAN->INET denied: "
-            fi
-            iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j DROP
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
+                iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port \
+                  -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host LAN->INET denied: "
+              fi
+              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j DROP
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # UDP ports to DENY for certain LAN hosts
   #########################################
   unset IFS
   for rule in $LAN_INET_HOST_DENY_UDP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
-    dhosts_ports=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_ports"`
-    ports=`get_ports_hp "$dhosts_ports" "$ANYPORT"`
+    if parse_rule "$rule" LAN_INET_HOST_DENY_UDP "interfaces-shosts-ANYHOST-dhosts-ports-ANYPORT"; then
 
-    echo "  $(show_if_ip "$interfaces")Denying $shosts(LAN) to $dhosts(INET) for UDP port(s): $ports"
+      echo "  $(show_if_ip "$interfaces")Denying $shosts(LAN) to $dhosts(INET) for UDP port(s): $ports"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for port in $ports; do
-          for interface in $interfaces; do
-            if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
-              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port \
-                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host LAN->INET denied: "
-            fi
-            iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j DROP
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
+                iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port \
+                  -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host LAN->INET denied: "
+              fi
+              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j DROP
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # (Other) IP protocols to DENY for certain LAN hosts
   #####################################################
   unset IFS
   for rule in $LAN_INET_HOST_DENY_IP; do
-    if_shosts=`echo "$rule" |cut -s -d'>' -f1`
-    interfaces=`get_ifs "$if_shosts"`
-    shosts=`get_hosts_ih "$if_shosts" "$ANYHOST"`
-    dhosts_protos=`echo "$rule" |cut -s -d'>' -f2`
-    dhosts=`get_hosts_hp "$dhosts_protos"`
-    protos=`get_ports_hp "$dhosts_protos"`
+    if parse_rule "$rule" LAN_INET_HOST_DENY_IP "interfaces-shosts-ANYHOST-dhosts-protos"; then
 
-    echo "  $(show_if_ip "$interfaces")Denying $shosts(LAN) to $dhosts(INET) for IP protocol(s): $protos"
+      echo "  $(show_if_ip "$interfaces")Denying $shosts(LAN) to $dhosts(INET) for IP protocol(s): $protos"
 
-    IFS=','
-    for shost in `ip_range "$shosts"`; do
-      for dhost in `ip_range "$dhosts"`; do
-        for proto in $protos; do
-          for interface in $interfaces; do
-            if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
-              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto \
-                -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host LAN->INET denied: "
-            fi
-            iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j DROP
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for proto in $protos; do
+            for interface in $interfaces; do
+              if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
+                iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto \
+                  -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host LAN->INET denied: "
+              fi
+              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j DROP
+            done
           done
         done
       done
-    done
+    fi
   done
 
   # Allow only certain udp ports to be used from the LAN->INET?
