@@ -214,26 +214,24 @@ dyndns_host_open()
   ##########################################
   unset IFS
   for rule in $DYNDNS_HOST_OPEN_TCP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" DYNDNS_HOST_OPEN_TCP "interfaces-destips-hosts-ports"; then
 
-    echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for TCP port(s): $ports"
+      echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for TCP port(s): $ports"
     
-    IFS=','
-    for interface in $interfaces; do
-      for destip in $destips; do
-        for host in $hosts; do
-          for port in $ports; do
-            host_ip=`dyndns_get_cached_host $host`
-            if [ -n "$host_ip" ]; then
-              iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p tcp --dport $port -j ACCEPT
-            fi
+      IFS=','
+      for interface in $interfaces; do
+        for destip in $destips; do
+          for host in $hosts; do
+            for port in $ports; do
+              host_ip=`dyndns_get_cached_host $host`
+              if [ -n "$host_ip" ]; then
+                iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p tcp --dport $port -j ACCEPT
+              fi
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -241,26 +239,24 @@ dyndns_host_open()
   ##########################################
   unset IFS
   for rule in $DYNDNS_HOST_OPEN_UDP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    ports=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" DYNDNS_HOST_OPEN_UDP "interfaces-destips-hosts-ports"; then
 
-    echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for UDP port(s): $ports"
+      echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for UDP port(s): $ports"
     
-    IFS=','
-    for interface in $interfaces; do
-      for destip in $destips; do
-        for host in $hosts; do
-          for port in $ports; do
-            host_ip=`dyndns_get_cached_host $host`
-            if [ -n "$host_ip" ]; then
-              iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p udp --dport $port -j ACCEPT
-            fi
+      IFS=','
+      for interface in $interfaces; do
+        for destip in $destips; do
+          for host in $hosts; do
+            for port in $ports; do
+              host_ip=`dyndns_get_cached_host $host`
+              if [ -n "$host_ip" ]; then
+                iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p udp --dport $port -j ACCEPT
+              fi
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -268,26 +264,24 @@ dyndns_host_open()
   #############################################
   unset IFS
   for rule in $DYNDNS_HOST_OPEN_IP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule"`
-    protos=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" DYNDNS_HOST_OPEN_IP "interfaces-destips-hosts-protos"; then
 
-    echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for IP protocol(s): $protos"
+      echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for IP protocol(s): $protos"
     
-    IFS=','
-    for interface in $interfaces; do
-      for destip in $destips; do
-        for host in $hosts; do
-          for proto in $protos; do
-            host_ip=`dyndns_get_cached_host $host`
-            if [ -n "$host_ip" ]; then
-              iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p $proto -j ACCEPT
-            fi
+      IFS=','
+      for interface in $interfaces; do
+        for destip in $destips; do
+          for host in $hosts; do
+            for proto in $protos; do
+              host_ip=`dyndns_get_cached_host $host`
+              if [ -n "$host_ip" ]; then
+                iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p $proto -j ACCEPT
+              fi
+            done
           done
         done
       done
-    done
+    fi
   done
 
 
@@ -295,23 +289,22 @@ dyndns_host_open()
   #####################################
   unset IFS
   for rule in $DYNDNS_HOST_OPEN_ICMP; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ih "$rule"`
+    if parse_rule "$rule" DYNDNS_HOST_OPEN_ICMP "interfaces-destips-hosts"; then
 
-    echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for ICMP-requests(ping)"
+      echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for ICMP-requests(ping)"
     
-    IFS=','
-    for interface in $interfaces; do
-      for destip in $destips; do
-        for host in $hosts; do
-          host_ip=`dyndns_get_cached_host $host`
-          if [ -n "$host_ip" ]; then
-            iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p icmp --icmp-type echo-request -j ACCEPT
-          fi
+      IFS=','
+      for interface in $interfaces; do
+        for destip in $destips; do
+          for host in $hosts; do
+            host_ip=`dyndns_get_cached_host $host`
+            if [ -n "$host_ip" ]; then
+              iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p icmp --icmp-type echo-request -j ACCEPT
+            fi
+          done
         done
       done
-    done
+    fi
   done
 }
 
