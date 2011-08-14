@@ -1,3 +1,7 @@
+Version 0.07BETA (August 14, 2011)
+-----------------------------------
+* Changed to support parse_rule()
+
 Version 0.06BETA (September 19, 2010)
 -----------------------------------
 * Changed to be IPv4-only

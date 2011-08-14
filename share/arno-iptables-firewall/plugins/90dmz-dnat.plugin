@@ -2,16 +2,17 @@
 #            -= Arno's iptables firewall - DMZ-host default port forwarding plugin =-
 #
 PLUGIN_NAME="DMZ-host DNAT plugin"
-PLUGIN_VERSION="0.06BETA (EXPERIMENTAL!)"
+PLUGIN_VERSION="0.07BETA (EXPERIMENTAL!)"
 PLUGIN_CONF_FILE="dmz-dnat.conf"
 #
-# Last changed          : September 19, 2010
-# Requirements          : kernel 2.6
+# Last changed          : August 14, 2011
+# Requirements          : kernel 2.6 and AIF 2.0.1+
 # Comments              : This plugin allows forwarding of all traffic to a
 #                         "DMZ" host.  It's only been tested with 1.9+.
 #                         Updated to be IPv4-only
+#                         Updated to support parse_rule()
 #
-# Author                : (C) Copyright 2010 by Philip A. Prindeville
+# Author                : (C) Copyright 2010-2011 by Philip A. Prindeville
 # Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
 # Email                 : philipp AT redfish-solutions DOT com
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -57,21 +58,19 @@ plugin_start()
   # intercept HOST_OPEN_TCP and HOST_OPEN_UDP (sigh... duplicate code...)
   unset IFS
   for rule in $HOST_OPEN_TCP $open_tcp; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
-    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+    if parse_rule "$rule" HOST_OPEN_TCP "interfaces-destips-hosts-ports"; then
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            ip4tables -t nat -A NAT_PREROUTING_LOCAL -i $interface -s $host -d $destip -p tcp --dport $port -j RETURN
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              ip4tables -t nat -A NAT_PREROUTING_LOCAL -i $interface -s $host -d $destip -p tcp --dport $port -j RETURN
+            done
           done
         done
       done
-    done
+    fi
   done
 
   unset IFS
@@ -80,21 +79,19 @@ plugin_start()
   done
 
   for rule in $HOST_OPEN_UDP $open_udp; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
-    ports=`get_ports_ihp "$rule" "$ANYPORT"`
+    if parse_rule "$rule" HOST_OPEN_UDP "interfaces-destips-hosts-ports"; then
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
-      for port in $ports; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            ip4tables -t nat -A NAT_PREROUTING_LOCAL -i $interface -s $host -d $destip -p udp --dport $port -j RETURN
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              ip4tables -t nat -A NAT_PREROUTING_LOCAL -i $interface -s $host -d $destip -p udp --dport $port -j RETURN
+            done
           done
         done
       done
-    done
+    fi
   done
 
   unset IFS
@@ -103,22 +100,19 @@ plugin_start()
   done
 
   for rule in $HOST_OPEN_IP $open_ip; do
-    interfaces=`get_ifs "$rule"`
-    destips=`get_ips "$rule"`
-    hosts=`get_hosts_ihp "$rule" "$ANYHOST"`
-    protos=`get_ports_ihp "$rule"`
+    if parse_rule "$rule" HOST_OPEN_IP "interfaces-destips-hosts-protos"; then
 
-    IFS=','
-    for host in `ip_range "$hosts"`; do
       IFS=','
-      for proto in $protos; do
-        for destip in $destips; do
-          for interface in $interfaces; do
-            ip4tables -t nat -A NAT_PREROUTING_LOCAL -i $interface -s $host -d $destip -p $proto -j RETURN
+      for host in `ip_range "$hosts"`; do
+        for proto in $protos; do
+          for destip in $destips; do
+            for interface in $interfaces; do
+              ip4tables -t nat -A NAT_PREROUTING_LOCAL -i $interface -s $host -d $destip -p $proto -j RETURN
+            done
           done
         done
       done
-    done
+    fi
   done
 
   ## ICMP???
