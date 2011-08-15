@@ -2806,7 +2806,10 @@ setup_ext_input_chain()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+              ip4tables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+              if [ "$IPV6_SUPPORT" = "1" ]; then
+                ip6tables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp6-addr-unreachable
+              fi
             done
           done
         done
@@ -2856,7 +2859,10 @@ setup_ext_input_chain()
               iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port \
                 -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise UDP rejected: "
 
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+              ip4tables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+              if [ "$IPV6_SUPPORT" = "1" ]; then
+                ip6tables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp6-addr-unreachable
+              fi
             done
           done
         done
@@ -3128,7 +3134,10 @@ setup_ext_input_chain()
             iptables -A EXT_INPUT_CHAIN -p udp --dport $port \
               -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Rejected UDP port: "
 
-            iptables -A EXT_INPUT_CHAIN -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+            ip4tables -A EXT_INPUT_CHAIN -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+            if [ "$IPV6_SUPPORT" = "1" ]; then
+              ip6tables -A EXT_INPUT_CHAIN -p udp --dport $port -j REJECT --reject-with icmp6-addr-unreachable
+            fi
           done
         done
       done
@@ -3223,7 +3232,10 @@ setup_ext_input_chain()
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+            ip4tables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+            if [ "$IPV6_SUPPORT" = "1" ]; then
+              ip6tables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j REJECT --reject-with icmp6-addr-unreachable
+            fi
           done
         done
       done
