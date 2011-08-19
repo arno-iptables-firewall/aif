@@ -129,7 +129,7 @@ check_command_warning()
 ######################################################################
 kernel_ver_chk()
 {
-  local maj min rev ver
+  local maj min rev ver ver_maj ver_min ver_rev
 
   if [ -n "$2" ]; then
     maj="$1"
@@ -142,15 +142,25 @@ kernel_ver_chk()
   fi
 
   ver=$(uname -r |cut -s -d'-' -f1)
-  if [ $(echo "$ver" |cut -s -d'.' -f1) -lt $maj ]; then
+
+  ver_maj=$(echo "$ver" |cut -s -d'.' -f1)
+  if [ $ver_maj -gt $maj ]; then
+    return 0
+  elif [ $ver_maj -lt $maj ]; then
     return 1
   fi
 
-  if [ $(echo "$ver" |cut -s -d'.' -f2) -lt $min ]; then
+  ver_min=$(echo "$ver" |cut -s -d'.' -f2)
+  if [ $ver_min -gt $min ]; then
+    return 0
+  elif [ $ver_min -lt $min ]; then
     return 1
   fi
 
-  if [ $(echo "$ver" |cut -s -d'.' -f3) -lt $rev ]; then
+  ver_rev=$(echo "$ver" |cut -s -d'.' -f3)
+  if [ $ver_rev -gt $rev ]; then
+    return 0
+  elif [ $ver_rev -lt $rev ]; then
     return 1
   fi
 
