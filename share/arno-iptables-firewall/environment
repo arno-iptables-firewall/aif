@@ -29,7 +29,7 @@
 # NOTE: When used in combination with firewall.conf. Load firewall.conf first before calling us!
 
 # Some predefined variables/macros:
-IPTABLES_ERROR=0
+IPTABLES_WARNING=0
 ANYHOST="0/0"
 ANYPORT="0:65535"
 SEP="~"
@@ -307,7 +307,7 @@ ip4tables()
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m${IP4TABLES} $*\nERROR ($retval): ${result}\033[0m\n" >&2
     if note_iptables_error "$@"; then
-      IPTABLES_ERROR=1
+      IPTABLES_WARNING=1
     fi
   elif [ -n "$result" ]; then
     echo "${INDENT}$result"
@@ -328,7 +328,7 @@ ip6tables()
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m${IP6TABLES} $*\nERROR ($retval): ${result}\033[0m\n" >&2
     if note_iptables_error "$@"; then
-      IPTABLES_ERROR=1
+      IPTABLES_WARNING=1
     fi
   elif [ -n "$result" ]; then
     echo "${INDENT}$result"
@@ -348,7 +348,7 @@ ip4tables_save()
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m${IP4TABLES_SAVE} $*\nERROR ($retval)\033[0m\n" >&2
-    IPTABLES_ERROR=1
+    IPTABLES_WARNING=1
   fi
 
   return $retval
@@ -365,7 +365,7 @@ ip4tables_restore()
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m${IP4TABLES_RESTORE} $*\nERROR ($retval): ${result}\033[0m\n" >&2
-    IPTABLES_ERROR=1
+    IPTABLES_WARNING=1
   elif [ -n "$result" ]; then
     echo "${INDENT}$result"
   fi
@@ -384,7 +384,7 @@ ip6tables_save()
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m${IP6TABLES_SAVE} $*\nERROR ($retval)\033[0m\n" >&2
-    IPTABLES_ERROR=1
+    IPTABLES_WARNING=1
   fi
 
   return $retval
@@ -401,7 +401,7 @@ ip6tables_restore()
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m${IP6TABLES_RESTORE} $*\nERROR ($retval): ${result}\033[0m\n" >&2
-    IPTABLES_ERROR=1
+    IPTABLES_WARNING=1
   elif [ -n "$result" ]; then
     echo "${INDENT}$result"
   fi
@@ -980,7 +980,7 @@ parse_rule_warning()
 {
   local rule="$1"
 
-  IPTABLES_ERROR=1
+  IPTABLES_WARNING=1
 
   echo "** WARNING: In Variable $var, Rule: \"$rule\" is ignored." >&2
 }
