@@ -980,6 +980,8 @@ parse_rule_warning()
 {
   local rule="$1"
 
+  IPTABLES_ERROR=1
+
   echo "** WARNING: In Variable $var, Rule: \"$rule\" is ignored." >&2
 }
 
