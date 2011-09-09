@@ -5333,7 +5333,7 @@ show_applied()
   echo ""
   DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
 
-  if [ "$IPTABLES_WARNING" = "1" ]; then
+  if [ "$RULE_WARNING" = "1" ]; then
     printf "$DATE \033[40m\033[1;31mWARNING: Not all firewall rules are applied.\033[0m\n" >&2
     echo "$DATE ** WARNING: Not all firewall rules are applied **" >> $FIREWALL_LOG
     echo "** WARNING: Not all firewall rules are applied **" |logger -t firewall -p kern.info
@@ -5450,5 +5450,5 @@ case "$1" in
                         show_help;;
 esac
 
-exit $IPTABLES_WARNING
+exit $RULE_WARNING
 
