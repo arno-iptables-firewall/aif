@@ -2,10 +2,10 @@
 #            -= Arno's iptables firewall - Linux UPnP IGD plugin =-
 #
 PLUGIN_NAME="Linux UPnP IGD plugin"
-PLUGIN_VERSION="1.0"
+PLUGIN_VERSION="1.0a"
 PLUGIN_CONF_FILE="linux-upnp-igd.conf"
 #
-# Last changed          : April 5, 2009
+# Last changed          : October 10, 2011
 # Requirements          : kernel 2.6 + linux-igd
 # Comments              : An UPnP-enabled application can tell linux-igd what public ports
 #                         have to be forwarded back to the application.
@@ -13,7 +13,7 @@ PLUGIN_CONF_FILE="linux-upnp-igd.conf"
 #                         where the UPnP daemon "linuxigd" can insert its ports.
 #                         In "upnpd.conf" you must set the forward_chain_name = UPNP_FORWARD
 #
-# Author                : (C) Copyright 2007-2009 by Joerg Straube
+# Author                : (C) Copyright 2007-2011 by Joerg Straube
 # Homepage              : http://joerg.li/
 # Email                 : j o e r g DOT s t r a u b e AT i a e t h DOT c h
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -45,7 +45,7 @@ plugin_start()
   # Insert rule into the FORWARD chain:
   IFS=' ,'
   for eif in $EXT_IF; do
-    iptables -A UPNP_FORWARD_HOOK -i $eif -o ! $eif -j UPNP_FORWARD
+    iptables -A UPNP_FORWARD_HOOK -i $eif ! -o $eif -j UPNP_FORWARD
   done
 
   iptables -A FORWARD -j UPNP_FORWARD_HOOK

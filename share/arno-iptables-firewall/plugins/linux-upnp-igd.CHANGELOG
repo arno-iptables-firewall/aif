@@ -1,3 +1,7 @@
+Version 1.0a (October 10, 2011)
+---------------------------------
+! Iptables negation changed in newer versions from intraposition to extraposition
+
 Version 0.14BETA (August 4, 2008)
 ---------------------------------
 * Plugin should be disabled by default (ENABLED=0)
