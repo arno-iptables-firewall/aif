@@ -1,9 +1,10 @@
-Version 2.0.1-BETA1-DEVEL (August 19, 2011)
--------------------------------------------
+Version 2.0.1-BETA1 (October 10, 2011)
+--------------------------------------
 ! Fixed kernel_ver_chk() function to properly handle kernel 3. (thanks Gunawan Lim for reporting)
 ! Fixed variables containing REJECT_UDP with IPv6 enabled, it should use 'icmp6-addr-unreachable' for IPv6.
 * Updated "DynDNS Host Open" and "DMZ-DNAT" plugins to use new parse_rule() function.
 * AIF variables are now parsed with a common function, now missing fields are logged with a warning.
+* Misc. tweaks
 
 Version 2.0.0c (July 28, 2011)
 -----------------------------------
