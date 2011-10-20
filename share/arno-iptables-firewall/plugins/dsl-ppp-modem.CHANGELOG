@@ -1,3 +1,8 @@
+Version 1.0g (October 20, 2011)
+-------------------------------
+! Iptables negation changed in newer versions from intraposition to extraposition 
+! Indent missing (cosmetic)
+
 Version 1.0e (June 18, 2009)
 ----------------------------
 ! Fixed stop section didn't remove the INPUT-hook properly causing the main

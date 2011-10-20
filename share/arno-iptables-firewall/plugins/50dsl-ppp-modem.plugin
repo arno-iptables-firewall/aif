@@ -2,15 +2,14 @@
 #            -= Arno's iptables firewall - (A)DSL PPP Modem plugin =-
 #
 PLUGIN_NAME="(A)DSL PPP Modem plugin"
-PLUGIN_VERSION="1.0f"
+PLUGIN_VERSION="1.0g"
 PLUGIN_CONF_FILE="dsl-ppp-modem.conf"
 #
-# Last changed          : March 3, 2010
+# Last changed          : October 20, 2011
 # Requirements          : aif 1.9.2i+ & kernel 2.6 & iptable_nat & ip_nat & ipt_MASQUERADE
 # Comments              : This implements support to (A)DSL PPP modems
 #
-#
-# Author                : (C) Copyright 2008-2010 by Arno van Amersfoort
+# Author                : (C) Copyright 2008-2011 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
@@ -34,16 +33,16 @@ PLUGIN_CONF_FILE="dsl-ppp-modem.conf"
 # Plugin start function
 plugin_start()
 {
-  echo "  Applying rules for (A)DSL modem on interface: $MODEM_IF"
+  echo "${INDENT}Applying rules for (A)DSL modem on interface: $MODEM_IF"
 
   if [ -n "$MODEM_IF_IP" ]; then
-    echo "  Setting up (antispoof) MODEM net: $MODEM_IF_IP/24"
+    echo "${INDENT}Setting up (antispoof) MODEM net: $MODEM_IF_IP/24"
 
     # Anti spoof protection for the modem net
     #########################################
-    ip4tables -A SPOOF_CHK -i ! $MODEM_IF -s "$MODEM_IF_IP/24" \
+    ip4tables -A SPOOF_CHK ! -i $MODEM_IF -s "$MODEM_IF_IP/24" \
         -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Spoofed (MODEM) packet: "
-    ip4tables -A SPOOF_CHK -i ! $MODEM_IF -s "$MODEM_IF_IP/24" -j DROP
+    ip4tables -A SPOOF_CHK ! -i $MODEM_IF -s "$MODEM_IF_IP/24" -j DROP
   fi
 
   # Create & flush our modem chain
