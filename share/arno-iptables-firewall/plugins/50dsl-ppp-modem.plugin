@@ -68,18 +68,16 @@ plugin_start()
       ###########################################################################
       ip4tables -A MODEM_CHAIN -d $MODEM_IF_IP -j ACCEPT
     fi
-  else
-    if [ -n "$MODEM_IP" ]; then
-      echo "${INDENT}Using MODEM IP $MODEM_IP"
+  elif [ -n "$MODEM_IP" ]; then
+    echo "${INDENT}Using MODEM IP $MODEM_IP"
 
-      # Only allow traffic from the MODEM (check IP) to this machine
-      ##############################################################
-      ip4tables -A MODEM_CHAIN -s $MODEM_IP -j ACCEPT
-    else
-      # Only allow traffic from the MODEM (no IP, so no checking) to this machine
-      ###########################################################################
-      ip4tables -A MODEM_CHAIN -j ACCEPT
-    fi
+    # Only allow traffic from the MODEM (check IP) to this machine
+    ##############################################################
+    ip4tables -A MODEM_CHAIN -s $MODEM_IP -j ACCEPT
+  else
+    # Only allow traffic from the MODEM (no IP, so no checking) to this machine
+    ###########################################################################
+    ip4tables -A MODEM_CHAIN -j ACCEPT
   fi
 
   # Allow DHCP packets
