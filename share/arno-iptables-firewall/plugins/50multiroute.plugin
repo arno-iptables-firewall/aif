@@ -63,7 +63,7 @@ plugin_start()
   echo "${INDENT}Setting default route for $MULTIROUTE_EXT_IF1 to $MULTIROUTE_EXT_ROUTER1 (table 1)"
   ip route replace default via $MULTIROUTE_EXT_ROUTER1 dev $MULTIROUTE_EXT_IF1 table 1
 
-  echo "  Setting route for $MULTIROUTE_INT_NET to $MULTIROUTE_INT_IP (table 1)"
+  echo "${INDENT}Setting route for $MULTIROUTE_INT_NET to $MULTIROUTE_INT_IP (table 1)"
   ip route replace $MULTIROUTE_INT_NET via $MULTIROUTE_INT_IP table 1
 
   # Setup source IP routing rules for external interface 2
