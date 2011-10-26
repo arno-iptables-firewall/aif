@@ -1054,7 +1054,7 @@ setup_reserved_net_chk_chain()
 {
   # Log access from reserved addresses
   ####################################
-  if [ "$RESERVED_NET_LOG" = "1" ]; then
+  if [ "$DROP_RESERVED_NETS_LOG" = "1" ]; then
     echo "Logging of access from reserved addresses enabled"
     ip4tables -A RESERVED_NET_CHK -s 10.0.0.0/8 \
       -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv4 Private address: "
@@ -1083,7 +1083,7 @@ setup_reserved_net_chk_chain()
     echo "Logging of access from reserved addresses disabled"
   fi
 
-  if [ "$DROP_PRIVATE_ADDRESSES" = "1" ]; then
+  if [ "$DROP_RESERVED_NETS" = "1" ]; then
     # rp_filter drops some of these addresses, but just to be sure :)
     ################################################################
     #echo "Denying access from reserved addresses..."
@@ -3244,13 +3244,11 @@ setup_ext_input_chain()
 
   # Check the packet source address
   #################################
-  if [ "$DROP_PRIVATE_ADDRESSES" = "1" ]; then
-    echo " Packets will be checked for private source addresses"
-  else
-    echo " Packets will NOT be checked for private source addresses"
-  fi
-  if [ "$DROP_PRIVATE_ADDRESSES" = "1" -o "$RESERVED_NET_LOG" = "1" ]; then
+  if [ "$DROP_RESERVED_NETS" = "1" ]; then
+    echo " Packets will be checked for reserved source addresses"
     iptables -A EXT_INPUT_CHAIN -j RESERVED_NET_CHK
+  else
+    echo " Packets will NOT be checked for reserved source addresses"
   fi
 
   # Do NOT allow DRDOS abuse (Distributed Reflection Denial Of Service attack)
@@ -4714,7 +4712,7 @@ setup_firewall_rules()
 
   # Check if incoming packet sources are (in)valid
   ################################################
-  if [ "$DROP_PRIVATE_ADDRESSES" = "1" -o "$RESERVED_NET_LOG" = "1" ]; then
+  if [ "$DROP_RESERVED_NETS" = "1" ]; then
     iptables -A EXT_FORWARD_IN_CHAIN -j RESERVED_NET_CHK
   fi
 
