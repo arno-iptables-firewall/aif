@@ -101,6 +101,8 @@ sanity_check()
   check_command_error wc
   check_command_error logger
   
+  check_command_warning dig nslookup
+  
   if [ "$IPV6_SUPPORT" = "1" ]; then
     if ! kernel_ver_chk 2 6 24; then
       printf "\033[40m\033[1;31mWARNING: IPv6 support is enabled but your kernel is rather old (<2.6.24)! This *could* cause problems...\033[0m\n" >&2
