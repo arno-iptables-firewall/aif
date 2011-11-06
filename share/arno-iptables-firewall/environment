@@ -649,13 +649,7 @@ dig()
   local cnt=0 x=0 addr name line lines retval IFS
 
   if [ -n "$DIG" ]; then
-    if [ "$DNS_FAST_FAIL" = "1" ]; then
-      lines="$($DIG +short +tries=1 +time=1 "$@" 2>/dev/null)"
-      retval=$?
-    else
-      lines="$($DIG +short "$@" 2>/dev/null)"
-      retval=$?
-    fi
+    lines="$($DIG +short "$@" 2>/dev/null)"
     
     while [ $# -gt 1 ]; do
       if [ "$1" = "-x" ]; then
@@ -1250,35 +1244,6 @@ gethostbyname()
   else
     return $retval
   fi
-}
-
-
-# Helper function to show (resolved) ip~hostname
-show_hostname()
-{
-  local hostname="" FIRST=0 IFS
-  
-  IFS=' ,'
-  # Argument(s) contains IP(s)
-  for host in $1; do
-    if [ "$RESOLV_IPS" = "1" ]; then
-      hostname=`gethostbyaddr "$host"`
-    else
-      hostname=""
-    fi
-
-    if [ $FIRST -eq 0 ]; then
-      FIRST=1
-    else
-      printf ","
-    fi
-
-    if [ -n "$hostname" ]; then
-      printf "$host=$hostname"
-    else
-      printf "$host"
-    fi
-  done
 }
 
 
