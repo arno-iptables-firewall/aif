@@ -650,7 +650,8 @@ dig()
 
   if [ -n "$DIG" ]; then
     lines="$($DIG +short "$@" 2>/dev/null)"
-    
+    retval=$?
+
     while [ $# -gt 1 ]; do
       if [ "$1" = "-x" ]; then
         x=1
