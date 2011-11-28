@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.0"
+MY_VERSION="1.0a"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -8,7 +8,7 @@ MY_VERSION="1.0"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2010 by Arno van Amersfoort
+# (C) Copyright 2001-2011 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
@@ -80,14 +80,12 @@ fi
 
 rm -fv /usr/local/sbin/arno-iptables-firewall
 rm -fv /usr/local/sbin/arno-fwfilter
+rm -fv /usr/local/bin/arno-fwfilter
 
 rm -rfv /usr/local/share/arno-iptables-firewall
-rm -rfv /usr/share/arno-iptables-firewall
 
 rm -fv /usr/local/share/man/man8/arno-iptables-firewall.8.gz
 rm -fv /usr/local/share/man/man8/arno-fwfilter.1.gz
-rm -fv /usr/share/man/man8/arno-iptables-firewall.8.gz
-rm -fv /usr/share/man/man8/arno-fwfilter.1.gz
 
 rm -fv /etc/init.d/arno-iptables-firewall
 rm -fv /etc/rc*.d/*arno-iptables-firewall

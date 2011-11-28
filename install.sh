@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.05a"
+MY_VERSION="1.05b"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -8,7 +8,7 @@ MY_VERSION="1.05a"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2010 by Arno van Amersfoort
+# (C) Copyright 2001-2011 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
@@ -306,7 +306,9 @@ fi
 # Make sure there still isn't an old version installed
 check_18_version;
 
-copy_overwrite ./bin/ /usr/local/sbin/
+copy_overwrite ./bin/arno-iptables-firewall /usr/local/sbin/
+copy_overwrite ./bin/arno-fwfilter /usr/local/bin/
+rm -f /usr/local/sbin/arno-fwfilter
 
 mkdir -pv /usr/local/share/arno-iptables-firewall/plugins
 copy_overwrite ./share/arno-iptables-firewall/ /usr/local/share/arno-iptables-firewall/
@@ -354,4 +356,3 @@ if get_user_yn "(Re)start firewall (Y/N)?"; then
 fi
 
 exit 0
-
