@@ -228,9 +228,9 @@ features are enabled by default to protect you from hostile attacks.
           iptables (obviously), ip (from the iproute package), sysctl, modprobe,
           logger, uname, date, awk, tr, grep, sed, cut, head, tail, wc, which,
           & cat.
-        - If you plan to use DNS resolving (eg. when RESOLVE_IPS=1 or for certain
-          plugins) then the binary 'dig' (from the dnsutils package) should also
-          be available.
+        - If you plan to use DNS resolving (eg. for certain plugins) then the
+          binary 'dig' (from the dnsutils package) or as a fall-back 'nslookup'
+          should also be available.
 
 2) Now we need to determine whether you have a single- or dual-homed machine.
    Single means you ONLY have one network-interface, which is the one connected
