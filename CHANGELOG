@@ -1,6 +1,6 @@
-Version 2.0.1-BETA2-DEVEL (November 28, 2011)
---------------------------------------
-- Removed DNS_FAST_FAIL & RESOLV_IPS since they are both obsolete 
+Version 2.0.1 (December 18, 2011)
+---------------------------------
+- Removed DNS_FAST_FAIL & RESOLV_IPS since they are both obsolete
 * Few changes in the install/uninstall scripts. eg. arno-fwilter now installs to /usr/local/bin instead
 
 Version 2.0.1-BETA1 (October 10, 2011)
