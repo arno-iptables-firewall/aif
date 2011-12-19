@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # description: Firewall-log filter script (fwfilter)
-# Last update: February 21, 2011
+# Last update: December 19, 2011
 
 # Usage examples (make sure arno-fwfilter is executable!):
 # --------------------------------------------------------
@@ -175,6 +175,7 @@ else
      if (port==465) return("SMTP-SSL(465)")
      if (port==500) return("Appleshare(500)")
      if (port==513) return("Rwho(513)")
+     if (port==515) return("Printer(515)")
      if (port==520) return("Route(520)")
      if (port==524) return("NCP(524)")
      if (port==525) return("TimeServer(525)")
@@ -236,6 +237,7 @@ else
      if (port==7777) return("Unreal or Klingon Honor Guard(7777)")
      if (port==7778) return("Unreal Tournament(7778)")
      if (port==8080) return("HTTP Alternate(8080)")
+     if (port==9100) return("JetDirect(9100)")
      if (port==10000) return("Webadmin(10000)")
      if (port==10008) return("Cheeseworm(10008)")
      if (port==12345) return("Netbus(12345)")
