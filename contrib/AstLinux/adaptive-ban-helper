@@ -1,10 +1,10 @@
 #!/bin/bash
 
-LOCKFILE="/var/tmp/adaptive-ban-helper.lock"
+LOCKFILE="/var/lock/aif_adaptive_ban.lock"
 
-ARGSFILE="/var/tmp/adaptive-ban-helper.args"
+ARGSFILE="/var/tmp/aif_adaptive_ban.args"
 
-TEMPFILE="/var/tmp/adaptive-ban-helper.temp"
+TEMPFILE="/var/tmp/aif_adaptive_ban.temp"
 
 start_run()
 {
@@ -24,20 +24,16 @@ start_run()
   echo "$ARGS" > "$ARGSFILE"
   
   # Delay to allow firewall script to complete
-  sleep 30
+  idle_wait 45
   
-  while true; do
+  while [ -f "$ARGSFILE" ]; do
   
-    if [ ! -f "$ARGSFILE" ]; then
-      break
-    fi
-    
     # Check whether chains exists
-    if ! iptables -n -L ADAPTIVE_BAN_CHAIN >/dev/null 2>&1; then
+    if ! check_for_chain ADAPTIVE_BAN_CHAIN; then
       log_msg "ADAPTIVE_BAN_CHAIN does not exist"
       break
     fi
-    if ! iptables -n -L ADAPTIVE_BAN_DROP_CHAIN >/dev/null 2>&1; then
+    if ! check_for_chain ADAPTIVE_BAN_DROP_CHAIN; then
       log_msg "ADAPTIVE_BAN_DROP_CHAIN does not exist"
       break
     fi
@@ -63,14 +59,15 @@ start_run()
       break
     fi
     
-    if [ "$filetime" != "$(date -r "$file" +%s)" -o "$argstime" != "$(date -r "$ARGSFILE" +%s)" ]; then
+    if [ "$filetime" != "$(date -r "$file" "+%s")" -o "$argstime" != "$(date -r "$ARGSFILE" "+%s")" ]; then
       filter "$file" "$count" $args
       
-      filetime="$(date -r "$file" +%s)"
-      argstime="$(date -r "$ARGSFILE" +%s)"
+      filetime="$(date -r "$file" "+%s")"
+      argstime="$(date -r "$ARGSFILE" "+%s")"
     fi
     
-    sleep $time
+    # Idle - interrupted if ARGSFILE is deleted
+    idle_wait $time
   done
   
   rm -f "$LOCKFILE" "$ARGSFILE" "$TEMPFILE"
@@ -83,6 +80,11 @@ stop()
 {
 
   rm -f "$ARGSFILE"
+
+  # If the background start_run() is in idle_wait() this ensures a clean stop.
+  sleep 1
+  # If start_run() is not in idle_wait() we deal with that as well.
+  # We could loop while LOCKFILE exists, but doesn't seem necessary.
 }
 
 status()
@@ -90,20 +92,26 @@ status()
 
   echo "  Banned Hosts:"
   echo "  =============================="
-  iptables -n -L ADAPTIVE_BAN_CHAIN | awk '$1 == "ADAPTIVE_BAN_DROP_CHAIN" { print "  "$4 }'
+  ip4tables -n -L ADAPTIVE_BAN_CHAIN | awk '$1 == "ADAPTIVE_BAN_DROP_CHAIN" { print "  "$4 }'
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    ip6tables -n -L ADAPTIVE_BAN_CHAIN | awk '$1 == "ADAPTIVE_BAN_DROP_CHAIN" { print "  "$3 }'
+  fi
   echo "  ------------------------------"
   echo ""
   
   echo "  Whitelisted Hosts:"
   echo "  =============================="
-  iptables -n -L ADAPTIVE_BAN_CHAIN | awk '$1 == "RETURN" { print "  "$4 }'
+  ip4tables -n -L ADAPTIVE_BAN_CHAIN | awk '$1 == "RETURN" { print "  "$4 }'
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    ip6tables -n -L ADAPTIVE_BAN_CHAIN | awk '$1 == "RETURN" { print "  "$3 }'
+  fi
   echo "  ------------------------------"
   echo ""
 }
 
 filter()
 {
-  local file="$1" count="$2" type types HOST
+  local file="$1" count="$2" type types PREFIX HOST IFS
  
   shift 2
   types="$@"
@@ -112,12 +120,23 @@ filter()
   #
   HOST="([0-9a-fA-F:.]{7,})"
 
+  unset IFS
   for type in $types; do
 
+    # regex match the start of the syslog string
+    #
+    PREFIX=".*${type}\[[0-9]*]:[[:space:]]*"
+
     case "$type" in
-      sshd) filter_sshd "$file" "$type" "$HOST"
+      sshd) filter_sshd "$file" "$PREFIX" "$HOST"
          ;;
-      asterisk) filter_asterisk "$file" "$type" "$HOST"
+      asterisk) filter_asterisk "$file" "$PREFIX" "$HOST"
+         ;;
+      lighttpd) filter_lighttpd "$file" "$PREFIX" "$HOST"
+         ;;
+      mini_httpd) filter_mini_httpd "$file" "$PREFIX" "$HOST"
+         ;;
+      pptpd) filter_pptpd "$file" "$PREFIX" "$HOST"
          ;;
       *) log_msg "Unsupported type \"$type\""
          continue
@@ -126,7 +145,7 @@ filter()
     if [ $? -ne 0 ]; then
       log_msg "Filter Error for type \"$type\""
     else
-      count_attempts_then_ban "$TEMPFILE" "$count"
+      count_attempts_then_ban "$count" "$type"
     fi
     rm -f "$TEMPFILE"
   done
@@ -134,67 +153,171 @@ filter()
 
 filter_sshd()
 {
-  local file="$1" TYPE="$2" HOST="$3"
+  local file="$1" PREFIX="$2" HOST="$3"
 
-  sed -n -r -e "s/^.*${TYPE}.* Failed password for .* from ${HOST}.*/\1/p" \
-            -e "s/^.*${TYPE}.* Invalid user .* from ${HOST}.*/\1/p" \
+  sed -n -r -e "s/^${PREFIX}Failed (password|publickey) for .* from ${HOST}( port [0-9]*)?( ssh[0-9]*)?$/\2/p" \
+            -e "s/^${PREFIX}[iI](llegal|nvalid) user .* from ${HOST}[[:space:]]*$/\2/p" \
                "$file" >"$TEMPFILE"
 }
 
 filter_asterisk()
 {
-  local file="$1" TYPE="$2" HOST="$3"
+  local file="$1" PREFIX="$2" HOST="$3"
 
-  sed -n -r -e "s/^.*${TYPE}.* Registration from '.*' failed for '${HOST}' - Wrong password.*/\1/p" \
-            -e "s/^.*${TYPE}.* Registration from '.*' failed for '${HOST}' - No matching peer found.*/\1/p" \
-            -e "s/^.*${TYPE}.* Registration from '.*' failed for '${HOST}' - Username\/auth name mismatch.*/\1/p" \
-            -e "s/^.*${TYPE}.* Registration from '.*' failed for '${HOST}' - Device does not match ACL.*/\1/p" \
-            -e "s/^.*${TYPE}.* ${HOST} failed to authenticate as '.*'$/\1/p" \
-            -e "s/^.*${TYPE}.* No registration for peer '.*' \(from ${HOST}\).*/\1/p" \
-            -e "s/^.*${TYPE}.* Host ${HOST} failed MD5 authentication for '.*' .*/\1/p" \
-            -e "s/^.*${TYPE}.* Failed to authenticate user .*@${HOST}.*/\1/p" \
+  sed -n -r -e "s/^${PREFIX}NOTICE.* .*: Registration from '.*' failed for '${HOST}' - Wrong password$/\1/p" \
+            -e "s/^${PREFIX}NOTICE.* .*: Registration from '.*' failed for '${HOST}' - No matching peer found$/\1/p" \
+            -e "s/^${PREFIX}NOTICE.* .*: Registration from '.*' failed for '${HOST}' - Username\/auth name mismatch$/\1/p" \
+            -e "s/^${PREFIX}NOTICE.* .*: Registration from '.*' failed for '${HOST}' - Device does not match ACL$/\1/p" \
+            -e "s/^${PREFIX}NOTICE.* '${HOST}' - Dialplan Noted Suspicious IP Address$/\1/p" \
+            -e "s/^${PREFIX}NOTICE.* ${HOST} failed to authenticate as '.*'$/\1/p" \
+            -e "s/^${PREFIX}NOTICE.* .*: No registration for peer '.*' \(from ${HOST}\)$/\1/p" \
+            -e "s/^${PREFIX}NOTICE.* .*: Host ${HOST} failed MD5 authentication for '.*' \(.*\)$/\1/p" \
+               "$file" >"$TEMPFILE"
+}
+
+filter_lighttpd()
+{
+  local file="$1" PREFIX="$2" HOST="$3"
+
+  sed -n -r -e "s/^${PREFIX}.* password doesn't match for .* IP: ${HOST}[[:space:]]*$/\1/p" \
+            -e "s/^${PREFIX}.* get_password failed, IP: ${HOST}[[:space:]]*$/\1/p" \
+               "$file" >"$TEMPFILE"
+}
+
+filter_mini_httpd()
+{
+  local file="$1" PREFIX="$2" HOST="$3"
+
+  sed -n -r -e "s/^${PREFIX}${HOST} authentication failure - access denied$/\1/p" \
+               "$file" >"$TEMPFILE"
+}
+
+filter_pptpd()
+{
+  local file="$1" PREFIX="$2" HOST="$3" PPP_PREFIX=".*pppd\[[0-9]*]:[[:space:]]*"
+
+  sed -n -r -e "/^${PPP_PREFIX}.* failed CHAP authentication$/ {N;N;N;N;N;N;N;N;N;N;N;N;N;N;N;\
+               s/^.*\n${PREFIX}CTRL: Client ${HOST} control connection finished\n.*$/\1/p}" \
                "$file" >"$TEMPFILE"
 }
 
 count_attempts_then_ban()
 {
-  local tempfile="$1" count="$2" line host IFS
+  local count="$1" type="$2" line host IFS
+
+  # Remove possible IPv4 port numbers, IPv4:PORT -> IPv4
+  sed -i -r -e 's/^([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+):[0-9]+$/\1/' "$TEMPFILE"
 
   IFS=$'\n'
-  for line in $(sort "$tempfile" | uniq -c); do
+  for line in $(sort "$TEMPFILE" | uniq -c); do
     if [ "$(echo "$line" | awk '{ print $1; }')" -ge "$count" ]; then
       host="$(echo "$line" | awk '{ print $2; }')"
-      ban_host "$host"
+      ban_host "$host" "$type"
     fi
   done
 }
 
 ban_host()
 {
-  local host="$1"
+  local host="$1" type="$2"
 
-  if ! iptables -n -L ADAPTIVE_BAN_CHAIN | grep -q " ${host//./\.} "; then
-    iptables -A ADAPTIVE_BAN_CHAIN -s $host -j ADAPTIVE_BAN_DROP_CHAIN
-    if [ $? -eq 0 ]; then
-      log_msg "Banned Host: $host"
+  get_numeric_ip_version "$host"
+  case $? in
+  4)
+    if ! ip4tables -n -L ADAPTIVE_BAN_CHAIN | grep -q " ${host//./\.}[/ ]"; then
+      ip4tables -A ADAPTIVE_BAN_CHAIN -s $host -j ADAPTIVE_BAN_DROP_CHAIN
+      if [ $? -eq 0 ]; then
+        log_msg "Banned IPv4 Host: $host  Filter Type: $type"
+      fi
     fi
-  fi
+    ;;
+  6)
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      if ! ip6tables -n -L ADAPTIVE_BAN_CHAIN | grep -q " ${host}[/ ]"; then
+        ip6tables -A ADAPTIVE_BAN_CHAIN -s $host -j ADAPTIVE_BAN_DROP_CHAIN
+        if [ $? -eq 0 ]; then
+          log_msg "Banned IPv6 Host: $host  Filter Type: $type"
+        fi
+      fi
+    fi
+    ;;
+  esac
 }
 
-iptables()
+idle_wait()
 {
-  local restult retval
+  local time="$1" cnt=0
 
-  result="$($IPTABLES "$@" 2>&1)"
+  while [ -f "$ARGSFILE" -a $cnt -lt $time ]; do
+    cnt=$((cnt+1))
+    sleep 1
+  done
+}
+
+check_for_chain()
+{
+  local err
+
+  ip4tables -n -L "$1" >/dev/null 2>&1
+  err=$?
+  
+  if [ "$IPV6_SUPPORT" = "1" -a $err -eq 0 ]; then
+    ip6tables -n -L "$1" >/dev/null 2>&1
+    err=$?
+  fi
+  
+  return $err
+}
+
+ip4tables()
+{
+  local result retval
+
+  result="$($IP4TABLES "$@" 2>&1)"
   retval=$?
   
   if [ $retval -ne 0 ]; then
-    log_msg "$IPTABLES: ($retval) $result"
+    log_msg "$IP4TABLES: ($retval) $result"
   elif [ -n "$result" ]; then
     echo "$result"
   fi
 
   return $retval
+}
+
+ip6tables()
+{
+  local result retval
+
+  result="$($IP6TABLES "$@" 2>&1)"
+  retval=$?
+  
+  if [ $retval -ne 0 ]; then
+    log_msg "$IP6TABLES: ($retval) $result"
+  elif [ -n "$result" ]; then
+    echo "$result"
+  fi
+
+  return $retval
+}
+
+get_numeric_ip_version()
+{
+  case $1 in
+  0/0)
+    ;;
+  [0-9][0-9.][0-9.][0-9.][0-9.]*.*[0-9])
+    return 4
+    ;;
+  [0-9]*.*/*[0-9]|[0-9]/*[0-9]|[1-9][0-9]/*[0-9]|[12][0-9][0-9]/*[0-9])
+    return 4
+    ;;
+  *:*)
+    return 6
+    ;;
+  esac
+
+  return 0
 }
 
 log_msg()
@@ -207,18 +330,25 @@ log_msg()
 
 ACTION="$1"
 
-IPTABLES="$2"
-if [ -z "$IPTABLES" -o "$IPTABLES" = "iptables" ]; then
+IP4TABLES="$2"
+if [ -z "$IP4TABLES" -o "$IP4TABLES" = "ip4tables" ]; then
   ACTION=""
 fi
 
-shift 2
+IP6TABLES="$3"
+if [ -z "$IP6TABLES" -o "$IP6TABLES" = "ip6tables" ]; then
+  ACTION=""
+fi
+
+IPV6_SUPPORT="$4"
+
+shift 4
 
 case $ACTION in
 
 start)
   if [ -z "$1" -o -z "$2" -o -z "$3" -o -z "$4" ]; then
-    echo "Usage: adaptive-ban-helper start iptables_path logfile time count args..."
+    echo "Usage: adaptive-ban-helper start ip4tables_path ip6tables_path ipv6_flag logfile time count args..."
     exit 1
   fi
   start_run "$@"
@@ -233,7 +363,8 @@ status)
   ;;
 
 *)
-  echo "Usage: adaptive-ban-helper start|stop|status iptables_path [ logfile time count args... ]"
+  echo "Usage: adaptive-ban-helper start|stop|status ip4tables_path ip6tables_path ipv6_flag"
+  echo "                           [ logfile time count args... ]"
   exit 1
   ;;
   

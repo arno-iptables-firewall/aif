@@ -2,15 +2,15 @@
 #            -= Arno's iptables firewall - Adaptive Ban plugin =-
 #
 PLUGIN_NAME="Adaptive Ban plugin"
-PLUGIN_VERSION="1.00 BETA (EXPERIMENTAL!)"
+PLUGIN_VERSION="1.04 BETA"
 PLUGIN_CONF_FILE="adaptive-ban.conf"
 #
-# Last changed          : April 17, 2010
-# Requirements          : AIF 1.9.2k+
+# Last changed          : November 20, 2011
+# Requirements          : AIF 2.0.0+
 # Comments              : Parse a log file for failed access with offending IP addresses
 #                         Ban the IP address after multiple failed attempts
 #
-# Author                : (C) Copyright 2010 by Lonnie Abelbeck
+# Author                : (C) Copyright 2010-2011 by Lonnie Abelbeck
 # Homepage              : http://www.astlinux.org/
 # Credits               : Fail2ban Project
 # Homepage              : http://www.fail2ban.org/
@@ -38,35 +38,49 @@ PLUGIN_CONF_FILE="adaptive-ban.conf"
 # Plugin start function
 plugin_start()
 {
-  local host IFS
+  local host net IFS
 
   iptables -N ADAPTIVE_BAN_DROP_CHAIN 2>/dev/null
   iptables -F ADAPTIVE_BAN_DROP_CHAIN
-  iptables -A ADAPTIVE_BAN_DROP_CHAIN -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Adaptive-Ban host: "
+  iptables -A ADAPTIVE_BAN_DROP_CHAIN -m limit --limit 1/hour --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Adaptive-Ban host: "
   if [ "$ADAPTIVE_BAN_REJECT" = "1" ]; then
-    iptables -A ADAPTIVE_BAN_DROP_CHAIN -j REJECT --reject-with icmp-host-unreachable
+    ip4tables -A ADAPTIVE_BAN_DROP_CHAIN -j REJECT --reject-with icmp-host-unreachable
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      ip6tables -A ADAPTIVE_BAN_DROP_CHAIN -j REJECT --reject-with icmp6-addr-unreachable
+    fi
   else
     iptables -A ADAPTIVE_BAN_DROP_CHAIN -j DROP
   fi
 
   iptables -N ADAPTIVE_BAN_CHAIN 2>/dev/null
   iptables -F ADAPTIVE_BAN_CHAIN
+  if [ "$ADAPTIVE_BAN_WHITELIST_INTERNAL" != "0" ]; then
+    printf "${INDENT}Adaptive Ban - Whitelisting INTERNAL net(s): "
+    IFS=' ,'
+    for net in $INTERNAL_NET; do
+      printf "$net "
+      iptables -A ADAPTIVE_BAN_CHAIN -s $net -j RETURN
+    done
+    echo ""
+  fi
   if [ -n "$ADAPTIVE_BAN_WHITELIST" ]; then
-    echo "  Applying rules for Whitelist host(s): $ADAPTIVE_BAN_WHITELIST"
+    printf "${INDENT}Adaptive Ban - Whitelisting host(s): "
     IFS=' ,'
     for host in $ADAPTIVE_BAN_WHITELIST; do
+      printf "$host "
       iptables -A ADAPTIVE_BAN_CHAIN -s $host -j RETURN
     done
+    echo ""
   fi
 
   # Insert rule in the INPUT chain
   iptables -I INPUT -j ADAPTIVE_BAN_CHAIN
 
-  # Insert rule in the OUTPUT chain
+  # Insert rule in the FORWARD chain
   iptables -I FORWARD -j ADAPTIVE_BAN_CHAIN
 
-  echo "  File=$ADAPTIVE_BAN_FILE Time=$ADAPTIVE_BAN_TIME Count=$ADAPTIVE_BAN_COUNT Types=$ADAPTIVE_BAN_TYPES"
-  "$PLUGIN_BIN_PATH/adaptive-ban-helper" start "$IPTABLES" \
+  echo "${INDENT}File=$ADAPTIVE_BAN_FILE Time=$ADAPTIVE_BAN_TIME Count=$ADAPTIVE_BAN_COUNT Types=$ADAPTIVE_BAN_TYPES"
+  "$PLUGIN_BIN_PATH/adaptive-ban-helper" start "$IP4TABLES" "$IP6TABLES" "$IPV6_SUPPORT" \
       "$ADAPTIVE_BAN_FILE" "$ADAPTIVE_BAN_TIME" "$ADAPTIVE_BAN_COUNT" $ADAPTIVE_BAN_TYPES >/dev/null 2>&1 &
 
   return 0
@@ -77,11 +91,15 @@ plugin_start()
 plugin_stop()
 {
 
-  # Stop helper script on next iteration
-  "$PLUGIN_BIN_PATH/adaptive-ban-helper" stop "$IPTABLES"
+  printf "${INDENT}Adaptive Ban - Stopping... "
 
-  iptables -D INPUT -j ADAPTIVE_BAN_CHAIN 2>/dev/null
-  iptables -D FORWARD -j ADAPTIVE_BAN_CHAIN 2>/dev/null
+  # Stop helper script on next iteration
+  "$PLUGIN_BIN_PATH/adaptive-ban-helper" stop "$IP4TABLES" "$IP6TABLES" "$IPV6_SUPPORT"
+
+  echo "Stopped."
+
+  iptables -D INPUT -j ADAPTIVE_BAN_CHAIN
+  iptables -D FORWARD -j ADAPTIVE_BAN_CHAIN
 
   iptables -F ADAPTIVE_BAN_CHAIN
   iptables -X ADAPTIVE_BAN_CHAIN 2>/dev/null
@@ -96,7 +114,8 @@ plugin_stop()
 # Plugin status function
 plugin_status()
 {
-  "$PLUGIN_BIN_PATH/adaptive-ban-helper" status "$IPTABLES"
+
+  "$PLUGIN_BIN_PATH/adaptive-ban-helper" status "$IP4TABLES" "$IP6TABLES" "$IPV6_SUPPORT"
 
   return 0
 }
@@ -107,27 +126,27 @@ plugin_sanity_check()
 {
 
   if [ ! -x "$PLUGIN_BIN_PATH/adaptive-ban-helper" ]; then
-    printf "\033[40m\033[1;31m  ERROR: The adaptive-ban-helper script can not be found or is not executable!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The adaptive-ban-helper script can not be found or is not executable!\033[0m\n" >&2
     return 1
   fi
 
   if [ -z "$ADAPTIVE_BAN_FILE" -o -z "$ADAPTIVE_BAN_TIME" -o -z "$ADAPTIVE_BAN_COUNT" -o -z "$ADAPTIVE_BAN_TYPES" ]; then
-    printf "\033[40m\033[1;31m  ERROR: The plugin config file is not properly set!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not properly set!\033[0m\n" >&2
     return 1
   fi
 
   if [ "$PLUGIN_CMD" = "start" ] && [ ! -f "$ADAPTIVE_BAN_FILE" ]; then
-    printf "\033[40m\033[1;31m  ERROR: Input log file $ADAPTIVE_BAN_FILE does not exist!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}ERROR: Input log file $ADAPTIVE_BAN_FILE does not exist!\033[0m\n" >&2
     return 1
   fi
   
   if ! check_command sort; then
-    printf "\033[40m\033[1;31m  ERROR: Required command sort is not available!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}ERROR: Required command sort is not available!\033[0m\n" >&2
     return 1
   fi
 
   if ! check_command uniq; then
-    printf "\033[40m\033[1;31m  ERROR: Required command uniq is not available!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}ERROR: Required command uniq is not available!\033[0m\n" >&2
     return 1
   fi
 

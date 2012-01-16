@@ -1,0 +1,16 @@
+AstLinux AIF Contributions
++========================+
+|    www.astlinux.org    |
++========================+
+
+1) Adaptive Ban Plugin
+
+Parse a log file for failed access with offending IP addresses.
+Ban the IP address after multiple failed attempts.
+Simular in function to the Fail2ban project, www.fail2ban.org .
+
+The latest is available via the AstLinux SVN:
+http://astlinux.svn.sourceforge.net/viewvc/astlinux/branches/1.0/package/arnofw/adaptive-ban/ 
+
+(Note: remove the SVN ".sh" suffixes to be used directly with generic AIF)
+
