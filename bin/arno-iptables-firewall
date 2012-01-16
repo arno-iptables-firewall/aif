@@ -2277,7 +2277,7 @@ setup_lan_inet_forward_chain()
 {
   echo " Setting up LAN->INET policy"
 
-  # udp ports to ALLOW for certain LAN hosts
+  # TCP ports to ALLOW for certain LAN hosts
   #########################################
   unset IFS
   for rule in $LAN_INET_HOST_OPEN_TCP; do
@@ -2340,7 +2340,7 @@ setup_lan_inet_forward_chain()
     fi
   done
 
-  # udp ports to DENY for certain LAN hosts
+  # TCP ports to DENY for certain LAN hosts
   #########################################
   unset IFS
   for rule in $LAN_INET_HOST_DENY_TCP; do
