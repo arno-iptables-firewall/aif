@@ -1,0 +1,241 @@
+#!/bin/bash
+
+LOCKFILE="/var/tmp/adaptive-ban-helper.lock"
+
+ARGSFILE="/var/tmp/adaptive-ban-helper.args"
+
+TEMPFILE="/var/tmp/adaptive-ban-helper.temp"
+
+start_run()
+{
+  local num file time count arg args argstime=0 filetime=0 ARGS IFS
+  
+  ARGS="$@"
+  
+  # Robust 'bash' method of creating/testing for a lockfile
+  if ! ( set -o noclobber; echo "$$" > "$LOCKFILE" ) 2>/dev/null; then
+    echo "$ARGS" > "$ARGSFILE"
+    echo "adaptive-ban-helper: already running, lockfile \"$LOCKFILE\" exists, process id: $(cat "$LOCKFILE")."
+    return 9
+  fi
+  
+  trap 'rm -f "$LOCKFILE" "$ARGSFILE" "$TEMPFILE"; exit $?' INT TERM EXIT
+  
+  echo "$ARGS" > "$ARGSFILE"
+  
+  # Delay to allow firewall script to complete
+  sleep 30
+  
+  while true; do
+  
+    if [ ! -f "$ARGSFILE" ]; then
+      break
+    fi
+    
+    # Check whether chains exists
+    if ! iptables -n -L ADAPTIVE_BAN_CHAIN >/dev/null 2>&1; then
+      log_msg "ADAPTIVE_BAN_CHAIN does not exist"
+      break
+    fi
+    if ! iptables -n -L ADAPTIVE_BAN_DROP_CHAIN >/dev/null 2>&1; then
+      log_msg "ADAPTIVE_BAN_DROP_CHAIN does not exist"
+      break
+    fi
+    
+    ARGS="$(cat "$ARGSFILE")"
+    
+    file=""
+    args=""
+    num=0
+    unset IFS
+    for arg in $ARGS; do
+      num=$((num+1))
+      case "$num" in
+        1) file="$arg" ;;
+        2) time="$arg" ;;
+        3) count="$arg" ;;
+        *) args="${args}${args:+ }$arg" ;;
+      esac
+    done
+    
+    if [ ! -f "$file" ]; then
+      log_msg "Input log file $file does not exist"
+      break
+    fi
+    
+    if [ "$filetime" != "$(date -r "$file" +%s)" -o "$argstime" != "$(date -r "$ARGSFILE" +%s)" ]; then
+      filter "$file" "$count" $args
+      
+      filetime="$(date -r "$file" +%s)"
+      argstime="$(date -r "$ARGSFILE" +%s)"
+    fi
+    
+    sleep $time
+  done
+  
+  rm -f "$LOCKFILE" "$ARGSFILE" "$TEMPFILE"
+  trap - INT TERM EXIT
+  
+  return 0
+}
+
+stop()
+{
+
+  rm -f "$ARGSFILE"
+}
+
+status()
+{
+
+  echo "  Banned Hosts:"
+  echo "  =============================="
+  iptables -n -L ADAPTIVE_BAN_CHAIN | awk '$1 == "ADAPTIVE_BAN_DROP_CHAIN" { print "  "$4 }'
+  echo "  ------------------------------"
+  echo ""
+  
+  echo "  Whitelisted Hosts:"
+  echo "  =============================="
+  iptables -n -L ADAPTIVE_BAN_CHAIN | awk '$1 == "RETURN" { print "  "$4 }'
+  echo "  ------------------------------"
+  echo ""
+}
+
+filter()
+{
+  local file="$1" count="$2" type types HOST
+ 
+  shift 2
+  types="$@"
+  
+  # regex to pull out offending IPv4/IPv6 address
+  #
+  HOST="([0-9a-fA-F:.]{7,})"
+
+  for type in $types; do
+
+    case "$type" in
+      sshd) filter_sshd "$file" "$type" "$HOST"
+         ;;
+      asterisk) filter_asterisk "$file" "$type" "$HOST"
+         ;;
+      *) log_msg "Unsupported type \"$type\""
+         continue
+         ;;
+    esac
+    if [ $? -ne 0 ]; then
+      log_msg "Filter Error for type \"$type\""
+    else
+      count_attempts_then_ban "$TEMPFILE" "$count"
+    fi
+    rm -f "$TEMPFILE"
+  done
+}
+
+filter_sshd()
+{
+  local file="$1" TYPE="$2" HOST="$3"
+
+  sed -n -r -e "s/^.*${TYPE}.* Failed password for .* from ${HOST}.*/\1/p" \
+            -e "s/^.*${TYPE}.* Invalid user .* from ${HOST}.*/\1/p" \
+               "$file" >"$TEMPFILE"
+}
+
+filter_asterisk()
+{
+  local file="$1" TYPE="$2" HOST="$3"
+
+  sed -n -r -e "s/^.*${TYPE}.* Registration from '.*' failed for '${HOST}' - Wrong password.*/\1/p" \
+            -e "s/^.*${TYPE}.* Registration from '.*' failed for '${HOST}' - No matching peer found.*/\1/p" \
+            -e "s/^.*${TYPE}.* Registration from '.*' failed for '${HOST}' - Username\/auth name mismatch.*/\1/p" \
+            -e "s/^.*${TYPE}.* Registration from '.*' failed for '${HOST}' - Device does not match ACL.*/\1/p" \
+            -e "s/^.*${TYPE}.* ${HOST} failed to authenticate as '.*'$/\1/p" \
+            -e "s/^.*${TYPE}.* No registration for peer '.*' \(from ${HOST}\).*/\1/p" \
+            -e "s/^.*${TYPE}.* Host ${HOST} failed MD5 authentication for '.*' .*/\1/p" \
+            -e "s/^.*${TYPE}.* Failed to authenticate user .*@${HOST}.*/\1/p" \
+               "$file" >"$TEMPFILE"
+}
+
+count_attempts_then_ban()
+{
+  local tempfile="$1" count="$2" line host IFS
+
+  IFS=$'\n'
+  for line in $(sort "$tempfile" | uniq -c); do
+    if [ "$(echo "$line" | awk '{ print $1; }')" -ge "$count" ]; then
+      host="$(echo "$line" | awk '{ print $2; }')"
+      ban_host "$host"
+    fi
+  done
+}
+
+ban_host()
+{
+  local host="$1"
+
+  if ! iptables -n -L ADAPTIVE_BAN_CHAIN | grep -q " ${host//./\.} "; then
+    iptables -A ADAPTIVE_BAN_CHAIN -s $host -j ADAPTIVE_BAN_DROP_CHAIN
+    if [ $? -eq 0 ]; then
+      log_msg "Banned Host: $host"
+    fi
+  fi
+}
+
+iptables()
+{
+  local restult retval
+
+  result="$($IPTABLES "$@" 2>&1)"
+  retval=$?
+  
+  if [ $retval -ne 0 ]; then
+    log_msg "$IPTABLES: ($retval) $result"
+  elif [ -n "$result" ]; then
+    echo "$result"
+  fi
+
+  return $retval
+}
+
+log_msg()
+{
+  logger -t "firewall: adaptive-ban" -p kern.info "$1"
+  echo "$1" >&2
+}
+
+# main
+
+ACTION="$1"
+
+IPTABLES="$2"
+if [ -z "$IPTABLES" -o "$IPTABLES" = "iptables" ]; then
+  ACTION=""
+fi
+
+shift 2
+
+case $ACTION in
+
+start)
+  if [ -z "$1" -o -z "$2" -o -z "$3" -o -z "$4" ]; then
+    echo "Usage: adaptive-ban-helper start iptables_path logfile time count args..."
+    exit 1
+  fi
+  start_run "$@"
+  ;;
+
+stop)
+  stop
+  ;;
+
+status)
+  status
+  ;;
+
+*)
+  echo "Usage: adaptive-ban-helper start|stop|status iptables_path [ logfile time count args... ]"
+  exit 1
+  ;;
+  
+esac
+
