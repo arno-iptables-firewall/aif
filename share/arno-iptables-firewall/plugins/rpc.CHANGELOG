@@ -1,9 +1,8 @@
 Version 0.2BETA (January 16, 2012)
-
 ----------------------------------
++ Added RPC_NETS variable to restrict access
 * Few tweaks, fixes & cleanups
 
 Version 0.1BETA (January 16, 2012)
-
 ----------------------------------
 - Initial version
