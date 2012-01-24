@@ -1,3 +1,8 @@
+Version 2.0.1a-DEVEL (January 24, 2012)
+---------------------------------------
+! Set default policy to DROP if either LAN_INET_HOST_OPEN_xxx or DMZ_INET_HOST_OPEN_xxx are defined,
+  to match the documentation. (thanks Schilling Thomas Ing for reporting)
+
 Version 2.0.1 (December 18, 2011)
 ---------------------------------
 - Removed DNS_FAST_FAIL & RESOLV_IPS since they are both obsolete
