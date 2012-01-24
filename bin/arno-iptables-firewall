@@ -2006,7 +2006,7 @@ setup_dmz_inet_forward_chain()
 
   # Set the default policy (switch to DROP for a protocol when xxx_OPEN_xxx variable is used)
   ###########################################################################################
-  if [ -z "$DMZ_INET_OPEN_TCP" ]; then
+  if [ -z "$DMZ_INET_OPEN_TCP" -a -z "$DMZ_INET_HOST_OPEN_TCP" ]; then
     echo "  Allowing all (other) TCP ports"
     iptables -A DMZ_INET_FORWARD_CHAIN -p tcp -j ACCEPT
   else
@@ -2018,7 +2018,7 @@ setup_dmz_inet_forward_chain()
     iptables -A DMZ_INET_FORWARD_CHAIN -p tcp -j DROP
   fi
 
-  if [ -z "$DMZ_INET_OPEN_UDP" ]; then
+  if [ -z "$DMZ_INET_OPEN_UDP" -a -z "$DMZ_INET_HOST_OPEN_UDP" ]; then
     echo "  Allowing all (other) UDP ports"
     iptables -A DMZ_INET_FORWARD_CHAIN -p udp -j ACCEPT
   else
@@ -2030,7 +2030,7 @@ setup_dmz_inet_forward_chain()
     iptables -A DMZ_INET_FORWARD_CHAIN -p udp -j DROP
   fi
 
-  if [ -z "$DMZ_INET_OPEN_IP" ]; then
+  if [ -z "$DMZ_INET_OPEN_IP" -a -z "$DMZ_INET_HOST_OPEN_IP" ]; then
     echo "  Allowing all (other) protocols"
     iptables -A DMZ_INET_FORWARD_CHAIN -j ACCEPT
   else
@@ -2549,7 +2549,7 @@ setup_lan_inet_forward_chain()
 
   # Set the default policy (switch to DROP for a protocol when xxx_OPEN_xxx variable is used)
   ###########################################################################################
-  if [ -z "$LAN_INET_OPEN_TCP" ]; then
+  if [ -z "$LAN_INET_OPEN_TCP" -a -z "$LAN_INET_HOST_OPEN_TCP" ]; then
     echo "  Allowing all (other) TCP ports"
     iptables -A LAN_INET_FORWARD_CHAIN -p tcp -j ACCEPT
   else
@@ -2561,7 +2561,7 @@ setup_lan_inet_forward_chain()
     iptables -A LAN_INET_FORWARD_CHAIN -p tcp -j DROP
   fi
 
-  if [ -z "$LAN_INET_OPEN_UDP" ]; then
+  if [ -z "$LAN_INET_OPEN_UDP" -a -z "$LAN_INET_HOST_OPEN_UDP" ]; then
     echo "  Allowing all (other) UDP ports"
     iptables -A LAN_INET_FORWARD_CHAIN -p udp -j ACCEPT
   else
@@ -2573,7 +2573,7 @@ setup_lan_inet_forward_chain()
     iptables -A LAN_INET_FORWARD_CHAIN -p udp -j DROP
   fi
 
-  if [ -z "$LAN_INET_OPEN_IP" ]; then
+  if [ -z "$LAN_INET_OPEN_IP" -a -z "$LAN_INET_HOST_OPEN_IP" ]; then
     echo "  Allowing all (other) protocols"
     iptables -A LAN_INET_FORWARD_CHAIN -j ACCEPT
   else
