@@ -329,10 +329,10 @@ copy_overwrite ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-fir
 copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
 copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
 
-mkdir -v /etc/arno-iptables-firewall/plugins || exit 1
+mkdir -pv /etc/arno-iptables-firewall/plugins || exit 1
 copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/
 
-mkdir -v /etc/arno-iptables-firewall/conf.d || exit 1
+mkdir -pv /etc/arno-iptables-firewall/conf.d || exit 1
 echo "Files with a .conf extension in this directory will be sourced by the environment file" >|/etc/arno-iptables-firewall/conf.d/README
 
 check_plugins;
