@@ -1574,6 +1574,15 @@ if [ -e "$LOCAL_CONFIG_FILE" ]; then
   . "$LOCAL_CONFIG_FILE"
 fi
 
+# Source conf.d config files
+############################
+if [ -n "$(find "/etc/arno-iptables-firewall/conf.d/" -name "*.conf" 2>/dev/null)" ]; then
+  unset IFS
+  for conf_file in /etc/arno-iptables-firewall/conf.d/*.conf; do
+    . "$conf_file"
+  done
+fi
+
 # if $LOGLEVEL is not set, default to "info"
 ############################################
 if [ -z "$LOGLEVEL" ]; then

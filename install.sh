@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.05b"
+MY_VERSION="1.06"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -310,27 +310,29 @@ copy_overwrite ./bin/arno-iptables-firewall /usr/local/sbin/
 copy_overwrite ./bin/arno-fwfilter /usr/local/bin/
 rm -f /usr/local/sbin/arno-fwfilter
 
-mkdir -pv /usr/local/share/arno-iptables-firewall/plugins
+mkdir -pv /usr/local/share/arno-iptables-firewall/plugins || exit 1
 copy_overwrite ./share/arno-iptables-firewall/ /usr/local/share/arno-iptables-firewall/
 
 if [ ! -e /usr/local/sbin/traffic-accounting-show ]; then 
   ln -sv /usr/local/share/arno-iptables-firewall/plugins/traffic-accounting-show /usr/local/sbin/traffic-accounting-show
 fi
 
-mkdir -pv /usr/local/share/man/man1
-mkdir -pv /usr/local/share/man/man8
+mkdir -pv /usr/local/share/man/man1 || exit 1
+mkdir -pv /usr/local/share/man/man8 || exit 1
 gzip -c -v ./share/man/man8/arno-iptables-firewall.8 >/usr/local/share/man/man8/arno-iptables-firewall.8.gz
 gzip -c -v ./share/man/man1/arno-fwfilter.1 >/usr/local/share/man/man8/arno-fwfilter.1.gz
 
 copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
 
-mkdir -pv /etc/arno-iptables-firewall
+mkdir -pv /etc/arno-iptables-firewall || exit 1
 copy_overwrite ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf.dist
 copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
 copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
 
-mkdir -pv /etc/arno-iptables-firewall/plugins
+mkdir -v /etc/arno-iptables-firewall/plugins || exit 1
 copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/
+
+mkdir -v /etc/arno-iptables-firewall/conf.d || exit 1
 
 check_plugins;
 

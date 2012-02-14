@@ -1,5 +1,6 @@
 Version 2.0.1a-DEVEL (January 24, 2012)
 ---------------------------------------
++ Added support for /etc/arno-iptables-firewall/conf.d (Debian bug #658458)
 ! Set default policy to DROP if either LAN_INET_HOST_OPEN_xxx or DMZ_INET_HOST_OPEN_xxx are defined,
   to match the documentation. (thanks Schilling Thomas Ing for reporting)
 
