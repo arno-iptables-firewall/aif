@@ -319,8 +319,8 @@ fi
 
 mkdir -pv /usr/local/share/man/man1 || exit 1
 mkdir -pv /usr/local/share/man/man8 || exit 1
-gzip -c -v ./share/man/man8/arno-iptables-firewall.8 >/usr/local/share/man/man8/arno-iptables-firewall.8.gz
-gzip -c -v ./share/man/man1/arno-fwfilter.1 >/usr/local/share/man/man8/arno-fwfilter.1.gz
+gzip -c -v ./share/man/man8/arno-iptables-firewall.8 >|/usr/local/share/man/man8/arno-iptables-firewall.8.gz
+gzip -c -v ./share/man/man1/arno-fwfilter.1 >|/usr/local/share/man/man8/arno-fwfilter.1.gz
 
 copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
 
@@ -333,6 +333,7 @@ mkdir -v /etc/arno-iptables-firewall/plugins || exit 1
 copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/
 
 mkdir -v /etc/arno-iptables-firewall/conf.d || exit 1
+echo "Files with a .conf extension in this directory will be sourced by the environment file" >|/etc/arno-iptables-firewall/conf.d/README
 
 check_plugins;
 
