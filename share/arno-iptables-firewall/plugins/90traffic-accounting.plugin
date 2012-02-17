@@ -57,7 +57,7 @@ plugin_start()
   rm -f "$TRAFFIC_ACCOUNTING_HOST_CACHE"
 
   # Create hourly cron job
-  echo "$TRAFFIC_ACCOUNTING_CRON        root    \"$PLUGIN_BIN_PATH/traffic-accounting-helper\" >/dev/null" >|/etc/cron.d/traffic-accounting
+  echo "$TRAFFIC_ACCOUNTING_CRON        root    \"$PLUGIN_BIN_PATH/traffic-accounting-helper\" >/dev/null" >/etc/cron.d/traffic-accounting
 
   # Call the host-accounting-helper script at startup?
   if [ "$TRAFFIC_ACCOUNTING_RUN_AT_START" = "1" ]; then
