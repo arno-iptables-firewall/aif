@@ -1,5 +1,6 @@
 Version 2.0.1a-DEVEL (February 17, 2012)
 ----------------------------------------
+* Tweak the handling of some of the sysctl kernel settings. This now also allows disabling setting/resetting some settings (like forwarding)
 * Default UDP connection timeout to 60 seconds
 + Added support for /etc/arno-iptables-firewall/conf.d (Debian bug #658458)
 ! Set default policy to DROP if either LAN_INET_HOST_OPEN_xxx or DMZ_INET_HOST_OPEN_xxx are defined,

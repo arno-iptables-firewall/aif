@@ -482,7 +482,7 @@ setup_kernel_settings()
 
   # IP forwarding (need it to perform for example NAT)
   ####################################################
-  if [ "$IP_FORWARDING" != "0" ]; then
+  if [ "$IP_FORWARDING" = "1" ]; then
     echo " Enabling packet forwarding"
     sysctl_set_all "net.ipv4.conf" "forwarding" 1 || sysctl -w net.ipv4.ip_forward=1 ||
     {
@@ -495,7 +495,7 @@ setup_kernel_settings()
       sysctl_set_all "net.ipv6.conf" "autoconf" 0
       sysctl_set_all "net.ipv6.conf" "accept_ra" 0
     fi
-  else
+  elif [ "$IP_FORWARDING" = "0" ]; then
     echo " DISABLING packet forwarding"
     sysctl_set_all "net.ipv4.conf" "forwarding" 0 2>/dev/null || sysctl -w -e net.ipv4.ip_forward=0 2>/dev/null
     if [ "$IPV6_SUPPORT" = "1" ]; then
@@ -538,7 +538,7 @@ setup_kernel_settings()
 
     # Enable a fix for RFC1337 - time-wait assassination hazards in TCP
     sysctl -w net.ipv4.tcp_rfc1337=1
-  else
+  elif [ "$REDUCE_DOS_ABILITY" = "0" ]; then
     echo " Disabling reduction of the DoS'ing ability"
 
     # Defaults:
@@ -559,12 +559,22 @@ setup_kernel_settings()
   # Now we change the LOCAL_PORT_RANGE for further use by iptables (replace space with :)
   LOCAL_PORT_RANGE="$(echo "$LOCAL_PORT_RANGE" |tr ' ' ':')"
 
+  # Add synflood protection?
+  ##########################
+  if [ "$SYN_PROT" != "0" ]; then
+    echo " Enabling SYN-flood protection via SYN-cookies"
+    sysctl -w net.ipv4.tcp_syncookies=1
+  else
+    echo " Disabling SYN-flood protection via SYN-cookies"
+    sysctl -w net.ipv4.tcp_syncookies=0
+  fi
+
   # Use rp_filter to drop connections from non-routable IPs
   ######################################################################
   if [ "$RP_FILTER" = "1" ]; then
     echo " Enabling anti-spoof with rp_filter"
     sysctl_set_all "net.ipv4.conf" "rp_filter" 1
-  else
+  elif [ "$RP_FILTER" = "0" ]; then
     echo " Disabling anti-spoof with rp_filter"
     sysctl_set_all "net.ipv4.conf" "rp_filter" 0
   fi
@@ -574,18 +584,8 @@ setup_kernel_settings()
   if [ "$ECHO_IGNORE" = "1" ]; then
     echo " Blocking all ICMP echo-requests"
     sysctl -w net.ipv4.icmp_echo_ignore_all=1
-  else
+  elif [ "$ECHO_IGNORE" = "0" ]; then
     sysctl -w net.ipv4.icmp_echo_ignore_all=0
-  fi
-
-  # Add synflood protection?
-  ##########################
-  if [ "$SYN_PROT" != 0 ]; then
-    echo " Enabling SYN-flood protection via SYN-cookies"
-    sysctl -w net.ipv4.tcp_syncookies=1
-  else
-    echo " Disabling SYN-flood protection via SYN-cookies"
-    sysctl -w net.ipv4.tcp_syncookies=0
   fi
 
   # Log martians?
@@ -593,7 +593,7 @@ setup_kernel_settings()
   if [ "$LOG_MARTIANS" = "1" ]; then
     echo " Enabling the logging of martians"
     sysctl_set_all "net.ipv4.conf" "log_martians" 1
-  else
+  elif [ "$LOG_MARTIANS" = "0" ]; then
     echo " Disabling the logging of martians"
     sysctl_set_all "net.ipv4.conf" "log_martians" 0
   fi
@@ -606,7 +606,7 @@ setup_kernel_settings()
     if [ "$IPV6_SUPPORT" = "1" ]; then
       sysctl_set_all "net.ipv6.conf" "accept_redirects" 1
     fi
-  else
+  elif [ "$ICMP_REDIRECT" = "0" ]; then
     echo " Disabling the acception of ICMP-redirect messages"
     sysctl_set_all "net.ipv4.conf" "accept_redirects" 0
     if [ "$IPV6_SUPPORT" = "1" ]; then
@@ -614,33 +614,12 @@ setup_kernel_settings()
     fi
   fi
 
-  # Time To Live (TTL) is the term for a data field in the internet protocol.
-  # TTL is today interpreted to indicate the maximum number of routers a packet may transit.
-  # Each router that handles a packet will decrement the TTL field by 1.
-  # Raise if you have a huge network.
-  # Set the default ttl. (Kernel Default: 64)
-  ###########################################################################################
-  if [ -z "$DEFAULT_TTL" ]; then
-    DEFAULT_TTL="64"
-  fi
-
-  if [ $DEFAULT_TTL -gt 9 -a $DEFAULT_TTL -lt 256 ]; then
-    echo " Setting default TTL=$DEFAULT_TTL"
-    sysctl -w net.ipv4.ip_default_ttl=$DEFAULT_TTL
-  else
-    printf "\033[40m\033[1;31m WARNING: Ingoring invalid value for DEFAULT_TTL ($DEFAULT_TTL), it should be between 10 and 255!\033[0m\n" >&2
-  fi
-
-  # Increase the default queuelength. (Kernel Default: 1024)
-  ##########################################################
-  # sysctl -w -e net.ipv4.ip_queue_maxlen=2048
-
   # Enable ECN? (Explicit Congestion Notification)
   ################################################
   if [ "$ECN" = "1" ]; then
     echo " Enabling ECN (Explicit Congestion Notification)"
     sysctl -w net.ipv4.tcp_ecn=1
-  else
+  elif [ "$ECN" = "0" ]; then
     echo " Disabling ECN (Explicit Congestion Notification)"
     sysctl -w net.ipv4.tcp_ecn=0
   fi
@@ -651,7 +630,7 @@ setup_kernel_settings()
   if [ "$EXT_IF_DHCP_IP" = "1" ]; then
     echo " Enabling kernel support for dynamic IPs"
     sysctl -w net.ipv4.ip_dynaddr=1
-  else
+  elif [ "$EXT_IF_DHCP_IP" = "0" ]; then
     echo " Disabling kernel support for dynamic IPs"
     sysctl -w net.ipv4.ip_dynaddr=0
   fi
@@ -661,10 +640,29 @@ setup_kernel_settings()
   if [ "$NO_PMTU_DISCOVERY" = "1" ]; then
     echo " Disabling PMTU discovery"
     sysctl -w net.ipv4.ip_no_pmtu_disc=1
-  else
+  elif [ "$NO_PMTU_DISCOVERY" = "0" ]; then
     echo " Enabling PMTU discovery"
     sysctl -w net.ipv4.ip_no_pmtu_disc=0
   fi
+  
+  # Time To Live (TTL) is the term for a data field in the internet protocol.
+  # TTL is today interpreted to indicate the maximum number of routers a packet may transit.
+  # Each router that handles a packet will decrement the TTL field by 1.
+  # Raise if you have a huge network.
+  # Set the default ttl. (Kernel Default: 64)
+  ###########################################################################################
+  if [ -n "$DEFAULT_TTL" ]; then
+    if [ $DEFAULT_TTL -gt 9 -a $DEFAULT_TTL -lt 256 ]; then
+      echo " Setting default TTL=$DEFAULT_TTL"
+      sysctl -w net.ipv4.ip_default_ttl=$DEFAULT_TTL
+    else
+      printf "\033[40m\033[1;31m WARNING: Ingoring invalid value for DEFAULT_TTL ($DEFAULT_TTL), it should be between 10 and 255!\033[0m\n" >&2
+    fi
+  fi
+
+  # Increase the default queuelength. (Kernel Default: 1024)
+  ##########################################################
+  # sysctl -w -e net.ipv4.ip_queue_maxlen=2048
 
   echo " Flushing route table"
   sysctl -w net.ipv4.route.flush=1
