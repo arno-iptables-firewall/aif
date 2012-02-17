@@ -430,8 +430,8 @@ setup_kernel_settings()
 #  echo " Setting default conntrack timeouts"
 
   # This is to fix issues with DNS:
-#  sysctl_multi -w net.netfilter.nf_conntrack_udp_timeout=60 \
-#                  net.ipv4.netfilter.ip_conntrack_udp_timeout=60
+  sysctl_multi -w net.netfilter.nf_conntrack_udp_timeout=60 \
+                  net.ipv4.netfilter.ip_conntrack_udp_timeout=60
 
 #  sysctl_multi -w net.netfilter.nf_conntrack_udp_timeout_stream=180 \
 #                  net.ipv4.netfilter.ip_conntrack_udp_timeout_stream=180
