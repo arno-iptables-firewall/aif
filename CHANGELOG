@@ -1,9 +1,12 @@
 Version 2.0.1a-DEVEL (February 20, 2012)
 ----------------------------------------
 * Use ls instead of [ -n (find) ] as it's much faster (thanks Lonnie)
-* Changed the default policy for LAN->INET & DMZ->INET rules. Now when the
-  xxx_INET_OPEN_xxx & xxx_INET_HOST_OPEN_xxx variables are NOT used, the default
-  policy will be accept for xxx->INET.
+* As with previous versions, when LAN_INET_OPEN_xxx and LAN_INET_HOST_OPEN_xxx are NOT defined
+  the default LAN->INET policy is ACCEPT. Changed is when *any* of these variables are defined
+  the default LAN->INET policy is DROP for all ports and protocols, not just TCP/UDP/IP as before.
+* As with previous versions, when DMZ_INET_OPEN_xxx and DMZ_INET_HOST_OPEN_xxx are NOT defined
+  the default DMZ->INET policy is ACCEPT. Changed is when *any* of these variables are defined
+  the default DMZ->INET policy is DROP for all ports and protocols, not just TCP/UDP/IP as before.
 * Tweak the handling of some of the sysctl kernel settings. This now also
   allows disabling setting/resetting some settings (like forwarding)
 * Default UDP connection timeout to 60 seconds
