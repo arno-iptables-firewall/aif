@@ -277,7 +277,7 @@ check_plugins()
     for plugin in ./share/arno-iptables-firewall/plugins/*.plugin; do
       plugin_name="$(basename "$plugin" |sed 's/^[0-9]*//')"
       
-      find /usr/local/share/arno-iptables-firewall/plugins/ -maxdepth 1 -name "*.plugin" |grep "/[0-9]*$plugin_name$" |grep -v "/$(basename "$plugin")$" |while read fn; do
+      ls /usr/local/share/arno-iptables-firewall/plugins/*.plugin |grep "/[0-9]*$plugin_name$" |grep -v "/$(basename "$plugin")$" |while read fn; do
         echo "* Removing old plugin: $fn"
         rm -fv "$fn"
       done

@@ -1,5 +1,6 @@
 Version 2.0.1a-DEVEL (February 20, 2012)
 ----------------------------------------
+* Use ls instead of [ -n (find) ] as it's much faster (thanks Lonnie)
 * Changed the default policy for LAN->INET & DMZ->INET rules. Now when the
   xxx_INET_OPEN_xxx & xxx_INET_HOST_OPEN_xxx variables are NOT used, the default
   policy will be accept for xxx->INET.

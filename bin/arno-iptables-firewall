@@ -4291,7 +4291,7 @@ plugins_start()
   printf "Checking for (user) plugins in $PLUGIN_BIN_PATH..."
 
   # Check for plugins in our plugins binary path:
-  if [ -n "$(find "$PLUGIN_BIN_PATH/" -maxdepth 1 -name "*.plugin" 2>/dev/null)" ]; then
+  if ls "$PLUGIN_BIN_PATH"/*.plugin >/dev/null 2>&1; then
     echo ""
     plugin_count=0
     
@@ -4356,7 +4356,7 @@ plugins_stop()
         plugin_file="$plugin"
       else
         # If we can't find it, ignore the priority number in front of the plugin-filename
-        plugin_file="$(find "$PLUGIN_BIN_PATH/" -maxdepth 1 -name "*.plugin" |grep "[0-9]*$plugin_name$" |head -n1)"
+        plugin_file="$(ls "$PLUGIN_BIN_PATH"/*.plugin |grep "[0-9]*$plugin_name$" |head -n1)"
       fi
       
       if [ -e "$plugin_file" ]; then
