@@ -2004,39 +2004,17 @@ setup_dmz_inet_forward_chain()
 
   # Set the default policy (switch to DROP for a protocol when xxx_OPEN_xxx variable is used)
   ###########################################################################################
-  if [ -z "$DMZ_INET_OPEN_TCP" -a -z "$DMZ_INET_HOST_OPEN_TCP" ]; then
-    echo "  Allowing all (other) TCP ports"
-    iptables -A DMZ_INET_FORWARD_CHAIN -p tcp -j ACCEPT
+  if [ -z "$DMZ_INET_OPEN_TCP" -a -z "$DMZ_INET_HOST_OPEN_TCP" -a \
+       -z "$DMZ_INET_OPEN_UDP" -a -z "$DMZ_INET_HOST_OPEN_UDP" -a \
+       -z "$DMZ_INET_OPEN_IP"  -a -z "$DMZ_INET_HOST_OPEN_IP" ]; then
+    echo "  Allowing all (other) ports/protocols"
+    iptables -A DMZ_INET_FORWARD_CHAIN -j ACCEPT
   else
     if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
       iptables -A DMZ_INET_FORWARD_CHAIN -p tcp -m limit \
         --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ->INET denied: "
     fi
-    echo "  Denying all (other) TCP ports"
-    iptables -A DMZ_INET_FORWARD_CHAIN -p tcp -j DROP
-  fi
-
-  if [ -z "$DMZ_INET_OPEN_UDP" -a -z "$DMZ_INET_HOST_OPEN_UDP" ]; then
-    echo "  Allowing all (other) UDP ports"
-    iptables -A DMZ_INET_FORWARD_CHAIN -p udp -j ACCEPT
-  else
-    if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
-      iptables -A DMZ_INET_FORWARD_CHAIN -p udp -m limit \
-        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ->INET denied: "
-    fi
-    echo "  Denying all (other) UDP ports"
-    iptables -A DMZ_INET_FORWARD_CHAIN -p udp -j DROP
-  fi
-
-  if [ -z "$DMZ_INET_OPEN_IP" -a -z "$DMZ_INET_HOST_OPEN_IP" ]; then
-    echo "  Allowing all (other) protocols"
-    iptables -A DMZ_INET_FORWARD_CHAIN -j ACCEPT
-  else
-    if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
-      iptables -A DMZ_INET_FORWARD_CHAIN -m limit \
-        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ->INET denied: "
-    fi
-    echo "  Denying all (other) protocols"
+    echo "  Denying all (other) ports/protocols"
     iptables -A DMZ_INET_FORWARD_CHAIN -j DROP
   fi
 }
@@ -2547,39 +2525,17 @@ setup_lan_inet_forward_chain()
 
   # Set the default policy (switch to DROP for a protocol when xxx_OPEN_xxx variable is used)
   ###########################################################################################
-  if [ -z "$LAN_INET_OPEN_TCP" -a -z "$LAN_INET_HOST_OPEN_TCP" ]; then
-    echo "  Allowing all (other) TCP ports"
-    iptables -A LAN_INET_FORWARD_CHAIN -p tcp -j ACCEPT
+  if [ -z "$LAN_INET_OPEN_TCP" -a -z "$LAN_INET_HOST_OPEN_TCP" -a \
+       -z "$LAN_INET_OPEN_UDP" -a -z "$LAN_INET_HOST_OPEN_UDP" -a \
+       -z "$LAN_INET_OPEN_IP" -a -z "$LAN_INET_HOST_OPEN_IP" ]; then
+    echo "  Allowing all (other) ports/protocols"
+    iptables -A LAN_INET_FORWARD_CHAIN -j ACCEPT
   else
     if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
       iptables -A LAN_INET_FORWARD_CHAIN -p tcp -m limit \
         --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN->INET denied: "
     fi
-    echo "  Denying all (other) TCP ports"
-    iptables -A LAN_INET_FORWARD_CHAIN -p tcp -j DROP
-  fi
-
-  if [ -z "$LAN_INET_OPEN_UDP" -a -z "$LAN_INET_HOST_OPEN_UDP" ]; then
-    echo "  Allowing all (other) UDP ports"
-    iptables -A LAN_INET_FORWARD_CHAIN -p udp -j ACCEPT
-  else
-    if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
-      iptables -A LAN_INET_FORWARD_CHAIN -p udp -m limit \
-        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN->INET denied: "
-    fi
-    echo "  Denying all (other) UDP ports"
-    iptables -A LAN_INET_FORWARD_CHAIN -p udp -j DROP
-  fi
-
-  if [ -z "$LAN_INET_OPEN_IP" -a -z "$LAN_INET_HOST_OPEN_IP" ]; then
-    echo "  Allowing all (other) protocols"
-    iptables -A LAN_INET_FORWARD_CHAIN -j ACCEPT
-  else
-    if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
-      iptables -A LAN_INET_FORWARD_CHAIN -m limit \
-        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN->INET denied: "
-    fi
-    echo "  Denying all (other) protocols"
+    echo "  Denying all (other) ports/protocols"
     iptables -A LAN_INET_FORWARD_CHAIN -j DROP
   fi
 }
