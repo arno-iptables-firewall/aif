@@ -4126,39 +4126,43 @@ setup_hostblock_chain()
       total_cnt=$(( $(cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' -e '/^$/d' |wc -l) ))
 
       echo "(Re)loading list of BLOCKED hosts from $BLOCK_HOSTS_FILE..."
-      progress_bar $cur_cnt $total_cnt
-
-      # Support both a '#' and a ';' as a comment delimiter in BLOCK_HOSTS_FILE file
-      unset IFS
-      cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' -e '/^$/d' |while read hosts; do
-        cur_cnt=$(($cur_cnt + 100))
+      if [ $total_cnt -gt 0 ]; then
         progress_bar $cur_cnt $total_cnt
 
-        if [ -n "$hosts" ]; then
-          IFS=','
-          for host in `ip_range "$hosts"`; do
-            get_numeric_ip_version "$host"
-            case $? in
-            4)
-              ip4tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
-              if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-                ip4tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
-              fi
-              ;;
-            6)
-              if [ "$IPV6_SUPPORT" = "1" ]; then
-                ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+        # Support both a '#' and a ';' as a comment delimiter in BLOCK_HOSTS_FILE file
+        unset IFS
+        cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' -e '/^$/d' |while read hosts; do
+          cur_cnt=$(($cur_cnt + 100))
+          progress_bar $cur_cnt $total_cnt
+
+          if [ -n "$hosts" ]; then
+            IFS=','
+            for host in `ip_range "$hosts"`; do
+              get_numeric_ip_version "$host"
+              case $? in
+              4)
+                ip4tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
                 if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-                  ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+                  ip4tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
                 fi
-              fi
-              ;;
-            esac
-          done
-          unset IFS
-        fi
-      done
-      echo ".........$total_cnt line(s) read."
+                ;;
+              6)
+                if [ "$IPV6_SUPPORT" = "1" ]; then
+                  ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+                  if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+                    ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+                  fi
+                fi
+                ;;
+              esac
+            done
+            unset IFS
+          fi
+        done
+        printf "........."
+      fi
+        
+      echo "$total_cnt host line(s) read"
     else
       printf "\033[40m\033[1;31mNOTE: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
     fi
