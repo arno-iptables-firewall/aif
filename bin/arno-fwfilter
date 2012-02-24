@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # description: Firewall-log filter script (fwfilter)
-# Last update: December 19, 2011
+# Last update: February 24, 2012
 
 # Usage examples (make sure arno-fwfilter is executable!):
 # --------------------------------------------------------
@@ -112,13 +112,13 @@ if [ -z "$AWK_BIN" ]; then
 else
   # Test what awk version is used (gawk, mawk etc...)
   test=`$AWK_BIN -W version 2>/dev/null |grep -i mawk`
-  if [ "$test" != "" ]; then
+  if [ -n "$test" ]; then
     # AWK_BIN=$(echo "$AWK_BIN -W interactive")
     echo "The configured AWK binary is MAWK, which does not work with the script. Please use GAWK instead"
     exit 1
   fi
 
-  if [ "$USE_HTML" == "1" ]; then
+  if [ "$USE_HTML" = "1" ]; then
     echo '<html><head><title>Firewall Log</title>'
     echo '<meta http-equiv="Content-Type" content="text/html; charset=us-ascii"></head>'
     echo '<body>'
@@ -351,17 +351,19 @@ else
       {
         # Check whether it is an incoming or outgoing packet
         if (match($0, "IN= ") != 0) INPUT=0; else INPUT=1
+        if (match($0, "OUT= ") != 0) OUTPUT=0; else OUTPUT=1
 
         for (i = 1; i <= NF; i++)
         # First show message, SRC etc.
         {
           if (INPUT==1)
           {
-            if (substr($i,1,4) == "SRC=") HOSTINFO=$i
+            if (substr($i,1,4) == "SRC=") SRC_HOST=$i
           }
-          else
+          
+          if (OUTPUT==1)
           {
-            if (substr($i,1,4) == "DST=") HOSTINFO=$i
+            if (substr($i,1,4) == "DST=") DST_HOST=$i
           }
 
           if (substr($i,1,4) != "MAC=" && substr($i,1,4) != "SRC=" && substr($i,1,4) != "DST=" && $i != "IN=" && $i != "OUT=" )
@@ -385,9 +387,10 @@ else
             if (USE_HTML==1) printf("<font color=turquoise>")
 
             printf(" %s", $i)
-
+            
             if (USE_ANSI_COLORS==1) printf("\033[0m")
             if (USE_HTML==1) printf("</font>")
+
           }
 
           if (substr($i,1,4) == "DST=")
@@ -401,35 +404,49 @@ else
 
             if (USE_ANSI_COLORS==1) printf("\033[0m")
             if (USE_HTML==1) printf("</font>")
-
-            if (INPUT==1)
-            {
-              if (USE_ANSI_COLORS==1) printf("\033[0m\033[1;36m")
-              if (USE_HTML==1) printf("<font color=turquoise>")
-            }
-            else
-            {
-              if (USE_ANSI_COLORS==1) printf("\033[0m\033[1;35m")
-              if (USE_HTML==1) printf("<font color=dark purple>")
-            }
-
+              
             if (RESOLVE_NAMES==1 || SHOW_LOCATION==1)
               if (USE_1ROW==0)
               {
                 if (USE_HTML==1) printf("<br>\n                         "); else printf("\n               ")
               }
-
-            if (RESOLVE_NAMES==1)
+ 
+            if (INPUT==1)
             {
-              # If multiple names exist for one IP than only use the first (head -n1)
-              syscall=sprintf("echo -n \" $(dig +short +time=1 +tries=1 -x %s 2>/dev/null |head -n1 |grep -v \";;.*\" |sed s,.$,\"  \",)\" 2>/dev/null", substr(HOSTINFO,5,length(HOSTINFO)-4))
-              system(syscall)
+              if (USE_ANSI_COLORS==1) printf("\033[0m\033[1;36m")
+              if (USE_HTML==1) printf("<font color=turquoise>")
+
+              if (RESOLVE_NAMES==1)
+              {
+                # If multiple names exist for one IP then only use the first (head -n1)
+                syscall=sprintf("echo -n \" $(dig +short +time=1 +tries=1 -x %s 2>/dev/null |head -n1 |grep -v \";;.*\" |sed s,.$,\"  \",)\" 2>/dev/null", substr(SRC_HOST,5,length(DST_HOST)-4))
+                system(syscall)
+              }
+
+              if (SHOW_LOCATION==1)
+              {
+                syscall=sprintf("lynx -connect_timeout=1 -dump http://api.hostip.info/get_html.php?ip=%s 2>/dev/null |grep -e \"Country:\" -e \"City:\" |while read line; do echo -n \" $line\"; done", substr(SRC_HOST,5,length(DST_HOST)-4))
+                system(syscall)
+              }
             }
-
-            if (SHOW_LOCATION==1)
+              
+            if (OUTPUT==1)
             {
-              syscall=sprintf("lynx -connect_timeout=1 -dump http://api.hostip.info/get_html.php?ip=%s 2>/dev/null |grep -e \"Country:\" -e \"City:\" |while read line; do echo -n \" $line\"; done", substr(HOSTINFO,5,length(HOSTINFO)-4))
-              system(syscall)
+              if (USE_ANSI_COLORS==1) printf("\033[0m\033[1;35m")
+              if (USE_HTML==1) printf("<font color=dark purple>")
+             
+              if (RESOLVE_NAMES==1)
+              {
+                # If multiple names exist for one IP then only use the first (head -n1)
+                syscall=sprintf("echo -n \" $(dig +short +time=1 +tries=1 -x %s 2>/dev/null |head -n1 |grep -v \";;.*\" |sed s,.$,\"  \",)\" 2>/dev/null", substr(DST_HOST,5,length(DST_HOST)-4))
+                system(syscall)
+              }
+
+              if (SHOW_LOCATION==1)
+              {
+                syscall=sprintf("lynx -connect_timeout=1 -dump http://api.hostip.info/get_html.php?ip=%s 2>/dev/null |grep -e \"Country:\" -e \"City:\" |while read line; do echo -n \" $line\"; done", substr(DST_HOST,5,length(DST_HOST)-4))
+                system(syscall)
+              }
             }
 
             if (USE_ANSI_COLORS==1) printf("\033[0m")
@@ -553,7 +570,8 @@ else
   }
   ' RESOLVE_NAMES=$RESOLVE_NAMES SHOW_LOCATION=$SHOW_LOCATION USE_ANSI_COLORS=$USE_ANSI_COLORS USE_1ROW=$USE_1ROW USE_HTML=$USE_HTML
 
-  if [ "$USE_HTML" == "1" ]; then
+  if [ "$USE_HTML" = "1" ]; then
     echo "</body></html>"
   fi
 fi
+
