@@ -1,5 +1,6 @@
 Version 2.0.1a-DEVEL (February 20, 2012)
 ----------------------------------------
+* Misc. tweaks for arno-fwfilter (thanks Mark van Dijk)
 * Use ls instead of [ -n (find) ] as it's much faster (thanks Lonnie)
 * As with previous versions, when LAN_INET_OPEN_xxx and LAN_INET_HOST_OPEN_xxx are NOT defined
   the default LAN->INET policy is ACCEPT. Changed is when *any* of these variables are defined
