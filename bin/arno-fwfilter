@@ -372,12 +372,12 @@ else
         {
           if (INPUT==1)
           {
-            if (substr($i,1,4) == "SRC=") SRC_HOST=$i
+            if (substr($i,1,4) == "SRC=") SRC_HOST=substr($i, 5, length($i) - 4)
           }
           
           if (OUTPUT==1)
           {
-            if (substr($i,1,4) == "DST=") DST_HOST=$i
+            if (substr($i,1,4) == "DST=") DST_HOST=substr($i, 5, length($i) - 4)
           }
 
           if (substr($i,1,4) != "MAC=" && substr($i,1,4) != "SRC=" && substr($i,1,4) != "DST=" && $i != "IN=" && $i != "OUT=" )
@@ -433,12 +433,14 @@ else
               if (RESOLVE_NAMES==1)
               {
                 # If multiple names exist for one IP then only use the first (head -n1)
-                printf "$(dig +short +time=1 +tries=1 -x %s 2>/dev/null |head -n1 |grep -v \";;.*\" |sed s,.$,\"  \",)\" 2>/dev/null", substr(SRC_HOST,5,length(DST_HOST)-4))"
+                syscall=sprintf("printf \" $(dig +short +time=1 +tries=1 -x %s 2>/dev/null |head -n1 |grep -v \";;.*\" |sed s,.$,\"  \",)\" 2>/dev/null", SRC_HOST)
+                system(syscall)
               }
 
               if (SHOW_LOCATION==1)
               {
-                curl -L --silent --connect-timeout 1 http://api.hostip.info/get_html.php?ip=%s 2>/dev/null |grep -e \"Country:\" -e \"City:\" |while read line; do echo -n \" $line\"; done", substr(SRC_HOST,5,length(DST_HOST)-4))
+                syscall=sprintf("curl -L --silent --connect-timeout 1 http://api.hostip.info/get_html.php?ip=%s 2>/dev/null |grep -e \"Country:\" -e \"City:\" |while read line; do echo -n \" $line\"; done", SRC_HOST)
+                system(syscall)
               }
             }
               
@@ -450,13 +452,13 @@ else
               if (RESOLVE_NAMES==1)
               {
                 # If multiple names exist for one IP then only use the first (head -n1)
-                syscall=sprintf("printf \" $(dig +short +time=1 +tries=1 -x %s 2>/dev/null |head -n1 |grep -v \";;.*\" |sed s,.$,\"  \",)\" 2>/dev/null", substr(DST_HOST,5,length(DST_HOST)-4))
+                syscall=sprintf("printf \" $(dig +short +time=1 +tries=1 -x %s 2>/dev/null |head -n1 |grep -v \";;.*\" |sed s,.$,\"  \",)\" 2>/dev/null", DST_HOST)
                 system(syscall)
               }
 
               if (SHOW_LOCATION==1)
               {
-                syscall=sprintf("curl -L --silent --connect-timeout 1 http://api.hostip.info/get_html.php?ip=%s 2>/dev/null |grep -e \"Country:\" -e \"City:\" |while read line; do echo -n \" $line\"; done", substr(DST_HOST,5,length(DST_HOST)-4))
+                syscall=sprintf("curl -L --silent --connect-timeout 1 http://api.hostip.info/get_html.php?ip=%s 2>/dev/null |grep -e \"Country:\" -e \"City:\" |while read line; do echo -n \" $line\"; done", DST_HOST)
                 system(syscall)
               }
             }
