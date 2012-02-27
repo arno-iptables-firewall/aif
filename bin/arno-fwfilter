@@ -48,7 +48,7 @@
 RESOLVE_NAMES=1
 
 # Enable this option if you want to (try to) obtain the IPs geographical location (can be very slow!) (requires "curl")
-SHOW_LOCATION=1
+SHOW_LOCATION=0
 
 # Enable this option if you want to resolve both the source and target host when doing location/name lookups (slower)
 FULL_INFO=0
