@@ -44,11 +44,14 @@
 # Options:
 ##########
 
-# Enable this option if you want to resolve IP adresses to names (requires dig)
+# Enable this option if you want to resolve IP adresses to names (requires "dig")
 RESOLVE_NAMES=1
 
-# Enable this option if you want to (try to) obtain the IPs geographical location (can be very slow!) (requires curl)
-SHOW_LOCATION=0
+# Enable this option if you want to (try to) obtain the IPs geographical location (can be very slow!) (requires "curl")
+SHOW_LOCATION=1
+
+# Enable this option if you want to resolve both the source and target host when doing location/name lookups (slower)
+FULL_INFO=0
 
 # Enable this option to use ANSI colors (increases readability)
 USE_ANSI_COLORS=1
@@ -370,15 +373,8 @@ else
         for (i = 1; i <= NF; i++)
         # First show message, SRC etc.
         {
-          if (INPUT==1)
-          {
-            if (substr($i,1,4) == "SRC=") SRC_HOST=substr($i, 5, length($i) - 4)
-          }
-          
-          if (OUTPUT==1)
-          {
-            if (substr($i,1,4) == "DST=") DST_HOST=substr($i, 5, length($i) - 4)
-          }
+          if (substr($i,1,4) == "SRC=") SRC_HOST=substr($i, 5, length($i) - 4)
+          if (substr($i,1,4) == "DST=") DST_HOST=substr($i, 5, length($i) - 4)
 
           if (substr($i,1,4) != "MAC=" && substr($i,1,4) != "SRC=" && substr($i,1,4) != "DST=" && $i != "IN=" && $i != "OUT=" )
           {
@@ -418,15 +414,15 @@ else
 
             if (USE_ANSI_COLORS==1) printf("\033[0m")
             if (USE_HTML==1) printf("</font>")
-              
-            if (RESOLVE_NAMES==1 || SHOW_LOCATION==1)
-              if (USE_1ROW==0)
-              {
-                if (USE_HTML==1) printf("<br>\n                         "); else printf("\n               ")
-              }
  
-            if (INPUT==1)
+            if (INPUT==1 || FULL_INFO==1)
             {
+              if (RESOLVE_NAMES==1 || SHOW_LOCATION==1)
+                if (USE_1ROW==0)
+                {
+                  if (USE_HTML==1) printf("<br>\n                         "); else printf("\n               ")
+                }
+
               if (USE_ANSI_COLORS==1) printf("\033[0m\033[1;36m")
               if (USE_HTML==1) printf("<font color=turquoise>")
 
@@ -439,13 +435,19 @@ else
 
               if (SHOW_LOCATION==1)
               {
-                syscall=sprintf("curl -L --silent --connect-timeout 1 http://api.hostip.info/get_html.php?ip=%s 2>/dev/null |grep -e \"Country:\" -e \"City:\" |while read line; do echo -n \" $line\"; done", SRC_HOST)
+                syscall=sprintf("curl -L --silent --connect-timeout 1 http://api.hostip.info/get_html.php?ip=%s 2>/dev/null |grep -e \"Country:\" -e \"City:\" |while read line; do printf \" $line\"; done", SRC_HOST)
                 system(syscall)
               }
             }
-              
-            if (OUTPUT==1)
+
+            if (OUTPUT==1 || FULL_INFO==1)
             {
+              if (RESOLVE_NAMES==1 || SHOW_LOCATION==1)
+                if (USE_1ROW==0)
+                {
+                  if (USE_HTML==1) printf("<br>\n                         "); else printf("\n               ")
+                }
+
               if (USE_ANSI_COLORS==1) printf("\033[0m\033[1;35m")
               if (USE_HTML==1) printf("<font color=dark purple>")
              
@@ -458,7 +460,7 @@ else
 
               if (SHOW_LOCATION==1)
               {
-                syscall=sprintf("curl -L --silent --connect-timeout 1 http://api.hostip.info/get_html.php?ip=%s 2>/dev/null |grep -e \"Country:\" -e \"City:\" |while read line; do echo -n \" $line\"; done", DST_HOST)
+                syscall=sprintf("curl -L --silent --connect-timeout 1 http://api.hostip.info/get_html.php?ip=%s 2>/dev/null |grep -e \"Country:\" -e \"City:\" |while read line; do printf \" $line\"; done", DST_HOST)
                 system(syscall)
               }
             }
