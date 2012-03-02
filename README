@@ -400,40 +400,86 @@ Notes on plugins:
 Everyone is invited to write their own plugins to implement other things, and
 to submit them.
 
-Notes on writing your own plugins:
-----------------------------------
-1) When you write your own plugins, make sure you know what you're doing. You
-   can severely compromise security or break things with buggy plugins.
-2) The plugin should have/use these variables:
-   - PLUGIN_NAME (Plugin name/description)
-   - PLUGIN_VERSION (Plugin version)
-   - PLUGIN_CONF_FILE (Location of the plugin config file)
+Notes on writing your own plugins
+---------------------------------
+1)  When you write your own plugins, make sure you know what you're doing. You
+    can severely compromise security or break things with buggy plugins.
+2)  Submit plugins to me, if you think they can be of use to others, but note
+    that I always reserve the right to decline the plugin (because it was eg.
+    poorly written). Submitted plugins must be (at least) compatible with the
+    GPLv2 license.
+3)  The plugin should have/use these variables:
+    - PLUGIN_NAME (Plugin name/description)
+    - PLUGIN_VERSION (Plugin version)
+    - PLUGIN_CONF_FILE (Location of the plugin config file)
 
-   Furthermore it should honour the ENABLED variable from the config-file to
-   enable/disable the plugin.
+    Furthermore it should honour the ENABLED variable from the config-file to
+    enable/disable the plugin.
 
-   Use one of my plugins as a template(skeleton) for writing your own plugins
-   (I recommend to have a look at the "SSH Brute-Force protection"-plugin),
-   in this way it's easier to understand for me and for others.
-3) Plugins should have a separate config file (.conf) with all user-configurable
-   variables. It should at least contain the "ENABLED="-variable to
-   enable/disable the plugin.
-4) Plugins should also have a separate file with their CHANGELOG (.CHANGELOG)
-5) Plugins should be POSIX shell compatible (eg. work with "Dash"). So don't use
-   stuff that only works in Bash.
-6) Plugins can use all variables/functions from the main-script and main
-   configuration file. Plugin specific configuration variables should be put
-   inside the plugin's configuration file (.conf).
-7) Make sure that when you create new iptables-chains, that they don't conflict
-   with the main script or other plugins. The same goes for the iptables
-   MARK-module, make sure that you use an unique MARK-number that doesn't
-   conflict with other plugins.
-8) Plugins should in principle always cleanup up their own chains (and possibly
-   other stuff) they created at start when stopping.
-9) Submit plugins to me, if you think they can be of use to others, but note
-   that I always reserve the right to decline the plugin (because it was eg.
-   poorly written). Submitted plugins must be (at least) compatible with the
-   GPLv2 license.
+    Use one of my plugins as a template(skeleton) for writing your own plugins
+    (I recommend to have a look at the "SSH Brute-Force protection"-plugin),
+    in this way it's easier to understand it for me and for others.
+4)  Plugins should have a separate config file (.conf) with all user-configurable
+    variables. It should at least contain the "ENABLED="-variable to
+    enable/disable the plugin.
+5)  Plugins should also have a separate file with their CHANGELOG (.changelog)
+6)  Plugins should be preferably POSIX shell compatible (eg. work with "Dash")
+7)  Plugins can use all variables/functions/chains from the main-script and main
+    configuration file. Plugin specific configuration variables should be put
+    inside the plugin's configuration file (.conf).
+8)  Make sure that when you create new iptables-chains, that they don't conflict
+    with the main script or other plugins. The same goes for the iptables
+    MARK-module, make sure that you use an unique MARK-number that doesn't
+    conflict with other plugins.
+9)  Plugins should in principle always cleanup up their own chains (and possibly
+    other stuff) they created at start when stopping.
+10) A list of available chains created by AIF's main script can be found below.
+    Note that I strongly recommend NOT to directly use any builtin iptables
+    chains like INPUT/OUTPUT/FORWARD/PREROUTING/POSTROUTING. Only do this when
+    it's absolutely necessary!
+
+    
+Available iptables chains created by Arno's Iptables Firewall
+-------------------------------------------------------------
+BASE_INPUT_CHAIN            - Base input chain. For internal use by AIF only!
+BASE_OUTPUT_CHAIN           - Base output chain. For internal use by AIF only!
+BASE_FORWARD_CHAIN          - Base forward chain. For internal use by AIF only!
+INPUT_CHAIN                 - AIF's main INPUT chain. Use this if you want to insert rules in the INPUT chain
+OUTPUT_CHAIN                - AIF's main OUTPUT chain. Use this if you want to insert rules in the OUTPUT chain
+FORWARD_CHAIN               - AIF's main FORWARD chain. Use this if you want to insert rules in the FORWARD chain
+EXT_INPUT_CHAIN             - External-net INPUT chain
+EXT_OUTPUT_CHAIN            - External-net OUTPUT chain
+EXT_BROADCAST_CHAIN         - External-net chain for broadcast traffic
+EXT_MULTICAST_CHAIN         - External-net chain for multicast traffic
+EXT_FORWARD_IN_CHAIN        - External-net FORWARD chain for INcoming traffic
+EXT_FORWARD_OUT_CHAIN       - External-net FORWARD chain for OUTgoing traffic
+EXT_ICMP_FLOOD_CHAIN        - External-net chain where ICMP packets go which are considered a "flood"
+DMZ_FORWARD_IN_CHAIN        - DMZ FORWARD chain for INcoming traffic
+DMZ_FORWARD_OUT_CHAIN       - DMZ FORWARD chain for OUTgoing traffic
+DMZ_INET_FORWARD_CHAIN      - DMZ to internet/external-net forward chain
+DMZ_INPUT_CHAIN             - DMZ INPUT chain
+DMZ_LAN_FORWARD_CHAIN       - DMZ to LAN/internal-net forward chain
+DMZ_OUTPUT_CHAIN            - DMZ output chain
+INET_DMZ_FORWARD_CHAIN      - External-net(internet) to DMZ forward chain
+HOST_BLOCK_DROP             - Chain where packets from dropped blocked hosts go
+HOST_BLOCK_DST              - Chain containing the list of destination based blocked hosts
+HOST_BLOCK_SRC              - Chain containing the list of source based blocked hosts
+INT_FORWARD_IN_CHAIN        - Internal-net FORWARD chain for INcoming traffic
+INT_FORWARD_OUT_CHAIN       - Internal-net FORWARD chain for OUTcoming traffic
+INT_INPUT_CHAIN             - Internal-net INPUT chain
+INT_OUTPUT_CHAIN            - Internal-net OUTPUT chain
+LAN_INET_FORWARD_CHAIN      - LAN to internet (external net) forward chain
+POST_INPUT_CHAIN            - This chain is always processed last(post) in the INPUT chain
+POST_OUTPUT_CHAIN           - This chain is always processed last(post) in the OUTPUT chain
+POST_FORWARD_CHAIN          - This chain is always processed last(post in the FORWARD chain
+POST_INPUT_DROP_CHAIN       - Packets dropped at the end of the INPUT chain end up in this chain (Used for eg. IDS)
+RESERVED_NET_CHK            - This chain holds the list of reserved nets to check against
+SPOOF_CHK                   - This chain contains rules for spoof checking
+VALID_CHK                   - This chain contains rules for checking whether a packet is valid
+NAT_POSTROUTING_CHAIN       - NAT (-t nat) POSTROUTING chain
+NAT_PREROUTING_CHAIN        - NAT (-t nat) PREROUTING chain
+POST_NAT_POSTROUTING_CHAIN  - This chain is always processed last(post) in the NAT (-t nat) POSTROUTING chain
+POST_NAT_PREROUTING_CHAIN   - This chain is always processed last(post) in the NAT (-t nat) PREROUTING chain
 
 
 Loadbalancing/multirouting (with multiroute masquerade/SNAT)
@@ -455,7 +501,7 @@ building from source):
 Second, you should configure/enable the multiroute-plugin. And last but not
 least, you should setup the firewall: adding (all) the used external
 interfaces to EXT_IF. And when SNAT is used, add the corresponding
-external IP's to NAT_STATIC_IP. That's it!
+external IPs to NAT_STATIC_IP. That's it!
 
 NOTE: Redundant connections are (currently) not supported! This is limitation
 of the (current) Linux kernel (not of my firewall).
@@ -539,8 +585,8 @@ modules or compiled in your kernel):
                                            use TTL manipulation
 
 
-Kernel Configuration Special Issues
------------------------------------
+Kernel configuration - Special issues
+-------------------------------------
 Some kernel versions, or series of versions, may have unique issues, below are topics
 related to the scope of this firewall script.
 
