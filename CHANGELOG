@@ -1,4 +1,4 @@
-Version 2.0.1a-DEVEL (February 20, 2012)
+Version 2.0.1a (March 7, 2012)
 ----------------------------------------
 * Misc. tweaks for arno-fwfilter (thanks Mark van Dijk)
 * Use ls instead of [ -n (find) ] as it's much faster (thanks Lonnie)
@@ -14,6 +14,7 @@ Version 2.0.1a-DEVEL (February 20, 2012)
 + Added support for new LOCAL_CONFIG_DIR variable, defaults to "/etc/arno-iptables-firewall/conf.d" (Debian bug #658458)
 ! Set default policy to DROP if either LAN_INET_HOST_OPEN_xxx or DMZ_INET_HOST_OPEN_xxx are defined,
   to match the documentation. (thanks Schilling Thomas Ing for reporting)
+* Improve documentation
 
 Version 2.0.1 (December 18, 2011)
 ---------------------------------
