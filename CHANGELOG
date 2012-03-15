@@ -1,5 +1,6 @@
 Version 2.0.1a (March 7, 2012)
 ----------------------------------------
+* Updated documentation
 * Misc. tweaks for arno-fwfilter (thanks Mark van Dijk)
 * Use ls instead of [ -n (find) ] as it's much faster (thanks Lonnie)
 * As with previous versions, when LAN_INET_OPEN_xxx and LAN_INET_HOST_OPEN_xxx are NOT defined
