@@ -1,11 +1,11 @@
-.TH "ARNO-IPTABLES-FIREWALL" "8" "October 4, 2006" "Michael Hanke" ""
+.TH "ARNO-IPTABLES-FIREWALL" "8" "March 14, 2012" "Michael Hanke" ""
 .SH "NAME"
 \fBarno\-iptables\-firewall\fR \- Single\- & multi\-homed firewall script with DSL/ADSL support.
 .SH "SYNOPSIS"
 .B /etc/init.d/arno\-iptables\-firewall 
 [start|stop|status|force\-reload|restart]
 .SH "DESCRIPTION"
-\fBarno\-iptables\-firewall\fP is an iptables configuration script. 
+\fBarno\-iptables\-firewall\fP is an iptables configuration script with support for both IPv4 & IPv6.
 While it is extremely easy to use one can nevertheless use it in quite 
 complicated environments.
 .P
@@ -14,34 +14,32 @@ configuration file.
 .P
 The external interface of the system needs to be set up properly in the 
 firewalls configuration file (EXT_IF). 
-The default behavior of the firewall is to deny all incoming connection
-attempts.
+The default behavior of the firewall is to deny all incoming connections. 
 .P
 For additional requirements not covered by the configuration file 
 custom iptables rules can be placed in 
 /etc/arno\-iptables\-firewall/custom\-rules. 
 This file is automatically parsed by the service script. 
 .P
-See the documentation in 
-.I  /usr/share/doc/arno\-iptables\-firewall 
+See the README file (eg. in  
+.I  /usr/(local/)share/doc/arno\-iptables\-firewall)
 for an example how to manage logging of firewall events through 
 .B  syslogd.
 .P
 The \fBarno\-fwfilter\fR script can be used to make the firewall logs more readable for humans (see manpage).
 .P
-There is currently only very limited support for IPv6. More precisely one can only allow or deny IPv6 traffic completely, but filtering is not possible (yet).
-.P
-Several plugins for the firewall script are available online. All plugins can
+Several plugins for the firewall script are available online. Plugins can
 be downloaded from
-.I http://rocky.eld.leidenuniv.nl/iptables-firewall/plugins
-and have to be stored in /etc/arno-iptables-firewall/plugins. Please see the documentation
-in /usr/share/doc/arno-iptables-firewall to learn about how to enable them.
+.I http://rocky.eld.leidenuniv.nl/ 
+Please see the README file 
+for more information.
 .SH "FILES"
 .nf 
 .ft B
 .ft
 /etc/init.d/arno\-iptables\-firewall              system service script
 /etc/arno\-iptables\-firewall/firewall.conf       firewall configuration
+/etc/arno\-iptables\-firewall/conf.d/             firewall configuration directory
 /etc/arno\-iptables\-firewall/custom\-rules        custom iptables rules
 /etc/arno\-iptables\-firewall/blocked\-hosts       host blacklist
 /etc/arno\-iptables\-firewall/mac\-addresses       mac filter list
