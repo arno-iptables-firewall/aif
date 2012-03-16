@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="2.0.1a"
+MY_VERSION="2.0.1b"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -3197,12 +3197,12 @@ setup_ext_input_chain()
   # Check the packet source address
   #################################
   if [ "$RESERVED_NET_DROP" = "1" ]; then
-    echo " Packets will be checked for private source addresses"
+    echo " Packets will be checked for reserved source addresses"
   else
-    echo " Packets will NOT be checked for private source addresses"
+    echo " Packets will NOT be checked for reserved source addresses"
   fi
   
-  if [ "$DROP_PRIVATE_ADDRESSES" = "1" -o "$RESERVED_NET_LOG" = "1" ]; then
+  if [ "$RESERVED_NET_DROP" = "1" -o "$RESERVED_NET_LOG" = "1" ]; then
     iptables -A EXT_INPUT_CHAIN -j RESERVED_NET_CHK
   fi
 
