@@ -322,7 +322,6 @@ mkdir -pv /usr/local/share/man/man8 || exit 1
 gzip -c -v ./share/man/man8/arno-iptables-firewall.8 >/usr/local/share/man/man8/arno-iptables-firewall.8.gz
 gzip -c -v ./share/man/man1/arno-fwfilter.1 >/usr/local/share/man/man8/arno-fwfilter.1.gz
 
-/usr/share/doc/arno\-iptables\-firewall
 mkdir -pv /usr/local/share/doc/arno-iptables-firewall || exit 1
 copy_overwrite ./README /usr/local/share/doc/arno-iptables-firewall/
 
