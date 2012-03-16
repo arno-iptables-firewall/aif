@@ -35,7 +35,7 @@ number (International Bank Account Number). Or you can donate it to one of my
 favourite charity organisations:
 - foundations for cancer research (in The Netherlands: "KWF Kanker Bestrijding");
 - foundations for brain desease research (in The Netherlands: "De Hersenstichting");
-- foundations for the welfare of animals ("IFAW" or in the Netherlands: "De Dierenbescherming"
+- foundations for the welfare of animals ("IFAW" or in the Netherlands: "De Dierenbescherming")
 
 Note that *ALL* donations I receive go to one of the above foundations.
 
@@ -48,18 +48,18 @@ IMPORTANT NOTE:
 I don't provide enduser support on my email address. Any problems & questions
 directly related to the use/implementation of my firewall should go to the
 mailinglist, for which you can sign up on my website. Also consult the FAQs
-before reporting a problem/question. lease use this way as I'm simply too busy
+before reporting a problem/question. Please use this way as I'm simply too busy
 to help everybody out with every (trivial) issue. Furthermore read the
-information in the troubleshooting question below!
+information in the troubleshooting section below!
 
 An explanation of the files in the package:
 -------------------------------------------
-/bin/arno-iptables-firewall:
+/bin/arno-iptables-firewall :
         The actual firewall script, core of Arno's iptables firewall. You
         should put this file in eg. /usr/local/sbin/ . You should make sure
         it's executable (use "chmod 700 or chmod +x).
 
-/bin/arno-fwfilter:
+/bin/arno-fwfilter :
         A pipe filter script to make the firewall-log better readable. It can
         be used for example in conjuction with a tail to log your firewall to
         local tty10 (-12). It can be used for both /var/log/messages and
@@ -67,60 +67,69 @@ An explanation of the files in the package:
         on the log-level specified in the configuration file. An example on how
         to use it can be found in the beginning of the fwfilter script. Any
         options for fwfilter can be configured within the script itself. You 
-        should put this file in for example /usr/local/bin/
+        should put this file in eg. /usr/local/bin/.
 
-/contrib/:
-        Directory contains any misc. (user contributed) files (scripts etc.) It
-        also contains examples on how to modify your syslogger to log your
-        firewall stuff into a separate file.
+/etc/arno-iptables-firewall/firewall.conf :
+        The configuration file used for Arno's iptables firewall script.
+        Normally you should put it in /etc/arno-iptables-firewall/. Make sure
+        root is owner/group (with "chown 0:0").
+        
+/etc/arno-iptables-firewall/plugins/ :
+        Put any plugin config files (.conf files) for my firewall in this
+        directory.
 
-/etc/arno-iptables-firewall/plugins/:
-        Put any plugin config files (.conf files) for my firewall in this directory.
+/etc/arno-iptables-firewall/conf.d/ :
+        Put any (override) configuration files in the directory. Any files here
+        with a .conf-extension(!) will be sourced AFTER the main firewall.conf
+        file has been read.
 
-/etc/arno-iptables-firewall/custom-rules:
+/etc/arno-iptables-firewall/custom-rules :
         Put any (iptables) custom rules in this file. This file
         should be put in /etc/arno-iptables-firewall/ . Make sure root
         is owner/group (with "chown 0:0").
 
-/etc/arno-iptables-firewall/firewall.conf:
-        The configuration file used for Arno's iptables firewall script.
-        Normally you should put it in /etc/arno-iptables-firewall/ . Make sure root
-        is owner/group (with "chown 0:0").
-
-/etc/init.d/arno-iptables-firewall:
+/etc/init.d/arno-iptables-firewall :
         The init.d script to start/stop the script at boot etc. On some (older)
         distributions you may need to put it in /etc/rc.d/ (instead of
         /etc/init.d).  You should make sure it's executable (use "chmod 700 or
         chmod +x). Inside this script you can also enable VERBOSE(=1) logging
         for eg. debugging purposes.
 
-/share/arno-iptables-firewall/environment:
+/share/arno-iptables-firewall/environment :
         This is the environment-file required by the firewall and some plugins.
         It contains several global functions. It should normally be put in
         /usr/local/share/ on your local system.
 
-/share/arno-iptables-firewall/plugins/:
+/share/arno-iptables-firewall/plugins/ :
         Put any plugin binaries (.plugin files) for my firewall in this
         directory. It should normally be put in /usr/local/share/ on your local
         system.
 
-/share/man/man8/arno-iptables-firewall.8:
+/share/man/man8/arno-iptables-firewall.8 :
         A man page for the arno-iptables-firewall script.
 
-/share/man/man1/arno-fwfilter.1:
+/share/man/man1/arno-fwfilter.1 :
         A man page for the arno-fwfilter script.
 
-/CHANGELOG
-        The version changelog of my firewall
+/CHANGELOG :
+        The version changelog of my firewall.
 
-/README
-        This file
+/README :
+        "This" file.
 
-/install.sh
+/configure.sh :
+        Script to setup a basic configuration.
+        
+/install.sh :
         Install script to deploy my firewall on your system.
 
-/uninstall.sh
+/uninstall.sh :
         Uninstall script to remove my firewall from your system.
+
+/contrib/ :
+        Directory contains any misc. (user contributed) files (scripts etc.) It
+        also contains examples on how to modify your syslogger to log your
+        firewall stuff into a separate file.
  
 ------------------------------------------
 | Some IMPORTANT (security) information: |
@@ -136,8 +145,8 @@ An explanation of the files in the package:
 
 3) I get a lot of emails from people complaining that their webserver etc.
    stopped working after installing my firewall. This is the CORRECT
-   behaviour for a firewall: BLOCKING ALL incoming traffic by default! Configure
-   your eg. OPEN_TCP accordingly!
+   behaviour for a firewall: BLOCKING ALL incoming traffic by default!
+   Configure your eg. OPEN_TCP accordingly!
 
 
 -----------------
@@ -148,22 +157,21 @@ An explanation of the files in the package:
    and end at 192.168.1.50). Note that this only works for Class-C(/24) ranges,
    so specifying eg. 192.168.1.1-192.168.2.1 does NOT work!
 
-2) My firewall has (experimental) mixed IPv4/IPv6 support. I haven't been able to test it
-   myself as I don't have the appropriate environment. You can switch from
-   IPv4-only to IPv4/IPv6 support by simplying making "IPV6_SUPPORT=1" in the config file.
+2) My firewall has mixed IPv4/IPv6 support. You can switch from IPv4-only to
+   IPv4/IPv6 support by simply setting "IPV6_SUPPORT=1" in the config file.
 
-3) You can use the $ANYPORT and $ANYHOST macro's to specify "ALL ports" or
+3) You can use the $ANYPORT and $ANYHOST macros to specify "ALL ports" or
    "ALL hosts" in the configuration variables/rules.
 
 4) The default separator for configuration-variables/rules is ~. For source
    target definitions the separator to separate source and target is >. All of
    this is also explained (with examples) in the configuration file.
 
-5) For configuration-variables/rules which are related to the external (internet)
-   interface one can restrict the interface(s) for which it is applied to by
-   adding either "{interface1,interface2,...}#" or "{interface_ip1,interface_ip2}#"
-   at the beginning of the rule. The latter is especially handy for aliased
-   interfaces.
+5) For configuration-variables/rules which are related to the external
+   (internet) interface one can restrict the interface(s) for which it is
+   applied to by adding either "{interface1,interface2,...}#" or
+   "{interface_ip1,interface_ip2}#" at the beginning of the rule. The latter
+   is especially handy for aliased interfaces.
    Example 1: OPEN_TCP="eth0#22", would only open TCP port 22 (SSH) for
               interface eth0
    Example 2: OPEN_TCP="1.2.3.4#22", would only open TCP port 22 (SSH) for
@@ -183,8 +191,8 @@ An explanation of the files in the package:
                 IP 1.2.3.4;
               - {internal_host} is the host the port should be forwarded to.
 
-6) Port ranges should be written as port_start:port_end, eg. "137:139" would select ports
-   137,138 and 139
+6) Port ranges should be written as port_start:port_end, eg. "137:139" would
+   select ports 137,138 and 139.
 
 -----------------------------------------
 | Debian package repository information |
@@ -251,8 +259,8 @@ features are enabled by default to protect you from hostile attacks.
    b) When your public IP is assigned to you by your ISP (through DHCP) then you
       should enable support for an DHCP external assigned IP.
 
-   c) Now we configure what ports should be open for the outside world. If you, for
-      example, are running an HTTP-server(port 80), an SSH-server(port 22), and/or
+   c) Now we configure what ports should be open for the outside world. If you
+      eg. are running an HTTP-server(port 80), an SSH-server(port 22), and/or
       an FTP-server (port 21) which should be accessible from the internet you
       should configure the OPEN_TCP / OPEN_UDP variables like this:
       OPEN_TCP="21 22 80"
@@ -275,9 +283,9 @@ features are enabled by default to protect you from hostile attacks.
       need this).
 
       We must enable/configure the dsl-ppp-modem plugin via
-      /etc/arno-iptables-firewall/dsl-ppp-modem.conf . First of all set ENABLED=1
+      /etc/arno-iptables-firewall/dsl-ppp-modem.conf by setting ENABLED=1.
       Now we must configure the network interface(ethX) to which your modem is
-      physically(!) connected (=MODEM_IF, which is commented(#) out by default),
+      physically connected (=MODEM_IF, which is commented(#) out by default),
       and this is NOT ppp+, ppp0 etc.! Here are some examples on how to do it
       for some providers (it's assumed that the modem is connected to eth0):
 
@@ -285,8 +293,8 @@ features are enabled by default to protect you from hostile attacks.
       (setup with the ADSL4Linux package from http://www.adsl4linux.nl):
       - MODEM_IF="eth0"
       - MODEM_IF_IP="10.0.0.150"
-      - MODEM_IP="10.0.0.138"              # Make sure this IP corresponds to the
-                                             one used by your modem!
+      - MODEM_IP="10.0.0.138"              # Make sure this IP corresponds to
+                                             the one used by your modem!
 
       T-DSL (Germany) with a dynamic public IP:
       - MODEM_IF="eth0"
@@ -296,12 +304,12 @@ features are enabled by default to protect you from hostile attacks.
       PPPoA connection with a dynamic public IP:
       - MODEM_IF="eth0"
       - MODEM_IF_IP=""                     # This MUST be unset("") (default)
-      - MODEM_IP="10.0.0.138"              # Make sure this IP corresponds to the
-                                          one used by your modem!
+      - MODEM_IP="10.0.0.138"              # Make sure this IP corresponds to
+                                             the one used by your modem!
 
       NOTE 1: For extra security you *can* set the IP of your modem (MODEM_IP),
               but it's not neccessary (anymore). If you don't know its IP or
-              believe it doesn't have an IP, you can leave MODEM_IP="" (default).
+              believe it doesn't have an IP, you can leave MODEM_IP="".
               The same applies for the IP of the modem network interface
               (MODEM_IF_IP).
 
@@ -309,28 +317,29 @@ features are enabled by default to protect you from hostile attacks.
               you probably don't have to configure your modem settings (at all).
 
       NOTE 3: In case of a PPPoA (PPP-over-ATM) you MUST leave MODEM_IF_IP
-              unset(="")!
+              empty(="")!
 
-      NOTE 4: Don't forget to set EXT_IF_DHCP_IP=1 in the main config (firewall.conf)
-              too, in case your ISP uses DHCP.
+      NOTE 4: Don't forget to set EXT_IF_DHCP_IP=1 in firewall.conf too, in
+              case your ISP uses DHCP.
              
    b) In case your on a corporate network which uses public IPs I'd suggest to add
       your local subnet (range) to "FULL_ACCESS_HOSTS".
 
-   c) Some people mentioned that protocols like IRC or some (older) FTP/POP3/SMTP
-      servers don't work (properly) if port 113(Identd) is filtered (firewalled).
-      I really hate the fact that these type of protocols still depend on the
-      "not-so-secure" IDENT-protocol. But if you really need it, you can do 2 things
-      to make them work properly:
+   c) Some people mentioned that protocols like IRC or some (older)
+      FTP/POP3/SMTP servers don't work (properly) if port 113(Identd) is
+      filtered (firewalled). I really hate the fact that these type of
+      protocols still depend on the "not-so-secure" IDENT-protocol. But if you
+      really need it, you can do 2 things to make them work properly:
       1) If you don't want to run an IDENT-daemon, simply add port 113 to the
          REJECT_TCP-variable (Recommended).
-      2) Or if you really want to run an IDENT-daemon, you should add port 113 to
-         the OPEN_TCP-variable. (Not recommended)
+      2) Or if you really want to run an IDENT-daemon, you should add port 113
+         to the OPEN_TCP-variable. (Not recommended)
 
-9)  You're now ready to start the firewall by issueing
-    "/etc/init.d/arno-iptables-firewall start" (or whatever place you've put in).
-    Everything should now work OK, if it doesn't, carefully review all steps and
-    your configuration. For troubleshouting you can consult my webpage (FAQ).
+9)  You're now ready to start the firewall by issueing:
+    "/etc/init.d/arno-iptables-firewall start"
+    Everything should be working OK now, if it doesn't, carefully review all
+    steps and your configuration. For troubleshouting you can first consult 
+    the FAQs on my webpage.
 
     NOTE 1: Make sure that when you use NAT, you should properly configure the
             client's "default gateway" and the (public) DNS server(s) it should
@@ -362,8 +371,8 @@ Troubleshooting: What if it doesn't work?:
     fixes your problem.
 7)  Read the README file one more time and review your .conf-file also one more
     time, just in case ;-)
-8)  Do NOT send enduser requests to my personal email address, instead post your
-    question/problem on the firewall mailing list. Provide us with:
+8)  Do NOT send enduser requests to my personal email address, instead post
+    your question/problem on the firewall mailing list. Provide us with:
     - your (firewall) *.conf files
     - the screen output of "/usr/local/sbin/arno-iptables-firewall start" 
       (or whatever it is located)
@@ -419,20 +428,20 @@ Notes on writing your own plugins
     Use one of my plugins as a template(skeleton) for writing your own plugins
     (I recommend to have a look at the "SSH Brute-Force protection"-plugin),
     in this way it's easier to understand it for me and for others.
-4)  Plugins should have a separate config file (.conf) with all user-configurable
-    variables. It should at least contain the "ENABLED="-variable to
-    enable/disable the plugin.
+4)  Plugins should have a separate config file (.conf) with all user
+    variables(settings). It should at least contain the "ENABLED="-variable
+    to enable/disable the plugin.
 5)  Plugins should also have a separate file with their CHANGELOG (.changelog)
 6)  Plugins should be preferably POSIX shell compatible (eg. work with "Dash")
-7)  Plugins can use all variables/functions/chains from the main-script and main
-    configuration file. Plugin specific configuration variables should be put
-    inside the plugin's configuration file (.conf).
-8)  Make sure that when you create new iptables-chains, that they don't conflict
+7)  Plugins can use all variables/functions/chains from the main-script and
+    main configuration file. Plugin specific configuration variables should be
+    put inside the plugin's configuration file (.conf).
+8)  Make sure that when you create new iptables-chains, they don't conflict
     with the main script or other plugins. The same goes for the iptables
     MARK-module, make sure that you use an unique MARK-number that doesn't
     conflict with other plugins.
-9)  Plugins should in principle always cleanup up their own chains (and possibly
-    other stuff) they created at start when stopping.
+9)  Plugins should in principle always cleanup up their own chains (and
+    possibly other stuff) they created at start when stopping.
 10) A list of available chains created by AIF's main script can be found below.
     Note that I strongly recommend NOT to directly use any builtin iptables
     chains like INPUT/OUTPUT/FORWARD/PREROUTING/POSTROUTING. Only do this when
@@ -444,16 +453,20 @@ Available iptables chains created by Arno's Iptables Firewall
 BASE_INPUT_CHAIN            - Base input chain. For internal use by AIF only!
 BASE_OUTPUT_CHAIN           - Base output chain. For internal use by AIF only!
 BASE_FORWARD_CHAIN          - Base forward chain. For internal use by AIF only!
-INPUT_CHAIN                 - AIF's main INPUT chain. Use this if you want to insert rules in the INPUT chain
-OUTPUT_CHAIN                - AIF's main OUTPUT chain. Use this if you want to insert rules in the OUTPUT chain
-FORWARD_CHAIN               - AIF's main FORWARD chain. Use this if you want to insert rules in the FORWARD chain
+INPUT_CHAIN                 - AIF's main INPUT chain. Use this if you want to
+                              insert rules in the INPUT chain
+OUTPUT_CHAIN                - AIF's main OUTPUT chain. Use this if you want to
+                              insert rules in the OUTPUT chain
+FORWARD_CHAIN               - AIF's main FORWARD chain. Use this if you want to
+                              insert rules in the FORWARD chain
 EXT_INPUT_CHAIN             - External-net INPUT chain
 EXT_OUTPUT_CHAIN            - External-net OUTPUT chain
 EXT_BROADCAST_CHAIN         - External-net chain for broadcast traffic
 EXT_MULTICAST_CHAIN         - External-net chain for multicast traffic
 EXT_FORWARD_IN_CHAIN        - External-net FORWARD chain for INcoming traffic
 EXT_FORWARD_OUT_CHAIN       - External-net FORWARD chain for OUTgoing traffic
-EXT_ICMP_FLOOD_CHAIN        - External-net chain where ICMP packets go which are considered a "flood"
+EXT_ICMP_FLOOD_CHAIN        - External-net chain where ICMP packets go which
+                              are considered a "flood"
 DMZ_FORWARD_IN_CHAIN        - DMZ FORWARD chain for INcoming traffic
 DMZ_FORWARD_OUT_CHAIN       - DMZ FORWARD chain for OUTgoing traffic
 DMZ_INET_FORWARD_CHAIN      - DMZ to internet/external-net forward chain
@@ -462,24 +475,34 @@ DMZ_LAN_FORWARD_CHAIN       - DMZ to LAN/internal-net forward chain
 DMZ_OUTPUT_CHAIN            - DMZ output chain
 INET_DMZ_FORWARD_CHAIN      - External-net(internet) to DMZ forward chain
 HOST_BLOCK_DROP             - Chain where packets from dropped blocked hosts go
-HOST_BLOCK_DST              - Chain containing the list of destination based blocked hosts
-HOST_BLOCK_SRC              - Chain containing the list of source based blocked hosts
+HOST_BLOCK_DST              - Chain containing the list of destination based
+                              blocked hosts
+HOST_BLOCK_SRC              - Chain containing the list of source based blocked
+                              hosts
 INT_FORWARD_IN_CHAIN        - Internal-net FORWARD chain for INcoming traffic
 INT_FORWARD_OUT_CHAIN       - Internal-net FORWARD chain for OUTcoming traffic
 INT_INPUT_CHAIN             - Internal-net INPUT chain
 INT_OUTPUT_CHAIN            - Internal-net OUTPUT chain
 LAN_INET_FORWARD_CHAIN      - LAN to internet (external net) forward chain
-POST_INPUT_CHAIN            - This chain is always processed last(post) in the INPUT chain
-POST_OUTPUT_CHAIN           - This chain is always processed last(post) in the OUTPUT chain
-POST_FORWARD_CHAIN          - This chain is always processed last(post in the FORWARD chain
-POST_INPUT_DROP_CHAIN       - Packets dropped at the end of the INPUT chain end up in this chain (Used for eg. IDS)
-RESERVED_NET_CHK            - This chain holds the list of reserved nets to check against
+POST_INPUT_CHAIN            - This chain is always processed last(post) in the
+                              INPUT chain
+POST_OUTPUT_CHAIN           - This chain is always processed last(post) in the
+                              OUTPUT chain
+POST_FORWARD_CHAIN          - This chain is always processed last(post in the
+                              FORWARD chain
+POST_INPUT_DROP_CHAIN       - Packets dropped at the end of the INPUT chain end
+                              up in this chain (Used for eg. IDS)
+RESERVED_NET_CHK            - This chain holds the list of reserved nets to
+                              check against
 SPOOF_CHK                   - This chain contains rules for spoof checking
-VALID_CHK                   - This chain contains rules for checking whether a packet is valid
+VALID_CHK                   - This chain contains rules for checking whether a
+                              packet is valid
 NAT_POSTROUTING_CHAIN       - NAT (-t nat) POSTROUTING chain
 NAT_PREROUTING_CHAIN        - NAT (-t nat) PREROUTING chain
-POST_NAT_POSTROUTING_CHAIN  - This chain is always processed last(post) in the NAT (-t nat) POSTROUTING chain
-POST_NAT_PREROUTING_CHAIN   - This chain is always processed last(post) in the NAT (-t nat) PREROUTING chain
+POST_NAT_POSTROUTING_CHAIN  - This chain is always processed last(post) in the
+                              NAT (-t nat) POSTROUTING chain
+POST_NAT_PREROUTING_CHAIN   - This chain is always processed last(post) in the
+                              NAT (-t nat) PREROUTING chain
 
 
 Loadbalancing/multirouting (with multiroute masquerade/SNAT)
@@ -587,35 +610,38 @@ modules or compiled in your kernel):
 
 Kernel configuration - Special issues
 -------------------------------------
-Some kernel versions, or series of versions, may have unique issues, below are topics
-related to the scope of this firewall script.
+Some kernel versions, or series of versions, may have unique issues, below are
+topics related to the scope of this firewall script.
 
-1) Starting with kernel version 2.6.27, CONFIG_NF_CT_ACCT is deprecated, the result when
-   the "nf_conntrack" module is loaded and the kernel has CONFIG_NF_CT_ACCT=y set,
-   the following message is displayed:
+1) Starting with kernel version 2.6.27, CONFIG_NF_CT_ACCT is deprecated, the
+   result when the "nf_conntrack" module is loaded and the kernel has
+   CONFIG_NF_CT_ACCT=y set, the following message is displayed:
 
      "CONFIG_NF_CT_ACCT is deprecated and will be removed soon. Please use
      nf_conntrack.acct=1 kernel paramater, acct=1 nf_conntrack module option or
      sysctl net.netfilter.nf_conntrack_acct=1 to enable it."
 
-   The message is harmless, and can be safely ignored.  The arno-iptables-firewall script also
-   sets net.netfilter.nf_conntrack_acct=1 in the case when CONFIG_NF_CT_ACCT is not set.
+   The message is harmless, and can be safely ignored. The main script also
+   sets net.netfilter.nf_conntrack_acct=1 in the case CONFIG_NF_CT_ACCT is not
+   set.
 
-   Though, if you find this message annoying, it can be silenced via "make menuconfig":
+   Though, if you find this message annoying, it can be silenced via
+   "make menuconfig":
 
        -- Core Netfilter Configuration --
      <M> Netfilter connection tracking support
      [ ]   Connection tracking flow accounting
 
-   if "Connection tracking flow accounting" can't be disabled, then also disabling...
+   if "Connection tracking flow accounting" can't be disabled, then disabling
 
      < >   "connbytes" per-connection counter match support
 
-   may be required because of dependencies.  The resulting configuration settings are:
+   may be required because of dependencies.  The resulting configuration
+   settings are:
 
      CONFIG_NF_CONNTRACK=m
      # CONFIG_NF_CT_ACCT is not set
      # CONFIG_NETFILTER_XT_MATCH_CONNBYTES is not set
 
-   CONFIG_NF_CT_ACCT was scheduled to be removed in 2.6.29, but has not yet been removed.
-
+   CONFIG_NF_CT_ACCT was scheduled to be removed in 2.6.29, but has not yet
+   been removed, as of writing.
