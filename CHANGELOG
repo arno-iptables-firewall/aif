@@ -1,5 +1,6 @@
 Version 2.0.1c-DEVEL (April 12, 2012)
 -------------------------------------
+! Add 'unset IFS' for loop using IPv6 ICMPV6_SPECIAL_TYPES, fails when IFS=',' (Thanks to Ingmar Schraub)
 
 Version 2.0.1b (March 16, 2012)
 -------------------------------
