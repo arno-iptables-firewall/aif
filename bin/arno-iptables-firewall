@@ -313,11 +313,12 @@ load_modules()
   fi
   
   # Implement the LOG target
-  modprobe ipt_LOG
   if [ "$IPV6_SUPPORT" = "1" ]; then
-    modprobe ip6t_LOG
+    modprobe_multi xt_log "ipt_LOG,ip6t_LOG"
+  else
+    modprobe_multi xt_log ipt_LOG
   fi
-  
+
   if [ "$SET_MSS" != "0" ]; then
     # Implement the TCPMSS target
     if [ "$IPV6_SUPPORT" = "1" ]; then

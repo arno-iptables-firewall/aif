@@ -1,6 +1,7 @@
-Version 2.0.1c-DEVEL (April 12, 2012)
--------------------------------------
-! Fix a script 'IFS' issue if IPv6 and DMZ is enabled together with DMZ_HOST_OPEN_IP (Thanks to Ingmar Schraub)
+Version 2.0.1c-DEVEL (June 19, 2012)
+------------------------------------
+! Fix a script 'IFS' issue if IPv6 and DMZ is enabled together with DMZ_HOST_OPEN_IP (thanks to Ingmar Schraub)
+! Newer kernels (3.4+?) replaced ipt_LOG & ip6t_LOG with xt_log (thanks to Adam Young)
 
 Version 2.0.1b (March 16, 2012)
 -------------------------------
