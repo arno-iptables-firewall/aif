@@ -314,9 +314,9 @@ load_modules()
   
   # Implement the LOG target
   if [ "$IPV6_SUPPORT" = "1" ]; then
-    modprobe_multi xt_log "ipt_LOG,ip6t_LOG"
+    modprobe_multi xt_LOG "ipt_LOG,ip6t_LOG"
   else
-    modprobe_multi xt_log ipt_LOG
+    modprobe_multi xt_LOG ipt_LOG
   fi
 
   if [ "$SET_MSS" != "0" ]; then
