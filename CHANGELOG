@@ -1,5 +1,5 @@
-Version 2.0.1c-DEVEL (June 19, 2012)
-------------------------------------
+Version 2.0.1c (June 27, 2012)
+------------------------------
 ! Fix a script 'IFS' issue if IPv6 and DMZ is enabled together with DMZ_HOST_OPEN_IP (thanks to Ingmar Schraub)
 ! Newer kernels (3.4+) replaced ipt_LOG & ip6t_LOG with xt_LOG (thanks to Adam Young)
 
@@ -30,7 +30,7 @@ Version 2.0.1a (March 7, 2012)
 Version 2.0.1 (December 18, 2011)
 ---------------------------------
 - Removed DNS_FAST_FAIL & RESOLV_IPS since they are both obsolete
-* Few changes in the install/uninstall scripts. eg. arno-fwilter now installs to /usr/local/bin instead
+* Few changes in the install/uninstall scripts. eg. arno-fwfilter now installs to /usr/local/bin instead
 
 Version 2.0.1-BETA1 (October 10, 2011)
 --------------------------------------
