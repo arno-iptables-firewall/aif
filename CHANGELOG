@@ -1,5 +1,6 @@
 Version 2.0.1d-DEVEL (July 6, 2012)
 -----------------------------------
+* Allow plugins to maintain a dynamic chain (e.g. MINIUPNPD) in the nat table and not get automatically flushed on a restart.
 
 Version 2.0.1c (June 27, 2012)
 ------------------------------
