@@ -5133,7 +5133,9 @@ reinit_firewall_chains()
   ip4tables -t nat -F OUTPUT
   ip4tables -t nat -F POSTROUTING
 
-  # Flush rules in the mangle table
+  # Flush builtin IPv4 mangle chains
+  #   We don't have to be selective by chain since we don't
+  #   expect any external, dynamically managed mangle chains
   ip4tables -t mangle -F
 
   if [ "$IPV6_DETECTED" = "1" ]; then
@@ -5142,7 +5144,9 @@ reinit_firewall_chains()
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
 
-    # Flush rules in the mangle table
+    # Flush builtin IPv6 mangle chains
+    #   We don't have to be selective by chain since we don't
+    #   expect any external, dynamically managed mangle chains
     ip6tables -t mangle -F
   fi
 
