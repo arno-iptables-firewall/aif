@@ -1,5 +1,6 @@
 Version 2.0.1d-DEVEL (July 18, 2012)
 ------------------------------------
+! Fix logging dropped packets matching (ie, not just TCP) for LAN_INET_FORWARD_CHAIN and DMZ_INET_FORWARD_CHAIN.
 + Added new variables LAN_INET_DEFAULT_POLICY_DROP, DMZ_INET_DEFAULT_POLICY_DROP and LAN_DEFAULT_POLICY_DROP
   to define the default policies. When undefined the 'automatic' policy is the default as with all previous versions.
 * Allow plugins to maintain a dynamic chain (e.g. MINIUPNPD) in the nat table and not get automatically flushed on a restart.
