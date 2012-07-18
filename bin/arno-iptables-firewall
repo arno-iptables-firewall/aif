@@ -2008,7 +2008,8 @@ setup_dmz_inet_forward_chain()
   ###########################################################################################
   if [ -z "$DMZ_INET_OPEN_TCP" -a -z "$DMZ_INET_HOST_OPEN_TCP" -a \
        -z "$DMZ_INET_OPEN_UDP" -a -z "$DMZ_INET_HOST_OPEN_UDP" -a \
-       -z "$DMZ_INET_OPEN_IP"  -a -z "$DMZ_INET_HOST_OPEN_IP" ]; then
+       -z "$DMZ_INET_OPEN_IP"  -a -z "$DMZ_INET_HOST_OPEN_IP"  -a -z "$DMZ_INET_DEFAULT_POLICY_DROP" ] \
+     || [ "$DMZ_INET_DEFAULT_POLICY_DROP" = "0" ]; then
     echo "  Allowing all (other) ports/protocols"
     iptables -A DMZ_INET_FORWARD_CHAIN -j ACCEPT
   else
@@ -2234,7 +2235,8 @@ setup_int_input_chain()
   ########################
   if [ -z "$LAN_OPEN_TCP" -a -z "$LAN_HOST_OPEN_TCP" -a \
        -z "$LAN_OPEN_UDP" -a -z "$LAN_HOST_OPEN_UDP" -a \
-       -z "$LAN_OPEN_IP" -a -z "$LAN_HOST_OPEN_IP" ]; then
+       -z "$LAN_OPEN_IP"  -a -z "$LAN_HOST_OPEN_IP"  -a -z "$LAN_DEFAULT_POLICY_DROP" ] \
+     || [ "$LAN_DEFAULT_POLICY_DROP" = "0" ]; then
     echo " Allowing all (other) ports/protocols"
     iptables -A INT_INPUT_CHAIN -j ACCEPT
   else
@@ -2529,7 +2531,8 @@ setup_lan_inet_forward_chain()
   ###########################################################################################
   if [ -z "$LAN_INET_OPEN_TCP" -a -z "$LAN_INET_HOST_OPEN_TCP" -a \
        -z "$LAN_INET_OPEN_UDP" -a -z "$LAN_INET_HOST_OPEN_UDP" -a \
-       -z "$LAN_INET_OPEN_IP" -a -z "$LAN_INET_HOST_OPEN_IP" ]; then
+       -z "$LAN_INET_OPEN_IP"  -a -z "$LAN_INET_HOST_OPEN_IP"  -a -z "$LAN_INET_DEFAULT_POLICY_DROP" ] \
+     || [ "$LAN_INET_DEFAULT_POLICY_DROP" = "0" ]; then
     echo "  Allowing all (other) ports/protocols"
     iptables -A LAN_INET_FORWARD_CHAIN -j ACCEPT
   else
