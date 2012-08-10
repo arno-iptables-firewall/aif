@@ -441,7 +441,7 @@ modprobe()
     retval=$?
 
     if [ $retval -ne 0 ]; then
-      if ! echo "$result" |grep -q -e "Module .* not found" -e "Can't locate module"; then
+      if ! echo "$result" |grep -q -e "Module .* not found" -e "Can't locate module" -e "^ *$"; then
         # Show any (error) messages in red
         printf "\033[40m\033[1;31m${MODPROBE} $*\nERROR ($retval): ${result}\033[0m\n" >&2
       elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
