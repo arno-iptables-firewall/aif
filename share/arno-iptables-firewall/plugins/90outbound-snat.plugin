@@ -1,0 +1,186 @@
+# ------------------------------------------------------------------------------
+#               -= Arno's iptables firewall - Outbound SNAT plugin =-
+#
+PLUGIN_NAME="Outbound SNAT plugin"
+PLUGIN_VERSION="1.00 BETA"
+PLUGIN_CONF_FILE="outbound-snat.conf"
+#
+# Last changed          : September 22, 2012
+# Requirements          : AIF 2.0.0+
+# Comments              : When a NAT'ed external interface has multiple IPv4 addresses,
+#                         it may be desirable to specify which internal IP's or CIDR's
+#                         use which external IPv4 addresses for outbound connections.
+#
+# Author                : (C) Copyright 2012 by Lonnie Abelbeck & Arno van Amersfoort
+# Homepage              : http://rocky.eld.leidenuniv.nl/
+# Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
+# Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------
+
+get_extif_ipv4_addresses()
+{
+  ip -o addr show dev "$1" 2>/dev/null \
+    | awk '$3 == "inet" { split($4, field, "/"); print field[1]; }'
+}
+
+get_extif_with_ipv4_address()
+{
+  local host="$1" eif eip eips IFS
+
+  IFS=' ,'
+  for eif in $EXT_IF; do
+    eips="$(get_extif_ipv4_addresses $eif)"
+    if [ -n "$eips" ]; then
+      unset IFS
+      for eip in $eips; do
+        if [ "$host" = "$eip" ]; then
+          echo "$eif"
+          return 0
+        fi
+      done
+    fi
+  done
+
+  return 1
+}
+
+# Plugin start function
+plugin_start()
+{
+  local rule net host eif IFS
+
+  ip4tables -t nat -N OUTBOUND_SNAT 2>/dev/null
+  ip4tables -t nat -F OUTBOUND_SNAT
+
+  IFS=' ,'
+  for rule in $OUTBOUND_SNAT_NET_HOST; do
+    net="$(echo "$rule" |cut -s -d'>' -f1)"
+    host="$(echo "$rule" |cut -s -d'>' -f2)"
+    if [ -n "$net" -a -n "$host" ]; then
+
+      # First, look for matching external interface with "host" address.
+      eif="$(get_extif_with_ipv4_address $host)"
+      if [ -n "$eif" ]; then
+        # Apply to single external interface containing "host".
+        echo "${INDENT}Outbound SNAT internal $net via external $host for interface: $eif"
+        ip4tables -t nat -A OUTBOUND_SNAT -o $eif -s $net ! -d $net -j SNAT --to-source $host
+      else
+        # Apply to all external interface(s) if "host" is not currently found.
+        echo "${INDENT}Outbound SNAT internal $net via external $host for interface(s): $EXT_IF"
+        IFS=' ,'
+        for eif in $EXT_IF; do
+          ip4tables -t nat -A OUTBOUND_SNAT -o $eif -s $net ! -d $net -j SNAT --to-source $host
+        done
+      fi
+    else
+      echo "** WARNING: In Variable OUTBOUND_SNAT_NET_HOST, Rule: \"$rule\" is ignored." >&2
+    fi
+  done
+
+  ip4tables -t nat -A POSTROUTING -j OUTBOUND_SNAT
+
+  return 0
+}
+
+
+# Plugin restart function
+plugin_restart()
+{
+
+  # Skip plugin_stop on a restart
+  plugin_start
+
+  return 0
+}
+
+
+# Plugin stop function
+plugin_stop()
+{
+
+  ip4tables -t nat -D POSTROUTING -j OUTBOUND_SNAT
+
+  ip4tables -t nat -F OUTBOUND_SNAT
+  ip4tables -t nat -X OUTBOUND_SNAT 2>/dev/null
+
+  return 0
+}
+
+
+# Plugin status function
+plugin_status()
+{
+  return 0
+}
+
+
+# Check sanity of eg. environment
+plugin_sanity_check()
+{
+  # Sanity check
+  if [ -z "$OUTBOUND_SNAT_NET_HOST" ]; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not properly set!\033[0m\n" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+
+############
+# Mainline #
+############
+
+# Check where to find the config file
+CONF_FILE=""
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Check if the config file exists
+if [ ! -e "$CONF_FILE" ]; then
+  printf "NOTE: Config file \"$CONF_FILE\" not found!\n        Plugin \"$PLUGIN_NAME v$PLUGIN_VERSION\" ignored!\n" >&2
+  PLUGIN_RET_VAL=0
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  if [ "$ENABLED" = "1" -a "$PLUGIN_CMD" != "stop-restart" ] ||
+     [ "$ENABLED" = "0" -a "$PLUGIN_CMD" = "stop-restart" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
+    # Show who we are:
+    echo "${INDENT}$PLUGIN_NAME v$PLUGIN_VERSION"
+
+    # Increment indention
+    INDENT="$INDENT "
+    
+    # Only proceed if environment ok
+    if plugin_sanity_check; then
+      case $PLUGIN_CMD in
+        start|'') plugin_start; PLUGIN_RET_VAL=$?;;
+        restart ) plugin_restart; PLUGIN_RET_VAL=$?;;
+        stop|stop-restart) plugin_stop; PLUGIN_RET_VAL=$?;;
+        status  ) plugin_status; PLUGIN_RET_VAL=$?;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m  ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
+      esac
+    fi
+  else
+    PLUGIN_RET_VAL=0
+  fi
+fi
