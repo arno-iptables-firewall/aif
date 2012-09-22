@@ -1,5 +1,7 @@
-Version 2.0.1d-DEVEL (August 10, 2012)
-------------------------------------
+Version 2.0.1d-DEVEL (September 22, 2012)
+-----------------------------------------
++ Added outbound-snat plugin to support when a NAT'ed external interface has multiple IPv4 addresses, it may be
+  desirable to specify which internal IP's or CIDR's use which external IPv4 addresses for outbound connections.
 ! Fixed modprobe() function when using kmod. Apparently kmod doesn't echo anything (to stderr) when a module is not found?!
 ! Fix logging dropped packets matching (ie, not just TCP) for LAN_INET_FORWARD_CHAIN and DMZ_INET_FORWARD_CHAIN.
 + Added new variables LAN_INET_DEFAULT_POLICY_DROP, DMZ_INET_DEFAULT_POLICY_DROP and LAN_DEFAULT_POLICY_DROP
