@@ -1,0 +1,295 @@
+# ------------------------------------------------------------------------------
+#               -= Arno's iptables firewall - NAT Loopback plugin =-
+#
+PLUGIN_NAME="NAT Loopback plugin"
+PLUGIN_VERSION="1.00 BETA"
+PLUGIN_CONF_FILE="nat-loopback.conf"
+#
+# Last changed          : October 15, 2012
+# Requirements          : AIF 2.0.0+
+# Comments              : NAT Loopback for local nets using existing NAT_FORWARD_TCP
+#                         and NAT_FORWARD_UDP rules.
+#                         Local nets may be able to use the external IPv4 address and
+#                         port to access NAT forwarded internal servers.
+#
+# Author                : (C) Copyright 2012 by Lonnie Abelbeck & Arno van Amersfoort
+# Homepage              : http://rocky.eld.leidenuniv.nl/
+# Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
+# Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------
+
+NAT_LOOPBACK_DEFAULT_IPV4="/var/tmp/aif-nat-loopback-default-ipv4"
+
+nat_loopback_default_ext_ipv4()
+{
+  local eif IFS
+
+  IFS=' ,'
+  for eif in $EXT_IF; do
+    ip -o addr show dev $eif \
+      | awk '$3 == "inet" { split($4, field, "/"); print field[1]; nextfile; }'
+    break # Only use first external interface
+  done
+}
+
+nat_loopback_update_default_ipv4()
+{
+  local old_defaultip="$1" defaultip="$2" old_match line cnt IFS
+
+  unset IFS
+
+  # Replace 'dot' with 'backslash-dot' for regex match
+  # ${old_defaultip//./\.} would be better, but dash does not support it
+  old_match="$(echo "$old_defaultip" | sed 's/\./\\./g')"
+
+  cnt=1
+  ip4tables_save -t nat | grep -e '-A NAT_LOOPBACK_DNAT ' | while read line; do
+    nline="$(echo "$line" | sed "s| ${old_match}/32| ${defaultip}/32|")"
+    if [ "$nline" != "$line" ]; then
+      ip4tables -t nat -R NAT_LOOPBACK_DNAT $cnt ${nline#-A NAT_LOOPBACK_DNAT }
+    fi
+    cnt=$(($cnt+1))
+  done
+
+  cnt=1
+  ip4tables_save -t nat | grep -e '-A NAT_LOOPBACK_SNAT ' | while read line; do
+    nline="$(echo "$line" | sed "s| ${old_match}$| ${defaultip}|")"
+    if [ "$nline" != "$line" ]; then
+      ip4tables -t nat -R NAT_LOOPBACK_SNAT $cnt ${nline#-A NAT_LOOPBACK_SNAT }
+    fi
+    cnt=$(($cnt+1))
+  done
+}
+
+# Plugin start function
+plugin_start()
+{
+  local defaultip eif net IFS
+
+  ip4tables -t nat -N NAT_LOOPBACK_DNAT 2>/dev/null
+  ip4tables -t nat -F NAT_LOOPBACK_DNAT
+
+  ip4tables -t nat -N NAT_LOOPBACK_SNAT 2>/dev/null
+  ip4tables -t nat -F NAT_LOOPBACK_SNAT
+
+  if [ -z "$NAT_LOOPBACK_NET" ]; then
+    NAT_LOOPBACK_NET="$NAT_INTERNAL_NET"
+  fi
+
+  echo "${INDENT}NAT Loopback internal net(s): $NAT_LOOPBACK_NET"
+  if [ "$NAT_LOOPBACK_FORWARD" = "1" ]; then
+    echo "${INDENT}NAT Loopback local forwards are enabled."
+  else
+    echo "${INDENT}NAT Loopback local forwards are disabled."
+  fi
+
+  defaultip="$(nat_loopback_default_ext_ipv4)"
+  if [ -n "$defaultip" ]; then
+    echo "$defaultip" > "$NAT_LOOPBACK_DEFAULT_IPV4"
+  else
+    rm -f "$NAT_LOOPBACK_DEFAULT_IPV4"
+  fi
+
+  unset IFS
+  for rule in $NAT_FORWARD_TCP; do
+    if parse_rule "$rule" NAT_FORWARD_TCP "interfaces:EXT_IF-destips-shosts-ports-dhost_dport"; then
+
+      IFS=' ,'
+      for shost in $(ip_range "$shosts"); do
+        for port in $ports; do
+          for destip in $destips; do
+            for eif in $interfaces; do
+              dport="$(get_ports_hp "$dhost_dport" "$port")"
+              dhost="$(get_hosts_hp "$dhost_dport")"
+              if [ "$destip" = "0/0" ]; then
+                destip="$defaultip"
+              fi
+              if [ -n "$dhost" -a -n "$destip" ]; then
+                for net in $NAT_LOOPBACK_NET; do
+                  ip4tables -t nat -A NAT_LOOPBACK_DNAT -s $net -d $destip \
+                                   -p tcp --dport $port -j DNAT --to-destination $(echo "$dhost_dport" |tr "$SEP-" '::')
+                  if [ "$NAT_LOOPBACK_FORWARD" = "1" ]; then
+                    ip4tables -A POST_FORWARD_CHAIN -s $net -d $dhost -p tcp --dport $dport -j ACCEPT
+                  fi
+                  ip4tables -t nat -A NAT_LOOPBACK_SNAT -s $net -d $dhost \
+                                   -p tcp --dport $dport -j SNAT --to-source $destip
+                done
+              fi
+            done
+          done
+        done
+      done
+    fi
+  done
+
+  unset IFS
+  for rule in $NAT_FORWARD_UDP; do
+    if parse_rule "$rule" NAT_FORWARD_UDP "interfaces:EXT_IF-destips-shosts-ports-dhost_dport"; then
+
+      IFS=' ,'
+      for shost in $(ip_range "$shosts"); do
+        for port in $ports; do
+          for destip in $destips; do
+            for eif in $interfaces; do
+              dport="$(get_ports_hp "$dhost_dport" "$port")"
+              dhost="$(get_hosts_hp "$dhost_dport")"
+              if [ "$destip" = "0/0" ]; then
+                destip="$defaultip"
+              fi
+              if [ -n "$dhost" -a -n "$destip" ]; then
+                for net in $NAT_LOOPBACK_NET; do
+                  ip4tables -t nat -A NAT_LOOPBACK_DNAT -s $net -d $destip \
+                                   -p udp --dport $port -j DNAT --to-destination $(echo "$dhost_dport" |tr "$SEP-" '::')
+                  if [ "$NAT_LOOPBACK_FORWARD" = "1" ]; then
+                    ip4tables -A POST_FORWARD_CHAIN -s $net -d $dhost -p udp --dport $dport -j ACCEPT
+                  fi
+                  ip4tables -t nat -A NAT_LOOPBACK_SNAT -s $net -d $dhost \
+                                   -p udp --dport $dport -j SNAT --to-source $destip
+                done
+              fi
+            done
+          done
+        done
+      done
+    fi
+  done
+
+  ip4tables -t nat -A PREROUTING -j NAT_LOOPBACK_DNAT
+  ip4tables -t nat -A POSTROUTING -j NAT_LOOPBACK_SNAT
+
+  return 0
+}
+
+
+# Plugin restart function
+plugin_restart()
+{
+
+  # Skip plugin_stop on a restart
+  plugin_start
+
+  return 0
+}
+
+
+# Plugin stop function
+plugin_stop()
+{
+
+  ip4tables -t nat -D PREROUTING -j NAT_LOOPBACK_DNAT
+  ip4tables -t nat -D POSTROUTING -j NAT_LOOPBACK_SNAT
+
+  ip4tables -t nat -F NAT_LOOPBACK_DNAT
+  ip4tables -t nat -X NAT_LOOPBACK_DNAT 2>/dev/null
+
+  ip4tables -t nat -F NAT_LOOPBACK_SNAT
+  ip4tables -t nat -X NAT_LOOPBACK_SNAT 2>/dev/null
+
+  rm -f "$NAT_LOOPBACK_DEFAULT_IPV4"
+
+  return 0
+}
+
+
+# Plugin status function
+plugin_status()
+{
+  local defaultip old_defaultip
+
+  if [ -f "$NAT_LOOPBACK_DEFAULT_IPV4" ]; then
+    old_defaultip="$(cat "$NAT_LOOPBACK_DEFAULT_IPV4")"
+  else
+    old_defaultip=""
+  fi
+
+  defaultip="$(nat_loopback_default_ext_ipv4)"
+  if [ -n "$defaultip" ]; then
+    if [ "$defaultip" != "$old_defaultip" ]; then
+      if [ "$NAT_LOOPBACK_UPDATE_ON_STATUS" != "0" ]; then
+        # update rules
+        nat_loopback_update_default_ipv4 "$old_defaultip" "$defaultip"
+        echo "$defaultip" > "$NAT_LOOPBACK_DEFAULT_IPV4"
+        echo "  NAT Loopback Default IPv4 (updated): $defaultip"
+      else
+        echo "  NAT Loopback Default IPv4 needs updating from '$old_defaultip' to '$defaultip'"
+      fi
+      return 0
+    fi
+  fi
+
+  if [ -n "$old_defaultip" ]; then
+    echo "  NAT Loopback Default IPv4: $old_defaultip"
+  else
+    echo "  NAT Loopback Default IPv4: None"
+  fi
+
+  return 0
+}
+
+
+# Check sanity of eg. environment
+plugin_sanity_check()
+{
+  # Sanity check
+
+  return 0
+}
+
+
+############
+# Mainline #
+############
+
+# Check where to find the config file
+CONF_FILE=""
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Check if the config file exists
+if [ ! -e "$CONF_FILE" ]; then
+  printf "NOTE: Config file \"$CONF_FILE\" not found!\n        Plugin \"$PLUGIN_NAME v$PLUGIN_VERSION\" ignored!\n" >&2
+  PLUGIN_RET_VAL=0
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  if [ "$ENABLED" = "1" -a "$PLUGIN_CMD" != "stop-restart" ] ||
+     [ "$ENABLED" = "0" -a "$PLUGIN_CMD" = "stop-restart" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
+    # Show who we are:
+    echo "${INDENT}$PLUGIN_NAME v$PLUGIN_VERSION"
+
+    # Increment indention
+    INDENT="$INDENT "
+    
+    # Only proceed if environment ok
+    if plugin_sanity_check; then
+      case $PLUGIN_CMD in
+        start|'') plugin_start; PLUGIN_RET_VAL=$?;;
+        restart ) plugin_restart; PLUGIN_RET_VAL=$?;;
+        stop|stop-restart) plugin_stop; PLUGIN_RET_VAL=$?;;
+        status  ) plugin_status; PLUGIN_RET_VAL=$?;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m  ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
+      esac
+    fi
+  else
+    PLUGIN_RET_VAL=0
+  fi
+fi
