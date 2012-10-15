@@ -4401,28 +4401,32 @@ plugins_stop()
 
 plugins_status()
 {
+  local match="$1"
+
   # Load/insert user plugins
   if [ -e "$PLUGIN_LOAD_FILE" ]; then
-    printf "\nShowing status of (user) plugins:\n"
+    printf "\nShowing status of (user) plugins:${match:+ $match}\n"
     echo "---------------------------------"
 
     IFS=$EOL
     for plugin in `cat "$PLUGIN_LOAD_FILE"`; do
       # Only issue the status command for plugins that support the PLUGIN_CMD-variable:
       if grep -q "^plugin_status\(\)" "$plugin"; then
-        # Preset ENABLED=0 to make sure the plugin only
-        # gets loaded if the config has an explicit ENABLED=1:
-        ENABLED=0
-        
-        # Set indent
-        INDENT=' '
+        if [ "${plugin%$match.plugin}" != "${plugin}" ]; then
+          # Preset ENABLED=0 to make sure the plugin only
+          # gets loaded if the config has an explicit ENABLED=1:
+          ENABLED=0
 
-        PLUGIN_CMD=status
-        
-        # Source the plugin:
-        printf "=>"
-        . "$plugin"
-        echo ""
+          # Set indent
+          INDENT=' '
+
+          PLUGIN_CMD=status
+
+          # Source the plugin:
+          printf "=>"
+          . "$plugin"
+          echo ""
+        fi
       fi
     done
   fi
@@ -5332,6 +5336,7 @@ show_help()
   echo "force-reload                = Reload blocked hosts (blackhole) file" >&2
   echo "check-conf                  = Check configuration file (only)" >&2
   echo "status [-t {table}] [chain] = View firewall ruleset ([chain] & [-t {table}] are optional)" >&2
+  echo "status-plugins [name]       = View plugins status (view only plugin [name] is optional)" >&2
 }
 
 
@@ -5415,6 +5420,8 @@ case "$1" in
                         show_stop_blocked;;
   'status' )            shift;
                         show_status $@;;
+  'status-plugins' )    shift;
+                        plugins_status $@;;
   'check-conf' )        config_check;;
   * )                   printf "\033[40m\033[1;31mERROR: Bad or missing parameter(s)\033[0m\n" >&2;
                         show_help;;
