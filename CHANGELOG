@@ -1,5 +1,10 @@
-Version 2.0.1d-DEVEL (September 22, 2012)
------------------------------------------
+Version 2.0.1d-DEVEL (October 15, 2012)
+---------------------------------------
++ Added new main command 'status-plugins [name]'.  Useful [name] values are: dyndns-host-open, multiroute, rpc,
+  traffic-accounting and traffic-shaper.  When [name] is specified, only that plugin is shown.
+  For Example:
+    $ arno-iptables-firewall status-plugins                       (shows all plugins status results)
+    $ arno-iptables-firewall status-plugins dyndns-host-open      (shows only dyndns-host-open plugin status results)
 + Added outbound-snat plugin to support when a NAT'ed external interface has multiple IPv4 addresses, it may be
   desirable to specify which internal IP's or CIDR's use which external IPv4 addresses for outbound connections.
 ! Fixed modprobe() function when using kmod. Apparently kmod doesn't echo anything (to stderr) when a module is not found?!
