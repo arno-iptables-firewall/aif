@@ -99,7 +99,7 @@ plugin_start()
   fi
   echo "$defaultip" > "$NAT_LOOPBACK_DEFAULT_IPV4"
 
-  echo "${INDENT}NAT Loopback Default IPv4: $defaultip"
+  echo "${INDENT}NAT Loopback default IPv4: $defaultip"
   echo "${INDENT}NAT Loopback internal net(s): $NAT_LOOPBACK_NET"
   if [ "$NAT_LOOPBACK_FORWARD" = "1" ]; then
     echo "${INDENT}NAT Loopback local forwards are enabled."
@@ -226,18 +226,18 @@ plugin_status()
         # update rules
         nat_loopback_update_default_ipv4 "$old_defaultip" "$defaultip"
         echo "$defaultip" > "$NAT_LOOPBACK_DEFAULT_IPV4"
-        echo "  NAT Loopback Default IPv4 (updated): $defaultip"
+        echo "  NAT Loopback default IPv4 (updated): $defaultip"
       else
-        echo "  NAT Loopback Default IPv4 needs updating from '$old_defaultip' to '$defaultip'"
+        echo "  NAT Loopback default IPv4 needs updating from '$old_defaultip' to '$defaultip'"
       fi
       return 0
     fi
   fi
 
   if [ -n "$old_defaultip" ]; then
-    echo "  NAT Loopback Default IPv4: $old_defaultip"
+    echo "  NAT Loopback default IPv4: $old_defaultip"
   else
-    echo "  NAT Loopback Default IPv4: None"
+    echo "  NAT Loopback default IPv4: None"
   fi
 
   return 0
