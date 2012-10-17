@@ -40,7 +40,7 @@ nat_loopback_default_ext_ipv4()
   local eif IFS
 
   IFS=' ,'
-  for eif in $EXT_IF; do
+  for eif in $(wildcard_ifs $EXT_IF); do
     ip -o addr show dev $eif \
       | awk '$3 == "inet" { split($4, field, "/"); print field[1]; nextfile; }'
     break # Only use first external interface
