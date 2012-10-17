@@ -740,7 +740,7 @@ wildcard_ifs()
     case $if1 in
     *+)
       if1="${if1%+}"
-      if1=`$IP link | awk "\\$2 ~ /${if1}[0-9]+:/ { print substr(\\$2, 1, length(\\$2)-1); }"`
+      if1="$($IP link | awk "\$2 ~ /${if1}[0-9]+:/ { print substr(\$2, 1, length(\$2)-1); }" | tr '\n' ' ')"
       if [ -z "$if1" ]; then
         echo "wildcard: $if0 unmatched!" >&2
         continue
