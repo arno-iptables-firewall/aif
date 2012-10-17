@@ -43,7 +43,7 @@ get_extif_with_ipv4_address()
   local host="$1" eif eip eips IFS
 
   IFS=' ,'
-  for eif in $EXT_IF; do
+  for eif in $(wildcard_ifs $EXT_IF); do
     eips="$(get_extif_ipv4_addresses $eif)"
     if [ -n "$eips" ]; then
       unset IFS
