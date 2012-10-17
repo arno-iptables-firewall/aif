@@ -91,18 +91,20 @@ plugin_start()
     NAT_LOOPBACK_NET="$NAT_INTERNAL_NET"
   fi
 
+  defaultip="$(nat_loopback_default_ext_ipv4)"
+  if [ -z "$defaultip" ]; then
+    # Use an arbitrary IPv4 Link-Local address as a placeholder
+    # for the currently unknown default IPv4 address
+    defaultip="169.254.25.54"
+  fi
+  echo "$defaultip" > "$NAT_LOOPBACK_DEFAULT_IPV4"
+
+  echo "${INDENT}NAT Loopback Default IPv4: $defaultip"
   echo "${INDENT}NAT Loopback internal net(s): $NAT_LOOPBACK_NET"
   if [ "$NAT_LOOPBACK_FORWARD" = "1" ]; then
     echo "${INDENT}NAT Loopback local forwards are enabled."
   else
     echo "${INDENT}NAT Loopback local forwards are disabled."
-  fi
-
-  defaultip="$(nat_loopback_default_ext_ipv4)"
-  if [ -n "$defaultip" ]; then
-    echo "$defaultip" > "$NAT_LOOPBACK_DEFAULT_IPV4"
-  else
-    rm -f "$NAT_LOOPBACK_DEFAULT_IPV4"
   fi
 
   unset IFS
@@ -218,7 +220,7 @@ plugin_status()
   fi
 
   defaultip="$(nat_loopback_default_ext_ipv4)"
-  if [ -n "$defaultip" ]; then
+  if [ -n "$defaultip" -a -n "$old_defaultip" ]; then
     if [ "$defaultip" != "$old_defaultip" ]; then
       if [ "$NAT_LOOPBACK_UPDATE_ON_STATUS" != "0" ]; then
         # update rules
