@@ -1,3 +1,7 @@
+Version 1.30-BETA (October 22, 2012)
+------------------------------------
+* Refactor/cleanup helper script. No need to preinit cache anymore since we can fallback on our "old"-cache anyway
+
 Version 1.24 (August 14, 2011)
 ----------------------------
 * Changed to support parse_rule() in dyndns-host-open-helper

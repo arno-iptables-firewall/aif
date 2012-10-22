@@ -75,34 +75,13 @@ sanity_check()
 }
 
 
-# Resolve a hostname using our cache
-dyndns_get_cached_host()
+# Resolve hostname to an IP and store in our (new) cache
+# Arguments : $1 = hostname to resolve
+# Returns   : Resolved host's IP in "$host_ip"
+dyndns_get_host_cached()
 {
+  host_ip=""
   local host="$1"
-
-  if is_numeric_ip "$host"; then
-    echo "$host"
-    return 0
-  fi
-  
-  if [ -e "$DYNDNS_HOST_CACHE" ]; then
-    local host_ip=`grep "^$host " -m1 "$DYNDNS_HOST_CACHE" |cut -s -f2 -d' '`
-    if [ -n "$host_ip" ]; then
-      echo "$host_ip"
-      return 0
-    fi
-  fi
-  
-  # Return error
-  return 1
-}
-
-
-# Resolve hostname to IP and store both in our (new) cache
-dyndns_host_to_cache()
-{
-  local host="$1"
-  local host_ip=""
   local retval=0
   
   # Check whether we already have it in our (new) cache and don't try to resolve stuff that's already numeric
@@ -118,7 +97,7 @@ dyndns_host_to_cache()
       retval=$?
       
       # Check whether our DNS server itself failed
-      if [ "$retval" = "9" ]; then
+      if [ $retval -eq 9 ]; then
         if [ "$DYNDNS_SESSION_FAILED_DNS_SKIP" = "1" ]; then
           # The DNS server failed, so set flag so we know this the next time
           DNS_SERVER_FAILURE=1
@@ -132,7 +111,7 @@ dyndns_host_to_cache()
     if [ -z "$host_ip" ]; then
       # Try to get from (old) cache, if allowed
       if [ "$DYNDNS_OLD_CACHE_FALLBACK" = "1" ]; then
-        host_ip=`dyndns_get_cached_host $host`
+        host_ip=`grep "^$host " -m1 "${DYNDNS_HOST_CACHE}" |cut -s -f2 -d' '`
       fi
       
       # (Re)check $host_ip
@@ -143,65 +122,12 @@ dyndns_host_to_cache()
         echo "** WARNING($retval): Unresolvable host \"$host\". Re-using old IP ($host_ip)! **" >&2 
       fi
     fi
+
     echo "$host_ip"
     echo "$host $host_ip" >>"$DYNDNS_HOST_CACHE".new 
   fi
-}
-
-
-# Setup host->ip cache
-dyndns_setup_cache()
-{
-  # Create new empty file
-  printf "" >"$DYNDNS_HOST_CACHE".new
   
-  unset IFS
-  for rule in $DYNDNS_HOST_OPEN_TCP; do
-    hosts=`get_hosts_ihp "$rule"`
-    
-    IFS=','
-    for host in $hosts; do
-      dyndns_host_to_cache "$host"
-    done
-  done
-
-  unset IFS
-  for rule in $DYNDNS_HOST_OPEN_UDP; do
-    hosts=`get_hosts_ihp "$rule"`
-   
-    IFS=','
-    for host in $hosts; do
-      dyndns_host_to_cache "$host"
-    done
-  done
-
-  unset IFS
-  for rule in $DYNDNS_HOST_OPEN_IP; do
-    hosts=`get_hosts_ihp "$rule"`
-
-    IFS=','    
-    for host in $hosts; do
-      dyndns_host_to_cache "$host"
-    done
-  done
-
-  IFS=' ,'
-  for rule in $DYNDNS_HOST_OPEN_ICMP; do
-    hosts=`get_hosts_ih "$rule"`
-
-    IFS=','
-    for host in $hosts; do
-      dyndns_host_to_cache "$host"
-    done
-  done
-
-  # Remove old cache file
-  rm -f "$DYNDNS_HOST_CACHE"
-  
-  # Make our new cache file active
-  mv "$DYNDNS_HOST_CACHE".new "$DYNDNS_HOST_CACHE"
-  
-  return 0
+  return $retval
 }
 
 
@@ -223,7 +149,7 @@ dyndns_host_open()
         for destip in $destips; do
           for host in $hosts; do
             for port in $ports; do
-              host_ip=`dyndns_get_cached_host $host`
+              dyndns_get_host_cached $host
               if [ -n "$host_ip" ]; then
                 iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p tcp --dport $port -j ACCEPT
               fi
@@ -248,7 +174,7 @@ dyndns_host_open()
         for destip in $destips; do
           for host in $hosts; do
             for port in $ports; do
-              host_ip=`dyndns_get_cached_host $host`
+              dyndns_get_host_cached $host
               if [ -n "$host_ip" ]; then
                 iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p udp --dport $port -j ACCEPT
               fi
@@ -273,7 +199,7 @@ dyndns_host_open()
         for destip in $destips; do
           for host in $hosts; do
             for proto in $protos; do
-              host_ip=`dyndns_get_cached_host $host`
+              dyndns_get_host_cached $host
               if [ -n "$host_ip" ]; then
                 iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p $proto -j ACCEPT
               fi
@@ -297,7 +223,7 @@ dyndns_host_open()
       for interface in $interfaces; do
         for destip in $destips; do
           for host in $hosts; do
-            host_ip=`dyndns_get_cached_host $host`
+            dyndns_get_host_cached $host
             if [ -n "$host_ip" ]; then
               iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p icmp --icmp-type echo-request -j ACCEPT
             fi
@@ -336,12 +262,18 @@ else
         # Setup int handler
         trap 'rm -f "$lockfile"; exit $?' INT TERM EXIT
 
-        # Setup our name cache
-        dyndns_setup_cache;
-        
-        # Create actual rules
+        # Create new empty file
+        printf "" >"${DYNDNS_HOST_CACHE}.new"
+  
+        # Parse rules
         dyndns_host_open;
         
+        # Remove old cache file
+        rm -f "$DYNDNS_HOST_CACHE"
+  
+        # Make our new cache file active
+        mv "${DYNDNS_HOST_CACHE}.new" "$DYNDNS_HOST_CACHE"
+
         # Remove lockfile
         rm -f "$lockfile"
 
