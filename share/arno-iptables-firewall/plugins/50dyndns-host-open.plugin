@@ -120,12 +120,9 @@ plugin_status()
 # Check sanity of eg. environment
 plugin_sanity_check()
 {
-  if [ -z "$DYNDNS_HOST_OPEN_CRON" ]; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not properly setup!\033[0m\n" >&2
-    return 1
-  fi
-
-  if [ -z "$DYNDNS_HOST_OPEN_TCP" -a -z "$DYNDNS_HOST_OPEN_UDP" -a -z "$DYNDNS_HOST_OPEN_IP" -a -z "$DYNDNS_HOST_OPEN_ICMP" ]; then
+  if [ -z "$DYNDNS_HOST_OPEN_TCP" -a -z "$DYNDNS_HOST_OPEN_UDP"  -a \
+       -z "$DYNDNS_HOST_OPEN_IP"  -a -z "$DYNDNS_HOST_OPEN_ICMP" -a \
+       -z "$DYNDNS_HOST_MISC" ] || [ -z "$DYNDNS_HOST_OPEN_CRON" ]; then
     printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not (properly) setup!\033[0m\n" >&2
     return 1
   fi
