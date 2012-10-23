@@ -1555,6 +1555,9 @@ IP6TABLES_BATCH_FILE="/var/tmp/aif_ip6tables_batch"
 PLUGIN_LOAD_FILE="/var/tmp/aif_active_plugins"
 PLUGIN_LOAD_FILE_RESTART="/var/tmp/aif_active_plugins_restart"
 
+# Host cache: filled by the DynDNS-plugin and used compatible plugins
+HOST_CACHE_FILE="/var/tmp/aif_host_cache"
+
 # Check whether we also need to drop messages in a dedicated firewall log file
 if [ -z "$FIREWALL_LOG" ]; then
   FIREWALL_LOG="/dev/null"

@@ -7,9 +7,9 @@ PLUGIN_CONF_FILE="dyndns-host-open.conf"
 #
 # Last changed          : October 22, 2012
 # Requirements          : kernel 2.6 + AIF 2.0.1 or better
-# Comments              : This implements support to open ports for DynDNS hosts
+# Comments              : This implements dynamic DNS (DynDNS) support for eg. opening ports
 #
-# Author                : (C) Copyright 2008-2011 by Arno van Amersfoort
+# Author                : (C) Copyright 2008-2012 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
@@ -30,7 +30,12 @@ PLUGIN_CONF_FILE="dyndns-host-open.conf"
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
-DYNDNS_HOST_CACHE="/var/tmp/aif_dyndns_host_cache"
+# If HOST_CACHE_FILE is not defined, fallback to old DYNDNS variable
+if [ -n "$HOST_CACHE_FILE" ]; then
+  DYNDNS_HOST_CACHE="$HOST_CACHE_FILE"
+else
+  DYNDNS_HOST_CACHE="/var/tmp/aif_dyndns_host_cache"
+fi
 
 # Plugin start function
 plugin_start()

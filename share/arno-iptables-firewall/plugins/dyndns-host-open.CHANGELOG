@@ -1,6 +1,10 @@
 Version 1.30-BETA (October 22, 2012)
 ------------------------------------
-* Refactor/cleanup helper script. No need to preinit cache anymore since we can fallback on our "old"-cache anyway
+* Refactor/cleanup helper script. No need to preinit cache anymore since we 
+  can fallback on our "old"-cache anyway
+* Use the host-cache file provided by the main script (environment). This
+  makes it easier for plugins to use and allows the main script to clean
+  up
 
 Version 1.24 (August 14, 2011)
 ----------------------------

@@ -37,9 +37,15 @@ else
 fi
 
 # Define some global variables
-DYNDNS_HOST_CACHE="/var/tmp/aif_dyndns_host_cache"
 DNS_SERVER_FAILURE=0
 INDENT='   '
+
+# If HOST_CACHE_FILE is not defined, fallback to old DYNDNS variable
+if [ -n "$HOST_CACHE_FILE" ]; then
+  DYNDNS_HOST_CACHE="$HOST_CACHE_FILE"
+else
+  DYNDNS_HOST_CACHE="/var/tmp/aif_dyndns_host_cache"
+fi
 
 # Check sanity of environment
 sanity_check()
@@ -231,6 +237,13 @@ dyndns_host_open()
         done
       done
     fi
+  done
+  
+  # Store additional hosts in our cache, although this is a no-op for this
+  # plugin, it does allow use of our name-cache by eg. other (aware) plugins
+  unset IFS
+  for host in $DYNDNS_HOSTS_MISC; do
+    dyndns_get_host_cached $host
   done
 }
 

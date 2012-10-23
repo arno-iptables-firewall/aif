@@ -385,8 +385,11 @@ setup_misc()
   # Remove any stale plugin restart file
   rm -f "$PLUGIN_LOAD_FILE_RESTART"
   
+  # Remove stale host-cache file
+  rm -f "$HOST_CACHE_FILE"
+  
   # Most people don't want to get any firewall logs being spit to the console
-  # This option makes the kernel ring buffer to only log messages with level "panic"
+  # This option makes the kernel ring buffer only log messages with level "panic"
   if [ "$DMESG_PANIC_ONLY" = "1" ]; then
     echo "Setting the kernel ring buffer to only log panic messages to the console"
 #    dmesg -c    # Clear ring buffer
@@ -5353,7 +5356,6 @@ main_stop()
 
 main_start()
 {
-
   load_modules;
   setup_misc;
   setup_kernel_settings;
