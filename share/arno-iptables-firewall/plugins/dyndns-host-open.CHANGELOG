@@ -1,10 +1,14 @@
-Version 1.30-BETA (October 22, 2012)
+Version 1.30-BETA (October 23, 2012)
 ------------------------------------
-* Refactor/cleanup helper script. No need to preinit cache anymore since we 
+* Refactor/cleanup helper script. No need to preinit cache anymore since we
   can fallback on our "old"-cache anyway
 * Use the host-cache file provided by the main script (environment). This
   makes it easier for plugins to use and allows the main script to clean
   up
+! Host resolving was broken (regression)
+* Improve performance by reorganising the loops
+* Always execute iptables command even with an empty host_ip to make clear
+  to the user it failed
 
 Version 1.24 (August 14, 2011)
 ----------------------------
