@@ -93,7 +93,7 @@ sanity_check()
 # Parse/get hostname. Try to use 
 # Resolve hostname to an IP and store in our (new) cache
 # Arguments : $1 = hostname to resolve
-# Returns   : Resolved host's IP in "$host_ip" 
+# Returns   : Resolved host's IP in "$host_ip"
 traffic_accounting_get_host()
 {
   local host="$1"
@@ -102,14 +102,24 @@ traffic_accounting_get_host()
   if is_numeric_ip "$host"; then
     host_ip="$host"
   else
-    if [ "$TRAFFIC_ACCOUNTING_USE_HOST_CACHE" = "1" ] && \
+    printf "${INDENT}Resolving \"$host\" -> "
+    if [ "$TRAFFIC_ACCOUNTING_USE_HOST_CACHE" != "0" ] && \
        [ -n "$TA_HOST_CACHE" ] && [ -e "$TA_HOST_CACHE" ]; then
       host_ip=`grep "^$host " -m1 "$TA_HOST_CACHE" |cut -s -f2 -d' '`
+
+      if [ -n "$host_ip" ]; then
+        echo "$host_ip (cached)"
+      fi
     fi
-    
-    # Perform normal lookup
+
     if [ -z "$host_ip" ]; then
+      # Perform normal lookup
       host_ip=`gethostbyname "$host"`
+      if [ -n "$host_ip" ]; then
+        echo "$host_ip"
+      else
+        printf "\033[40m\033[1;31mFAILED!\n\033[0m"
+      fi
     fi
   fi
 }
