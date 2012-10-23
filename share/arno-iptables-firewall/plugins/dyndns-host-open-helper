@@ -50,12 +50,9 @@ fi
 # Check sanity of environment
 sanity_check()
 {
-  if [ -z "$DYNDNS_HOST_OPEN_CRON" ]; then
-    echo "** ERROR: The plugin config file is not properly setup!" >&2
-    return 1
-  fi
-
-  if [ -z "$DYNDNS_HOST_OPEN_TCP" -a -z "$DYNDNS_HOST_OPEN_UDP" -a -z "$DYNDNS_HOST_OPEN_IP" -a -z "$DYNDNS_HOST_OPEN_ICMP" ]; then
+  if [ -z "$DYNDNS_HOST_OPEN_TCP" -a -z "$DYNDNS_HOST_OPEN_UDP" -a \
+       -z "$DYNDNS_HOST_OPEN_IP"  -a -z "$DYNDNS_HOST_OPEN_ICMP" -a \
+       -z "$DYNDNS_HOST_MISC" ] || [ -z "$DYNDNS_HOST_OPEN_CRON" ]; then
     echo "** ERROR: The plugin config file is not (properly) setup!" >&2
     return 1
   fi
@@ -244,7 +241,7 @@ dyndns_host_open()
   # Store additional hosts in our cache, although this is a no-op for this
   # plugin, it does allow use of our name-cache by eg. other (aware) plugins
   unset IFS
-  for host in $DYNDNS_HOSTS_MISC; do
+  for host in $DYNDNS_HOST_MISC; do
     dyndns_get_host_cached $host
   done
 }
