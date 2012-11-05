@@ -37,7 +37,6 @@ else
 fi
 
 # Define some global variables
-DNS_SERVER_FAILURE=0
 INDENT='   '
 
 # If HOST_CACHE_FILE is not defined, fallback to old DYNDNS variable
@@ -101,26 +100,13 @@ dyndns_get_host_cached()
   
   printf "${INDENT}Resolving host \"$host\" -> "
 
-  # Check whether the DNS server failed on us THIS session
-  if [ "$DNS_SERVER_FAILURE" = "1" ]; then
-    echo "** WARNING: Not quering DNS server since it is considered dead for this session! **" >&2
-    host_ip=""
-    retval=9
-  else
     host_ip=`gethostbyname "$host"`
     retval=$?
       
     # Check whether our DNS server itself failed
     if [ $retval -eq 9 ]; then
-      if [ "$DYNDNS_SESSION_FAILED_DNS_SKIP" = "1" ]; then
-        # The DNS server failed, so set flag so we know this the next time
-        DNS_SERVER_FAILURE=1
-        echo "** ERROR(9): DNS server connection failed! Assuming server dead for this session. **" >&2
-      else
         echo "** ERROR(9): DNS server connection failed! **" >&2
-      fi
     fi
-  fi
      
   if [ -z "$host_ip" -o $retval -ne 0 ]; then
     # Try to get from (old) cache, if allowed
