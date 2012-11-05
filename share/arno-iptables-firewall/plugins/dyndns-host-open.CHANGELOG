@@ -1,3 +1,8 @@
+Version 1.31-BETA (November 5, 2012)
+------------------------------------
+- Remove DYNDNS_SESSION_FAILED_DNS_SKIP option since it never worked the
+  it supposed to anyway
+
 Version 1.30-BETA (October 23, 2012)
 ------------------------------------
 * Refactor/cleanup helper script. No need to preinit cache anymore since we
