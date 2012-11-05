@@ -100,6 +100,7 @@ dyndns_get_host_cached()
   
   printf "${INDENT}Resolving host \"$host\" -> "
 
+  DNS_FAST_FAIL_ONCE="$DYNDNS_DNS_FAST_FAIL"
   host_ip=`gethostbyname "$host"`
   retval=$?
     

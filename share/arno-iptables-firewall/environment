@@ -29,7 +29,6 @@
 # NOTE: When used in combination with firewall.conf. Load firewall.conf first before calling us!
 
 # Some predefined variables/macros:
-RULE_WARNING=0
 ANYHOST="0/0"
 ANYPORT="0:65535"
 SEP="~"
@@ -39,6 +38,10 @@ INDENT=""
 TAB="$(printf '\t')"
 EOL='
 '
+
+# Globals variables:
+RULE_WARNING=0
+DNS_FAST_FAIL_ONCE=0
 
 
 ################################# Functions ####################################
@@ -661,7 +664,14 @@ dig()
   local cnt=0 x=0 addr name line lines retval IFS
 
   if [ -n "$DIG" ]; then
-    lines="$($DIG +short "$@" 2>/dev/null)"
+    if [ "$DNS_FAST_FAIL" = "1" -o "$DNS_FAST_FAIL_ONCE" = "1" ]; then
+      lines="$($DIG +short +tries=1 +time=1 "$@" 2>/dev/null)"
+      retval=$?
+      DNS_FAST_FAIL_ONCE=0
+    else
+      lines="$($DIG +short "$@" 2>/dev/null)"
+      retval=$?
+    fi
     retval=$?
 
     while [ $# -gt 1 ]; do
@@ -701,7 +711,12 @@ dig()
       shift
     done
     if [ -n "$1" ]; then
-      lines="$($NSLOOKUP "$1" 2>/dev/null)"
+      if [ "$DNS_FAST_FAIL" = "1" -o "$DNS_FAST_FAIL_ONCE" = "1" ]; then
+        lines="$($NSLOOKUP -retry=1 -timeout=1 "$1" 2>/dev/null)"
+        DNS_FAST_FAIL_ONCE=0
+      else
+        lines="$($NSLOOKUP "$1" 2>/dev/null)"
+      fi
       
       IFS=$EOL
       for line in $lines; do
