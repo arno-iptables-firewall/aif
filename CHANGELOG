@@ -1,5 +1,5 @@
-Version 2.0.1d-DEVEL (November 5, 2012)
----------------------------------------
+Version 2.0.1d (November 16, 2012)
+----------------------------------
 + Reintroduce DNS fast fail option + add additional option (DNS_FAST_FAIL_ONCE) to allow plugins to use it
 + Added nat-loopback plugin for local nets using existing NAT_FORWARD_TCP and NAT_FORWARD_UDP rules.
 + Added new main command 'status-plugins [name]'.  Useful [name] values are: dyndns-host-open, multiroute, nat-loopback,
