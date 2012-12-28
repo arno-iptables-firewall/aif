@@ -1,5 +1,6 @@
 Version 2.0.1e-DEVEL (December 27, 2012)
 ----------------------------------------
+* traffic-shaper plugin, allow DOWNLINK=0 to disable inbound (ingress) shaping
 * Updated Gentoo init script (thanks to Erki Ferenc)
 
 Version 2.0.1d (November 16, 2012)
