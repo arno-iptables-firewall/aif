@@ -1,3 +1,7 @@
+Version 1.2.05 (December 27, 2012)
+----------------------------------
++ Allow DOWNLINK=0 to disable inbound (ingress) shaping, UPLINK must be greater than 0
+
 Version 1.2.04 (October 17, 2010)
 --------------------------------
 + Added SHAPER_IF variable to specify a single interface should EXT_IF contain more than one
