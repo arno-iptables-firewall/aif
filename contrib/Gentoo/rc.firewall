@@ -1,6 +1,7 @@
 #!/sbin/runscript
 
-opts="${opts} stats help reload"
+extra_commands="stats help"
+extra_started_commands="reload"
 
 depend() {
   before net
@@ -25,7 +26,7 @@ restart() {
   eend $? "WARNING: Failed to restart Firewall"
 }
 
-stats() { 
+stats() {
   ebegin "Firewall Status..."
   ${LOCATION} status
   eend $? "Failed to show status"
