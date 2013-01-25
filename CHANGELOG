@@ -1,5 +1,7 @@
-Version 2.0.1e-DEVEL (December 27, 2012)
+Version 2.0.1e-DEVEL (January 25, 2013)
 ----------------------------------------
+* Updated arno-fwfilter
+* Updated install.sh for Git
 * traffic-shaper plugin, allow DOWNLINK=0 to disable inbound (ingress) shaping
 * Updated Gentoo init script (thanks to Erki Ferenc)
 
