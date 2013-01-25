@@ -107,7 +107,7 @@ dyndns_get_host_cached()
   if [ -z "$host_ip" -o $retval -ne 0 ]; then
     # Try to get from (old) cache, if allowed
     if [ "$DYNDNS_OLD_CACHE_FALLBACK" = "1" ]; then
-      host_ip=`grep "^$host " -m1 "${DYNDNS_HOST_CACHE}" |cut -s -f2 -d' '`
+      host_ip=`grep "^$host " -m1 "${DYNDNS_HOST_CACHE}" 2>/dev/null |cut -s -f2 -d' '`
     fi
 
     # (Re)check $host_ip
