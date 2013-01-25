@@ -144,12 +144,12 @@ dyndns_host_open()
 
       IFS=','
       for host in $hosts; do
-         dyndns_get_host_cached $host # Returns $host_ip
-         if [ -z "$host_ip" ]; then
-           echo "** WARNING: Skipping rule for \"$host\"! **" >&2
-           continue;
-         fi
-         for interface in $interfaces; do
+        dyndns_get_host_cached $host # Returns $host_ip
+        if [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping rule for \"$host\"! **" >&2
+          continue;
+        fi
+        for interface in $interfaces; do
           for destip in $destips; do
             for port in $ports; do
               iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p tcp --dport $port -j ACCEPT
