@@ -93,8 +93,9 @@ dyndns_get_host_cached()
   fi
 
   # Check whether we already have it in our (new) cache
-  host_ip=`grep "^$host " -m1 "${DYNDNS_HOST_CACHE}.new" |cut -s -f2 -d' '`
-  if [ -n "$host_ip" ]; then
+  local find_host=`grep "^$host " -m1 "${DYNDNS_HOST_CACHE}.new"`
+  if [ -n "$find_host" ]; then
+    host_ip=`echo "$find_host" |cut -s -f2 -d' '`
     return 0
   fi
 
@@ -122,6 +123,7 @@ dyndns_get_host_cached()
     echo "$host_ip"
   fi
 
+  # Explicitly store empty results as well as well keep trying for each rule over and over again
   echo "$host $host_ip" >>"${DYNDNS_HOST_CACHE}.new"
 
   return $retval
@@ -138,7 +140,6 @@ dyndns_host_open()
   unset IFS
   for rule in $DYNDNS_HOST_OPEN_TCP; do
     if parse_rule "$rule" DYNDNS_HOST_OPEN_TCP "interfaces-destips-hosts-ports"; then
-
       echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for TCP port(s): $ports"
 
       IFS=','
@@ -161,7 +162,6 @@ dyndns_host_open()
   unset IFS
   for rule in $DYNDNS_HOST_OPEN_UDP; do
     if parse_rule "$rule" DYNDNS_HOST_OPEN_UDP "interfaces-destips-hosts-ports"; then
-
       echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for UDP port(s): $ports"
 
       IFS=','
@@ -184,7 +184,6 @@ dyndns_host_open()
   unset IFS
   for rule in $DYNDNS_HOST_OPEN_IP; do
     if parse_rule "$rule" DYNDNS_HOST_OPEN_IP "interfaces-destips-hosts-protos"; then
-
       echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for IP protocol(s): $protos"
 
       IFS=','
@@ -207,7 +206,6 @@ dyndns_host_open()
   unset IFS
   for rule in $DYNDNS_HOST_OPEN_ICMP; do
     if parse_rule "$rule" DYNDNS_HOST_OPEN_ICMP "interfaces-destips-hosts"; then
-
       echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for ICMP-requests(ping)"
 
       IFS=','
