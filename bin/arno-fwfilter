@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# description: Firewall-log filter script (fwfilter)
-# Last update: February 24, 2012
+# description: Firewall-log filter script (arno-fwfilter)
+# Last update: January 25, 2013
 
 # Usage examples (make sure arno-fwfilter is executable!):
 # --------------------------------------------------------
@@ -16,16 +16,16 @@
 #                       -= Arno's iptables firewall =-
 #                  Firewall-log filter script (arno-fwfilter)
 #
-# (C) Copyright 2001-2012 by Arno van Amersfoort
+# (C) Copyright 2001-2013 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
-# Freshmeat homepage    : http://freshmeat.net/projects/iptables-firewall/?topic_id=151
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
 #                          at the proper locations!)
 # ------------------------------------------------------------------------------------------
 # Some of the information used to create this script was obtained from:
-# - http://www.naplifirewall.com/faqfirewalling.htm
-# - http://www.portsdb.org
+# - http://ports.tantalo.net/
+# - http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xml
+# - http://www.speedguide.net/ports.php
 # ------------------------------------------------------------------------------------------
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -237,6 +237,7 @@ else
      if (port==5000) return("UPnP(5000)")
      if (port==5060) return("SIP(5060)")
      if (port==5061) return("SIP over TLS(5061)")
+     if (port==5228) return("Android Market(5228)")
      if (port==5500) return("VNC(5500)")
      if (port==5554) return("Sasser-backdoor(5554)")
      if (port==5623) return("pcAnywhere(5623)")
@@ -255,6 +256,7 @@ else
      if (port==7778) return("Unreal Tournament(7778)")
      if (port==8080) return("HTTP Alternate(8080)")
      if (port==9100) return("JetDirect(9100)")
+     if (port==9418) return("Git(9418)")
      if (port==10000) return("Webadmin(10000)")
      if (port==10008) return("Cheeseworm(10008)")
      if (port==12345) return("Netbus(12345)")
