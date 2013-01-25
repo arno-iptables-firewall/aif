@@ -97,7 +97,7 @@ sanity_check()
 traffic_accounting_get_host()
 {
   local host="$1"
-  host_ip=""
+  host_ip=""      # Empty result
   
   if is_numeric_ip "$host"; then
     host_ip="$host"
@@ -105,9 +105,11 @@ traffic_accounting_get_host()
     printf "${INDENT}Resolving \"$host\" -> "
     if [ "$TRAFFIC_ACCOUNTING_USE_HOST_CACHE" != "0" ] && \
        [ -n "$TA_HOST_CACHE" ] && [ -e "$TA_HOST_CACHE" ]; then
-      host_ip=`grep "^$host " -m1 "$TA_HOST_CACHE" |cut -s -f2 -d' '`
 
-      if [ -n "$host_ip" ]; then
+      local find_host=`grep "^$host " -m1 "$TA_HOST_CACHE"`
+      if [ -n "$find_host" ]; then
+        host_ip=`echo "$find_host" |cut -s -f2 -d' '`
+
         echo "$host_ip (cached)"
       fi
     fi
@@ -171,6 +173,7 @@ traffic_accounting_setup_rules()
 
     # If it fails use old IP
     if [ -z "$host_ip" ]; then
+      echo "** WARNING: Skipping rule for \"$host\"! **" >&2
       continue;
     fi
 
