@@ -237,6 +237,8 @@ else
      if (port==5000) return("UPnP(5000)")
      if (port==5060) return("SIP(5060)")
      if (port==5061) return("SIP over TLS(5061)")
+     if (port==5222) return("Jabber/xmpp-client(5222)")
+     if (port==5223) return("Jabber-SSL(5223)")
      if (port==5228) return("Android Market(5228)")
      if (port==5500) return("VNC(5500)")
      if (port==5554) return("Sasser-backdoor(5554)")
