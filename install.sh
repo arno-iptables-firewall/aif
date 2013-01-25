@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.06a"
+MY_VERSION="1.07"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -8,7 +8,7 @@ MY_VERSION="1.06a"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2012 by Arno van Amersfoort
+# (C) Copyright 2001-2013 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -85,7 +85,7 @@ copy_ask_if_exist()
   fi
 
   unset IFS
-  for source in `find "$1" -type f |grep -v '/\.svn/'`; do
+  for source in `find "$1" -type f |grep -v -e '/\.svn/' -e '/\.git/'`; do
     if echo "$2" |grep -q '/$'; then
       fn="$(echo "$source" |sed "s,^$1,,")"
       if [ -z "$fn" ]; then
@@ -98,12 +98,12 @@ copy_ask_if_exist()
       target="$2"
       target_dir="$(dirname "$2")"
     fi
-    
+
     if [ ! -d "$target_dir" ]; then
       printf "\033[40m\033[1;31m* WARNING: Target directory $target_dir does not exist. Skipping copy of $source!\033[0m\n" >&2
       continue;
     fi
- 
+
     if [ -f "$source" -a -f "$target" ]; then
       # Ignore files that are the same in the target
       if ! diff "$source" "$target" >/dev/null; then
@@ -142,7 +142,7 @@ copy_skip_if_exist()
   fi
 
   unset IFS
-  for source in `find "$1" -type f |grep -v '/\.svn/'`; do
+  for source in `find "$1" -type f |grep -v -e '/\.svn/' -e '/\.git/'`; do
     if echo "$2" |grep -q '/$'; then
       fn="$(echo "$source" |sed "s,^$1,,")"
       if [ -z "$fn" ]; then
@@ -155,12 +155,12 @@ copy_skip_if_exist()
       target="$2"
       target_dir="$(dirname "$2")"
     fi
-    
+
     if [ ! -d "$target_dir" ]; then
       printf "\033[40m\033[1;31m* WARNING: Target directory $target_dir does not exist. Skipping copy of $source!\033[0m\n" >&2
       continue;
     fi
- 
+
     if [ -f "$target" ]; then
       echo "* File \"$target\" already exists. Skipping copy of $source"
       continue;
@@ -186,7 +186,7 @@ copy_overwrite()
   fi
 
   unset IFS
-  for source in `find "$1" -type f |grep -v '/\.svn/'`; do
+  for source in `find "$1" -type f |grep -v -e '/\.svn/' -e '/\.git/'`; do
     if echo "$2" |grep -q '/$'; then
       fn="$(echo "$source" |sed "s,^$1,,")"
       if [ -z "$fn" ]; then
@@ -204,7 +204,7 @@ copy_overwrite()
       printf "\033[40m\033[1;31m* WARNING: Target directory $target_dir does not exist. Skipping copy of $source!\033[0m\n" >&2
       continue;
     fi
-    
+
     if [ -f "$source" -a -f "$target" ]; then
       # Ignore files that are the same in the target
       if diff "$source" "$target" >/dev/null; then
@@ -212,7 +212,7 @@ copy_overwrite()
         continue;
       fi
     fi
- 
+
     if ! cp -fv "$source" "$target"; then
       echo "ERROR: Copy error of \"$source\" to \"$target\"!" >&2
       exit 3
@@ -275,7 +275,7 @@ check_plugins()
     unset IFS
     for plugin in ./share/arno-iptables-firewall/plugins/*.plugin; do
       plugin_name="$(basename "$plugin" |sed 's/^[0-9]*//')"
-      
+
       ls /usr/local/share/arno-iptables-firewall/plugins/*.plugin |grep "/[0-9]*$plugin_name$" |grep -v "/$(basename "$plugin")$" |while read fn; do
         echo "* Removing old plugin: $fn"
         rm -fv "$fn"
