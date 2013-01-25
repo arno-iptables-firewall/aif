@@ -1,3 +1,8 @@
+Version 1.32 (January 25, 2013)
+-------------------------------
+* Show a warning in case host resolving fails instead of having iptables fail
+* Only try to resolve a host once per session to speed things up in case netwerk/dns fails
+
 Version 1.31-BETA (November 5, 2012)
 ------------------------------------
 - Remove DYNDNS_SESSION_FAILED_DNS_SKIP option since it never worked the

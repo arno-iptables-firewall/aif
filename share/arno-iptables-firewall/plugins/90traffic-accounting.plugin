@@ -2,10 +2,10 @@
 #            -= Arno's iptables firewall - Traffic Accounting plugin =-
 #
 PLUGIN_NAME="Traffic Accounting plugin"
-PLUGIN_VERSION="1.20-BETA"
+PLUGIN_VERSION="1.21"
 PLUGIN_CONF_FILE="traffic-accounting.conf"
 #
-# Last changed          : October 22, 2012
+# Last changed          : January 25, 2013
 # Requirements          : AIF 2.0.0 (or later)
 # Comments              : This implements support for traffic accounting for
 #                         IPv4 & IPv6. It can take advantage of the
@@ -13,7 +13,7 @@ PLUGIN_CONF_FILE="traffic-accounting.conf"
 #                         You may want to use the plugin's DYNDNS_HOSTS_MISC
 #                         for that
 #
-# Author                : (C) Copyright 2008-2012 by Arno van Amersfoort
+# Author                : (C) Copyright 2008-2013 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
