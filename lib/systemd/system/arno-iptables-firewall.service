@@ -5,9 +5,9 @@ Wants=network.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/arno-iptables-firewall start
-ExecStop=/usr/sbin/arno-iptables-firewall stop
-ExecReload=/usr/sbin/arno-iptables-firewall force-reload
+ExecStart=/usr/local/sbin/arno-iptables-firewall start
+ExecStop=/usr/local/sbin/arno-iptables-firewall stop
+ExecReload=/usr/local/sbin/arno-iptables-firewall force-reload
 RemainAfterExit=yes
 
 [Install]
