@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.07"
+MY_VERSION="1.07a"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -325,6 +325,7 @@ mkdir -pv /usr/local/share/doc/arno-iptables-firewall || exit 1
 copy_overwrite ./README /usr/local/share/doc/arno-iptables-firewall/
 
 copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
+copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /usr/lib/systemd/system/
 
 mkdir -pv /etc/arno-iptables-firewall || exit 1
 copy_overwrite ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf.dist
