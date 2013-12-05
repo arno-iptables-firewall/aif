@@ -376,7 +376,6 @@ Troubleshooting: What if it doesn't work?:
       (or whatever it is located)
     - the output of 'ifconfig'
     - (firewall) logs
-    - a trace log. You can enable tracing in the firewall.conf file
     - the version of my script you're using (or date if you use the development
       script)
     - detailed explanation of your setup
