@@ -44,16 +44,6 @@ DNS_FAST_FAIL_ONCE=0
 
 ################################# Functions ####################################
 
-trace()
-{
-  if [ -n "$TRACEFILE" ]; then
-   ((PS4='' ; set -x ; : "$@" >/dev/null) 2>&1 ) | sed 's/^: //' >> $TRACEFILE
-  else
-    "$@"
-  fi
-}
-
-
 # Find command path with '/hint/path/command' as the argument
 find_command()
 {
@@ -301,7 +291,7 @@ ip4tables()
 {
   local result retval IFS=' '
 
-  result=`trace $IP4TABLES "$@" 2>&1`
+  result=`$IP4TABLES "$@" 2>&1`
   retval=$?
 
   if [ $retval -ne 0 ]; then
@@ -328,7 +318,7 @@ ip6tables()
 {
   local result retval IFS=' '
 
-  result=`trace $IP6TABLES "$@" 2>&1`
+  result=`$IP6TABLES "$@" 2>&1`
   retval=$?
 
   if [ $retval -ne 0 ]; then
@@ -427,7 +417,7 @@ try_ip4tables()
 {
   local IFS=' '
 
-  trace $IP4TABLES "$@" >/dev/null 2>&1
+  $IP4TABLES "$@" >/dev/null 2>&1
 }
 
 
@@ -435,7 +425,7 @@ try_ip6tables()
 {
   local IFS=' '
 
-  trace $IP6TABLES "$@" >/dev/null 2>&1
+  $IP6TABLES "$@" >/dev/null 2>&1
 }
 
 
@@ -450,7 +440,7 @@ modprobe()
     # Make sure environment variable is not set
     MODPROBE_OPTIONS=""
 
-    result=`trace $MODPROBE $@ 2>&1`
+    result=`$MODPROBE $@ 2>&1`
     retval=$?
 
     if [ $retval -ne 0 ]; then
@@ -512,7 +502,7 @@ modprobe_multi()
         modprobe_commandline="$modprobe_commandline $module"
 
         IFS=' '
-        result=`trace $modprobe_commandline 2>&1`
+        result=`$modprobe_commandline 2>&1`
         retval=$?
 
         if [ $retval -ne 0 ]; then
@@ -552,7 +542,7 @@ sysctl()
 {
   local result retval IFS=' '
 
-  result=`trace $SYSCTL "$@" 2>&1`
+  result=`$SYSCTL "$@" 2>&1`
   retval=$?
 
   if [ $retval -ne 0 ]; then
@@ -592,7 +582,7 @@ sysctl_multi()
       fi
       sysctl_commandline="$sysctl_commandline $variable"
 
-      result=`trace $sysctl_commandline 2>&1`
+      result=`$sysctl_commandline 2>&1`
       retval=$?
 
       if [ $retval -eq 0 ]; then
@@ -643,7 +633,7 @@ sysctl_key()
 ###################
 tc()
 {
-  trace $TC "$@"
+  $TC "$@"
 }
 
 
@@ -651,7 +641,7 @@ tc()
 ###################
 ip()
 {
-  trace $IP "$@"
+  $IP "$@"
 }
 
 
@@ -1652,14 +1642,6 @@ else
   IPV6_SUPPORT=0
 fi
 
-# check for tracing
-###################
-if [ "$TRACE" = "1" ]; then
-  TRACEFILE="/tmp/aif-trace.`date '+%Y%m%d-%H:%M:%S'`"
-  cp /dev/null $TRACEFILE
-  DISABLE_IPTABLES_BATCH=1
-fi
-
 # Default NAT_INTERNAL_NET to INTERNAL_NET, if not specified
 ############################################################
 if [ -z "$NAT_INTERNAL_NET" ]; then
@@ -1687,3 +1669,4 @@ if [ -z "$PLUGIN_CONF_PATH" ]; then
     PLUGIN_CONF_PATH="/etc/arno-iptables-firewall/plugins"
   fi
 fi
+

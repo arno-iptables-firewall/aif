@@ -1,9 +1,11 @@
-Version 2.0.1e-DEVEL (January 25, 2013)
-----------------------------------------
+Version 2.0.1e-DEVEL (December 5, 2013)
+---------------------------------------
 * Updated arno-fwfilter
 * Updated install.sh for Git
 * traffic-shaper plugin, allow DOWNLINK=0 to disable inbound (ingress) shaping
 * Updated Gentoo init script (thanks to Erki Ferenc)
+- Removed some Gentoo specific stuff that isn't required anymore
+- Removed TRACE option. It's broken and there's no good way to implement it
 
 Version 2.0.1d (November 16, 2012)
 ----------------------------------
