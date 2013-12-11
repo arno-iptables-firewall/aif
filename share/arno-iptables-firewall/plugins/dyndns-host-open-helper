@@ -123,7 +123,7 @@ dyndns_get_host_cached()
     echo "$host_ip"
   fi
 
-  # Explicitly store empty results as well as well keep trying for each rule over and over again
+  # Explicitly store empty results as well else we'll keep trying over and over again for each rule 
   echo "$host $host_ip" >>"${DYNDNS_HOST_CACHE}.new"
 
   return $retval

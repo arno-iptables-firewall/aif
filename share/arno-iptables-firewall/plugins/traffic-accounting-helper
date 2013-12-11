@@ -96,34 +96,43 @@ sanity_check()
 # Returns   : Resolved host's IP in "$host_ip"
 traffic_accounting_get_host()
 {
+  host_ip=""      # Reset result
   local host="$1"
-  host_ip=""      # Empty result
-  
+  local retval=0
+
   if is_numeric_ip "$host"; then
     host_ip="$host"
-  else
-    printf "${INDENT}Resolving \"$host\" -> "
-    if [ "$TRAFFIC_ACCOUNTING_USE_HOST_CACHE" != "0" ] && \
-       [ -n "$TA_HOST_CACHE" ] && [ -e "$TA_HOST_CACHE" ]; then
+    return 0
+  fi
 
-      local find_host=`grep "^$host " -m1 "$TA_HOST_CACHE"`
-      if [ -n "$find_host" ]; then
-        host_ip=`echo "$find_host" |cut -s -f2 -d' '`
+  printf "${INDENT}Resolving \"$host\" -> "
 
-        echo "$host_ip (cached)"
-      fi
-    fi
+  # First try to get host from host-cache
+  if [ "$TRAFFIC_ACCOUNTING_USE_HOST_CACHE" != "0" ] && \
+     [ -n "$TA_HOST_CACHE" ] && [ -e "$TA_HOST_CACHE" ]; then
 
-    if [ -z "$host_ip" ]; then
-      # Perform normal lookup
-      host_ip=`gethostbyname "$host"`
-      if [ -n "$host_ip" ]; then
-        echo "$host_ip"
-      else
-        printf "\033[40m\033[1;31mFAILED!\n\033[0m"
-      fi
+    local find_host=`grep "^$host " -m1 "$TA_HOST_CACHE"`
+    if [ -n "$find_host" ]; then
+      host_ip=`echo "$find_host" |cut -s -f2 -d' '`
+
+      echo "$host_ip (cached)"
+      return 0
     fi
   fi
+
+  # Perform normal lookup
+  DNS_FAST_FAIL_ONCE="$DYNDNS_DNS_FAST_FAIL"
+  host_ip=`gethostbyname "$host"`
+  retval=$?
+
+  if [ -z "$host_ip" -o $retval -ne 0 ]; then
+    printf "\033[40m\033[1;31mFAILED!\n\033[0m"
+    echo "** ERROR($retval): Unresolvable host \"$host\"! **" >&2
+  else
+    echo "$host_ip"
+  fi
+
+  return $retval
 }
 
 
@@ -168,11 +177,8 @@ traffic_accounting_setup_rules()
       old_out_value=0
     fi
 
-    # Get host_ip
-    traffic_accounting_get_host "$host"
-
-    # If it fails use old IP
-    if [ -z "$host_ip" ]; then
+    # Get host_ip, if it fails, skip rule
+    if ! traffic_accounting_get_host "$host"; then
       echo "** WARNING: Skipping rule for \"$host\"! **" >&2
       continue;
     fi
