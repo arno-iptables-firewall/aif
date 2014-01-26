@@ -6,6 +6,8 @@ Version 2.0.1e-DEVEL (January 26, 2014)
 * Updated Gentoo init script (thanks to Erki Ferenc)
 - Removed some Gentoo specific stuff that isn't required anymore
 - Removed TRACE option. It's broken and there's no good way to implement it
++ Added DMZ_INPUT_DENY_LOG variable support for default "AIF:DMZ-INPUT denied:" logs, "0" disables logs
++ Added DMZ_OUTPUT_DENY_LOG variable support for default "AIF:DMZ->LAN denied:" logs, "0" disables logs
 
 Version 2.0.1d (November 16, 2012)
 ----------------------------------
