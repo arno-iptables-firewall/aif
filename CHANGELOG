@@ -1,5 +1,5 @@
-Version 2.0.1e-DEVEL (January 26, 2014)
----------------------------------------
+Version 2.0.1e (February 2, 2014)
+---------------------------------
 * Updated arno-fwfilter
 * Updated install.sh for Git
 * traffic-shaper plugin, allow DOWNLINK=0 to disable inbound (ingress) shaping
@@ -8,6 +8,8 @@ Version 2.0.1e-DEVEL (January 26, 2014)
 - Removed TRACE option. It's broken and there's no good way to implement it
 + Added DMZ_INPUT_DENY_LOG variable support for default "AIF:DMZ-INPUT denied:" logs, "0" disables logs
 + Added DMZ_OUTPUT_DENY_LOG variable support for default "AIF:DMZ->LAN denied:" logs, "0" disables logs
+* DYNDNS & Traffic Accounting Plugin refactor
+* Misc. tweaks
 
 Version 2.0.1d (November 16, 2012)
 ----------------------------------
