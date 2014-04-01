@@ -1002,7 +1002,7 @@ get_ifs()
   local result=""
   
   if echo "$1" |grep -q -e "$SEP2"; then
-    result=`echo "$1" |cut -s -d"$SEP2" -f1 |grep -v -e '\.' -e "$ANYHOST" |tr ' ' ','`
+    result="$(echo "$1" |cut -s -d"$SEP2" -f1 |grep -v -e '[.][0-9][0-9]*[.]' -e ':[0-9a-fA-F]*:' -e "$ANYHOST" |tr ' ' ',')"
   fi
 
   if [ -n "$result" ]; then
@@ -1025,7 +1025,7 @@ get_ips()
   local result=""
 
   if echo "$1" |grep -q -e "$SEP2"; then
-    result=`echo "$1" |cut -s -d"$SEP2" -f1 |grep -e '\.' -e "$ANYHOST" |tr ' ' ','`
+    result="$(echo "$1" |cut -s -d"$SEP2" -f1 |grep -e '[.][0-9][0-9]*[.]' -e ':[0-9a-fA-F]*:' -e "$ANYHOST" |tr ' ' ',')"
   fi
 
   if [ -n "$result" ]; then
