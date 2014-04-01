@@ -1,5 +1,7 @@
 Version 2.0.1f-DEVEL (March 31, 2014)
 -------------------------------------
+! Fixed functions get_ifs() and get_ips() with a '#', distinguish IPv4 from VLAN interfaces and check for
+  IPv6 addresses (thanks to Mike C. Fletcher)
 
 Version 2.0.1e (February 2, 2014)
 ---------------------------------
