@@ -2,31 +2,32 @@
 
 MY_VERSION="1.02d"
 
-# ------------------------------------------------------------------------------------------
-#                           -= Arno's iptables firewall =-
-#               Single- & multi-homed firewall script with DSL/ADSL support
+# -----------------------------------------------------------------------------
+#                       -= Arno's iptables firewall =-
+#         Single- & multi-homed firewall script with DSL/ADSL support
 #
-#                           ~ In memory of my dear father ~
+#                       ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2011 by Arno van Amersfoort
-# Homepage              : http://rocky.eld.leidenuniv.nl/
-# Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
-#                         (note: you must remove all spaces and substitute the @ and the .
-#                         at the proper locations!)
-# ------------------------------------------------------------------------------------------
+# (C) Copyright 2001-2014 by Arno van Amersfoort & Lonnie Abelbeck
+# Homepage : http://rocky.eld.leidenuniv.nl/
+# Email    : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
+#              (note: you must remove all spaces and substitute the @ and the .
+#              at the proper locations!)
+# -----------------------------------------------------------------------------
+
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
 # version 2 as published by the Free Software Foundation.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-# ------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 # Check if the environment file exists and if so, load it
 #########################################################
@@ -68,6 +69,11 @@ change_conf_var()
     printf "\033[40m\033[1;31mERROR: Variable \"$2\" not found in \"$1\". File is probably outdated!\033[0m\n" >&2
   elif [ -n "$3" ]; then
     sed -i -e "s~^#\?$2=.*$~$2=\"$3\"~" "$1"
+  else
+    # If no value is entered, then remove (unless commented) previously
+    # set values: this is to prevent e.g. ports from remaining open, or
+    # internal interfaces from remaining enabled with NAT.
+    sed -i -e "s~^$2=.*$~$2=\"\"~" "$1"
   fi
 }
 
@@ -82,8 +88,11 @@ get_conf_var()
     if [ -n "$4" ]; then
 #      echo "$4"
       change_conf_var "$2" "$3" "$4"
-#    else
+    else
 #      echo "(None)"
+      # This allows the function change_conf_var to remove previously set
+      # values (e.g. for open ports) which are not specified anymore.
+      change_conf_var "$2" "$3" ""
     fi
   else
     change_conf_var "$2" "$3" "$answer"
@@ -177,8 +186,8 @@ setup_conf_file()
     change_conf_var "$FIREWALL_CONF" "OPEN_ICMP" "0"
   fi
   
-  get_conf_var "Which TCP ports do you want to allow from the internet? (eg. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_TCP" ""
-  get_conf_var "Which UDP ports do you want to allow from the internet? (eg. 53=DNS, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_UDP" ""
+  get_conf_var "Which TCP ports do you want to allow from the internet? (e.g. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_TCP" ""
+  get_conf_var "Which UDP ports do you want to allow from the internet? (e.g. 53=DNS, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_UDP" ""
 
   if get_user_yn "Do you have an internal(aka LAN) interface that you want to setup (Y/N)?" "n"; then
     while true; do
@@ -214,6 +223,13 @@ setup_conf_file()
         break
       fi
     done
+  else
+    # If no internal interface is entered, then remove previously
+    # set values related to it.
+    change_conf_var "$FIREWALL_CONF" "INT_IF" ""
+    change_conf_var "$FIREWALL_CONF" "INTERNAL_NET" ""
+    change_conf_var "$FIREWALL_CONF" "INT_NET_BCAST_ADDRESS" ""
+    change_conf_var "$FIREWALL_CONF" "NAT" "0"
   fi
   
   # Set the correct permissions on the config file
@@ -242,7 +258,7 @@ if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/) (Y/
     ln -sv /etc/init.d/arno-iptables-firewall /etc/rc2.d/S11arno-iptables-firewall
   fi
 
-  # Check for insserv. Used for dependency based booting on eg. Debian
+  # Check for insserv. Used for dependency based booting on e.g. Debian
   INSSERV="$(find_command /sbin/insserv)"
   if [ -n "$INSSERV" ]; then
     "$INSSERV" arno-iptables-firewall
