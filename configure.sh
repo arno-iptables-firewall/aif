@@ -66,14 +66,14 @@ sanity_check()
 disable_conf_var()
 {
   # Interactive (default).
-  if [ ! "$4" ]; then
+  if [ -z "$4" ]; then
     if get_user_yn "PLEASE NOTE: \"$2\" is already set with ${3##${2}=}: do you wish to disable it (Y/n)?" "y"; then
       printf "Disabling settings for \"$2\": you can uncomment them later if you need them again.\n"
       sed -i -e "s~^$2=~#$2=~" "$1"
       return 2
     fi
   # Silent. 
-  elif [ "$4" == "disable" ]; then
+  elif [ "$4" = "disable" ]; then
     sed -i -e "s~^$2=~#$2=~" "$1"
   fi
 }
