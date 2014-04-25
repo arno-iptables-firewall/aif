@@ -67,8 +67,8 @@ disable_conf_var()
 {
   # Interactive (default).
   if [ -z "$4" ]; then
-    if get_user_yn "PLEASE NOTE: \"$2\" is already set with ${3##${2}=}: do you wish to disable it (Y/n)?" "y"; then
-      printf "Disabling settings for \"$2\": you can uncomment them later if you need them again.\n"
+    if get_user_yn "Variable \"$2\" is already set with ${3##${2}=}: do you wish to disable it (Y/n)?" "y"; then
+      printf "* Disabling settings for \"$2\": you can uncomment them later if needed.\n"
       sed -i -e "s~^$2=~#$2=~" "$1"
       return 2
     fi
@@ -247,7 +247,7 @@ setup_conf_file()
       change_conf_var "$FIREWALL_CONF" "INTERNAL_NET" "" "disable"
       change_conf_var "$FIREWALL_CONF" "INT_NET_BCAST_ADDRESS" "" "disable"
       change_conf_var "$FIREWALL_CONF" "NAT" "0"
-      printf "Settings for the internal network (address, broadcast address, NAT) have been disabled as well.\n"
+      printf "* Disabling settings for \"INTERNAL_NET\", \"INT_NET_BCAST_ADDRESS\", \"NAT\".\n"
     fi
   fi
 
@@ -304,7 +304,7 @@ else
   fi
 fi
 
-printf "\nConfiguration done. Please press \"Enter\" to exit ... "; read
+printf "\nConfiguration done. Please press \"Enter\" to continue ... "; read
 
 echo ""
 
