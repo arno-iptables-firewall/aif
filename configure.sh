@@ -88,7 +88,8 @@ change_conf_var()
   else
     # If no value is entered with this script, then disable (if desired)
     # already existing settings by commenting them out.
-    if SETTINGS=$(grep -E "^$2=\"?[a-zA-Z0-9]+\"?" "$1"); then
+    SETTINGS=$(grep -E "^$2=\"?[a-zA-Z0-9]+\"?" "$1")
+    if [ $? -eq 0 ]; then
       disable_conf_var "$1" "$2" "$SETTINGS" "$4" 
     fi
   fi
