@@ -184,9 +184,9 @@ verify_ports()
         # Check the submitted ports recursively to see if they fall within the valid range.
         if [ "$port" -ge 1 ] && [ "$port" -le 65535 ]; then
           if [ "$1" = "$port" ]; then
-	          # Exit here if only one port was entered.
-	          break
-    	    else
+	    # Exit here if only one port was entered.
+	    break
+    	  else
             (( field++ ))
           fi
         else
@@ -427,5 +427,6 @@ printf "\nConfiguration done. Please press \"Enter\" to continue ... "; read
 echo ""
 
 exit 0
+
 
 
