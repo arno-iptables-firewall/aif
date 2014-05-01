@@ -63,61 +63,57 @@ sanity_check()
 }
 
 
-disable_conf_var()
-{
-  # Interactive (default).
-  if [ -z "$4" ]; then
-    if get_user_yn "Variable \"$2\" is already set with ${3##${2}=}: do you wish to disable it (Y/n)?" "y"; then
-      printf "* Disabling settings for \"$2\": you can uncomment them later if needed.\n"
-      sed -i -e "s~^$2=~#$2=~" "$1"
-      return 2
-    fi
-  # Silent. 
-  elif [ "$4" = "disable" ]; then
-    sed -i -e "s~^$2=~#$2=~" "$1"
-  fi
-}
-
-
 change_conf_var()
 {
   if ! grep -E -q "^#?$2=" "$1"; then
     printf "\033[40m\033[1;31mERROR: Variable \"$2\" not found in \"$1\". File is probably outdated!\033[0m\n" >&2
+    
   elif [ -n "$3" ]; then
     sed -i -e "s~^#\?$2=.*$~$2=\"$3\"~" "$1"
+    
   else
-    # If no value is entered with this script, then disable (if desired)
-    # already existing settings by commenting them out.
-    SETTINGS=$(grep -E "^$2=\"?[a-zA-Z0-9]+\"?" "$1")
-    if [ $? -eq 0 ]; then
-      disable_conf_var "$1" "$2" "$SETTINGS" "$4" 
+    # Disable (i.e. comment out) or remove existing setting.
+    settings=$(grep -E "^$2=\"?[^\"]+\"?" "$1")
+    
+    if [ -n "$settings" ]; then
+
+      # Disable settings.
+      if [ "$4" = "disable" ]; then
+        sed -i -e "s~^$2=~#$2=~" "$1"
+	
+      # Disable settings interactively (default).
+      elif get_user_yn "Variable \"$2\" is already set with ${settings#${2}=}: do you wish to disable it (y/N)?" "n"; then
+        sed -i -e "s~^$2=~#$2=~" "$1"
+        return 2
+      fi
+
+    # Remove disabled settings.
+    elif [ "$4" = "remove" ]; then
+      sed -i -e "s~^#$2=.*$~$2=\"\"~" "$1"
     fi
   fi
 }
 
 
-get_conf_var()
-{
-  printf "$1 "
-
-  read answer
-
-  if [ -z "$answer" ]; then
-    if [ -n "$4" ]; then
-#      echo "$4"
-      change_conf_var "$2" "$3" "$4"
-    else
-      # This allows the function "change_conf_var" to remove previously set
-      # values (e.g. open ports) which are not needed anymore.
-      change_conf_var "$2" "$3" ""
-#      echo "(None)"
-    fi
-  else
-    change_conf_var "$2" "$3" "$answer"
-  fi
-
-  return 0
-}
+# get_conf_var()
+# {
+#   printf "$1 "
+#
+#   read answer
+#
+#   if [ -z "$answer" ]; then
+#     if [ -n "$4" ]; then
+# #      echo "$4"
+#       change_conf_var "$2" "$3" "$4"
+# #    else
+# #      echo "(None)"
+#     fi
+#   else
+#     change_conf_var "$2" "$3" "$answer"
+#   fi
+#
+#   return 0
+# }
 
 
 get_user_yn()
@@ -168,6 +164,124 @@ verify_interfaces()
 }
 
 
+verify_ports()
+{
+  # Check if ports are entered with a valid pattern (numeric values separated
+  # by commas). The variable '$valid' will be null of the pattern is invalid.
+  valid=$(echo "$1" | sed -e "s~^[^0-9].*\|.*[^0-9,].*\|.*,,.*\|.*[^0-9]$~~") 
+
+  if [ -z "$valid" ]; then
+    # If the entered pattern is invalid, go back and ask about open ports again.
+    printf "Invalid format! Only numeric values are allowed (comma separated for multiple ports).\n"
+    return 1
+    
+  else
+    field=1
+    while true; do
+      port=$(echo "$1" | cut -d ',' -f "$field")    
+      if [ -n "$port" ]; then     
+
+        # Check the submitted ports recursively to see if they fall within the valid range.
+        if [ "$port" -ge 1 ] && [ "$port" -le 65535 ]; then
+          if [ "$1" = "$port" ]; then
+	          # Exit here if only one port was entered.
+	          break
+    	    else
+            (( field++ ))
+          fi
+        else
+          # If at least one port is invalid, go back and ask again.
+          printf "Invalid value! At least one port falls outside the valid ports range (i.e. 1-65535).\n"
+          return 1
+        fi
+	
+      else
+        # Exit here if all ports have been checked (i.e. the variable '$port' is null).
+        break  
+      fi
+    done
+    
+  fi
+
+  return 0
+}
+
+
+get_ports()
+{
+  while true; do
+    printf "$1 "
+    read answer
+
+    # Use previous settings if available, or disable or remove them.
+    if [ -z "$answer" ]; then
+      change_conf_var "$2" "$3" "$4" "$5"
+      
+      break
+    # Check the entered values before submitting them to 'change_conf_var';
+    # use existing settings if available.
+    elif verify_ports "$answer"; then
+      if [ -n "$4" ]; then
+         existing="${4},"
+      fi
+      change_conf_var "$2" "$3" "${existing}${answer}" ""
+
+      break
+    fi
+
+  done
+}
+
+
+append_ports()
+{
+  if get_user_yn "Do you want to append other $1 ports to the above (y,N)?" "n"; then
+    # Append new ports to existing settings.
+    get_ports "Which ports do you want to add (comma separate multiple ports)?" "$2" "$3" "$4" ""
+  else
+    # Keep the existing settings unmodified.
+    change_conf_var "$2" "$3" "$4" ""
+  fi
+}
+
+
+manage_ports()
+{
+  # Check for enabled existing settings.
+  enabled=$(grep -E "^$3=\"?[^\"]+\"?" "$2" | tr -d '"' | cut -d '=' -f 2)
+
+  if [ -n "$enabled" ]; then	  
+
+    if get_user_yn "The following settings for open ${3##*_} ports are enabled: \"$enabled\". Do you want to keep them (Y,n)?" "y"; then
+      # Use available settings and, if needed, append new ports.
+      append_ports "${3##*_}" "$2" "$3" "$enabled"
+    else
+      # Disable and prompt for new settings.
+      get_ports "$1" "$2" "$3" "" "disable"
+    fi
+
+  else    
+    # Check for disabled existing settings.
+    disabled=$(grep -E "^#$3=\"?[^\"]+\"?" "$2" | tr -d '"' | cut -d '=' -f 2)
+
+    if [ -n "$disabled" ]; then
+
+      if get_user_yn "Disabled settings for open ${3##*_} ports are available: \"$disabled\". Do you want to use them (y,N)?" "n"; then
+        # Use available settings and, if needed, append new ports.
+        append_ports "${3##*_}" "$2" "$3" "$disabled"
+      else 
+        # Remove and prompt for new settings.
+        get_ports "$1" "$2" "$3" "" "remove"
+      fi
+      
+    else
+      # Prompt for new settings.
+      get_ports "$1" "$2" "$3" "" ""
+    fi
+  fi
+}
+
+
 setup_conf_file()
 {
   # Create backup of old config
@@ -176,7 +290,7 @@ setup_conf_file()
   printf "We will now setup the most basic settings of the firewall.\n\n"
 
   while true; do
-    printf "What is your external (aka. internet) interface (multiple interfaces should be comma separated)? "
+    printf "What is your external (i.e. internet) interface (multiple interfaces should be comma separated)? "
     read EXT_IF
     
     if verify_interfaces $EXT_IF; then
@@ -204,12 +318,13 @@ setup_conf_file()
     change_conf_var "$FIREWALL_CONF" "OPEN_ICMP" "0"
   fi
   
-  get_conf_var "Which TCP ports do you want to allow from the internet? (e.g. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_TCP" ""
-  get_conf_var "Which UDP ports do you want to allow from the internet? (e.g. 53=DNS, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_UDP" ""
+  manage_ports "Which TCP ports do you want to allow from the internet? (e.g. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_TCP"
 
-  if get_user_yn "Do you have an internal(aka LAN) interface that you want to setup (y/N)?" "n"; then
+  manage_ports "Which UDP ports do you want to allow from the internet? (e.g. 53=DNS, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_UDP"
+
+  if get_user_yn "Do you have an internal (LAN) interface that you want to setup (y/N)?" "n"; then
     while true; do
-      printf "What is your internal interface (aka. LAN interface)? "
+	    printf "What is your internal (LAN) interface? "
       read INT_IF
       
       if verify_interfaces $INT_IF; then
@@ -241,14 +356,16 @@ setup_conf_file()
         break
       fi
     done
+
   else
     # Manage settings for the internal interface if no value is entered.
-    change_conf_var "$FIREWALL_CONF" "INT_IF" ""
+    change_conf_var "$FIREWALL_CONF" "INT_IF" "" 
     if [ $? -eq 2 ]; then
+      printf "* Disabling settings for the internal (LAN) interface(s).\n"
+      printf "* Disabling settings for the internal network (addresses, broadcast addresses, NAT).\n"
       change_conf_var "$FIREWALL_CONF" "INTERNAL_NET" "" "disable"
       change_conf_var "$FIREWALL_CONF" "INT_NET_BCAST_ADDRESS" "" "disable"
       change_conf_var "$FIREWALL_CONF" "NAT" "0"
-      printf "* Disabling settings for \"INTERNAL_NET\", \"INT_NET_BCAST_ADDRESS\", \"NAT\".\n"
     fi
   fi
 
@@ -310,4 +427,5 @@ printf "\nConfiguration done. Please press \"Enter\" to continue ... "; read
 echo ""
 
 exit 0
+
 
