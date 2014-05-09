@@ -573,8 +573,11 @@ setup_kernel_settings()
 
   # Use rp_filter to drop connections from non-routable IPs
   ######################################################################
-  if [ "$RP_FILTER" = "1" ]; then
-    echo " Enabling anti-spoof with rp_filter"
+  if [ "$RP_FILTER" = "2" ]; then
+    echo " Enabling loose anti-spoof with rp_filter"
+    sysctl_set_all "net.ipv4.conf" "rp_filter" 2
+  elif [ "$RP_FILTER" = "1" ]; then
+    echo " Enabling strict anti-spoof with rp_filter"
     sysctl_set_all "net.ipv4.conf" "rp_filter" 1
   elif [ "$RP_FILTER" = "0" ]; then
     echo " Disabling anti-spoof with rp_filter"
