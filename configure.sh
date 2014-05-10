@@ -185,7 +185,7 @@ verify_ports()
         if [ "$port" -ge 1 ] && [ "$port" -le 65535 ]; then
           if [ "$1" = "$port" ]; then
 	    # Exit here if only one port was entered.
-	    break
+	    return 0
     	  else
             (( field++ ))
           fi
@@ -197,7 +197,7 @@ verify_ports()
 	
       else
         # Exit here if all ports have been checked (i.e. the variable '$port' is null).
-        break  
+        return 0
       fi
     done
     
