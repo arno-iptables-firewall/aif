@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # description: Firewall-log filter script (arno-fwfilter)
-# Last update: January 25, 2013
+# Last update: May 16, 2014
 
 # Usage examples (make sure arno-fwfilter is executable!):
 # --------------------------------------------------------
@@ -16,7 +16,7 @@
 #                       -= Arno's iptables firewall =-
 #                  Firewall-log filter script (arno-fwfilter)
 #
-# (C) Copyright 2001-2013 by Arno van Amersfoort
+# (C) Copyright 2001-2014 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -203,6 +203,7 @@ else
      if (port==635) return("Linux Mountd bug(635)")
      if (port==636) return("LDAPs(636)")
      if (port==691) return("MS-Exchange(691)")
+     if (port==873) return("Rsync(873)")
      if (port==993) return("IMAPs(993)")
      if (port==995) return("POP3s(995)")
      if (port==1025) return("NFS(1025)")
