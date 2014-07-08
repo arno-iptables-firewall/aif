@@ -649,7 +649,7 @@ setup_kernel_settings()
     echo " Enabling PMTU discovery"
     sysctl -w net.ipv4.ip_no_pmtu_disc=0
   fi
-  
+
   # Time To Live (TTL) is the term for a data field in the internet protocol.
   # TTL is today interpreted to indicate the maximum number of routers a packet may transit.
   # Each router that handles a packet will decrement the TTL field by 1.
@@ -668,6 +668,11 @@ setup_kernel_settings()
   # Increase the default queuelength. (Kernel Default: 1024)
   ##########################################################
   # sysctl -w -e net.ipv4.ip_queue_maxlen=2048
+
+  # With eg. open iscsi some systems may have problems under heavy load. Enable tcp_be_liberal to workaround this
+  if [ "$TCP_BE_LIBERAL" = "1" ]; then
+    sysctl -w net.ipv4.netfilter.ip_conntrack_tcp_be_liberal=1
+  fi
 
   echo " Flushing route table"
   sysctl -w net.ipv4.route.flush=1
