@@ -1,5 +1,5 @@
-Version 2.0.1f-DEVEL (August 28, 2014)
---------------------------------------
+Version 2.0.1f-DEVEL (July 28, 2014)
+------------------------------------
 ! Fixed NAT_LOCAL_REDIRECT=1 packets from being logged as if they were dropped.
 + Added tcp_be_liberal option
 + Allow rp_filter to be mode 2 (loose)
