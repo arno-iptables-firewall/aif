@@ -1,5 +1,6 @@
-Version 2.0.1f-DEVEL (July 8, 2014)
------------------------------------
+Version 2.0.1f-DEVEL (August 28, 2014)
+--------------------------------------
+! Fixed NAT_LOCAL_REDIRECT=1 packets from being logged as if they were dropped.
 + Added tcp_be_liberal option
 + Allow rp_filter to be mode 2 (loose)
 ! Fixed functions get_ifs() and get_ips() with a '#', distinguish IPv4 from VLAN interfaces and check for
