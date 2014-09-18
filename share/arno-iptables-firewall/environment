@@ -1265,34 +1265,30 @@ gethostbyname()
 
 # Get resolved host->ip from host cache
 # Arguments : $1 = hostname to resolve
-# Returns   : 0 = Got result, 1 = No result. IP is send to stdout
+# Returns   : 0 = Got result, 1 = no result, 2 = in cache with no-ip. IP is send to stdout (if any)
 get_host_from_cache()
 {
-  local host_ip=""
   local host="$1"
 
   if is_numeric_ip "$host"; then
-    host_ip="$host"
+    echo "$host"
     return 0
   fi
 
   # First try to get host from host-cache
   local find_host=`grep "^$host " -m1 "$HOST_CACHE_FILE"`
   if [ -n "$find_host" ]; then
-    host_ip=`echo "$find_host" |cut -s -f2 -d' '`
+    local host_ip=`echo "$find_host" |cut -s -f2 -d' '`
 
     if [ "$host_ip" = "NO_IP" ]; then
-      host_ip=""
+      return 2 # NO-IP result
+    elif [ -n "$host_ip" ]; then
+      echo "$host_ip"
+      return 0
     fi
   fi
 
-  if [ -n "$host_ip" ]; then
-    echo "$host_ip"
-    return 0
-  else
-    echo ""
-    return 1 # No result
-  fi
+  return 1 # No result
 }
 
 

@@ -90,7 +90,7 @@ sanity_check()
 }
 
 
-# Parse/get hostname. Try to use 
+# Parse/get hostname. Try to use host cache if applicable
 # Resolve hostname to an IP and store in our (new) cache
 # Arguments : $1 = hostname to resolve
 # Returns   : Resolved host's IP in "$host_ip"
@@ -100,26 +100,26 @@ traffic_accounting_get_host()
   local host="$1"
   local retval=0
 
+  printf "${INDENT}Resolving \"$host\" -> "
+
   if is_numeric_ip "$host"; then
+    echo "$host"
     host_ip="$host"
     return 0
   fi
 
-  printf "${INDENT}Resolving \"$host\" -> "
-
   # First try to get host from host-cache
-  if [ "$TRAFFIC_ACCOUNTING_USE_HOST_CACHE" != "0" ] && \
-     [ -n "$TA_HOST_CACHE" ] && [ -e "$TA_HOST_CACHE" ]; then
+  if [ "$TRAFFIC_ACCOUNTING_USE_HOST_CACHE" != "0" ]; then
+    host_ip=`get_host_from_cache "$host"`
+    local retval=$?
 
-    local find_host=`grep "^$host " -m1 "$TA_HOST_CACHE"`
-    if [ -n "$find_host" ]; then
-      host_ip=`echo "$find_host" |cut -s -f2 -d' '`
-      echo "$host_ip (cached)"
-
-      if [ "$host_ip" = "NO_IP" ]; then
-        host_ip=""
+    # TODO: Detect NO-IP condition
+    if [ $retval -eq 0 -o $retval -eq 2 ]; then
+      if [ -n "$host_ip" ]; then
+        echo "$host_ip (cached)"
+      else
+        echo "NO-IP (cached)"
       fi
-
       return 0
     fi
   fi
