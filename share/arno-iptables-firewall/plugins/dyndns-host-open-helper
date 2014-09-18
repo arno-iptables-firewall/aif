@@ -132,11 +132,12 @@ dyndns_get_host_cached()
       if [ -z "$host_ip" -o "$host_ip" = "NO_IP" ]; then
         host_ip="NO_IP"
         printf "\033[40m\033[1;31mFAILED!\n\033[0m"
-        echo "** ERROR($retval): Unresolvable host \"$host\", and no old IP to fallback on! **" >&2
+        echo "** ERROR($retval): Unresolvable host \"$host\" after $fail_count tries, and no old IP to fallback on! **" >&2
       else
         echo "$host_ip (cached)"
-        echo "** WARNING($retval): Unresolvable host \"$host\". Re-using old IP ($host_ip)! **" >&2
+        echo "** WARNING($retval): Unresolvable host \"$host\" after $fail_count tries. Re-using old IP ($host_ip)! **" >&2
       fi
+      fail_count=1 # Reset fail count to 1
     fi
   else
     echo "$host_ip"
