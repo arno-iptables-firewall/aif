@@ -1,3 +1,8 @@
+Version 1.22-BETA (September 18, 2014)
+--------------------------------------
+! We should use DNS_FAST_FAIL not DYNDNS_FAST_FAIL
+* Handle the host cache's new cache fallback threshold column properly
+
 Version 1.21 (January 25, 2013)
 -------------------------------
 * Show a warning in case host resolving fails instead of having iptables fail

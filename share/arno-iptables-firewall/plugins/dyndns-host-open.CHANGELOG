@@ -1,3 +1,7 @@
+Version 1.33-BETA (September 18, 2014)
+-------------------------------------
+* Implement new cache fallback threshold setting/logic
+
 Version 1.32 (January 25, 2013)
 -------------------------------
 * Show a warning in case host resolving fails instead of having iptables fail

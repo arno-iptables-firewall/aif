@@ -104,27 +104,46 @@ dyndns_get_host_cached()
   DNS_FAST_FAIL_ONCE="$DYNDNS_DNS_FAST_FAIL"
   host_ip=`gethostbyname "$host"`
   retval=$?
+  fail_count=0
 
   if [ -z "$host_ip" -o $retval -ne 0 ]; then
-    # Try to get from (old) cache, if allowed
-    if [ "$DYNDNS_OLD_CACHE_FALLBACK" = "1" ]; then
-      host_ip=`grep "^$host " -m1 "${DYNDNS_HOST_CACHE}" 2>/dev/null |cut -s -f2 -d' '`
+    host_lookup="$(grep "^$host " -m1 "${DYNDNS_HOST_CACHE}" 2>/dev/null)"
+    if [ -n "$host_lookup" ]; then
+      count="$(echo "$host_lookup" |cut -s -f3 -d' ')"
+      if [ -n "$count" ]; then
+        fail_count=$count
+      fi
+
+      # Try to get from (old) cache, if allowed
+      if [ "$DYNDNS_OLD_CACHE_FALLBACK" = "1" ]; then
+        host_ip="$(echo "$host_lookup" |cut -s -f2 -d' ')"
+      fi
     fi
 
-    # (Re)check $host_ip
-    if [ -z "$host_ip" ]; then
-      printf "\033[40m\033[1;31mFAILED!\n\033[0m"
-      echo "** ERROR($retval): Unresolvable host \"$host\", and no old IP to fallback on! **" >&2
-    else
-      echo "$host_ip (cached)"
-      echo "** WARNING($retval): Unresolvable host \"$host\". Re-using old IP ($host_ip)! **" >&2
+    fail_count=$((fail_count + 1))
+
+    threshold=1 # default
+    if [ -n "$DYNDNS_FAIL_THRESHOLD" ]; then
+      threshold=$DYNDNS_FAIL_THRESHOLD
+    fi 
+
+    if [ $fail_count -gt $threshold ]; then  
+      # (Re)check $host_ip
+      if [ -z "$host_ip" -o "$host_ip" = "NO_IP" ]; then
+        host_ip="NO_IP"
+        printf "\033[40m\033[1;31mFAILED!\n\033[0m"
+        echo "** ERROR($retval): Unresolvable host \"$host\", and no old IP to fallback on! **" >&2
+      else
+        echo "$host_ip (cached)"
+        echo "** WARNING($retval): Unresolvable host \"$host\". Re-using old IP ($host_ip)! **" >&2
+      fi
     fi
   else
     echo "$host_ip"
   fi
 
   # Explicitly store empty results as well else we'll keep trying over and over again for each rule 
-  echo "$host $host_ip" >>"${DYNDNS_HOST_CACHE}.new"
+  echo "$host $host_ip $fail_count" >>"${DYNDNS_HOST_CACHE}.new"
 
   return $retval
 }
