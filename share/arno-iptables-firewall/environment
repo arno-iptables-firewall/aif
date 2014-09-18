@@ -1263,6 +1263,39 @@ gethostbyname()
 }
 
 
+# Get resolved host->ip from host cache
+# Arguments : $1 = hostname to resolve
+# Returns   : 0 = Got result, 1 = No result. IP is send to stdout
+get_host_from_cache()
+{
+  local host_ip=""
+  local host="$1"
+
+  if is_numeric_ip "$host"; then
+    host_ip="$host"
+    return 0
+  fi
+
+  # First try to get host from host-cache
+  local find_host=`grep "^$host " -m1 "$HOST_CACHE_FILE"`
+  if [ -n "$find_host" ]; then
+    host_ip=`echo "$find_host" |cut -s -f2 -d' '`
+
+    if [ "$host_ip" = "NO_IP" ]; then
+      host_ip=""
+    fi
+  fi
+
+  if [ -n "$host_ip" ]; then
+    echo "$host_ip"
+    return 0
+  else
+    echo ""
+    return 1 # No result
+  fi
+}
+
+
 # Helper function to show interfaces / ips in front of verbose line
 # $1 =  interfaces. $2 = ips
 show_if_ip()
@@ -1559,6 +1592,7 @@ get_network_ipv6_mask()
 {
   get_network_ipv6_address_mask "$1" |cut -f2 -d'/'
 }
+
 
 ################################# Main ####################################
 
