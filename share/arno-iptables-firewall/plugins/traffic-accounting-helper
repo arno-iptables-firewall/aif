@@ -114,14 +114,18 @@ traffic_accounting_get_host()
     local find_host=`grep "^$host " -m1 "$TA_HOST_CACHE"`
     if [ -n "$find_host" ]; then
       host_ip=`echo "$find_host" |cut -s -f2 -d' '`
-
       echo "$host_ip (cached)"
+
+      if [ "$host_ip" = "NO_IP" ]; then
+        host_ip=""
+      fi
+
       return 0
     fi
   fi
 
   # Perform normal lookup
-  DNS_FAST_FAIL_ONCE="$DYNDNS_DNS_FAST_FAIL"
+  DNS_FAST_FAIL_ONCE="$DNS_FAST_FAIL"
   host_ip=`gethostbyname "$host"`
   retval=$?
 
@@ -149,7 +153,7 @@ traffic_accounting_setup_rules()
     echo "Traffic Accounting Hosts:"
     echo "-------------------------"
   fi
-  
+
   # Also include default unicast route addresses, (0.0.0.0/0 and ::/0)
   DEFAULT_ADDR="0.0.0.0/0"
   if [ "$IPV6_SUPPORT" = "1" ]; then
@@ -161,7 +165,7 @@ traffic_accounting_setup_rules()
     if [ "$VERBOSE" = "1" ]; then
       printf "Host=$host "
     fi
-    
+
     old_entry="$(grep "^$host " /var/log/traffic-accounting.log)"
     old_ip="$(echo "$old_entry" |cut -s -d' ' -f2)"
     old_in_value="$(echo "$old_entry" |cut -s -d' ' -f3)"
@@ -241,13 +245,13 @@ traffic_accounting_setup_rules()
       if [ "$VERBOSE" = "1" ]; then
         printf "in_action=add "
       fi
-      
+
       if [ "$host_ip" = "0.0.0.0/0" -o "$host_ip" = "::/0" ]; then
         iptables -A ACCOUNTING_INPUT_CHAIN -s $host_ip -j RETURN
       else
         iptables -I ACCOUNTING_INPUT_CHAIN 1 -s $host_ip -j RETURN
       fi
-      
+
       # Preset values to zero as none exist yet
       ipt_in_value=0
     fi
