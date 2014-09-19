@@ -51,6 +51,11 @@ if [ "$VERBOSE" = "0" ]; then
       exit $?
     ;;
 
+    configtest)
+      $PROGRAM check-conf
+      exit $?
+    ;;
+
     *)
       $PROGRAM
       exit 1
