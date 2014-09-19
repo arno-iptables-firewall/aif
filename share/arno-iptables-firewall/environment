@@ -73,11 +73,11 @@ check_command()
       return 0
     fi
 
-    if which "$cmd" >/dev/null 2>&1; then
+    if [ -n "$(which "$cmd" 2>/dev/null)" ]; then
       return 0
     fi
   done
-  
+
   return 1
 }
 
