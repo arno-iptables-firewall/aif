@@ -328,7 +328,7 @@ copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
 
 # Install service file if systemd directory is available
 if [ -d "/usr/lib/systemd/system/" ]; then
-	copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /usr/lib/systemd/system/
+  copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /usr/lib/systemd/system/
 fi
 
 mkdir -pv /etc/arno-iptables-firewall || exit 1

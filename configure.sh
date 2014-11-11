@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.02e"
+MY_VERSION="1.02f"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -48,7 +48,7 @@ sanity_check()
     printf "\033[40m\033[1;31mERROR: Root check FAILED (you MUST be root to use this script)! Quitting...\033[0m\n" >&2
     exit 1
   fi
-  
+
   check_command_error sed
   check_command_error chmod
   check_command_error chown
@@ -136,7 +136,7 @@ verify_interfaces()
       fi
     fi
   done
-  
+
   return 0
 }
 
@@ -144,21 +144,21 @@ verify_interfaces()
 setup_conf_file()
 {
   # Create backup of old config
-  cp -fvb "$FIREWALL_CONF" /etc/arno-iptables-firewall.conf.bak
+  cp -fvb "$FIREWALL_CONF" "${FIREWALL_CONF}.bak"
 
   printf "We will now setup the most basic settings of the firewall\n\n"
 
   while true; do
     printf "What is your external (aka. internet) interface (multiple interfaces should be comma separated)? "
     read EXT_IF
-    
+
     if verify_interfaces $EXT_IF; then
       change_conf_var "$FIREWALL_CONF" "EXT_IF" "$EXT_IF"
 
       break
     fi
   done
-  
+
   if get_user_yn "Does your external interface get its IP through DHCP (Y/N)?" "n"; then
     change_conf_var "$FIREWALL_CONF" "EXT_IF_DHCP_IP" "1"
   else
@@ -170,13 +170,13 @@ setup_conf_file()
   else
     change_conf_var "$FIREWALL_CONF" "IPV6_SUPPORT" "0"
   fi
-  
+
   if get_user_yn "Do you want to be pingable from the internet (Y/N)?" "n"; then
     change_conf_var "$FIREWALL_CONF" "OPEN_ICMP" "1"
   else
     change_conf_var "$FIREWALL_CONF" "OPEN_ICMP" "0"
   fi
-  
+
   get_conf_var "Which TCP ports do you want to allow from the internet? (eg. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_TCP" ""
   get_conf_var "Which UDP ports do you want to allow from the internet? (eg. 53=DNS, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_UDP" ""
 
@@ -184,10 +184,10 @@ setup_conf_file()
     while true; do
       printf "What is your internal interface (aka. LAN interface)? "
       read INT_IF
-      
+
       if verify_interfaces $INT_IF; then
         change_conf_var "$FIREWALL_CONF" "INT_IF" "$INT_IF"
-      
+
         local INTERNAL_NET=""
         local INT_NET_BCAST_ADDRESS=""
         IFS=' ,'
@@ -195,11 +195,11 @@ setup_conf_file()
           INTERNAL_NET="$INTERNAL_NET${INTERNAL_NET:+ }$(get_network_ipv4_address_mask $interface)"
           INT_NET_BCAST_ADDRESS="$INT_NET_BCAST_ADDRESS${INT_NET_BCAST_ADDRESS:+ }$(get_network_ipv4_broadcast $interface)"
         done
-      
+
         if [ -n "$INTERNAL_NET" ] && [ -n "$INT_NET_BCAST_ADDRESS" ]; then
           echo "* Auto-detected internal IPv4 net(s): $INTERNAL_NET"
           echo "* Auto-detected internal IPv4 broadcast address(es): $INT_NET_BCAST_ADDRESS"
-          
+
           change_conf_var "$FIREWALL_CONF" "INTERNAL_NET" "$INTERNAL_NET"
           change_conf_var "$FIREWALL_CONF" "INT_NET_BCAST_ADDRESS" "$INT_NET_BCAST_ADDRESS"
 
@@ -215,7 +215,7 @@ setup_conf_file()
       fi
     done
   fi
-  
+
   # Set the correct permissions on the config file
   chmod 755 /etc/init.d/arno-iptables-firewall
   chown 0:0 "$FIREWALL_CONF" /etc/init.d/arno-iptables-firewall

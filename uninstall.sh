@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.0a"
+MY_VERSION="1.0b"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -8,7 +8,7 @@ MY_VERSION="1.0a"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2012 by Arno van Amersfoort
+# (C) Copyright 2001-2014 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -88,6 +88,7 @@ rm -fv /usr/local/share/man/man8/arno-fwfilter.1.gz
 
 rm -fv /etc/init.d/arno-iptables-firewall
 rm -fv /etc/rc*.d/*arno-iptables-firewall
+rm -fv /usr/lib/systemd/system/arno-iptables-firewall.service
 
 if get_user_yn "Also remove ALL configuration files from /etc/arno-iptables-firewall/ (Y/N)?" "n"; then
   rm -rfv /etc/arno-iptables-firewall
