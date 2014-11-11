@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.02d"
+MY_VERSION="1.02e"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -8,7 +8,7 @@ MY_VERSION="1.02d"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2011 by Arno van Amersfoort
+# (C) Copyright 2001-2014 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -231,18 +231,33 @@ printf "Configure Script v$MY_VERSION\n"
 echo "-------------------------------------------------------------------------------"
 
 sanity_check;
+RC_PATH="/etc"
+
+# Check for Redhat/SUSE rc.d
+if  [ -d "/etc/rc.d" ]; then
+  RC_PATH="/etc/rc.d"
+fi
 
 # Remove any symlinks in rc*.d out of the way
-rm -f /etc/rc*.d/*arno-iptables-firewall
+rm -vf $RC_PATH/rc0.d/*arno-iptables-firewall
+rm -vf $RC_PATH/rc1.d/*arno-iptables-firewall
+rm -vf $RC_PATH/rc2.d/*arno-iptables-firewall
+rm -vf $RC_PATH/rc3.d/*arno-iptables-firewall
+rm -vf $RC_PATH/rc4.d/*arno-iptables-firewall
+rm -vf $RC_PATH/rc5.d/*arno-iptables-firewall
+rm -vf $RC_PATH/rc6.d/*arno-iptables-firewall
+rm -vf $RC_PATH/rcS.d/*arno-iptables-firewall
 
 if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/) (Y/N)?" "y"; then
-  if [ -d /etc/rcS.d ]; then
-    ln -sv /etc/init.d/arno-iptables-firewall /etc/rcS.d/S41arno-iptables-firewall
+  if [ -d "$RC_PATH/rcS.d" ]; then
+    ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rcS.d/S41arno-iptables-firewall"
+  elif [ -d "$RC_PATH/rc2.d" ]; then
+    ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc2.d/S11arno-iptables-firewall"
   else
-    ln -sv /etc/init.d/arno-iptables-firewall /etc/rc2.d/S11arno-iptables-firewall
+    echo "WARNING: Unable to detect /rc2.d or /rcS.d directories. Skipping runlevel symlinks" >&2
   fi
 
-  # Check for insserv. Used for dependency based booting on eg. Debian
+  # Check for insserv. Used for dependency based booting
   INSSERV="$(find_command /sbin/insserv)"
   if [ -n "$INSSERV" ]; then
     "$INSSERV" arno-iptables-firewall
