@@ -87,7 +87,7 @@ rm -fv /usr/local/share/man/man8/arno-iptables-firewall.8.gz
 rm -fv /usr/local/share/man/man8/arno-fwfilter.1.gz
 
 rm -fv /etc/init.d/arno-iptables-firewall
-rm -fv /etc/rc*.d/*arno-iptables-firewall
+rm -fv /etc/rc.d/rc*.d/*arno-iptables-firewall 
 rm -fv /usr/lib/systemd/system/arno-iptables-firewall.service
 
 if get_user_yn "Also remove ALL configuration files from /etc/arno-iptables-firewall/ (Y/N)?" "n"; then
