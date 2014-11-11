@@ -1,5 +1,6 @@
-Version 2.0.1f-DEVEL (September 18, 2014)
+Version 2.0.1f-DEVEL (November 11, 2014)
 -----------------------------------------
+! Misc. fixes for newer SuSE & Redhat systems concerning systemd & init
 * Moved get host cache logic from traffic accounting plugin to environment to avoid (future) code duplication
 ! Fixed NAT_LOCAL_REDIRECT=1 packets from being logged as if they were dropped
 + Added tcp_be_liberal option
