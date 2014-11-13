@@ -425,7 +425,8 @@ else
   fi
 fi
 
-printf "\n** Configuration done. Please press \"Enter\" to continue ... "; read
+printf "\n** Configuration done. Please press \"Enter\" to continue ... "
+read
 
 echo ""
 
