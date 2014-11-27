@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.02f"
+MY_VERSION="1.02g"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -56,6 +56,7 @@ sanity_check()
   check_command_error ln
   check_command_error rm
   check_command_error ip
+  check_command_error ifconfig
   check_command_error cut
   check_command_error diff
   check_command_error sed
