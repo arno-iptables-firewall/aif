@@ -127,7 +127,7 @@ verify_interfaces()
       return 1
     fi
   fi
-  
+
   IFS=' ,'
   for interface in $1; do
     if ! check_interface $interface; then
@@ -141,10 +141,41 @@ verify_interfaces()
 }
 
 
+list_interfaces()
+{
+  IFS=$EOL
+  local CUR_IF=""
+  ifconfig -a 2>/dev/null |while read LINE; do
+    if echo "$LINE" |grep -q -e '^[a-z]'; then
+      if ! echo "$LINE" |grep -q -e '^dummy[0-9]' -e '^bond[0-9]' -e '^lo[[:blank:]]'; then
+        CUR_IF="$(echo "$LINE" |awk '{ print $1 }')"
+      else
+        CUR_IF=""
+      fi
+    fi
+
+    if [ -z "$LINE" -a -n "$CUR_IF" ]; then
+      CUR_IF=""
+      echo ""
+    fi
+
+    if [ -n "$CUR_IF" ] && echo "$LINE" |grep -q -E -i -e ' hwaddr ' -e ' ether ' -e '[[:blank:]]inet6? addr'; then
+      echo "$LINE"
+    fi
+  done
+}
+
+
 setup_conf_file()
 {
   # Create backup of old config
   cp -fvb "$FIREWALL_CONF" "${FIREWALL_CONF}.bak"
+
+  echo ""
+  echo "Listing available interfaces:"
+  echo "-----------------------------"
+  list_interfaces; 
+  echo "-----------------------------"
 
   printf "We will now setup the most basic settings of the firewall\n\n"
 
