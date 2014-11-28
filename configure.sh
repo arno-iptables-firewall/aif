@@ -271,28 +271,26 @@ if  [ -d "/etc/rc.d" ]; then
 fi
 
 # Remove any symlinks in rc*.d out of the way
-rm -vf $RC_PATH/rc0.d/*arno-iptables-firewall
-rm -vf $RC_PATH/rc1.d/*arno-iptables-firewall
-rm -vf $RC_PATH/rc2.d/*arno-iptables-firewall
-rm -vf $RC_PATH/rc3.d/*arno-iptables-firewall
-rm -vf $RC_PATH/rc4.d/*arno-iptables-firewall
-rm -vf $RC_PATH/rc5.d/*arno-iptables-firewall
-rm -vf $RC_PATH/rc6.d/*arno-iptables-firewall
-rm -vf $RC_PATH/rcS.d/*arno-iptables-firewall
+rm -f $RC_PATH/rc0.d/*arno-iptables-firewall
+rm -f $RC_PATH/rc1.d/*arno-iptables-firewall
+rm -f $RC_PATH/rc2.d/*arno-iptables-firewall
+rm -f $RC_PATH/rc3.d/*arno-iptables-firewall
+rm -f $RC_PATH/rc4.d/*arno-iptables-firewall
+rm -f $RC_PATH/rc5.d/*arno-iptables-firewall
+rm -f $RC_PATH/rc6.d/*arno-iptables-firewall
+rm -f $RC_PATH/rcS.d/*arno-iptables-firewall
 
 if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/) (Y/N)?" "y"; then
-  if [ -d "$RC_PATH/rcS.d" ]; then
-    ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rcS.d/S41arno-iptables-firewall"
-  elif [ -d "$RC_PATH/rc2.d" ]; then
-    ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc2.d/S11arno-iptables-firewall"
-  else
-    echo "WARNING: Unable to detect /rc2.d or /rcS.d directories. Skipping runlevel symlinks" >&2
-  fi
-
   # Check for insserv. Used for dependency based booting
   INSSERV="$(find_command /sbin/insserv)"
-  if [ -n "$INSSERV" ]; then
-    "$INSSERV" arno-iptables-firewall
+  if [ -z "$INSSERV" ] || ! "$INSSERV" -v -d arno-iptables-firewall; then
+    if [ -d "$RC_PATH/rcS.d" ]; then
+      ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rcS.d/S41arno-iptables-firewall"
+    elif [ -d "$RC_PATH/rc2.d" ]; then
+      ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc2.d/S11arno-iptables-firewall"
+    else
+      echo "WARNING: Unable to detect /rc2.d or /rcS.d directories. Skipping runlevel symlinks" >&2
+    fi
   fi
 fi
 
