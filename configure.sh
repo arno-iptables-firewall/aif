@@ -263,10 +263,10 @@ printf "Configure Script v$MY_VERSION\n"
 echo "-------------------------------------------------------------------------------"
 
 sanity_check;
-RC_PATH="/etc"
 
+RC_PATH="/etc"
 # Check for Redhat/SUSE rc.d
-if  [ -d "/etc/rc.d" ]; then
+if [ -d "/etc/rc.d" ]; then
   RC_PATH="/etc/rc.d"
 fi
 
