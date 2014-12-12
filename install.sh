@@ -28,6 +28,9 @@ MY_VERSION="1.07a"
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------------------
 
+EOL='
+'
+
 # Check if the environment file exists and if so, load it
 #########################################################
 if [ -f ./share/arno-iptables-firewall/environment ]; then
@@ -256,7 +259,7 @@ get_user_yn()
 
 check_18_version()
 {
-  if [ -e "/etc/init.d/arno-iptables-firewall" ] && grep -q "^MY_VERSION=" "/etc/init.d/arno-iptables-firewall"; then
+  if grep -q "^MY_VERSION=" "/etc/init.d/arno-iptables-firewall" 2>/dev/null; then
     if get_user_yn "WARNING: An old version is still installed. Removing it first is *STRONGLY* recommended. Remove (Y/N)?" "y"; then
       rm -fv /etc/init.d/arno-iptables-firewall
       mv -fv /etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/custom-rules.old
@@ -271,14 +274,14 @@ check_18_version()
 # Check plugins for (old) versions with different priority
 check_plugins()
 {
-  if [ -d "/usr/local/share/arno-iptables-firewall/plugins/" ]; then
+  if [ -d /usr/local/share/arno-iptables-firewall/plugins ] && ls /usr/local/share/arno-iptables-firewall/plugins/*.plugin >/dev/null 2>&1; then
     unset IFS
-    for plugin in ./share/arno-iptables-firewall/plugins/*.plugin; do
-      plugin_name="$(basename "$plugin" |sed 's/^[0-9]*//')"
+    for PLUGIN_FILE in ./share/arno-iptables-firewall/plugins/*.plugin; do
+      PLUGIN_NAME="$(basename "$PLUGIN_FILE" |sed 's/^[0-9]*//')"
 
-      ls /usr/local/share/arno-iptables-firewall/plugins/*.plugin |grep "/[0-9]*$plugin_name$" |grep -v "/$(basename "$plugin")$" |while read fn; do
-        echo "* Removing old plugin: $fn"
-        rm -fv "$fn"
+      ls /usr/local/share/arno-iptables-firewall/plugins/*.plugin 2>/dev/null |grep "/[0-9]*${PLUGIN_NAME}$" |grep -v "/$(basename "$PLUGIN_FILE")$" |while IFS=$EOL read PLUGIN_OLD; do
+        echo "* Removing old plugin: $PLUGIN_OLD"
+        rm -fv "$PLUGIN_OLD"
       done
     done
   fi
@@ -366,3 +369,4 @@ if get_user_yn "(Re)start firewall (Y/N)?"; then
 fi
 
 exit 0
+
