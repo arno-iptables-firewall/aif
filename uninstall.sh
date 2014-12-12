@@ -105,7 +105,7 @@ rm -fv /etc/init.d/arno-iptables-firewall
 
 # Check for insserv. Used for dependency based booting
 if check_command insserv; then
-  insserv -rv arno-iptables-firewall; then
+  insserv -rv arno-iptables-firewall
 fi
 
 # Remove leftovers:
