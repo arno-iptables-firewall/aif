@@ -219,7 +219,7 @@ setup_conf_file()
 
   if get_user_yn "Do you have an internal(aka LAN) interface that you want to setup (Y/N)?" "n"; then
     while true; do
-      printf "What is your internal interface (aka. LAN interface)? "
+      printf "What is your internal (aka. LAN) interface (multiple interfaces should be comma separated)? "
       read INT_IF
 
       if verify_interfaces $INT_IF; then
