@@ -283,7 +283,8 @@ rm -f $RC_PATH/rcS.d/*arno-iptables-firewall
 if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/) (Y/N)?" "y"; then
   DONE=0
   if check_command update-rc.d; then
-    if update-rc.d arno-iptables-firewall enable; then
+    # Note: Currently update-rc.d doesn't seem to properly use the init script's LSB header, so specify explicitly
+    if update-rc.d -f arno-iptables-firewall start 11 S . stop 10 0 6 .; then
       echo "* Successfully enabled service with update-rc.d"
       DONE=1
     fi
@@ -296,12 +297,16 @@ if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/) (Y/
 
   if [ $DONE -eq 0 ]; then
     if [ -d "$RC_PATH/rcS.d" ]; then
-      if ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rcS.d/S41arno-iptables-firewall"; then
+      if ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rcS.d/S11arno-iptables-firewall" &&
+         ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc0.d/K10arno-iptables-firewall" &&
+         ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc6.d/K10arno-iptables-firewall"; then
         echo "* Successfully enabled service through $RC_PATH/rcS.d/ symlink"
         DONE=1
       fi
     elif [ -d "$RC_PATH/rc2.d" ]; then
-      if ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc2.d/S11arno-iptables-firewall"; then
+      if ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc2.d/S09arno-iptables-firewall" &&
+         ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc0.d/K91arno-iptables-firewall" &&
+         ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc6.d/K91arno-iptables-firewall"; then
         echo "* Successfully enabled service through $RC_PATH/rc2.d/ symlink"
         DONE=1
       fi

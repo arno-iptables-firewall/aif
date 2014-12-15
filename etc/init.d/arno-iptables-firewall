@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# chkconfig: 2345 11 89
+# chkconfig: 2345 09 91
 # description: init.d script for Arno's iptables firewall
 
 ### BEGIN INIT INFO
