@@ -281,16 +281,37 @@ rm -f $RC_PATH/rc6.d/*arno-iptables-firewall
 rm -f $RC_PATH/rcS.d/*arno-iptables-firewall
 
 if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/) (Y/N)?" "y"; then
-  # Check for insserv. Used for dependency based booting
-  INSSERV="$(find_command /sbin/insserv)"
-  if [ -z "$INSSERV" ] || ! "$INSSERV" -v -d arno-iptables-firewall; then
+  DONE=0
+  if check_command update-rc.d; then
+    if update-rc.d arno-iptables-firewall enable; then
+      echo "* Successfully enabled service with update-rc.d"
+      DONE=1
+    fi
+  elif check_command chkconfig; then
+    if chkconfig --add arno-iptables-firewall && chkconfig arno-iptables-firewall on; then
+      echo "* Successfully enabled service with chkconfig"
+      DONE=1
+    fi
+  fi
+
+  if [ $DONE -eq 0 ]; then
     if [ -d "$RC_PATH/rcS.d" ]; then
-      ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rcS.d/S41arno-iptables-firewall"
+      if ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rcS.d/S41arno-iptables-firewall"
+        echo "* Successfully enabled service through $RC_PATH/rcS.d/ symlink"
+        DONE=1
+      fi
     elif [ -d "$RC_PATH/rc2.d" ]; then
-      ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc2.d/S11arno-iptables-firewall"
+      if ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc2.d/S11arno-iptables-firewall"
+        echo "* Successfully enabled service through $RC_PATH/rc2.d/ symlink"
+        DONE=1
+      fi
     else
       echo "WARNING: Unable to detect /rc2.d or /rcS.d directories. Skipping runlevel symlinks" >&2
     fi
+  fi
+
+  if [ $DONE -eq 0 ]; then
+    echo "ERROR: Unable to setup automatic start at boot. Please investigate" >&2
   fi
 fi
 
