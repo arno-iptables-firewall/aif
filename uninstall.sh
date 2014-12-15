@@ -28,6 +28,21 @@ MY_VERSION="1.0b"
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------------------
 
+check_command()
+{
+  local path IFS
+
+  IFS=' '
+  for cmd in $*; do
+    if [ -n "$(which "$cmd" 2>/dev/null)" ]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+
 sanity_check()
 {
   # root check
@@ -89,9 +104,8 @@ rm -fv /usr/local/share/man/man8/arno-fwfilter.1.gz
 rm -fv /etc/init.d/arno-iptables-firewall
 
 # Check for insserv. Used for dependency based booting
-INSSERV="$(find_command /sbin/insserv)"
-if [ -n "$INSSERV" ]; then
-  "$INSSERV" -rv arno-iptables-firewall; then
+if check_command insserv; then
+  insserv -rv arno-iptables-firewall
 fi
 
 # Remove leftovers:
