@@ -1,5 +1,6 @@
-Version 2.0.1f-DEVEL (November 11, 2014)
+Version 2.0.1f-DEVEL (December 15, 2014)
 -----------------------------------------
+* Don't hardcode IP4TABLES/IP6TABLES binary in the config file. Just autodetect it like the other binaries
 ! Misc. fixes for newer SuSE & Redhat systems concerning systemd & init
 * Moved get host cache logic from traffic accounting plugin to environment to avoid (future) code duplication
 ! Fixed NAT_LOCAL_REDIRECT=1 packets from being logged as if they were dropped
