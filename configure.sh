@@ -33,7 +33,7 @@ MY_VERSION="1.02g"
 if [ -f ./share/arno-iptables-firewall/environment ]; then
   . ./share/arno-iptables-firewall/environment
 else
-  printf "\033[40m\033[1;31mERROR: Could not read environment file ./share/arno-iptables-firewall/environment!\033[0m\n" >&2
+  printf "\033[40m\033[1;31mERROR: Could not read environment file ./share/arno-iptables-firewall/environment!\033[0m\n\n" >&2
   exit 2
 fi
 
@@ -45,7 +45,12 @@ sanity_check()
 {
   # root check
   if [ "$(id -u)" != "0" ]; then
-    printf "\033[40m\033[1;31mERROR: Root check FAILED (you MUST be root to use this script)! Quitting...\033[0m\n" >&2
+    printf "\033[40m\033[1;31mERROR: Root check FAILED (you MUST be root to use this script)! Quitting...\033[0m\n\n" >&2
+    exit 1
+  fi
+
+  if [ ! -e "/etc/init.d/arno-iptables-firewall" ]; then
+    printf "\033[40m\033[1;31mERROR: It looks like arno-iptables-firewall is not installed on this system (yet)! Quitting...\033[0m\n\n" >&2
     exit 1
   fi
 
@@ -66,7 +71,7 @@ sanity_check()
 change_conf_var()
 {
   if ! grep -E -q "^#?$2=" "$1"; then
-    printf "\033[40m\033[1;31mERROR: Variable \"$2\" not found in \"$1\". File is probably outdated!\033[0m\n" >&2
+    printf "\033[40m\033[1;31mERROR: Variable \"$2\" not found in \"$1\". File is probably outdated!\033[0m\n\n" >&2
   elif [ -n "$3" ]; then
     sed -i -e "s~^#\?$2=.*$~$2=\"$3\"~" "$1"
   fi
