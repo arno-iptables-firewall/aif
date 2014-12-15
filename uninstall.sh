@@ -101,7 +101,7 @@ rm -rfv /usr/local/share/arno-iptables-firewall
 rm -fv /usr/local/share/man/man8/arno-iptables-firewall.8.gz
 rm -fv /usr/local/share/man/man8/arno-fwfilter.1.gz
 
-rm -fv /etc/init.d/arno-iptables-firewall
+rm -fv /usr/local/share/doc/arno-iptables-firewall/README
 
 # Check for insserv. Used for dependency based booting
 if check_command update-rc.d; then
@@ -109,6 +109,8 @@ if check_command update-rc.d; then
 elif check_command chkconfig; then
   chkconfig --del arno-iptables-firewall
 fi
+
+rm -fv /etc/init.d/arno-iptables-firewall
 
 # Remove leftovers:
 rm -fv /etc/rc.d/rc*.d/*arno-iptables-firewall
