@@ -296,12 +296,12 @@ if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/) (Y/
 
   if [ $DONE -eq 0 ]; then
     if [ -d "$RC_PATH/rcS.d" ]; then
-      if ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rcS.d/S41arno-iptables-firewall"
+      if ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rcS.d/S41arno-iptables-firewall"; then
         echo "* Successfully enabled service through $RC_PATH/rcS.d/ symlink"
         DONE=1
       fi
     elif [ -d "$RC_PATH/rc2.d" ]; then
-      if ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc2.d/S11arno-iptables-firewall"
+      if ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc2.d/S11arno-iptables-firewall"; then
         echo "* Successfully enabled service through $RC_PATH/rc2.d/ symlink"
         DONE=1
       fi
