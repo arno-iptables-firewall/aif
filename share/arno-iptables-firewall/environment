@@ -47,11 +47,17 @@ DNS_FAST_FAIL_ONCE=0
 # Find command path with '/hint/path/command' as the argument
 find_command()
 {
-  if [ -x "$1" ]; then
-    echo "$1"
-  else
-    which $(basename "$1") 2>/dev/null
-  fi
+  local IFS=' '
+
+  for cmd in $*; do
+    if [ -x "$cmd" ]; then
+      echo "$cmd"
+      return 0
+    fi
+  done
+
+  which $(basename "$1") 2>/dev/null
+  return 1
 }
 
 
@@ -1635,7 +1641,7 @@ fi
 # Detect all binaries
 #####################
 if [ -z "$IP6TABLES" ]; then
-  IP6TABLES="$(find_command /sbin/ip6tables)"
+  IP6TABLES="$(find_command /sbin/ip6tables /usr/sbin/ip6tables)"
 fi
 if [ -n "$IP6TABLES" ]; then
   IP6TABLES_SAVE="$(find_command "$IP6TABLES"-save)"
@@ -1643,7 +1649,7 @@ if [ -n "$IP6TABLES" ]; then
 fi
 
 if [ -z "$IP4TABLES" ]; then
-  IP4TABLES="$(find_command /sbin/iptables)"
+  IP4TABLES="$(find_command /sbin/iptables /usr/sbin/iptables)"
 fi
 if [ -n "$IP4TABLES" ]; then
   IP4TABLES_SAVE="$(find_command "$IP4TABLES"-save)"
@@ -1652,7 +1658,7 @@ fi
 
 IP="$(find_command /sbin/ip)"
 
-TC="$(find_command /sbin/tc)"
+TC="$(find_command /sbin/tc /usr/sbin/tc)"
 
 SYSCTL="$(find_command /sbin/sysctl)"
 
