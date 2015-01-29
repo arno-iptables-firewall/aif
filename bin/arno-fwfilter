@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # description: Firewall-log filter script (arno-fwfilter)
-# Last update: May 16, 2014
+# Last update: January 29, 2015
 
 # Usage examples (make sure arno-fwfilter is executable!):
 # --------------------------------------------------------
@@ -199,11 +199,13 @@ else
      if (port==535) return("CORBA IIOP(535)")
      if (port==554) return("RealServer(554)")
      if (port==555) return("phAse zero(555)")
+     if (port==587) return("SMTP-msa(587)")
      if (port==600) return("PC Server Backdoor(600)")
      if (port==635) return("Linux Mountd bug(635)")
      if (port==636) return("LDAPs(636)")
      if (port==691) return("MS-Exchange(691)")
      if (port==873) return("Rsync(873)")
+     if (port==990) return("FTPs(990)")
      if (port==993) return("IMAPs(993)")
      if (port==995) return("POP3s(995)")
      if (port==1025) return("NFS(1025)")
