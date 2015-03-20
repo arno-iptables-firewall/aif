@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # description: Firewall-log filter script (arno-fwfilter)
-# Last update: January 29, 2015
+# Last update: March 20, 2015
 
 # Usage examples (make sure arno-fwfilter is executable!):
 # --------------------------------------------------------
@@ -186,6 +186,7 @@ else
      if (port==161) return("SNMP(161)")
      if (port==177) return("XDMCP(177)")
      if (port==389) return("LDAP(389)")
+     if (port==427) return("SLP(427)")
      if (port==443) return("HTTPS(443)")
      if (port==445) return("MSFT DS(445)")
      if (port==464) return("KPASSWD(464)")
@@ -235,6 +236,7 @@ else
      if (port==3129) return("Masters Paradise(3129)")
      if (port==3268) return("globalcat-LDAP(3268)")
      if (port==3449) return("HotU Chat(3449)")
+     if (port==3544) return("Teredo IPv6-IPv4 Tunnel(3544)")
      if (port==4500) return("MS IPsec NAT-T(4500)")
      if (port==4662) return("eDonkey(4662)")
      if (port==5000) return("UPnP(5000)")
@@ -267,6 +269,7 @@ else
      if (port==12345) return("Netbus(12345)")
      if (port==12346) return("Netbus(12346)")
      if (port==13223) return("PowWow(13223)")
+     if (port>=16384 && port<=16472) return(sprintf("Real-Time Transport Protocol(RTP) (%i)",port))
      if (port==16660) return("Stacheldraht(16660)")
      if (port==16959) return("Sub-7(16959)")
      if (port==17027) return("Conducent(17027)")
