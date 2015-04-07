@@ -262,6 +262,7 @@ else
      if (port==7777) return("Unreal or Klingon Honor Guard(7777)")
      if (port==7778) return("Unreal Tournament(7778)")
      if (port==8000) return("Seafile-seahub(8000)")
+     if (port==8030) return("iTunes Radio Streams(8030)")
      if (port==8080) return("HTTP Alternate(8080)")
      if (port==8082) return("Seafile-fileserver(8082)")
      if (port==9100) return("JetDirect(9100)")
