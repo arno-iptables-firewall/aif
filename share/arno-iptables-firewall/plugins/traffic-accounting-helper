@@ -13,8 +13,8 @@ CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
 if [ -e "$CONFIG_FILE" ]; then
   . $CONFIG_FILE
 else
-  echo "ERROR: Could not read configuration file $CONFIG_FILE!" >&2
-  echo "       Please, check the file's location and (root) rights." >&2
+  echo "** ERROR: Could not read configuration file $CONFIG_FILE!" >&2
+  echo "**        Please, check the file's location and (root) rights." >&2
   exit 2
 fi
 
@@ -29,8 +29,8 @@ else
     if [ -f /usr/share/arno-iptables-firewall/environment ]; then
       . /usr/share/arno-iptables-firewall/environment
     else
-      printf "\033[40m\033[1;31mERROR: The environment file (ENV_FILE) has not been specified\033[0m\n" >&2
-      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+      echo "** ERROR: The environment file (ENV_FILE) has not been specified" >&2
+      echo "**        in the configuration file. Try upgrading your config-file!" >&2
       exit 2
     fi
   fi
