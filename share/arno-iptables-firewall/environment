@@ -1287,6 +1287,7 @@ get_host_from_cache()
     local host_ip=`echo "$find_host" |cut -s -f2 -d' '`
 
     if [ "$host_ip" = "NO_IP" ]; then
+      host_ip=""
       return 2 # NO-IP result
     elif [ -n "$host_ip" ]; then
       echo "$host_ip"

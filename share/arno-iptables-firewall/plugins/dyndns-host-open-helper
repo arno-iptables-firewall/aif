@@ -93,9 +93,12 @@ dyndns_get_host_cached()
   fi
 
   # Check whether we already have it in our (new) cache
-  local find_host=`grep "^$host " -m1 "${DYNDNS_HOST_CACHE}.new"`
-  if [ -n "$find_host" ]; then
-    host_ip=`echo "$find_host" |cut -s -f2 -d' '`
+  host_ip=`grep "^$host " -m1 "${DYNDNS_HOST_CACHE}.new" |cut -s -f2 -d' '`
+  if [ -n "$host_ip" ]; then
+    if [ "$host_ip" = "NO_IP" ]; then
+      host_ip=""
+      return 1
+    fi
     return 0
   fi
 
@@ -104,9 +107,9 @@ dyndns_get_host_cached()
   DNS_FAST_FAIL_ONCE="$DYNDNS_DNS_FAST_FAIL"
   host_ip=`gethostbyname "$host"`
   retval=$?
-  fail_count=0
 
-  if [ -z "$host_ip" -o $retval -ne 0 ]; then
+  fail_count=0
+  if [ $retval -ne 0 -o -z "$host_ip" ]; then
     host_lookup="$(grep "^$host " -m1 "${DYNDNS_HOST_CACHE}" 2>/dev/null)"
     if [ -n "$host_lookup" ]; then
       count="$(echo "$host_lookup" |cut -s -f3 -d' ')"
@@ -139,7 +142,7 @@ dyndns_get_host_cached()
 
     # (Re)check $host_ip
     if [ -z "$host_ip" -o "$host_ip" = "NO_IP" ]; then
-      host_ip="NO_IP"
+      host_ip=""
       printf "\033[40m\033[1;31mFAILED!\n\033[0m"
       if [ $fail_count -eq $threshold ]; then
         echo "** ERROR($retval): Unresolvable host \"$host\" after $fail_count tries, and no old IP to fallback on! **" >&2
@@ -150,13 +153,22 @@ dyndns_get_host_cached()
         echo "** WARNING($retval): Unresolvable host \"$host\" after $fail_count tries. Re-using old IP ($host_ip)! **" >&2
       fi
     fi
+
+    # Make sure we flag an error
+    if [ $retval -eq 0 ]; then
+      retval=1
+    fi
   else
     echo "$host_ip"
     fail_count=0
   fi
 
-  # Explicitly store empty results as well else we'll keep trying over and over again for each rule 
-  echo "$host $host_ip $fail_count" >>"${DYNDNS_HOST_CACHE}.new"
+  # Explicitly store empty results as well else we'll keep trying over and over again for each rule
+  if [ -z $host_ip ]; then
+    echo "$host NO_IP $fail_count" >>"${DYNDNS_HOST_CACHE}.new"
+  else
+    echo "$host $host_ip $fail_count" >>"${DYNDNS_HOST_CACHE}.new"
+  fi
 
   return $retval
 }
@@ -176,9 +188,9 @@ dyndns_host_open()
 
       IFS=','
       for host in $hosts; do
-        dyndns_get_host_cached $host # Returns $host_ip
-        if [ -z "$host_ip" ]; then
-          echo "** WARNING: Skipping rule for \"$host\"! **" >&2
+        # dyndns_get_host_cached returns hostname in $host_ip
+        if ! dyndns_get_host_cached $host || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
           continue;
         fi
         for interface in $interfaces; do
@@ -192,7 +204,6 @@ dyndns_host_open()
     fi
   done
 
-
   # Add UDP ports to allow for certain hosts
   ##########################################
   unset IFS
@@ -202,9 +213,9 @@ dyndns_host_open()
 
       IFS=','
       for host in $hosts; do
-        dyndns_get_host_cached $host # Returns $host_ip
-        if [ -z "$host_ip" ]; then
-          echo "** WARNING: Skipping rule for \"$host\"! **" >&2
+        # dyndns_get_host_cached returns hostname in $host_ip
+        if ! dyndns_get_host_cached $host || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping UDP rule(s) for \"$host\"! **" >&2
           continue;
         fi
         for interface in $interfaces; do
@@ -218,7 +229,6 @@ dyndns_host_open()
     fi
   done
 
-
   # Add IP protocols to allow for certain hosts
   #############################################
   unset IFS
@@ -228,9 +238,9 @@ dyndns_host_open()
 
       IFS=','
       for host in $hosts; do
-        dyndns_get_host_cached $host # Returns $host_ip
-        if [ -z "$host_ip" ]; then
-          echo "** WARNING: Skipping rule for \"$host\"! **" >&2
+        # dyndns_get_host_cached returns hostname in $host_ip
+        if ! dyndns_get_host_cached $host || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping IP rule(s) for \"$host\"! **" >&2
           continue;
         fi
         for interface in $interfaces; do
@@ -244,7 +254,6 @@ dyndns_host_open()
     fi
   done
 
-
   # Add ICMP to allow for certain hosts
   #####################################
   unset IFS
@@ -254,11 +263,12 @@ dyndns_host_open()
 
       IFS=','
       for host in $hosts; do
-        dyndns_get_host_cached $host # Returns $host_ip
-        if [ -z "$host_ip" ]; then
-          echo "** WARNING: Skipping rule for \"$host\"! **" >&2
+        # dyndns_get_host_cached returns hostname in $host_ip
+        if ! dyndns_get_host_cached $host || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping ICMP rule(s) for \"$host\"! **" >&2
           continue;
         fi
+
         for interface in $interfaces; do
           for destip in $destips; do
             iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p icmp --icmp-type echo-request -j ACCEPT
@@ -273,9 +283,10 @@ dyndns_host_open()
   unset IFS
   for host in $DYNDNS_HOST_MISC; do
     echo "${INDENT}Caching misc. host $host"
-    dyndns_get_host_cached $host
-    if [ -z "$host_ip" ]; then
-      echo "** WARNING: Skipping rule for \"$host\"! **" >&2
+
+    # dyndns_get_host_cached returns hostname in $host_ip
+    if ! dyndns_get_host_cached $host || [ -z "$host_ip" ]; then
+      echo "** WARNING: Skipping host rule for \"$host\"! **" >&2
       continue;
     fi
   done
