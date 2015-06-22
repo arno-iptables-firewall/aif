@@ -122,25 +122,37 @@ dyndns_get_host_cached()
 
     fail_count=$((fail_count + 1))
 
+    log_repeat=1 # default
+    if [ -n "$DYNDNS_FAIL_LOG_REPEAT" ]; then
+      log_repeat=$DYNDNS_FAIL_LOG_REPEAT
+    fi
+
+    # Check repeat count
+    if [ $fail_count -ge $log_repeat ]; then
+      fail_count=1
+    fi
+
     threshold=1 # default
     if [ -n "$DYNDNS_FAIL_THRESHOLD" ]; then
       threshold=$DYNDNS_FAIL_THRESHOLD
-    fi 
+    fi
 
-    if [ $fail_count -gt $threshold ]; then  
-      # (Re)check $host_ip
-      if [ -z "$host_ip" -o "$host_ip" = "NO_IP" ]; then
-        host_ip="NO_IP"
-        printf "\033[40m\033[1;31mFAILED!\n\033[0m"
+    # (Re)check $host_ip
+    if [ -z "$host_ip" -o "$host_ip" = "NO_IP" ]; then
+      host_ip="NO_IP"
+      printf "\033[40m\033[1;31mFAILED!\n\033[0m"
+      if [ $fail_count -eq $threshold ]; then
         echo "** ERROR($retval): Unresolvable host \"$host\" after $fail_count tries, and no old IP to fallback on! **" >&2
-      else
-        echo "$host_ip (cached)"
+      fi
+    else
+      echo "$host_ip (cached)"
+      if [ $fail_count -eq $threshold ]; then
         echo "** WARNING($retval): Unresolvable host \"$host\" after $fail_count tries. Re-using old IP ($host_ip)! **" >&2
       fi
-      fail_count=1 # Reset fail count to 1
     fi
   else
     echo "$host_ip"
+    fail_count=0
   fi
 
   # Explicitly store empty results as well else we'll keep trying over and over again for each rule 
