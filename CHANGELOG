@@ -1,5 +1,5 @@
-Version 2.0.1f-DEVEL (December 15, 2014)
------------------------------------------
+Version 2.0.1f-DEVEL (June 22, 2015)
+------------------------------------
 * Don't hardcode IP4TABLES/IP6TABLES binary in the config file. Just autodetect it like the other binaries
 ! Misc. fixes for newer SuSE & Redhat systems concerning systemd & init
 * Moved get host cache logic from traffic accounting plugin to environment to avoid (future) code duplication
@@ -8,6 +8,8 @@ Version 2.0.1f-DEVEL (December 15, 2014)
 + Allow rp_filter to be mode 2 (loose)
 ! Fixed functions get_ifs() and get_ips() with a '#', distinguish IPv4 from VLAN interfaces and check for
   IPv6 addresses (thanks to Mike C. Fletcher)
+* Improve y/n user handling
+* Improve log handling for dyndns plugin
 
 Version 2.0.1e (February 2, 2014)
 ---------------------------------

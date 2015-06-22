@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.0b"
+MY_VERSION="1.0c"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -8,7 +8,7 @@ MY_VERSION="1.0b"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2014 by Arno van Amersfoort
+# (C) Copyright 2001-2015 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -55,26 +55,30 @@ sanity_check()
 
 get_user_yn()
 {
-  printf "$1 "
+  if [ "$2" = "y" ]; then
+    printf "$1 (Y/n)? "
+  else
+    printf "$1 (y/N)? "
+  fi
 
-  while true; do
-    read -s -n1 answer
+  read answer_with_case
 
-    # Fallback to default
-    if [ -z "$answer" ]; then
-      answer="$2"
-    fi
+  ANSWER=`echo "$answer_with_case" |tr A-Z a-z`
 
-    if [ "$answer" = "y" -o "$answer" = "Y" ]; then
-      echo "Yes"
-      return 0
-    fi
+  if [ "$ANSWER" = "y" -o "$ANSWER" = "yes" ]; then
+    return 0
+  fi
 
-    if [ "$answer" = "n" -o "$answer" = "N" ]; then
-      echo "No"
-      return 1
-    fi
-  done
+  if [ "$ANSWER" = "n" -o "$ANSWER" = "no" ]; then
+    return 1
+  fi
+
+  # Fallback to default
+  if [ "$2" = "y" ]; then
+    return 0
+  else
+    return 1
+  fi
 }
 
 
@@ -87,7 +91,7 @@ echo "--------------------------------------------------------------------------
 
 sanity_check;
 
-if ! get_user_yn "Continue uninstall (Y/N)? " "n"; then
+if ! get_user_yn "Continue uninstall" "n"; then
   echo "*Uninstall aborted!"
   exit 1
 fi
@@ -117,7 +121,7 @@ rm -fv /etc/rc.d/rc*.d/*arno-iptables-firewall
 rm -fv /etc/rc*.d/*arno-iptables-firewall
 rm -fv /usr/lib/systemd/system/arno-iptables-firewall.service
 
-if get_user_yn "Also remove ALL configuration files from /etc/arno-iptables-firewall/ (Y/N)?" "n"; then
+if get_user_yn "Also remove ALL configuration files from /etc/arno-iptables-firewall/" "n"; then
   rm -rfv /etc/arno-iptables-firewall
 else
   echo "* Skipped"

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.07a"
+MY_VERSION="1.07b"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -8,7 +8,7 @@ MY_VERSION="1.07a"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2013 by Arno van Amersfoort
+# (C) Copyright 2001-2015 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -110,14 +110,10 @@ copy_ask_if_exist()
     if [ -f "$source" -a -f "$target" ]; then
       # Ignore files that are the same in the target
       if ! diff "$source" "$target" >/dev/null; then
-        printf "File \"$target\" already exists. Overwrite (Y/N)? "
-
-        read -s -n1 C
-        if [ "$C" != "y" ] && [ "$C" != "Y" ]; then
-          echo "No. Skipped..."
+        if ! get_user_yn "File \"$target\" already exists. Overwrite" "n"; then
+          echo "Skipped..."
           continue;
         fi
-        echo "Yes"
       else
         echo "* Target file \"$target\" is the same as source. Skipping copy of $source"
         continue;
@@ -230,37 +226,37 @@ copy_overwrite()
 
 get_user_yn()
 {
-  printf "$1 "
+  if [ "$2" = "y" ]; then
+    printf "$1 (Y/n)? "
+  else
+    printf "$1 (y/N)? "
+  fi
 
-  while true; do
-    read -s -n1 answer
+  read answer_with_case
 
-    if [ "$answer" = "y" -o "$answer" = "Y" ]; then
-      echo "Yes"
-      return 0
-    fi
+  ANSWER=`echo "$answer_with_case" |tr A-Z a-z`
 
-    if [ "$answer" = "n" -o "$answer" = "N" ]; then
-      echo "No"
-      return 1
-    fi
+  if [ "$ANSWER" = "y" -o "$ANSWER" = "yes" ]; then
+    return 0
+  fi
 
-    # Fallback to default
-    if [ "$2" = "y" ]; then
-      echo "Yes"
-      return 0
-    elif [ "$2" = "n" ]; then
-      echo "No"
-      return 1
-    fi
-  done
+  if [ "$ANSWER" = "n" -o "$ANSWER" = "no" ]; then
+    return 1
+  fi
+
+  # Fallback to default
+  if [ "$2" = "y" ]; then
+    return 0
+  else
+    return 1
+  fi
 }
 
 
 check_18_version()
 {
   if grep -q "^MY_VERSION=" "/etc/init.d/arno-iptables-firewall" 2>/dev/null; then
-    if get_user_yn "WARNING: An old version is still installed. Removing it first is *STRONGLY* recommended. Remove (Y/N)?" "y"; then
+    if get_user_yn "WARNING: An old version is still installed. Removing it first is *STRONGLY* recommended. Remove" "y"; then
       rm -fv /etc/init.d/arno-iptables-firewall
       mv -fv /etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/custom-rules.old
       mv -fv /etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf.old
@@ -300,7 +296,7 @@ sanity_check;
 # We want to run in the dir the install script is in
 cd "$(dirname $0)"
 
-if ! get_user_yn "Continue install (Y/N)?" "n"; then
+if ! get_user_yn "Continue install" "n"; then
   echo "*Install aborted"
   exit 1
 fi
@@ -351,7 +347,7 @@ echo ""
 echo "** Install done **"
 echo ""
 
-if get_user_yn "Do you want to run the configuration script (Y/N)?"; then
+if get_user_yn "Do you want to run the configuration script"; then
   ./configure.sh
 fi
 
@@ -364,7 +360,7 @@ echo "**       /etc/arno-iptables-firewall/firewall.conf!                       
 echo "-------------------------------------------------------------------------------"
 echo ""
 
-if get_user_yn "(Re)start firewall (Y/N)?"; then
+if get_user_yn "(Re)start firewall"; then
   /usr/local/sbin/arno-iptables-firewall restart
 fi
 

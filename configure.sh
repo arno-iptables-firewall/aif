@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.02g"
+MY_VERSION="1.02h"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -8,7 +8,7 @@ MY_VERSION="1.02g"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2014 by Arno van Amersfoort
+# (C) Copyright 2001-2015 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -101,26 +101,28 @@ get_conf_var()
 
 get_user_yn()
 {
-  printf "$1 "
+  if [ "$2" = "y" ]; then
+    printf "$1 (Y/n)? "
+  else
+    printf "$1 (y/N)? "
+  fi
 
-  read -s -n1 answer
+  read answer_with_case
 
-  if [ "$answer" = "y" -o "$answer" = "Y" ]; then
-    echo "Yes"
+  ANSWER=`echo "$answer_with_case" |tr A-Z a-z`
+
+  if [ "$ANSWER" = "y" -o "$ANSWER" = "yes" ]; then
     return 0
   fi
 
-  if [ "$answer" = "n" -o "$answer" = "N" ]; then
-    echo "No"
+  if [ "$ANSWER" = "n" -o "$ANSWER" = "no" ]; then
     return 1
   fi
 
   # Fallback to default
   if [ "$2" = "y" ]; then
-    echo "Yes"
     return 0
   else
-    echo "No"
     return 1
   fi
 }
@@ -129,7 +131,7 @@ get_user_yn()
 verify_interfaces()
 {
   if [ -z "$1" ]; then
-    if ! get_user_yn "No interface(s) specified. These are required! Continue anyway(Y/N)?" "n"; then
+    if ! get_user_yn "No interface(s) specified. These are required! Continue anyway" "n"; then
       return 1
     fi
   fi
@@ -137,7 +139,7 @@ verify_interfaces()
   IFS=' ,'
   for interface in $1; do
     if ! check_interface $interface; then
-      if ! get_user_yn "Interface \"$interface\" does not exist (yet). Continue anyway(Y/N)?" "n"; then
+      if ! get_user_yn "Interface \"$interface\" does not exist (yet). Continue anyway" "n"; then
         return 1
       fi
     fi
@@ -196,19 +198,19 @@ setup_conf_file()
     fi
   done
 
-  if get_user_yn "Does your external interface get its IP through DHCP (Y/N)?" "n"; then
+  if get_user_yn "Does your external interface get its IP through DHCP" "n"; then
     change_conf_var "$FIREWALL_CONF" "EXT_IF_DHCP_IP" "1"
   else
     change_conf_var "$FIREWALL_CONF" "EXT_IF_DHCP_IP" "0"
   fi
 
-  if get_user_yn "Do you want to enable IPv6 support (Y/N)?" "y"; then
+  if get_user_yn "Do you want to enable IPv6 support" "y"; then
     change_conf_var "$FIREWALL_CONF" "IPV6_SUPPORT" "1"
   else
     change_conf_var "$FIREWALL_CONF" "IPV6_SUPPORT" "0"
   fi
 
-  if get_user_yn "Do you want to be pingable from the internet (Y/N)?" "n"; then
+  if get_user_yn "Do you want to be pingable from the internet" "n"; then
     change_conf_var "$FIREWALL_CONF" "OPEN_ICMP" "1"
   else
     change_conf_var "$FIREWALL_CONF" "OPEN_ICMP" "0"
@@ -217,7 +219,7 @@ setup_conf_file()
   get_conf_var "Which TCP ports do you want to allow from the internet? (eg. 22=SSH, 80=HTTP, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_TCP" ""
   get_conf_var "Which UDP ports do you want to allow from the internet? (eg. 53=DNS, etc.) (comma separate multiple ports)?" "$FIREWALL_CONF" "OPEN_UDP" ""
 
-  if get_user_yn "Do you have an internal(aka LAN) interface that you want to setup (Y/N)?" "n"; then
+  if get_user_yn "Do you have an internal(aka LAN) interface that you want to setup" "n"; then
     while true; do
       printf "What is your internal (aka. LAN) interface (multiple interfaces should be comma separated)? "
       read INT_IF
@@ -240,7 +242,7 @@ setup_conf_file()
           change_conf_var "$FIREWALL_CONF" "INTERNAL_NET" "$INTERNAL_NET"
           change_conf_var "$FIREWALL_CONF" "INT_NET_BCAST_ADDRESS" "$INT_NET_BCAST_ADDRESS"
 
-          if get_user_yn "Do you want to enable NAT/masquerading for your internal subnet (Y/N)?" "n"; then
+          if get_user_yn "Do you want to enable NAT/masquerading for your internal subnet" "n"; then
             change_conf_var "$FIREWALL_CONF" "NAT" "1"
             change_conf_var "$FIREWALL_CONF" "NAT_INTERNAL_NET" '\$INTERNAL_NET'
           else
@@ -285,7 +287,7 @@ rm -f $RC_PATH/rc5.d/*arno-iptables-firewall
 rm -f $RC_PATH/rc6.d/*arno-iptables-firewall
 rm -f $RC_PATH/rcS.d/*arno-iptables-firewall
 
-if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/) (Y/N)?" "y"; then
+if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/)" "y"; then
   DONE=0
   if check_command update-rc.d; then
     # Note: Currently update-rc.d doesn't seem to properly use the init script's LSB header, so specify explicitly
@@ -325,20 +327,20 @@ if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/) (Y/
   fi
 fi
 
-if get_user_yn "Do you want the init script to be verbose (print out what it's doing) (Y/N)?" "n"; then
+if get_user_yn "Do you want the init script to be verbose (print out what it's doing)" "n"; then
   change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "1"
 else
   change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "0"
 fi
 
 if diff ./etc/arno-iptables-firewall/firewall.conf "$FIREWALL_CONF" >/dev/null; then
-  if get_user_yn "Your firewall.conf is not configured yet.\nDo you want me to help you setup a basic configuration (Y/N)?" "y"; then
+  if get_user_yn "Your firewall.conf is not configured yet.\nDo you want me to help you setup a basic configuration" "y"; then
     setup_conf_file;
   else
     echo "* Skipped"
   fi
 else
-  if get_user_yn "Your firewall.conf looks already customized.\nModify configuration (Y/N)?" "n"; then
+  if get_user_yn "Your firewall.conf looks already customized.\nModify configuration" "n"; then
     setup_conf_file;
   else
     echo "* Skipped"
