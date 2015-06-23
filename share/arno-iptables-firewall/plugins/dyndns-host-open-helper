@@ -93,7 +93,7 @@ dyndns_get_host_cached()
   fi
 
   # Check whether we already have it in our (new) cache
-  host_ip=`grep "^$host " -m1 "${DYNDNS_HOST_CACHE}.new" |cut -s -f2 -d' '`
+  host_ip="$(grep "^$host " -m1 "${DYNDNS_HOST_CACHE}.new" |cut -s -f2 -d' ')"
   if [ -n "$host_ip" ]; then
     if [ "$host_ip" = "NO_IP" ]; then
       host_ip=""
@@ -105,11 +105,13 @@ dyndns_get_host_cached()
   printf "${INDENT}Resolving host \"$host\" -> "
 
   DNS_FAST_FAIL_ONCE="$DYNDNS_DNS_FAST_FAIL"
-  host_ip=`gethostbyname "$host"`
-  retval=$?
+  host_ip="$(gethostbyname "$host")"
+  gethost_retval=$?
 
   fail_count=0
-  if [ $retval -ne 0 -o -z "$host_ip" ]; then
+  if [ $gethost_retval -ne 0 -o -z "$host_ip" ]; then
+    retval=1 # Error
+
     host_lookup="$(grep "^$host " -m1 "${DYNDNS_HOST_CACHE}" 2>/dev/null)"
     if [ -n "$host_lookup" ]; then
       count="$(echo "$host_lookup" |cut -s -f3 -d' ')"
@@ -145,18 +147,15 @@ dyndns_get_host_cached()
       host_ip=""
       printf "\033[40m\033[1;31mFAILED!\n\033[0m"
       if [ $fail_count -eq $threshold ]; then
-        echo "** ERROR($retval): Unresolvable host \"$host\" after $fail_count tries, and no old IP to fallback on! **" >&2
+        echo "** ERROR: Unresolvable host \"$host\" after $fail_count tries, and no old IP to fallback on! **" >&2
       fi
     else
-      echo "$host_ip (cached)"
+      echo "$host_ip (cached!)"
       if [ $fail_count -eq $threshold ]; then
         echo "** WARNING($retval): Unresolvable host \"$host\" after $fail_count tries. Re-using old IP ($host_ip)! **" >&2
       fi
-    fi
-
-    # Make sure we flag an error
-    if [ $retval -eq 0 ]; then
-      retval=1
+      # Ignore error:
+      retval=0
     fi
   else
     echo "$host_ip"
