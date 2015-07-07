@@ -1281,17 +1281,19 @@ get_host_from_cache()
     return 0
   fi
 
-  # First try to get host from host-cache
-  local find_host=`grep "^$host " -m1 "$HOST_CACHE_FILE"`
-  if [ -n "$find_host" ]; then
-    local host_ip=`echo "$find_host" |cut -s -f2 -d' '`
+  if [ -f "$HOST_CACHE_FILE" ]; then
+    # First try to get host from host-cache
+    local find_host=`grep "^$host " -m1 "$HOST_CACHE_FILE"`
+    if [ -n "$find_host" ]; then
+      local host_ip=`echo "$find_host" |cut -s -f2 -d' '`
 
-    if [ "$host_ip" = "NO_IP" ]; then
-      host_ip=""
-      return 2 # NO-IP result
-    elif [ -n "$host_ip" ]; then
-      echo "$host_ip"
-      return 0
+      if [ "$host_ip" = "NO_IP" ]; then
+        host_ip=""
+        return 2 # NO-IP result
+      elif [ -n "$host_ip" ]; then
+        echo "$host_ip"
+        return 0
+      fi
     fi
   fi
 
