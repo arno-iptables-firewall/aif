@@ -358,7 +358,7 @@ plugin_cleanup()
     iptables -t mangle -D POSTROUTING -o $eif -j SHAPER_CHAIN 2>/dev/null
   done
 
-  iptables -t mangle -F SHAPER_CHAIN
+  iptables -t mangle -F SHAPER_CHAIN 2>/dev/null
   iptables -t mangle -X SHAPER_CHAIN 2>/dev/null
 }
 
