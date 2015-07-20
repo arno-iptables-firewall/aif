@@ -393,16 +393,6 @@ plugin_sanity_check()
     return 1
   fi
 
-  count=0
-  IFS=' ,'
-  for eif in $SHAPER_IF; do
-    count=$((count+1))
-  done
-  if [ "$count" -ne 1 ]; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: Only one external interface is supported!\n\033[0m" >&2
-    return 1
-  fi
-
   if ! check_command tc; then
     printf "\033[40m\033[1;31m${INDENT}ERROR: Required binary \"tc\" is not available!\n\033[0m" >&2
     return 1
