@@ -4809,6 +4809,11 @@ setup_firewall_rules()
         for interface in $EXT_IF; do
           COUNT=$(($COUNT + 1))         # x++;
           STATIC_IP=$(echo "$NAT_STATIC_IP" |awk "{ print \$$COUNT }")
+
+          if [ -z "$STATIC_IP" ]; then
+            # No more IPs specified for the remaining interfaces
+            break;
+          fi
           ip4tables -t nat -A POSTROUTING -o $interface -s $net ! -d $net -j SNAT --to-source $STATIC_IP
         done
       done

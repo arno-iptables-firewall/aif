@@ -1,5 +1,6 @@
-Version 2.0.1f-DEVEL (June 22, 2015)
+Version 2.0.1f-DEVEL (July 20, 2015)
 ------------------------------------
+! Using NAT_STATIC_IP with multiple ext interfaces would fail in case not enough ext IPs were specified
 * Don't hardcode IP4TABLES/IP6TABLES binary in the config file. Just autodetect it like the other binaries
 ! Misc. fixes for newer SuSE & Redhat systems concerning systemd & init
 * Moved get host cache logic from traffic accounting plugin to environment to avoid (future) code duplication
