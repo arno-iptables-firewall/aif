@@ -2,7 +2,7 @@
 #      -= Arno's iptables firewall - HTB (well tested), HFSC (experimental) and CFQ traffic shaper plugin =-
 #
 PLUGIN_NAME="Traffic Shaper Plugin"
-PLUGIN_VERSION="1.2.1"
+PLUGIN_VERSION="1.2.2"
 PLUGIN_CONF_FILE="traffic-shaper.conf"
 #
 # Last changed          : July 20, 2015
@@ -330,6 +330,27 @@ plugin_start_htb()
 }
 
 
+plugin_cleanup()
+{
+  IFS=' ,'
+  for eif in $SHAPER_IF; do
+
+    # tc doesn't take wildcards, so we need expansion done here
+    for eif1 in $(wildcard_ifs $eif); do
+      # Reset everything to a known state (cleared)
+      tc qdisc del dev $eif1 root 2>/dev/null
+      tc qdisc del dev $eif1 ingress 2>/dev/null
+    done
+
+    # Flush and delete tables
+    iptables -t mangle -D POSTROUTING -o $eif -j SHAPER_CHAIN 2>/dev/null
+  done
+
+  iptables -t mangle -F SHAPER_CHAIN
+  iptables -t mangle -X SHAPER_CHAIN 2>/dev/null
+}
+
+
 # CFQ start function - Stochastic Fairness Queueing (SFQ) is a simple
 # implementation of the fair queueing algorithms family. It's less accurate 
 # than others, but it also requires less calculations while being almost
@@ -353,6 +374,8 @@ plugin_start_cfq()
 # Plugin start function
 plugin_start()
 {
+  plugin_cleanup;
+
   case $SHAPER_TYPE in
   hfsc) plugin_start_hfsc ;;
    htb) plugin_start_htb ;;
@@ -364,22 +387,7 @@ plugin_start()
 # Plugin stop function
 plugin_stop()
 {
-  IFS=' ,'
-  for eif in $SHAPER_IF; do
-
-    # tc doesn't take wildcards, so we need expansion done here
-    for eif1 in $(wildcard_ifs $eif); do
-      # Reset everything to a known state (cleared)
-      tc qdisc del dev $eif1 root 2>/dev/null
-      tc qdisc del dev $eif1 ingress 2>/dev/null
-    done
-
-    # Flush and delete tables
-    iptables -t mangle -D POSTROUTING -o $eif -j SHAPER_CHAIN 2>/dev/null
-  done
-
-  iptables -t mangle -F SHAPER_CHAIN
-  iptables -t mangle -X SHAPER_CHAIN 2>/dev/null
+  plugin_cleanup;
 
   return 0
 }
