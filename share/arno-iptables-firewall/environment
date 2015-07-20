@@ -4,7 +4,7 @@
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2014 by Arno van Amersfoort & Lonnie Abelbeck
+# (C) Copyright 2001-2015 by Arno van Amersfoort & Lonnie Abelbeck
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -39,6 +39,7 @@ EOL='
 
 # Globals variables:
 RULE_WARNING=0
+PLUGIN_ERRORS=0
 DNS_FAST_FAIL_ONCE=0
 
 

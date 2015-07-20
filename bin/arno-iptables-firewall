@@ -12,7 +12,7 @@ CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2014 by Arno van Amersfoort & Lonnie Abelbeck
+# (C) Copyright 2001-2015 by Arno van Amersfoort & Lonnie Abelbeck
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -4307,6 +4307,8 @@ setup_tcp_mss()
 
 plugins_start()
 {
+  local plugin_count=0
+
   # Truncate/create file
   cp -f /dev/null "$PLUGIN_LOAD_FILE"
 
@@ -4315,8 +4317,7 @@ plugins_start()
   # Check for plugins in our plugins binary path:
   if ls "$PLUGIN_BIN_PATH"/*.plugin >/dev/null 2>&1; then
     echo ""
-    plugin_count=0
-    
+
     unset IFS
     for plugin in "$PLUGIN_BIN_PATH"/*.plugin; do
       PLUGIN_CMD=start
@@ -4341,18 +4342,24 @@ plugins_start()
    
       # Explicit unset IFS, just in case
       unset IFS
-     
+
       # Source the plugin:
       . "$plugin"
 
-      # By checking the ENABLED variable, we know whether the plugin
-      # was actually loaded. If so increase the plugin count:
       if [ "$ENABLED" = "1" ]; then
+        # By checking the ENABLED variable, we know whether the plugin
+        # was actually loaded. If so increase the plugin count:
         echo "$plugin" >> "$PLUGIN_LOAD_FILE"
         plugin_count=$(($plugin_count + 1))
+
+        # Check result
+        if [ "$PLUGIN_RET_VAL" != "0" ]; then
+          PLUGIN_ERRORS=$(($PLUGIN_ERRORSS + 1))
+        fi
       fi
     done
     rm -f "$PLUGIN_LOAD_FILE_RESTART"
+
     echo " Loaded $plugin_count plugin(s)..."
   else
     echo "None found"
@@ -4363,7 +4370,8 @@ plugins_start()
 plugins_stop()
 {
   local restart="$1"
-  
+  local plugin_count=0
+
   # Remove any stale plugin restart file
   rm -f "$PLUGIN_LOAD_FILE_RESTART"
   
@@ -4402,11 +4410,21 @@ plugins_stop()
     
           # Source the plugin:
           . "$plugin_file"
+
+          # Check result
+          if [ "$PLUGIN_RET_VAL" != "0" ]; then
+            PLUGIN_ERRORS=$(($PLUGIN_ERRORSS + 1))
+          fi
+
+          plugin_count=$(($plugin_count + 1))
         fi
       else
         printf "\033[40m\033[1;31mERROR: Could not stop plugin \"$plugin_name\" as it does no exist!\033[0m\n" >&2 
       fi
     done
+
+    echo " Unloaded $plugin_count plugin(s)..."
+
     rm -f "$PLUGIN_LOAD_FILE"
   fi
 }
@@ -5366,6 +5384,10 @@ main_stop()
   else
     stop_firewall;
   fi
+
+  if [ "$PLUGIN_ERRORS" != "0" ]; then
+    printf "\033[40m\033[1;31m\nWARNING: $PLUGIN_ERRORS Plugin(s) reported errors while stopping!\n\033[0m" >&2
+  fi
 }
 
 
@@ -5407,7 +5429,11 @@ start_restart()
     yes)   main_restart;;
     other) main_stop; main_start;;
   esac
-  
+
+  if [ "$PLUGIN_ERRORS" != "0" ]; then
+    printf "\033[40m\033[1;31m\nWARNING: $PLUGIN_ERRORS Plugin(s) reported errors while starting!\n\033[0m" >&2
+  fi
+
   show_applied;
 }
 
@@ -5445,4 +5471,3 @@ case "$1" in
 esac
 
 exit $RULE_WARNING
-
