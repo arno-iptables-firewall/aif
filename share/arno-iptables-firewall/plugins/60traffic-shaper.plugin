@@ -1,8 +1,8 @@
 # ------------------------------------------------------------------------------
-#      -= Arno's iptables firewall - HTB & HFSC traffic shaper plugin =-
+#      -= Arno's iptables firewall - HTB (well tested), HFSC (experimental) and CFQ traffic shaper plugin =-
 #
-PLUGIN_NAME="Traffic-Shaper plugin"
-PLUGIN_VERSION="1.2.1 (htb: well tested, hfsc: experimental)"
+PLUGIN_NAME="Traffic Shaper Plugin"
+PLUGIN_VERSION="1.2.1"
 PLUGIN_CONF_FILE="traffic-shaper.conf"
 #
 # Last changed          : July 20, 2015
@@ -19,6 +19,7 @@ PLUGIN_CONF_FILE="traffic-shaper.conf"
 # Credits               : Maciej Blizinski
 # Credits               : Kristian Kielhofner
 # Credits               : Lonnie Abelbeck
+# Credits               : Arno van Amersfoort (CFQ)
 # Homepage              : http://www.voip-info.org/wiki/view/QoS+Linux+with+HFSC
 #                         http://media.blizinski.pl/code/hfsc.gz
 # Email                 : philipp AT redfish-solutions DOT com
@@ -81,6 +82,7 @@ setclassbyport()
   return 0
 }
 
+
 classify_by_port()
 {
   local port IFS
@@ -108,6 +110,7 @@ classify_by_port()
     setclassbyport $port 1:60
   done
 }
+
 
 classify_special_packets()
 {
@@ -143,6 +146,7 @@ classify_special_packets()
     -j RETURN
 }
 
+
 classify_by_dscp_class()
 {
   # Classify by DSCP class
@@ -170,6 +174,7 @@ classify_by_dscp_class()
   iptables -t mangle -A SHAPER_CHAIN -m dscp --dscp-class CS1 -j CLASSIFY --set-class 1:60
 }
 
+
 incoming_traffic_limit()
 {
   # Skip if DOWNLINK is 0
@@ -187,17 +192,6 @@ incoming_traffic_limit()
      0.0.0.0/0 police rate ${DOWNLINK}kbit burst $((1*$DOWNLINK/10))k drop flowid :1
 } 
 
-# Plugin start function
-plugin_start()
-{
-  case $SHAPER_TYPE in
-  hfsc)
-    plugin_start_hfsc ;;
-
-  *)
-    plugin_start_htb ;;
-  esac
-}
 
 # HFSC start function
 plugin_start_hfsc()
@@ -208,7 +202,7 @@ plugin_start_hfsc()
 
   modprobe sch_hfsc
 
-  printf "${INDENT}Shaping as (Down/Up) %d/%d kb/s using '%s' for interface: %s\n" $DOWNLINK $UPLINK hfsc "$SHAPER_IF"
+  printf "${INDENT}Shaping as (Down/Up) %d/%d kb/s using '%s' for interface(s): %s\n" $DOWNLINK $UPLINK hfsc "$SHAPER_IF"
 
   iptables -t mangle -N SHAPER_CHAIN
 
@@ -271,13 +265,14 @@ plugin_start_hfsc()
   return 0
 }
 
+
 # HTB start function
 plugin_start_htb()
 {
   # Some required modules are already loaded by the main script:
   modprobe_multi nf_nat ip_nat
 
-  printf "${INDENT}Shaping as (Down/Up) %d/%d kb/s using '%s' for interface: %s\n" $DOWNLINK $UPLINK htb "$SHAPER_IF"
+  printf "${INDENT}Shaping as (Down/Up) %d/%d kb/s using '%s' for interface(s): %s\n" $DOWNLINK $UPLINK htb "$SHAPER_IF"
 
   iptables -t mangle -N SHAPER_CHAIN
 
@@ -332,6 +327,37 @@ plugin_start_htb()
   done
 
   return 0
+}
+
+
+# CFQ start function - Stochastic Fairness Queueing (SFQ) is a simple
+# implementation of the fair queueing algorithms family. It's less accurate 
+# than others, but it also requires less calculations while being almost
+# perfectly fair
+plugin_start_cfq()
+{
+  echo "${INDENT}Shaping using Stochastic Fairness Queueing (SFQ) for interface(s): $SHAPER_IF"
+
+  IFS=' ,'
+  for eif in $SHAPER_IF; do
+    # tc doesn't take wildcards, so we need expansion done here
+    for eif1 in $(wildcard_ifs $eif); do
+      tc qdisc add dev $eif1 root sfq perturb 10
+    done
+  done
+
+  return 0
+}
+
+
+# Plugin start function
+plugin_start()
+{
+  case $SHAPER_TYPE in
+  hfsc) plugin_start_hfsc ;;
+   htb) plugin_start_htb ;;
+     *) plugin_start_cfq ;;
+  esac
 }
 
 
