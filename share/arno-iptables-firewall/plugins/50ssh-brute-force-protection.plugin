@@ -2,10 +2,10 @@
 #            -= Arno's iptables firewall - SSH Brute Force Protection plugin =-
 #
 PLUGIN_NAME="SSH Brute-Force Protection plugin"
-PLUGIN_VERSION="1.1a"
+PLUGIN_VERSION="1.1b"
 PLUGIN_CONF_FILE="ssh-brute-force-protection.conf"
 #
-# Last changed          : October 8, 2010
+# Last changed          : July 21, 2015
 # Requirements          : kernel 2.6 + ipt_recent or xt_recent
 #                       : AIF 1.9.2k (and later)
 # Comments              : This plugin implements protecting for brute force
@@ -16,7 +16,7 @@ PLUGIN_CONF_FILE="ssh-brute-force-protection.conf"
 #                         (eg. FTP/SMTP/IMAP etc.
 #                         Updated for mixed IPv4/IPv6
 #
-# Author                : (C) Copyright 2006-2010 by Arno van Amersfoort
+# Author                : (C) Copyright 2006-2015 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -133,10 +133,12 @@ if [ -n "$PLUGIN_CONF_PATH" ]; then
   CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
 fi
 
+# Preinit to success:
+PLUGIN_RET_VAL=0
+
 # Check if the config file exists
 if [ ! -e "$CONF_FILE" ]; then
   printf "NOTE: Config file \"$CONF_FILE\" not found!\n        Plugin \"$PLUGIN_NAME v$PLUGIN_VERSION\" ignored!\n" >&2
-  PLUGIN_RET_VAL=0
 else
   # Source the plugin config file
   . "$CONF_FILE"
@@ -157,16 +159,16 @@ else
     fi
 
     # Only proceed if environment ok
-    if plugin_sanity_check; then
+    if ! plugin_sanity_check; then
+      PLUGIN_RET_VAL=1
+    else
       case $PLUGIN_CMD in
-        start|'') plugin_start; PLUGIN_RET_VAL=$?;;
-        stop    ) plugin_stop; PLUGIN_RET_VAL=$?;;
-        status  ) plugin_status; PLUGIN_RET_VAL=$?;;
-        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
+        start|'') plugin_start; PLUGIN_RET_VAL=$? ;;
+        stop    ) plugin_stop; PLUGIN_RET_VAL=$? ;;
+        status  ) plugin_status; PLUGIN_RET_VAL=$? ;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2 ;;
       esac
     fi
     unset IPTABLES
-  else
-    PLUGIN_RET_VAL=0
   fi
 fi

@@ -184,10 +184,12 @@ if [ -n "$PLUGIN_CONF_PATH" ]; then
   CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
 fi
 
+# Preinit to success:
+PLUGIN_RET_VAL=0
+
 # Check if the config file exists
 if [ ! -e "$CONF_FILE" ]; then
   printf "NOTE: Config file \"$CONF_FILE\" not found!\n        Plugin \"$PLUGIN_NAME v$PLUGIN_VERSION\" ignored!\n" >&2
-  PLUGIN_RET_VAL=0
 else
   # Source the plugin config file
   . "$CONF_FILE"
@@ -201,18 +203,18 @@ else
 
     # Increment indention
     INDENT="$INDENT "
-    
+
     # Only proceed if environment ok
-    if plugin_sanity_check; then
+    if ! plugin_sanity_check; then
+      PLUGIN_RET_VAL=1
+    else
       case $PLUGIN_CMD in
-        start|'') plugin_start; PLUGIN_RET_VAL=$?;;
-        restart ) plugin_restart; PLUGIN_RET_VAL=$?;;
-        stop|stop-restart) plugin_stop; PLUGIN_RET_VAL=$?;;
-        status  ) plugin_status; PLUGIN_RET_VAL=$?;;
-        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m  ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
+        start|'') plugin_start; PLUGIN_RET_VAL=$? ;;
+        restart ) plugin_restart; PLUGIN_RET_VAL=$? ;;
+        stop|stop-restart) plugin_stop; PLUGIN_RET_VAL=$? ;;
+        status  ) plugin_status; PLUGIN_RET_VAL=$? ;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2 ;;
       esac
     fi
-  else
-    PLUGIN_RET_VAL=0
   fi
 fi

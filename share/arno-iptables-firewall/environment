@@ -39,6 +39,7 @@ EOL='
 
 # Globals variables:
 RULE_WARNING=0
+BIN_WARNING=0
 PLUGIN_ERRORS=0
 DNS_FAST_FAIL_ONCE=0
 
@@ -641,6 +642,11 @@ sysctl_key()
 tc()
 {
   $TC "$@"
+  retval=$?
+
+  [ $retval -ne 0 ] && BIN_WARNING=$((BIN_WARNING + 1))
+
+  return $retval
 }
 
 
@@ -649,6 +655,11 @@ tc()
 ip()
 {
   $IP "$@"
+  retval=$?
+
+  [ $retval -ne 0 ] && BIN_WARNING=$((BIN_WARNING + 1))
+
+  return $retval
 }
 
 

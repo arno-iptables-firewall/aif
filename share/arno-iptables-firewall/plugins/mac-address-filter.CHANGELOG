@@ -1,3 +1,7 @@
+Version 1.1a (July 21, 2015)
+----------------------------
+! Mac module loading on newer systems
+
 Version 1.1 (September 19, 2010)
 -------------------------------
 + Updated to support mixed IPv4/IPv6

@@ -2,16 +2,16 @@
 #            -= Arno's iptables firewall - MAC Address Filter plugin =-
 #
 PLUGIN_NAME="MAC Address Filter plugin"
-PLUGIN_VERSION="1.1"
+PLUGIN_VERSION="1.1a"
 PLUGIN_CONF_FILE="mac-address-filter.conf"
 #
-# Last changed          : September 19, 2010
+# Last changed          : July 21, 2015
 # Requirements          : ipt_mac module
 # Comments              : This plugin allows you to select the MAC addresses
 #                         that are allowed access for the specified interfaces
 #                         (eg. INT_IF)
 #
-# Author                : (C) Copyright 2010 by Arno van Amersfoort
+# Author                : (C) Copyright 2010-2015 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -35,7 +35,7 @@ PLUGIN_CONF_FILE="mac-address-filter.conf"
 plugin_start()
 {
   # Probe module ipt_recent (Allows checking for recent packets):
-  modprobe ipt_mac               # Allows specifying MAC address
+  modprobe_multi xt_mac ipt_mac               # Allows specifying MAC address
 
   # Create new chains
   iptables -N MAC_FILTER_HOOK 2>/dev/null
@@ -176,10 +176,12 @@ if [ -n "$PLUGIN_CONF_PATH" ]; then
   CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
 fi
 
+# Preinit to success:
+PLUGIN_RET_VAL=0
+
 # Check if the config file exists
 if [ ! -e "$CONF_FILE" ]; then
   printf "NOTE: Config file \"$CONF_FILE\" not found!\n        Plugin \"$PLUGIN_NAME v$PLUGIN_VERSION\" ignored!\n" >&2
-  PLUGIN_RET_VAL=0
 else
   # Source the plugin config file
   . "$CONF_FILE"
@@ -189,20 +191,20 @@ else
      [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
     # Show who we are:
     echo "${INDENT}$PLUGIN_NAME v$PLUGIN_VERSION"
-    
+
     # Increment indention
     INDENT="$INDENT "
 
     # Only proceed if environment ok
-    if plugin_sanity_check; then
+    if ! plugin_sanity_check; then
+      PLUGIN_RET_VAL=1
+    else
       case $PLUGIN_CMD in
-        start|'') plugin_start; PLUGIN_RET_VAL=$?;;
-        stop    ) plugin_stop; PLUGIN_RET_VAL=$?;;
-        status  ) plugin_status; PLUGIN_RET_VAL=$?;;
-        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
+        start|'') plugin_start; PLUGIN_RET_VAL=$? ;;
+        stop    ) plugin_stop; PLUGIN_RET_VAL=$? ;;
+        status  ) plugin_status; PLUGIN_RET_VAL=$? ;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2 ;;
       esac
     fi
-  else
-    PLUGIN_RET_VAL=0
   fi
 fi
