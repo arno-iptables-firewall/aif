@@ -4337,6 +4337,12 @@ plugins_start()
       # gets loaded if the config has an explicit ENABLED=1:
       ENABLED=0
 
+      # Preinit to 0, just in case
+      PLUGIN_RET_VAL=0
+
+      # Store current amount of iptables rule warnings
+      STORE_RULE_WARNING=$RULE_WARNING
+
       # Set indent
       INDENT=' '
    
@@ -4353,7 +4359,7 @@ plugins_start()
         plugin_count=$(($plugin_count + 1))
 
         # Check result
-        if [ "$PLUGIN_RET_VAL" != "0" ]; then
+        if [ "$PLUGIN_RET_VAL" != "0" -o $STORE_RULE_WARNING -ne $RULE_WARNING ]; then
           PLUGIN_ERRORS=$(($PLUGIN_ERRORSS + 1))
         fi
       fi
@@ -4395,7 +4401,13 @@ plugins_stop()
           # Preset ENABLED=0 to make sure the plugin only
           # gets loaded if the config has an explicit ENABLED=1:
           ENABLED=0
-          
+
+          # Preinit to 0, just in case
+          PLUGIN_RET_VAL=0
+
+          # Store current amount of iptables rule warnings
+          STORE_RULE_WARNING=$RULE_WARNING
+
           # Set indent
           INDENT=' '
 
@@ -4412,7 +4424,7 @@ plugins_stop()
           . "$plugin_file"
 
           # Check result
-          if [ "$PLUGIN_RET_VAL" != "0" ]; then
+          if [ "$PLUGIN_RET_VAL" != "0" -o $STORE_RULE_WARNING -ne $RULE_WARNING ]; then
             PLUGIN_ERRORS=$(($PLUGIN_ERRORSS + 1))
           fi
 
