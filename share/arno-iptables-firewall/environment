@@ -305,7 +305,7 @@ ip4tables()
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m${IP4TABLES} $*\nERROR ($retval): ${result}\033[0m\n" >&2
     if note_iptables_error "$@"; then
-      RULE_WARNING=1
+      RULE_WARNING=$((RULE_WARNING + 1))
     fi
   elif [ -n "$result" ]; then
     # Filter successful, informational results
@@ -332,7 +332,7 @@ ip6tables()
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m${IP6TABLES} $*\nERROR ($retval): ${result}\033[0m\n" >&2
     if note_iptables_error "$@"; then
-      RULE_WARNING=1
+      RULE_WARNING=$((RULE_WARNING + 1))
     fi
   elif [ -n "$result" ]; then
     # Filter successful, informational results
@@ -358,7 +358,7 @@ ip4tables_save()
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m${IP4TABLES_SAVE} $*\nERROR ($retval)\033[0m\n" >&2
-    RULE_WARNING=1
+    RULE_WARNING=$((RULE_WARNING + 1))
   fi
 
   return $retval
@@ -375,7 +375,7 @@ ip4tables_restore()
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m${IP4TABLES_RESTORE} $*\nERROR ($retval): ${result}\033[0m\n" >&2
-    RULE_WARNING=1
+    RULE_WARNING=$((RULE_WARNING + 1))
   elif [ -n "$result" ]; then
     echo "${INDENT}$result"
   fi
@@ -394,7 +394,7 @@ ip6tables_save()
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m${IP6TABLES_SAVE} $*\nERROR ($retval)\033[0m\n" >&2
-    RULE_WARNING=1
+    RULE_WARNING=$((RULE_WARNING + 1))
   fi
 
   return $retval
@@ -411,7 +411,7 @@ ip6tables_restore()
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
     printf "\033[40m\033[1;31m${IP6TABLES_RESTORE} $*\nERROR ($retval): ${result}\033[0m\n" >&2
-    RULE_WARNING=1
+    RULE_WARNING=$((RULE_WARNING + 1))
   elif [ -n "$result" ]; then
     echo "${INDENT}$result"
   fi
@@ -997,7 +997,7 @@ parse_rule_warning()
 {
   local rule="$1"
 
-  RULE_WARNING=1
+  RULE_WARNING=$((RULE_WARNING + 1))
 
   echo "** WARNING: In Variable $var, Rule: \"$rule\" is ignored." >&2
 }
