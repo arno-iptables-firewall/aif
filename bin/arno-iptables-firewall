@@ -217,8 +217,8 @@ config_check()
   ##########################################################################
   if [ -n "$BROADCAST_TCP_NOLOG" -o -n "$BROADCAST_UDP_NOLOG" ]; then
     if [ -z "$EXTERNAL_NET" -a -z "$EXT_NET_BCAST_ADDRESS" ]; then
-      printf "\033[40m\033[1;31mWARNING: You are using the BROADCAST_xxx_NOLOG variables but EXTERNAL_NET and EXT_NET_BCAST_ADDRESS\033[0m\n" >&2
-      printf "\033[40m\033[1;31m         have NOT been defined!\033[0m\n" >&2
+      printf "\033[40m\033[1;31mWARNING: You are using the BROADCAST_xxx_NOLOG variables but EXTERNAL_NET (or EXT_NET_BCAST_ADDRESS)\033[0m\n" >&2
+      printf "\033[40m\033[1;31m         has NOT been defined!\033[0m\n" >&2
     fi
   fi
 
