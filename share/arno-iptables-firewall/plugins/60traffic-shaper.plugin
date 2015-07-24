@@ -177,6 +177,8 @@ classify_by_dscp_class()
 
 incoming_traffic_limit()
 {
+  local retval=0
+
   # Skip if DOWNLINK is 0
   if [ $DOWNLINK -eq 0 ]; then
     return 0
@@ -184,20 +186,22 @@ incoming_traffic_limit()
 
   # Try to control the incoming traffic as well.
   # Set up ingress qdisc
-  tc qdisc add dev $1 handle ffff: ingress
+  tc qdisc add dev $1 handle ffff: ingress || retval=1
 
   # filter *everything* to it (0.0.0.0/0), drop everything that's
   # coming in too fast:
   tc filter add dev $1 parent ffff: protocol ip prio 100 u32 match ip src \
-    0.0.0.0/0 police rate ${DOWNLINK}kbit burst $((1*$DOWNLINK/10))k drop flowid :1
+    0.0.0.0/0 police rate ${DOWNLINK}kbit burst $((1*$DOWNLINK/10))k drop flowid :1 || retval=1
 
-  return 0
+  return $retval
 }
 
 
 # HFSC start function
 plugin_start_hfsc()
 {
+  local retval=0
+
   # Some required modules are already loaded by the main script:
   modprobe_multi nf_nat ip_nat
   # modprobe ip_table
@@ -221,56 +225,58 @@ plugin_start_hfsc()
     for eif1 in $(wildcard_ifs $eif); do
 
       # add HFSC root qdisc
-      tc qdisc add dev $eif1 root handle 1: hfsc default 40
+      tc qdisc add dev $eif1 root handle 1: hfsc default 40 || retval=1
 
       # add main rate limit class
       tc class add dev $eif1 parent 1: classid 1:1 hfsc \
-         sc rate ${UPLINK}kbit ul rate ${UPLINK}kbit
+         sc rate ${UPLINK}kbit ul rate ${UPLINK}kbit || retval=1
 
       # Highest Priority: guarantee 2/10 uplink for 50ms, then 1/10
       tc class add dev $eif1 parent 1:1 classid 1:10 hfsc \
         sc m1 $((2*$UPLINK/10))kbit d 50ms m2 $((1*$UPLINK/10))kbit \
-        ul rate ${UPLINK}kbit
+        ul rate ${UPLINK}kbit || retval=1
 
       # Streaming Media: guarantee 5/10 uplink for 200ms, then 4/10
       tc class add dev $eif1 parent 1:1 classid 1:20 hfsc \
         sc m1 $((5*$UPLINK/10))kbit d 200ms m2 $((4*$UPLINK/10))kbit \
-        ul rate ${UPLINK}kbit
+        ul rate ${UPLINK}kbit || retval=1
 
       # Interactive traffic: guarantee 3/10 uplink for 50ms, then 3/10
       tc class add dev $eif1 parent 1:1 classid 1:30 hfsc \
         sc m1 $((3*$UPLINK/10))kbit d 50ms m2 $((3*$UPLINK/10))kbit \
-        ul rate ${UPLINK}kbit
+        ul rate ${UPLINK}kbit || retval=1
 
       # Default traffic: don't guarantee for 500ms, then guarentee 3/20
       tc class add dev $eif1 parent 1:1  classid 1:40 hfsc \
         sc m1           0 d    500ms m2 $((3*$UPLINK/20))kbit \
-        ul rate ${UPLINK}kbit
+        ul rate ${UPLINK}kbit || retval=1
 
       # Bulk data traffic: don't guarantee for 2 seconds, then guarantee 1/20
       tc class add dev $eif1 parent 1:1  classid 1:50 hfsc \
         sc m1           0 d    2s m2 $((1*$UPLINK/20))kbit \
-        ul rate ${UPLINK}kbit
+        ul rate ${UPLINK}kbit || retval=1
 
       # P2P traffic: don't guarantee anything
       tc class add dev $eif1 parent 1:1  classid 1:60 hfsc \
         sc m1           0 d    4s m2 1kbit \
-        ul rate ${UPLINK}kbit
+        ul rate ${UPLINK}kbit || retval=1
 
-      incoming_traffic_limit $eif1
+      incoming_traffic_limit $eif1 || retval=1
     done
 
     # add SHAPER_CHAIN chain to mangle table in iptables
     iptables -t mangle -A POSTROUTING -o $eif -j SHAPER_CHAIN
   done
 
-  return 0
+  return $retval
 }
 
 
 # HTB start function
 plugin_start_htb()
 {
+  local retval=0
+
   # Some required modules are already loaded by the main script:
   modprobe_multi nf_nat ip_nat
 
@@ -290,45 +296,45 @@ plugin_start_htb()
     # tc doesn't take wildcards, so we need expansion done here
     for eif1 in $(wildcard_ifs $eif); do
       #install root HTB, point default traffic to 1:40
-      tc qdisc add dev $eif1 root handle 1: htb default 40
+      tc qdisc add dev $eif1 root handle 1: htb default 40 || retval=1
 
       #shape everything at $UPLINK speed to prevent queing
-      tc class add dev $eif1 parent 1: classid 1:1 htb rate ${UPLINK}kbit burst 6k
+      tc class add dev $eif1 parent 1: classid 1:1 htb rate ${UPLINK}kbit burst 6k || retval=1
 
       # highest priority class 1:10
-      tc class add dev $eif1 parent 1:1 classid 1:10 htb rate ${UPLINK}kbit burst 6k prio 1
+      tc class add dev $eif1 parent 1:1 classid 1:10 htb rate ${UPLINK}kbit burst 6k prio 1 || retval=1
 
       # streaming media class 1:20
-      tc class add dev $eif1 parent 1:1 classid 1:20 htb rate ${UPLINK}kbit burst 6k prio 2
+      tc class add dev $eif1 parent 1:1 classid 1:20 htb rate ${UPLINK}kbit burst 6k prio 2 || retval=1
 
       # interactive class 1:30
-      tc class add dev $eif1 parent 1:1 classid 1:30 htb rate ${UPLINK}kbit burst 6k prio 3
+      tc class add dev $eif1 parent 1:1 classid 1:30 htb rate ${UPLINK}kbit burst 6k prio 3 || retval=1
 
       # default class 1:40
-      tc class add dev $eif1 parent 1:1 classid 1:40 htb rate $((9*$UPLINK/10))kbit burst 6k prio 4
+      tc class add dev $eif1 parent 1:1 classid 1:40 htb rate $((9*$UPLINK/10))kbit burst 6k prio 4 || retval=1
 
       # bulk class 1:50
-      tc class add dev $eif1 parent 1:1 classid 1:50 htb rate $((8*$UPLINK/10))kbit burst 6k prio 5
+      tc class add dev $eif1 parent 1:1 classid 1:50 htb rate $((8*$UPLINK/10))kbit burst 6k prio 5 || retval=1
 
       # p2p class 1:60
-      tc class add dev $eif1 parent 1:1 classid 1:60 htb rate $((5*$UPLINK/10))kbit burst 6k prio 6
+      tc class add dev $eif1 parent 1:1 classid 1:60 htb rate $((5*$UPLINK/10))kbit burst 6k prio 6 || retval=1
 
       # all get Stochastic Fairness
-      tc qdisc add dev $eif1 parent 1:10 handle 10: sfq perturb 10
-      tc qdisc add dev $eif1 parent 1:20 handle 20: sfq perturb 10
-      tc qdisc add dev $eif1 parent 1:30 handle 30: sfq perturb 10
-      tc qdisc add dev $eif1 parent 1:40 handle 40: sfq perturb 10
-      tc qdisc add dev $eif1 parent 1:50 handle 50: sfq perturb 10
-      tc qdisc add dev $eif1 parent 1:60 handle 60: sfq perturb 10
+      tc qdisc add dev $eif1 parent 1:10 handle 10: sfq perturb 10 || retval=1
+      tc qdisc add dev $eif1 parent 1:20 handle 20: sfq perturb 10 || retval=1
+      tc qdisc add dev $eif1 parent 1:30 handle 30: sfq perturb 10 || retval=1
+      tc qdisc add dev $eif1 parent 1:40 handle 40: sfq perturb 10 || retval=1
+      tc qdisc add dev $eif1 parent 1:50 handle 50: sfq perturb 10 || retval=1
+      tc qdisc add dev $eif1 parent 1:60 handle 60: sfq perturb 10 || retval=1
 
-      incoming_traffic_limit $eif1
+      incoming_traffic_limit $eif1 || retval=1
     done
 
     # add SHAPER_CHAIN chain to mangle table in iptables
     iptables -t mangle -A POSTROUTING -o $eif -j SHAPER_CHAIN
   done
 
-  return 0
+  return $retval
 }
 
 
@@ -359,17 +365,19 @@ plugin_cleanup()
 # perfectly fair
 plugin_start_cfq()
 {
+  local retval=0
+
   echo "${INDENT}Shaping using Stochastic Fairness Queueing (SFQ) for interface(s): $SHAPER_IF"
 
   IFS=' ,'
   for eif in $SHAPER_IF; do
     # tc doesn't take wildcards, so we need expansion done here
     for eif1 in $(wildcard_ifs $eif); do
-      tc qdisc add dev $eif1 root sfq perturb 10
+      tc qdisc add dev $eif1 root sfq perturb 10 || retval=1
     done
   done
 
-  return 0
+  return $retval
 }
 
 
@@ -403,26 +411,28 @@ plugin_stop()
 # Plugin status function
 plugin_status()
 {
+  local retval=0
+
   IFS=' ,'
   # tc doesn't take wildcards, so we need expansion done here
   for eif in $(wildcard_ifs $SHAPER_IF); do
     echo "${INDENT}[qdisc]"
-    tc -s qdisc show dev $eif
+    tc -s qdisc show dev $eif || retval=1
 
     echo ""
     echo "${INDENT}[class]"
-    tc -s class show dev $eif
+    tc -s class show dev $eif || retval=1
 
     echo ""
     echo "${INDENT}[filter]"
-    tc -s filter show dev $eif
+    tc -s filter show dev $eif || retval=1
   done
 
   echo ""
   echo "${INDENT}[iptables]"
   iptables -t mangle -L SHAPER_CHAIN -v -x 2>/dev/null
 
-  return 0
+  return $retval
 }
 
 
