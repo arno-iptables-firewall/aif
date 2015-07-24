@@ -4299,6 +4299,8 @@ plugins_start()
 
   printf "Checking for (user) plugins in $PLUGIN_BIN_PATH..."
 
+  PLUGIN_ERRORS=0
+
   # Check for plugins in our plugins binary path:
   if ls "$PLUGIN_BIN_PATH"/*.plugin >/dev/null 2>&1; then
     echo ""
@@ -4317,7 +4319,7 @@ plugins_start()
           fi
         done
       fi
-      
+
       # Preset ENABLED=0 to make sure the plugin only
       # gets loaded if the config has an explicit ENABLED=1:
       ENABLED=0
@@ -4327,11 +4329,10 @@ plugins_start()
 
       # Store current amount of iptables rule warnings
       STORE_RULE_WARNING=$RULE_WARNING
-      STORE_BIN_WARNING=$BIN_WARNING
 
       # Set indent
       INDENT=' '
-   
+
       # Explicit unset IFS, just in case
       unset IFS
 
@@ -4345,8 +4346,8 @@ plugins_start()
         plugin_count=$(($plugin_count + 1))
 
         # Check result
-        if [ "$PLUGIN_RET_VAL" != "0" -o $STORE_RULE_WARNING -ne $RULE_WARNING -o $STORE_BIN_WARNING -ne $BIN_WARNING ]; then
-          PLUGIN_ERRORS=$(($PLUGIN_ERRORSS + 1))
+        if [ "$PLUGIN_RET_VAL" != "0" -o $STORE_RULE_WARNING -ne $RULE_WARNING ]; then
+          PLUGIN_ERRORS=$(($PLUGIN_ERRORS + 1))
         fi
       fi
     done
@@ -4366,21 +4367,23 @@ plugins_stop()
 
   # Remove any stale plugin restart file
   rm -f "$PLUGIN_LOAD_FILE_RESTART"
-  
+
+  PLUGIN_ERRORS=0
+
   if [ -e "$PLUGIN_LOAD_FILE" ]; then
     echo "Stopping (user) plugins..."
 
     IFS=$EOL
     for plugin in `cat "$PLUGIN_LOAD_FILE"`; do
       plugin_name="$(basename "$plugin" |sed 's/^[0-9]*//')"
-      
+
       if [ -e "$plugin" ]; then
         plugin_file="$plugin"
       else
         # If we can't find it, ignore the priority number in front of the plugin-filename
         plugin_file="$(ls "$PLUGIN_BIN_PATH"/*.plugin |grep "[0-9]*$plugin_name$" |head -n1)"
       fi
-      
+
       if [ -e "$plugin_file" ]; then
         # Only issue the stop command for plugins that support it:
         if grep -q "^plugin_stop\(\)" "$plugin_file"; then
@@ -4393,7 +4396,6 @@ plugins_stop()
 
           # Store current amount of iptables rule warnings
           STORE_RULE_WARNING=$RULE_WARNING
-          STORE_BIN_WARNING=$BIN_WARNING
 
           # Set indent
           INDENT=' '
@@ -4406,13 +4408,13 @@ plugins_stop()
 
           # Explicit unset IFS, just in case
           unset IFS
-    
+
           # Source the plugin:
           . "$plugin_file"
 
           # Check result
-          if [ "$PLUGIN_RET_VAL" != "0" -o $STORE_RULE_WARNING -ne $RULE_WARNING -o $STORE_BIN_WARNING -ne $BIN_WARNING ]; then
-            PLUGIN_ERRORS=$(($PLUGIN_ERRORSS + 1))
+          if [ "$PLUGIN_RET_VAL" != "0" -o $STORE_RULE_WARNING -ne $RULE_WARNING ]; then
+            PLUGIN_ERRORS=$(($PLUGIN_ERRORS + 1))
           fi
 
           plugin_count=$(($plugin_count + 1))
