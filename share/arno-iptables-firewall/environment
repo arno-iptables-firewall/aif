@@ -1721,3 +1721,53 @@ if [ -z "$PLUGIN_CONF_PATH" ]; then
   fi
 fi
 
+# Check for EXT_NET_BCAST_ADDRESS and autodetect if empty
+#########################################################
+if [ -z "$EXT_NET_BCAST_ADDRESS" -a -n "$EXT_IF" ]; then
+  ext_count=0
+  IFS=' ,'
+  for eif in $EXT_IF; do
+    found=0
+    for eif1 in $(wildcard_ifs $eif); do
+      baddr="$(get_network_ipv4_broadcast "$eif1")"
+
+      # NOTE: If no broadcast address found, then probably interface is not up (yet)
+      if [ -n "$baddr" ]; then
+        EXT_NET_BCAST_ADDRESS="${EXT_NET_BCAST_ADDRESS}${EXT_NET_BCAST_ADDRESS:+ }${baddr}"
+        found=1
+      fi
+    done
+
+    ext_count=$(($ext_count + 1))
+    if [ $found -eq 0 -a -n "$EXTERNAL_NET" ]; then
+      ext_net="$(echo "$EXTERNAL_NET" |awk "{ print \$$ext_count }")"
+
+      case "$ext_net" in
+        */24) baddr="$(echo "$ext_net" |awk -F. '{ print $1"."$2"."$3".255" }')" ;;
+        */16) baddr="$(echo "$ext_net" |awk -F. '{ print $1"."$2".255.255" }')" ;;
+         */8) baddr="$(echo "$ext_net" |awk -F. '{ print $1".255.255.255" }')" ;;
+           *) baddr="" ;;
+      esac
+
+      if [ -n "$baddr" ]; then
+        EXT_NET_BCAST_ADDRESS="${EXT_NET_BCAST_ADDRESS}${EXT_NET_BCAST_ADDRESS:+ }${baddr}"
+      fi
+    fi
+  done
+fi
+
+# Check for EXTERNAL_NET and autodetect if empty
+################################################
+if [ -z "$EXTERNAL_NET" -a -n "$EXT_IF" ]; then
+  IFS=' ,'
+  for eif in $EXT_IF; do
+    for eif1 in $(wildcard_ifs $eif); do
+      addr_mask="$(get_network_ipv4_address_mask "$eif1")"
+
+      # NOTE: If no mask found, then probably interface is not up (yet)
+      if [ -n "$addr_mask" ]; then
+        EXTERNAL_NET="${EXTERNAL_NET}${EXTERNAL_NET:+ }${addr_mask}"
+      fi
+    done
+  done
+fi

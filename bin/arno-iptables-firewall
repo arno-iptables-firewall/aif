@@ -3349,21 +3349,6 @@ setup_ext_input_chain()
     for address in $EXT_NET_BCAST_ADDRESS; do
       ip4tables -A EXT_INPUT_CHAIN -d $address -j EXT_BROADCAST_CHAIN
     done
-  else
-    IFS=' ,'
-    for net in $EXTERNAL_NET; do
-      # Class C net
-      ip4tables -A EXT_INPUT_CHAIN -d $(echo $net |awk -F. '{ print $1"."$2"."$3".255" }') \
-       -j EXT_BROADCAST_CHAIN
-
-      # Class B net
-      ip4tables -A EXT_INPUT_CHAIN -d $(echo $net |awk -F. '{ print $1"."$2".255.255" }') \
-       -j EXT_BROADCAST_CHAIN
-
-      # Class A net
-      ip4tables -A EXT_INPUT_CHAIN -d $(echo $net |awk -F. '{ print $1".255.255.255" }') \
-       -j EXT_BROADCAST_CHAIN
-    done
   fi
 
   # Handle multicast traffic
