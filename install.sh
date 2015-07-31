@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.07b"
+MY_VERSION="1.07c"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -111,8 +111,14 @@ copy_ask_if_exist()
       # Ignore files that are the same in the target
       if ! diff "$source" "$target" >/dev/null; then
         if ! get_user_yn "File \"$target\" already exists. Overwrite" "n"; then
-          echo "Skipped..."
-          continue;
+          if [ -z "$3" ]; then
+            echo "Skipped..."
+            continue;
+          else
+            # Copy as e.g. .dist-file:
+            target="${target}.${3}"
+            rm -f "$target"
+          fi
         fi
       else
         echo "* Target file \"$target\" is the same as source. Skipping copy of $source"
@@ -161,8 +167,14 @@ copy_skip_if_exist()
     fi
 
     if [ -f "$target" ]; then
-      echo "* File \"$target\" already exists. Skipping copy of $source"
-      continue;
+      if [ -z "$3" ]; then
+        echo "* File \"$target\" already exists. Skipping copy of $source"
+        continue;
+      else
+        # Copy as e.g. .dist-file:
+        target="${target}.${3}"
+        rm -f "$target"
+      fi
     fi
 
     if ! cp -v "$source" "$target"; then
@@ -336,7 +348,7 @@ copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-
 copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
 
 mkdir -pv /etc/arno-iptables-firewall/plugins || exit 1
-copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/
+copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/ "dist"
 
 mkdir -pv /etc/arno-iptables-firewall/conf.d || exit 1
 echo "Files with a .conf extension in this directory will be sourced by the environment file" >/etc/arno-iptables-firewall/conf.d/README
