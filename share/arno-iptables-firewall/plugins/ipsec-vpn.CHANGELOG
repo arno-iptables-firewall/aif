@@ -1,3 +1,7 @@
+Version 0.84BETA (July 31, 2015)
+--------------------------------
+* Use modprobe_multi for newer kernels
+
 Version 0.83BETA (March 9, 2011)
 --------------------------------
 ! Removed Bash-ism

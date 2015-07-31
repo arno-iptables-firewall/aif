@@ -2,10 +2,10 @@
 #            -= Arno's iptables firewall - Transparent DNAT plugin =-
 #
 PLUGIN_NAME="Transparent DNAT plugin"
-PLUGIN_VERSION="0.30BETA (EXPERIMENTAL!)"
+PLUGIN_VERSION="0.31BETA (EXPERIMENTAL!)"
 PLUGIN_CONF_FILE="transparent-dnat.conf"
 #
-# Last changed          : March 19, 2009
+# Last changed          : July 31, 2015
 # Requirements          : kernel 2.6 + ip_nat + iptable_nat
 # Comments              : This plugin enables transparent DNAT for internal hosts for
 #                         certain ports. Meaning you can redirect certain TCP/UDP ports (eg. http)
@@ -37,9 +37,8 @@ PLUGIN_CONF_FILE="transparent-dnat.conf"
 plugin_start()
 {
   # Some required modules are already loaded by the main script:
-  modprobe ip_nat
+  modprobe_multi nf_nat ip_nat
   modprobe iptable_nat
-#   modprobe ip_table
 
   echo "${INDENT}Using internal IP $DNAT_MY_INTERNAL_IP & external IP $DNAT_MY_EXTERNAL_IP"
   if [ -n "$DNAT_TCP_PORTS" ]; then

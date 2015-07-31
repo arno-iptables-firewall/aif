@@ -1,3 +1,7 @@
+Version 0.31BETA (July 31, 2015)
+--------------------------------
+* Use modprobe_multi for newer kernels
+
 Version 0.30BETA (March 17, 2009)
 ---------------------------------
 * Cleanup

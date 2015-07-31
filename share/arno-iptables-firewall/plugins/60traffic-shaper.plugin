@@ -204,7 +204,6 @@ plugin_start_hfsc()
 
   # Some required modules are already loaded by the main script:
   modprobe_multi nf_nat ip_nat
-  # modprobe ip_table
 
   modprobe sch_hfsc
 

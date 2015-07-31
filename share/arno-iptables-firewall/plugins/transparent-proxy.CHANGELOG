@@ -1,3 +1,7 @@
+Version 1.04 (July 31, 2015)
+--------------------------------
+* Use modprobe_multi for newer kernels
+
 Version 1.03 (September 19, 2010)
 --------------------------------
 * Changed to be IPv4-only
