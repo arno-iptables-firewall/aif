@@ -296,7 +296,7 @@ ip4tables()
 {
   local result retval IFS=' '
 
-  result=`$IP4TABLES "$@" 2>&1`
+  result=`$IP4TABLES${IPTABLES_OPTIONS:+ $IPTABLES_OPTIONS} "$@" 2>&1`
   retval=$?
 
   if [ $retval -ne 0 ]; then
@@ -323,7 +323,7 @@ ip6tables()
 {
   local result retval IFS=' '
 
-  result=`$IP6TABLES "$@" 2>&1`
+  result=`$IP6TABLES${IPTABLES_OPTIONS:+ $IPTABLES_OPTIONS} "$@" 2>&1`
   retval=$?
 
   if [ $retval -ne 0 ]; then
@@ -422,7 +422,7 @@ try_ip4tables()
 {
   local IFS=' '
 
-  $IP4TABLES "$@" >/dev/null 2>&1
+  $IP4TABLES${IPTABLES_OPTIONS:+ $IPTABLES_OPTIONS} "$@" >/dev/null 2>&1
 }
 
 
@@ -430,7 +430,7 @@ try_ip6tables()
 {
   local IFS=' '
 
-  $IP6TABLES "$@" >/dev/null 2>&1
+  $IP6TABLES${IPTABLES_OPTIONS:+ $IPTABLES_OPTIONS} "$@" >/dev/null 2>&1
 }
 
 
@@ -1670,6 +1670,13 @@ DIG="$(find_command /usr/bin/dig)"
 
 if [ -z "$DIG" ]; then
   NSLOOKUP="$(find_command /usr/bin/nslookup)"
+fi
+
+# Enable xtables lock "wait" option found in iptables 1.4.20+
+if $IP4TABLES -w --version >/dev/null 2>&1; then
+  IPTABLES_OPTIONS="-w"
+else
+  IPTABLES_OPTIONS=""
 fi
 
 # Setup IPv6 detected environment variable
