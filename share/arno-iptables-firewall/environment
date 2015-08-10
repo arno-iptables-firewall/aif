@@ -46,8 +46,9 @@ DNS_FAST_FAIL_ONCE=0
 # Find command path with '/hint/path/command' as the argument
 find_command()
 {
-  local IFS=' '
+  local cmd IFS
 
+  IFS=' '
   for cmd in $*; do
     if [ -x "$cmd" ]; then
       echo "$cmd"
@@ -63,7 +64,7 @@ find_command()
 # Check whether a certain command is available
 check_command()
 {
-  local path IFS
+  local cmd path IFS
 
   IFS=' '
   for cmd in $*; do
