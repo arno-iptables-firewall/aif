@@ -5344,7 +5344,7 @@ show_applied()
   echo ""
   DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
 
-  if [ "$RULE_WARNING" != "0" ]; then
+  if [ $RULE_WARNING -ne 0 ]; then
     printf "$DATE \033[40m\033[1;31mWARNING: $RULE_WARNING firewall rules failed to apply!\n\033[0m" >&2
     echo "$DATE ** WARNING: $RULE_WARNING firewall rules failed to apply **" >> $FIREWALL_LOG
     echo "** WARNING: $RULE_WARNING firewall rules failed to apply **" |logger -t firewall -p kern.info
@@ -5471,4 +5471,7 @@ case "$1" in
                         show_help;;
 esac
 
-exit $RULE_WARNING
+if [ $RULE_WARNING -ne 0 ]; then
+  exit 1
+fi
+exit 0
