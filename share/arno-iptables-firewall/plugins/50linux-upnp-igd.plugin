@@ -123,7 +123,5 @@ else
         *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2 ;;
       esac
     fi
-  else
-    PLUGIN_RET_VAL=0
   fi
 fi

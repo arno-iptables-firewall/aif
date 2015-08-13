@@ -187,13 +187,11 @@ else
       PLUGIN_RET_VAL=1
     else
       case $PLUGIN_CMD in
-        start|'') plugin_start; PLUGIN_RET_VAL=$?;;
-        stop    ) plugin_stop; PLUGIN_RET_VAL=$?;;
-        status  ) plugin_status; PLUGIN_RET_VAL=$?;;
-        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m  ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2;;
+        start|'') plugin_start; PLUGIN_RET_VAL=$? ;;
+        stop    ) plugin_stop; PLUGIN_RET_VAL=$? ;;
+        status  ) plugin_status; PLUGIN_RET_VAL=$? ;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m  ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2 ;;
       esac
     fi
-  else
-    PLUGIN_RET_VAL=0
   fi
 fi
