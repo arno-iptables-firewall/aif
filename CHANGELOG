@@ -1,4 +1,4 @@
-Version 2.0.1f-DEVEL (August 3, 2015)
+Version 2.0.1f-RC1 (August 21, 2015)
 ------------------------------------
 ! Enable xtables lock "wait" option found in iptables 1.4.20+, Issue #17
 ! Using NAT_STATIC_IP with multiple ext interfaces would fail in case not enough ext IPs were specified
