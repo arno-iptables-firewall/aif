@@ -1,4 +1,4 @@
-Version 2.0.1f-RC1 (August 21, 2015)
+Version 2.0.1f-RC1 (August 24, 2015)
 ------------------------------------
 ! Enable xtables lock "wait" option found in iptables 1.4.20+, Issue #17
 ! Using NAT_STATIC_IP with multiple ext interfaces would fail in case not enough ext IPs were specified
@@ -12,6 +12,9 @@ Version 2.0.1f-RC1 (August 21, 2015)
   IPv6 addresses (thanks to Mike C. Fletcher)
 * Improve y/n user handling
 * Improve log handling for dyndns plugin
++ Try to auto detect external net settings automatically on start
+* Improve error handling especially for plugins
+* Several plugin updates
 
 Version 2.0.1e (February 2, 2014)
 ---------------------------------
