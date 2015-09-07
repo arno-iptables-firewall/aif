@@ -1,7 +1,9 @@
 [Unit]
-Description=Single- & multi-homed firewall script with DSL/ADSL support
-Before=network.target
-Wants=network.target
+Description=Arno's Iptables Firewall
+DefaultDependencies=no
+Wants=network-pre.target
+Before=network-pre.target shutdown.target
+Conflicts=shutdown.target
 
 [Service]
 Type=oneshot
