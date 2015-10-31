@@ -495,7 +495,7 @@ setup_kernel_settings()
       sysctl_set_all "net.ipv6.conf" "forwarding" 1
       echo " Disabling Local IPv6 Auto-Configuration"
       sysctl_set_all "net.ipv6.conf" "autoconf" 0
-      sysctl_set_all "net.ipv6.conf" "accept_ra" 0
+      ## Setting accept_ra=0 is not needed with forwarding=1, don't overwrite any existing accept_ra=2 values
     fi
   elif [ "$IP_FORWARDING" = "0" ]; then
     echo " DISABLING packet forwarding"
