@@ -1,5 +1,6 @@
-Version 2.0.1g-DEVEL (October 31, 2015)
----------------------------------------
+Version 2.0.1g-DEVEL (November 29, 2015)
+----------------------------------------
+! Support kernel version check where "uname -r" doesn't contain a '-' character
 ! Leave the IPv6 sysctl accept_ra setting alone when forwarding=1, fixes WAN DHCPv6-client, Issue #21
 
 Version 2.0.1f (October 1, 2015)
