@@ -138,7 +138,7 @@ kernel_ver_chk()
     rev=$(echo "$1" |cut -s -d'.' -f3)
   fi
 
-  ver=$(uname -r |cut -s -d'-' -f1)
+  ver=$(uname -r |cut -d'-' -f1)
 
   ver_maj=$(echo "$ver" |cut -s -d'.' -f1)
   if [ $ver_maj -gt $maj ]; then
