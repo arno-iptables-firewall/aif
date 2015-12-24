@@ -33,6 +33,9 @@ PLUGIN_CONF_FILE="traffic-accounting.conf"
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
+# Use a lock file for protection
+LOCK_FILE="/var/tmp/aif_traffic_accounting_helper.lock"
+
 # Plugin start function
 plugin_start()
 {
@@ -51,6 +54,9 @@ plugin_start()
 
   # Insert rule in the OUTPUT chain
   iptables -I OUTPUT 1 -j ACCOUNTING_OUTPUT_CHAIN
+
+  # Check for stale lock file
+  rm -f "$LOCK_FILE"
 
   # Create hourly cron job
   echo "$TRAFFIC_ACCOUNTING_CRON        root    \"$PLUGIN_BIN_PATH/traffic-accounting-helper\" >/dev/null" >/etc/cron.d/traffic-accounting
@@ -92,6 +98,13 @@ plugin_stop()
 {
   # Remove cron job
   rm -f /etc/cron.d/traffic-accounting
+
+  # Wait for helper to stop, if running
+  cnt=5
+  while [ $cnt -gt 0 ] && [ -f "$LOCK_FILE" ]; do
+    cnt=$((cnt - 1))
+    sleep 1
+  done
 
   # Store current values
   "$PLUGIN_BIN_PATH/traffic-accounting-helper" >/dev/null

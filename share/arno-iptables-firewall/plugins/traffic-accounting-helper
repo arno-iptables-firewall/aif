@@ -8,6 +8,9 @@ PLUGIN_CONF_FILE="traffic-accounting.conf"
 ##########################################################
 CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
 
+# Use a lock file for protection
+LOCK_FILE="/var/tmp/aif_traffic_accounting_helper.lock"
+
 # Check if the main config file exists and if so load it
 ########################################################
 if [ -e "$CONFIG_FILE" ]; then
@@ -363,17 +366,6 @@ else
     # Only proceed if environment ok
     if sanity_check; then
       # This is a critical section so we use a lockfile
-      LOCK_FILE="/var/tmp/aif_traffic_accounting_helper.lock"
-
-      # Check for stale LOCK file
-      if [ -e "$LOCK_FILE" ]; then
-        PID="$(cat "$LOCK_FILE")"
-        if [ -z "$PID" ] || ! ps -o "%p %u %c %a" $PID; then
-          rm -f "$LOCK_FILE"
-          echo "Note: Removed stale lockfile: $LOCK_FILE" >&2
-        fi
-      fi
-
       if (set -o noclobber; echo "$$" > "$LOCK_FILE") 2> /dev/null; then
         # Setup int handler
         trap 'rm -f "$LOCK_FILE"; exit $?' INT TERM EXIT
@@ -390,8 +382,7 @@ else
         exit 0
       else
         echo "Failed to acquire lockfile: $LOCK_FILE." >&2
-        PROCESS="$(ps -o "%p %u %c %a" "$(cat "$LOCK_FILE")")"
-        printf "Held by:\n${PROCESS}\n" >&2
+        echo "Held by $(cat "$LOCK_FILE")" >&2
       fi
     fi
   fi

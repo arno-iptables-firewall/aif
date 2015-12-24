@@ -36,6 +36,9 @@ else
   DYNDNS_HOST_CACHE="/var/tmp/aif_dyndns_host_cache"
 fi
 
+# Use a lock file for protection
+LOCK_FILE="/var/tmp/aif_dyndns_helper.lock"
+
 # Plugin start function
 plugin_start()
 {
@@ -48,7 +51,10 @@ plugin_start()
 
   # Remove the cache file
   rm -f "$DYNDNS_HOST_CACHE"
-  
+
+  # Check for stale lock file
+  rm -f "$LOCK_FILE"
+
   # Create cron job
   echo "$DYNDNS_HOST_OPEN_CRON        root    $PLUGIN_BIN_PATH/dyndns-host-open-helper >/dev/null" >/etc/cron.d/dyndns-host-open
 
@@ -86,7 +92,14 @@ plugin_stop()
 {
   # Remove cron job
   rm -f /etc/cron.d/dyndns-host-open
-  
+
+  # Wait for helper to stop, if running
+  cnt=5
+  while [ $cnt -gt 0 ] && [ -f "$LOCK_FILE" ]; do
+    cnt=$((cnt - 1))
+    sleep 1
+  done
+
   # Remove the cache file
   rm -f "$DYNDNS_HOST_CACHE"
   
@@ -94,7 +107,7 @@ plugin_stop()
 
   iptables -F DYNDNS_CHAIN
   iptables -X DYNDNS_CHAIN 2>/dev/null
-  
+
   return 0
 }
 
