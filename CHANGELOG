@@ -1,5 +1,6 @@
-Version 2.0.1g-DEVEL (December 18, 2015)
-----------------------------------------
+Version 2.0.1g-DEVEL (January 9, 2016)
+--------------------------------------
++ Added new PPTP VPN Passthrough plugin, suggested by Yuriy Cherniavsky, Issue #27
 * Detect and remove stale lockfiles for plugin helpers
 ! Support kernel version check where "uname -r" doesn't contain a '-' character
 ! Leave the IPv6 sysctl accept_ra setting alone when forwarding=1, fixes WAN DHCPv6-client, Issue #21
