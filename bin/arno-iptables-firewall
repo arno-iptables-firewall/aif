@@ -4551,18 +4551,9 @@ setup_firewall_rules()
 
   # This is used for your external (untrusted) interfaces
   #######################################################
-  COUNT=0
   IFS=' ,'
   for interface in $EXT_IF; do
-    COUNT=$(($COUNT + 1))
-    EXTIF_NET=$(echo "$EXTERNAL_NET" |awk "{ print \$$COUNT }")
-
     printf "Applying external(INET) policy to interface: $interface"
-    if [ -z "$EXTIF_NET" ]; then
-      echo " (without an external subnet specified)"
-    else
-      echo " (EXTERNAL_NET=$EXTIF_NET)"
-    fi
 
     # Apply external (internet) interface policy for the output chain:
     ##################################################################
