@@ -4565,6 +4565,11 @@ setup_firewall_rules()
       for icmpv6_type in $ICMPV6_SPECIAL_TYPES; do
         ip6tables -A INPUT -i $interface -p icmpv6 --icmpv6-type $icmpv6_type -m hl --hl-eq 255 -j ACCEPT
       done
+      if [ "$OPEN_ICMPV6_MLD" = "1" ]; then
+        for icmpv6_type in $ICMPV6_MLD_TYPES; do
+          ip6tables -A INPUT -i $interface -p icmpv6 --icmpv6-type $icmpv6_type -s fe80::/10 -m hl --hl-eq 1 -j ACCEPT
+        done
+      fi
     fi
 
     # Apply external (internet) interface policy for the input chain:
@@ -4583,6 +4588,11 @@ setup_firewall_rules()
 
     # ICMP traffic (flood)
     iptables -A INPUT -i $interface -p icmp -m state --state NEW -j EXT_ICMP_FLOOD_CHAIN
+
+    # Drop any remaining ICMPv6 traffic
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      ip6tables -A INPUT -i $interface -p icmpv6 -j POST_INPUT_DROP_CHAIN
+    fi
   done
 
 

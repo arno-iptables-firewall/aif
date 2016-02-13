@@ -1698,6 +1698,10 @@ fi
 ######################################################################
 ICMPV6_SPECIAL_TYPES="133 134 135 136"
 
+# IPv6 ICMPv6 Multicast Listener Discovery (RFC 2710, 3810)
+######################################################################
+ICMPV6_MLD_TYPES="130 131 132 143"
+
 # Check plugin bin path and fallback in case it's empty
 #######################################################
 if [ -z "$PLUGIN_BIN_PATH" ]; then
