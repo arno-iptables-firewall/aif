@@ -1,5 +1,7 @@
-Version 2.0.1g-DEVEL (January 9, 2016)
---------------------------------------
+Version 2.0.1g-DEVEL (February 13, 2016)
+----------------------------------------
+* New support for ICMPv6 Multicast Listener Discovery, enable with OPEN_ICMPV6_MLD=1, disabled by default
+* Keep external ICMPv6 packets appearing as annoying logs, common with native IPv6 ISP's. Thanks to David Kerr
 + Added new PPTP VPN Passthrough plugin, suggested by Yuriy Cherniavsky, Issue #27
 * Detect and remove stale lockfiles for plugin helpers
 ! Support kernel version check where "uname -r" doesn't contain a '-' character
