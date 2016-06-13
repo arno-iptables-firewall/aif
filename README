@@ -480,6 +480,7 @@ INT_FORWARD_IN_CHAIN        - Internal-net FORWARD chain for INcoming traffic
 INT_FORWARD_OUT_CHAIN       - Internal-net FORWARD chain for OUTcoming traffic
 INT_INPUT_CHAIN             - Internal-net INPUT chain
 INT_OUTPUT_CHAIN            - Internal-net OUTPUT chain
+LAN_LAN_FORWARD_CHAIN       - LAN to LAN (Inter-LAN) forward chain (AIF private use only)
 LAN_INET_FORWARD_CHAIN      - LAN to internet (external net) forward chain
 POST_INPUT_CHAIN            - This chain is always processed last(post) in the
                               INPUT chain

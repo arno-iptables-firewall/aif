@@ -2263,6 +2263,79 @@ setup_int_input_chain()
 }
 
 
+##################################################
+# Setup chain for the LAN-to-LAN forward traffic #
+##################################################
+setup_lan_lan_forward_chain()
+{
+  local rtn_val=1
+
+  echo " Setting up LAN->LAN policy"
+
+  # TCP ports to ALLOW for certain Inter-LAN hosts
+  ################################################
+  unset IFS
+  for rule in $LAN_LAN_HOST_OPEN_TCP; do
+    if parse_rule "$rule" LAN_LAN_HOST_OPEN_TCP "shosts:ANYHOST-dhosts-ports:ANYPORT"; then
+
+      echo "  Allowing $shosts(LAN) to $dhosts(LAN) for TCP port(s): $ports"
+
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for port in $ports; do
+            iptables -A LAN_LAN_FORWARD_CHAIN -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+            rtn_val=0
+          done
+        done
+      done
+    fi
+  done
+
+  # UDP ports to ALLOW for certain Inter-LAN hosts
+  ################################################
+  unset IFS
+  for rule in $LAN_LAN_HOST_OPEN_UDP; do
+    if parse_rule "$rule" LAN_LAN_HOST_OPEN_UDP "shosts:ANYHOST-dhosts-ports:ANYPORT"; then
+
+      echo "  Allowing $shosts(LAN) to $dhosts(LAN) for UDP port(s): $ports"
+
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for port in $ports; do
+            iptables -A LAN_LAN_FORWARD_CHAIN -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+            rtn_val=0
+          done
+        done
+      done
+    fi
+  done
+
+  # IP protocol(s) to ALLOW for certain Inter-LAN hosts
+  #####################################################
+  unset IFS
+  for rule in $LAN_LAN_HOST_OPEN_IP; do
+    if parse_rule "$rule" LAN_LAN_HOST_OPEN_IP "shosts:ANYHOST-dhosts-protos"; then
+
+      echo "  Allowing $shosts(LAN) to $dhosts(LAN) for IP protocol(s): $protos"
+
+      IFS=','
+      for shost in `ip_range "$shosts"`; do
+        for dhost in `ip_range "$dhosts"`; do
+          for proto in $protos; do
+            iptables -A LAN_LAN_FORWARD_CHAIN -s $shost -d $dhost -p $proto -j ACCEPT
+            rtn_val=0
+          done
+        done
+      done
+    fi
+  done
+
+  return $rtn_val
+}
+
+
 ###################################################
 # Setup chain for the LAN-to-INET forward traffic #
 ###################################################
@@ -4794,7 +4867,10 @@ setup_firewall_rules()
       echo " Logging of denied LAN->INET FORWARD connections disabled"
     fi
 
-    # Setup helper chain for the LAN:
+    # Setup helper chains for the LAN:
+    setup_lan_lan_forward_chain;
+    lan_lan_forward_result=$?
+
     setup_lan_inet_forward_chain;
 
     IFS=' ,'
@@ -4804,10 +4880,20 @@ setup_firewall_rules()
       # Always make subnets on the SAME interface trust each other
       iptables -A FORWARD -i $iif -o $iif -j ACCEPT
 
+      # Optimize by only adding to FORWARD if LAN_LAN_FORWARD_CHAIN contains rules
+      if [ $lan_lan_forward_result -eq 0 ]; then
+        for output_if in $INT_IF; do
+          if [ "$iif" != "$output_if" ]; then
+            iptables -A FORWARD -i $iif -o $output_if -j LAN_LAN_FORWARD_CHAIN
+          fi
+        done
+      fi
+
       for eif in $EXT_IF; do
         iptables -A FORWARD -i $iif -o $eif -j LAN_INET_FORWARD_CHAIN
       done
     done
+    unset lan_lan_forward_result
   fi
 
 
@@ -5026,6 +5112,7 @@ create_user_chains()
   iptables -N DMZ_LAN_FORWARD_CHAIN
   iptables -N INET_DMZ_FORWARD_CHAIN
   iptables -N DMZ_INET_FORWARD_CHAIN
+  iptables -N LAN_LAN_FORWARD_CHAIN
   iptables -N LAN_INET_FORWARD_CHAIN
 
   # Chains for the external interface
@@ -5082,6 +5169,7 @@ flush_user_chains()
   iptables -F DMZ_LAN_FORWARD_CHAIN
   iptables -F INET_DMZ_FORWARD_CHAIN
   iptables -F DMZ_INET_FORWARD_CHAIN
+  iptables -F LAN_LAN_FORWARD_CHAIN
   iptables -F LAN_INET_FORWARD_CHAIN
 
   # Chains for the external interface
