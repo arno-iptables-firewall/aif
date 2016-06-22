@@ -1,6 +1,9 @@
-Version 2.0.1g-DEVEL (June 13, 2016)
+Version 2.0.1g-DEVEL (June 22, 2016)
 ------------------------------------
 + Added LAN to LAN (Inter-LAN) filtering rules, LAN_LAN_HOST_OPEN_xxx, Issue #28
+- Removed unused INT_FORWARD_IN_CHAIN and INT_FORWARD_OUT_CHAIN user chains, related to Issue #28
+  Note: Any custom rule or plugin should generally use the FORWARD_CHAIN or POST_FORWARD_CHAIN to access the FORWARD chain.
+        Additionally, the new LAN_LAN_HOST_OPEN_xxx rules natively handle Inter-LAN filtering.
 * New support for ICMPv6 Multicast Listener Discovery, enable with OPEN_ICMPV6_MLD=1, disabled by default
 * Keep external ICMPv6 packets appearing as annoying logs, common with native IPv6 ISP's. Thanks to David Kerr
 + Added new PPTP VPN Passthrough plugin, suggested by Yuriy Cherniavsky, Issue #27
