@@ -4760,14 +4760,6 @@ setup_firewall_rules()
     iptables -A FORWARD -o $eif -j EXT_FORWARD_OUT_CHAIN
   done
   
-  # Source the IN/OUT chains for the internal interface(s)
-  ########################################################
-  IFS=' ,'
-  for iif in $INT_IF; do
-    iptables -A FORWARD -i $iif -j INT_FORWARD_IN_CHAIN
-    iptables -A FORWARD -o $iif -j INT_FORWARD_OUT_CHAIN
-  done
-
   # Source the IN/OUT chains for the dmz interface(s)
   ########################################################
   IFS=' ,'
@@ -5126,8 +5118,6 @@ create_user_chains()
 
   # INT(LAN) chains
   iptables -N INT_INPUT_CHAIN
-  iptables -N INT_FORWARD_IN_CHAIN
-  iptables -N INT_FORWARD_OUT_CHAIN
   iptables -N INT_OUTPUT_CHAIN
 
   # DMZ chains
@@ -5183,8 +5173,6 @@ flush_user_chains()
 
   # INT(LAN) chains
   iptables -F INT_INPUT_CHAIN
-  iptables -F INT_FORWARD_IN_CHAIN
-  iptables -F INT_FORWARD_OUT_CHAIN
   iptables -F INT_OUTPUT_CHAIN
 
   # DMZ chains

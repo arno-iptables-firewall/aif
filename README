@@ -476,8 +476,6 @@ HOST_BLOCK_DST              - Chain containing the list of destination based
                               blocked hosts
 HOST_BLOCK_SRC              - Chain containing the list of source based blocked
                               hosts
-INT_FORWARD_IN_CHAIN        - Internal-net FORWARD chain for INcoming traffic
-INT_FORWARD_OUT_CHAIN       - Internal-net FORWARD chain for OUTcoming traffic
 INT_INPUT_CHAIN             - Internal-net INPUT chain
 INT_OUTPUT_CHAIN            - Internal-net OUTPUT chain
 LAN_LAN_FORWARD_CHAIN       - LAN to LAN (Inter-LAN) forward chain (AIF private use only)
