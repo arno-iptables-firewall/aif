@@ -4617,7 +4617,7 @@ setup_firewall_rules()
   setup_ext_broadcast_chain;
   setup_ext_icmp_flood_chain;
   setup_ext_input_chain;
-  
+
   # Setup helper chains for EXTERNAL output traffic:
   echo "Setting up external(INET) OUTPUT policy"
   setup_ext_output_chain;
@@ -4626,7 +4626,7 @@ setup_firewall_rules()
   #######################################################
   IFS=' ,'
   for interface in $EXT_IF; do
-    printf "Applying external(INET) policy to interface: $interface"
+    echo "Applying external(INET) policy to interface: $interface"
 
     # Apply external (internet) interface policy for the output chain:
     ##################################################################
