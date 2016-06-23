@@ -1,5 +1,6 @@
-Version 2.0.1g-DEVEL (June 22, 2016)
+Version 2.0.1g-DEVEL (June 23, 2016)
 ------------------------------------
++ Added NAT_IF option to optionally specify external interfaces to be used for NAT
 + Added LAN to LAN (Inter-LAN) filtering rules, LAN_LAN_HOST_OPEN_xxx, Issue #28
 - Removed unused INT_FORWARD_IN_CHAIN and INT_FORWARD_OUT_CHAIN user chains, related to Issue #28
   Note: Any custom rule or plugin should generally use the FORWARD_CHAIN or POST_FORWARD_CHAIN to access the FORWARD chain.
