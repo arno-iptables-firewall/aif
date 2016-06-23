@@ -4895,7 +4895,7 @@ setup_firewall_rules()
   ##############################################################################
   if [ "$NAT" = "1" ]; then
     if [ -n "$NAT_STATIC_IP" ]; then
-      echo "Enabling SNAT via external interface(s): $EXT_IF"
+      echo "Enabling SNAT via external IP(s): $NAT_STATIC_IP"
 
       printf " Adding (internal) host(s): "
 
