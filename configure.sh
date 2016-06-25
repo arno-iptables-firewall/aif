@@ -287,7 +287,7 @@ rm -f $RC_PATH/rc5.d/*arno-iptables-firewall
 rm -f $RC_PATH/rc6.d/*arno-iptables-firewall
 rm -f $RC_PATH/rcS.d/*arno-iptables-firewall
 
-if get_user_yn "Do you want to start the firewall at boot (via /etc/init.d/)" "y"; then
+if get_user_yn "Do you want to start the firewall at boot" "y"; then
   DONE=0
   if check_command update-rc.d; then
     # Note: Currently update-rc.d doesn't seem to properly use the init script's LSB header, so specify explicitly
