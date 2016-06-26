@@ -1694,6 +1694,12 @@ if [ -z "$NAT_INTERNAL_NET" ]; then
   NAT_INTERNAL_NET="$INTERNAL_NET"
 fi
 
+# Default NAT_IF to EXT_IF, if not specified
+############################################################
+if [ -z "$NAT_IF" ]; then
+  NAT_IF="$EXT_IF"
+fi
+
 # IPv6 ICMPv6 types that are allowed, not including echo-request (128)
 ######################################################################
 ICMPV6_SPECIAL_TYPES="133 134 135 136"
@@ -1770,3 +1776,4 @@ if [ -z "$EXTERNAL_NET" -a -n "$EXT_IF" ]; then
     done
   done
 fi
+

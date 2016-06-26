@@ -4904,7 +4904,7 @@ setup_firewall_rules()
         printf "$net "
 
         COUNT=0
-        for interface in $EXT_IF; do
+        for interface in $NAT_IF; do
           COUNT=$(($COUNT + 1))         # x++;
           STATIC_IP=$(echo "$NAT_STATIC_IP" |awk "{ print \$$COUNT }")
 
@@ -4917,9 +4917,6 @@ setup_firewall_rules()
       done
       echo ""
     else
-      if [ -z "$NAT_IF" ]; then
-        NAT_IF="$EXT_IF"
-      fi
       echo "Enabling masquerading(NAT) via (external) interface(s): $NAT_IF"
 
       printf " Adding (internal) host(s): "
