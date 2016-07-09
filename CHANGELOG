@@ -1,5 +1,6 @@
-Version 2.0.1g-DEVEL (June 23, 2016)
-------------------------------------
+Version 2.0.1g-DEVEL (July 9, 2016)
+-----------------------------------
++ Added LAN to DMZ forwarding policy, new optional LAN_DMZ_ALLOW_IF variable, Issue #30
 + Added NAT_IF option to optionally specify external interfaces to be used for NAT
 + Added LAN to LAN (Inter-LAN) filtering rules, LAN_LAN_HOST_OPEN_xxx, Issue #28
 - Removed unused INT_FORWARD_IN_CHAIN and INT_FORWARD_OUT_CHAIN user chains, related to Issue #28
