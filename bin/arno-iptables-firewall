@@ -4805,6 +4805,8 @@ setup_firewall_rules()
     setup_dmz_inet_forward_chain;
     setup_dmz_lan_forward_chain;
 
+    echo " Allowing LAN->DMZ for LAN interface(s): ${LAN_DMZ_ALLOW_IF:-$INT_IF}"
+
     IFS=' ,'
     for dif in $DMZ_IF; do
       echo "Applying DMZ FORWARD policy to interface: $dif"
@@ -4825,8 +4827,13 @@ setup_firewall_rules()
         # Apply policy for DMZ->LAN
         iptables -A FORWARD -i $dif -o $iif -j DMZ_LAN_FORWARD_CHAIN
 
-        # Apply policy for LAN->DMZ (allow all)
-        iptables -A FORWARD -i $iif -o $dif -j ACCEPT
+        # Apply policy for LAN->DMZ (allow all INT_IF when LAN_DMZ_ALLOW_IF is not defined)
+        for interface in ${LAN_DMZ_ALLOW_IF:-$INT_IF}; do
+          if [ "$iif" = "$interface" ]; then
+            iptables -A FORWARD -i $iif -o $dif -j ACCEPT
+            break
+          fi
+        done
       done
     done
   fi
