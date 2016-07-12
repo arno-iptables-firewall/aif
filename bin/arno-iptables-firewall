@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="2.0.1g-DEVEL"
+MY_VERSION="2.0.1g-RC1"
 
 # Location of the main configuration file for the firewall
 ##########################################################
