@@ -1,3 +1,7 @@
+Version 1.01 (July 12, 2016)
+----------------------------
++ Add support for NAT_IF requiring AIF 2.0.1g or later
+
 Version 1.00 BETA (October 15, 2012)
 ------------------------------------
 + Initial version

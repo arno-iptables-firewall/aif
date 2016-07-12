@@ -981,6 +981,32 @@ parse_rule()
     dhost="$dhost_dport"
     ;;
 
+  interfaces:NAT_IF-destips-shosts-ports-dhost_dport|interfaces:NAT_IF-destips-shosts-protos-dhost)
+    left_rule=$(echo "$rule" |cut -s -d'>' -f1)
+    right_rule=$(echo "$rule" |cut -s -d'>' -f2)
+
+    interfaces=$(get_ifs "$left_rule" "$NAT_IF")
+    destips=$(get_ips "$left_rule")
+
+    # Check for separator(SEP)
+    if echo "$left_rule" |grep -q "$SEP"; then
+      shosts=$(get_hosts_ihp "$left_rule")
+      ports=$(get_ports_ihp "$left_rule")
+    else
+      # Assume ports/protos only if no separator
+      shosts="$ANYHOST"
+      ports=$(get_ports_ip "$left_rule")
+    fi
+  
+    dhost_dport="$right_rule"
+    if [ -z "$shosts" -o -z "$ports" ]; then
+      parse_rule_warning "$rule"
+      return 1
+    fi
+    protos="$ports"
+    dhost="$dhost_dport"
+    ;;
+
   *)
     echo "** ERROR: Invalid rule parse type! **" >&2
     return 1
@@ -1694,6 +1720,12 @@ if [ -z "$NAT_INTERNAL_NET" ]; then
   NAT_INTERNAL_NET="$INTERNAL_NET"
 fi
 
+# Default NAT_IF to EXT_IF, if not specified
+#############################################################
+if [ -z "$NAT_IF" ]; then
+  NAT_IF="$EXT_IF"
+fi
+
 # IPv6 ICMPv6 types that are allowed, not including echo-request (128)
 ######################################################################
 ICMPV6_SPECIAL_TYPES="133 134 135 136"
@@ -1770,3 +1802,4 @@ if [ -z "$EXTERNAL_NET" -a -n "$EXT_IF" ]; then
     done
   done
 fi
+

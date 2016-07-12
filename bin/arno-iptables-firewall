@@ -4911,7 +4911,7 @@ setup_firewall_rules()
         printf "$net "
 
         COUNT=0
-        for interface in $EXT_IF; do
+        for interface in $NAT_IF; do
           COUNT=$(($COUNT + 1))         # x++;
           STATIC_IP=$(echo "$NAT_STATIC_IP" |awk "{ print \$$COUNT }")
 
@@ -4924,9 +4924,6 @@ setup_firewall_rules()
       done
       echo ""
     else
-      if [ -z "$NAT_IF" ]; then
-        NAT_IF="$EXT_IF"
-      fi
       echo "Enabling masquerading(NAT) via (external) interface(s): $NAT_IF"
 
       printf " Adding (internal) host(s): "
@@ -4951,7 +4948,7 @@ setup_firewall_rules()
   #######################
   unset IFS
   for rule in $NAT_FORWARD_TCP; do
-    if parse_rule "$rule" NAT_FORWARD_TCP "interfaces:EXT_IF-destips-shosts-ports-dhost_dport"; then
+    if parse_rule "$rule" NAT_FORWARD_TCP "interfaces:NAT_IF-destips-shosts-ports-dhost_dport"; then
 
       echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) TCP port(s) $(show_hosts_ports "$shosts" "$ports") to $(echo "$dhost_dport" |tr "$SEP-" '::')"
 
@@ -4981,7 +4978,7 @@ setup_firewall_rules()
   #######################
   unset IFS
   for rule in $NAT_FORWARD_UDP; do
-    if parse_rule "$rule" NAT_FORWARD_UDP "interfaces:EXT_IF-destips-shosts-ports-dhost_dport"; then
+    if parse_rule "$rule" NAT_FORWARD_UDP "interfaces:NAT_IF-destips-shosts-ports-dhost_dport"; then
 
       echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) UDP port(s) $(show_hosts_ports "$shosts" "$ports") to $(echo "$dhost_dport" |tr "$SEP-" '::')"
 
@@ -5011,7 +5008,7 @@ setup_firewall_rules()
   ############################################
   unset IFS
   for rule in $NAT_FORWARD_IP; do
-    if parse_rule "$rule" NAT_FORWARD_IP "interfaces:EXT_IF-destips-shosts-protos-dhost"; then
+    if parse_rule "$rule" NAT_FORWARD_IP "interfaces:NAT_IF-destips-shosts-protos-dhost"; then
 
       echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) IP protocol(s) $(show_hosts_ports "$shosts" "$protos") to $dhost"
 
