@@ -109,6 +109,26 @@ sanity_check()
 }
 
 
+ipset_check()
+{
+  if [ "$IPTABLES_IPSET" != "1" ]; then
+    return 1
+  fi
+
+  ## Check if userspace 'ipset' command is installed
+  if ! check_command ipset; then
+    return 1
+  fi
+
+  ## Issue a simple command that will fail without kernel support
+  if ! ipset list -n >/dev/null 2>&1; then
+    return 1
+  fi
+
+  return 0
+}
+
+
 config_check()
 {
   # Make sure EXT_IF != ""
@@ -4138,6 +4158,8 @@ setup_output_log()
 ######################################
 setup_hostblock_chain()
 {
+  local hashsize maxelem
+
   if iptables -F HOST_BLOCK_SRC 2>&1 |grep -q "No chain" || \
      iptables -F HOST_BLOCK_DST 2>&1 |grep -q "No chain"; then
     printf "\033[40m\033[1;31mERROR: The firewall isn't running!\033[0m\n" >&2
@@ -4156,6 +4178,118 @@ setup_hostblock_chain()
     echo "Blocking (blackhole) direction: Inbound Only"
   fi
 
+## Use 'ipset' if enabled and available, else fallback to discrete iptables rules
+##
+if ipset_check; then
+  hashsize="${IPTABLES_IPSET_HASHSIZE:-2048}"
+  maxelem="${IPTABLES_IPSET_MAXELEM:-131072}"
+
+  ipset create -exist aif_blocklist hash:net hashsize $hashsize maxelem $maxelem
+  ipset create -exist aif_blocklist_tmp hash:net hashsize $hashsize maxelem $maxelem
+  ipset flush aif_blocklist_tmp
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    ipset create -exist aif_blocklist6 hash:net family inet6 hashsize $hashsize maxelem $maxelem
+    ipset create -exist aif_blocklist6_tmp hash:net family inet6 hashsize $hashsize maxelem $maxelem
+    ipset flush aif_blocklist6_tmp
+  fi
+
+  ip4tables -A HOST_BLOCK_SRC -m set --match-set aif_blocklist src -j HOST_BLOCK_DROP
+  if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+    ip4tables -A HOST_BLOCK_DST -m set --match-set aif_blocklist dst -j HOST_BLOCK_DROP
+  fi
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    ip6tables -A HOST_BLOCK_SRC -m set --match-set aif_blocklist6 src -j HOST_BLOCK_DROP
+    if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+      ip6tables -A HOST_BLOCK_DST -m set --match-set aif_blocklist6 dst -j HOST_BLOCK_DROP
+    fi
+  fi
+
+  if [ -n "$BLOCK_HOSTS" ]; then
+    printf "Blocking (blackhole) host(s): "
+
+    IFS=' ,'
+    for hosts in $BLOCK_HOSTS; do
+      printf "$hosts "
+
+      for host in `ip_range "$hosts"`; do
+        get_numeric_ip_version "$host"
+        case $? in
+        4)
+          ipset add -exist aif_blocklist_tmp $host
+          ;;
+        6)
+          if [ "$IPV6_SUPPORT" = "1" ]; then
+            ipset add -exist aif_blocklist6_tmp $host
+          fi
+          ;;
+        esac
+      done
+    done
+    echo ""
+  fi
+
+  # Setup the blocked hosts from our file
+  if [ -n "$BLOCK_HOSTS_FILE" ]; then
+    if [ -e "$BLOCK_HOSTS_FILE" ]; then
+      local cur_cnt=0 total_cnt
+      total_cnt=$(( $(cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' -e '/^$/d' |wc -l) ))
+
+      : > "$IP4TABLES_BATCH_FILE"
+      if [ "$IPV6_SUPPORT" = "1" ]; then
+        : > "$IP6TABLES_BATCH_FILE"
+      fi
+
+      echo "(Re)loading list of BLOCKED hosts from $BLOCK_HOSTS_FILE..."
+      if [ $total_cnt -gt 0 ]; then
+        progress_bar $cur_cnt $total_cnt
+
+        # Support both a '#' and a ';' as a comment delimiter in BLOCK_HOSTS_FILE file
+        unset IFS
+        cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' -e '/^$/d' |while read hosts; do
+          cur_cnt=$(($cur_cnt + 100))
+          progress_bar $cur_cnt $total_cnt
+
+          if [ -n "$hosts" ]; then
+            IFS=','
+            for host in `ip_range "$hosts"`; do
+              get_numeric_ip_version "$host"
+              case $? in
+              4)
+                echo "add -exist aif_blocklist_tmp $host" >> "$IP4TABLES_BATCH_FILE"
+                ;;
+              6)
+                if [ "$IPV6_SUPPORT" = "1" ]; then
+                  echo "add -exist aif_blocklist6_tmp $host" >> "$IP6TABLES_BATCH_FILE"
+                fi
+                ;;
+              esac
+            done
+            unset IFS
+          fi
+        done
+        printf "........."
+      fi
+
+      echo "$total_cnt host line(s) read"
+
+      ipset restore < "$IP4TABLES_BATCH_FILE"
+      rm -f "$IP4TABLES_BATCH_FILE"
+      if [ "$IPV6_SUPPORT" = "1" ]; then
+        ipset restore < "$IP6TABLES_BATCH_FILE"
+        rm -f "$IP6TABLES_BATCH_FILE"
+      fi
+    else
+      printf "\033[40m\033[1;31mNOTE: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
+    fi
+  fi
+
+  ipset swap aif_blocklist aif_blocklist_tmp
+  ipset destroy aif_blocklist_tmp
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    ipset swap aif_blocklist6 aif_blocklist6_tmp
+    ipset destroy aif_blocklist6_tmp
+  fi
+else
   # Set default to DROP all while rules are added
   iptables -A HOST_BLOCK_SRC -j DROP
   iptables -A HOST_BLOCK_DST -j DROP
@@ -4252,6 +4386,7 @@ setup_hostblock_chain()
   # Remove default rule at the beginning of the HOST_BLOCK_SRC and HOST_BLOCK_DST chains
   iptables -D HOST_BLOCK_SRC 1
   iptables -D HOST_BLOCK_DST 1
+fi
 }
 
 

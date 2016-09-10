@@ -72,6 +72,7 @@ check_command()
       /*) path="" ;;
       ip|tc|modprobe|sysctl) path="/sbin/" ;;
       sed|cat|date|uname) path="/bin/" ;;
+      ipset) path="/usr/sbin/" ;;
       *) path="/usr/bin/" ;;
     esac
 
