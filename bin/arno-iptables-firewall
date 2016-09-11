@@ -4158,7 +4158,7 @@ setup_output_log()
 ######################################
 setup_hostblock_chain()
 {
-  local hashsize maxelem
+  local hashsize maxelem swap4_err=0 swap6_err=0
 
   if iptables -F HOST_BLOCK_SRC 2>&1 |grep -q "No chain" || \
      iptables -F HOST_BLOCK_DST 2>&1 |grep -q "No chain"; then
@@ -4216,10 +4216,18 @@ if ipset_check; then
         case $? in
         4)
           ipset add -exist aif_blocklist_tmp $host
+          if [ $? -ne 0 ]; then
+            swap4_err=1
+            RULE_WARNING=$((RULE_WARNING + 1))
+          fi
           ;;
         6)
           if [ "$IPV6_SUPPORT" = "1" ]; then
             ipset add -exist aif_blocklist6_tmp $host
+            if [ $? -ne 0 ]; then
+              swap6_err=1
+              RULE_WARNING=$((RULE_WARNING + 1))
+            fi
           fi
           ;;
         esac
@@ -4273,9 +4281,17 @@ if ipset_check; then
       echo "$total_cnt host line(s) read"
 
       ipset restore < "$IP4TABLES_BATCH_FILE"
+      if [ $? -ne 0 ]; then
+        swap4_err=1
+        RULE_WARNING=$((RULE_WARNING + 1))
+      fi
       rm -f "$IP4TABLES_BATCH_FILE"
       if [ "$IPV6_SUPPORT" = "1" ]; then
         ipset restore < "$IP6TABLES_BATCH_FILE"
+        if [ $? -ne 0 ]; then
+          swap6_err=1
+          RULE_WARNING=$((RULE_WARNING + 1))
+        fi
         rm -f "$IP6TABLES_BATCH_FILE"
       fi
     else
@@ -4283,10 +4299,18 @@ if ipset_check; then
     fi
   fi
 
-  ipset swap aif_blocklist aif_blocklist_tmp
+  if [ $swap4_err -eq 0 ]; then
+    ipset swap aif_blocklist aif_blocklist_tmp
+  else
+    printf "\033[40m\033[1;31mERROR: IPv4 \"ipset swap ...\" not applied.\033[0m\n"
+  fi
   ipset destroy aif_blocklist_tmp
   if [ "$IPV6_SUPPORT" = "1" ]; then
-    ipset swap aif_blocklist6 aif_blocklist6_tmp
+    if [ $swap6_err -eq 0 ]; then
+      ipset swap aif_blocklist6 aif_blocklist6_tmp
+    else
+      printf "\033[40m\033[1;31mERROR: IPv6 \"ipset swap ...\" not applied.\033[0m\n"
+    fi
     ipset destroy aif_blocklist6_tmp
   fi
 else
