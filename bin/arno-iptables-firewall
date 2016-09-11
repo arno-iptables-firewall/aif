@@ -4302,14 +4302,14 @@ if ipset_check; then
   if [ $swap4_err -eq 0 ]; then
     ipset swap aif_blocklist aif_blocklist_tmp
   else
-    printf "\033[40m\033[1;31mERROR: IPv4 \"ipset swap ...\" not applied.\033[0m\n"
+    printf "\033[40m\033[1;31mERROR: IPv4 \"ipset swap ...\" not applied.\033[0m\n" >&2
   fi
   ipset destroy aif_blocklist_tmp
   if [ "$IPV6_SUPPORT" = "1" ]; then
     if [ $swap6_err -eq 0 ]; then
       ipset swap aif_blocklist6 aif_blocklist6_tmp
     else
-      printf "\033[40m\033[1;31mERROR: IPv6 \"ipset swap ...\" not applied.\033[0m\n"
+      printf "\033[40m\033[1;31mERROR: IPv6 \"ipset swap ...\" not applied.\033[0m\n" >&2
     fi
     ipset destroy aif_blocklist6_tmp
   fi
