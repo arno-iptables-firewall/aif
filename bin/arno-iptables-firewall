@@ -4154,11 +4154,118 @@ setup_output_log()
 }
 
 
+# Helper function for setup_hostblock_chain
+###########################################
+setup_ipset_netset()
+{
+  local dir="$1" hashsize="$2" maxelem="$3" family netset set_name IFS
+
+  unset IFS
+  for netset in "$dir"/*.netset; do
+    set_name="${netset##*/}"
+    set_name="${set_name%.netset}"
+
+    ## Kernel limits set names to 31 characters, subtract 4 for _tmp
+    if [ ${#set_name} -gt 27 ]; then
+      continue
+    fi
+
+    ## Naming convention, *v6.netset files for IPv6, all other *.netset files default to IPv4
+    case $set_name in
+      *v6|*V6) family="inet6" ;;
+            *) family="inet" ;;
+    esac
+
+    if [ "$IPV6_SUPPORT" != "1" -a "$family" = "inet6" ]; then
+      continue
+    fi
+
+    ipset create -exist ${set_name} hash:net family $family hashsize $hashsize maxelem $maxelem
+
+    if [ "$family" = "inet" ]; then
+      ip4tables -A HOST_BLOCK_SRC -m set --match-set ${set_name} src -j HOST_BLOCK_DROP
+      if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+        ip4tables -A HOST_BLOCK_DST -m set --match-set ${set_name} dst -j HOST_BLOCK_DROP
+      fi
+    else
+      ip6tables -A HOST_BLOCK_SRC -m set --match-set ${set_name} src -j HOST_BLOCK_DROP
+      if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+        ip6tables -A HOST_BLOCK_DST -m set --match-set ${set_name} dst -j HOST_BLOCK_DROP
+      fi
+    fi
+  done
+}
+
+
+# Helper function for setup_hostblock_chain
+###########################################
+apply_ipset_netset()
+{
+  local dir="$1" hashsize="$2" maxelem="$3" family netset set_name swap_err IFS
+
+  unset IFS
+  for netset in "$dir"/*.netset; do
+    set_name="${netset##*/}"
+    set_name="${set_name%.netset}"
+
+    ## Kernel limits set names to 31 characters, subtract 4 for _tmp
+    if [ ${#set_name} -gt 27 ]; then
+      printf "\033[40m\033[1;31mERROR: The \"${set_name}.netset\" name is too long, filenames are limited to <27-characters>.netstat\033[0m\n" >&2
+      RULE_WARNING=$((RULE_WARNING + 1))
+      continue
+    fi
+
+    ## Naming convention, *v6.netset files for IPv6, all other *.netset files default to IPv4
+    case $set_name in
+      *v6|*V6) family="inet6" ;;
+            *) family="inet" ;;
+    esac
+
+    if [ "$IPV6_SUPPORT" != "1" -a "$family" = "inet6" ]; then
+      continue
+    fi
+
+    ipset create -exist ${set_name}_tmp hash:net family $family hashsize $hashsize maxelem $maxelem
+    ipset flush ${set_name}_tmp
+
+    swap_err=0
+
+    if [ "$family" = "inet" ]; then
+      printf "Loading IPv4 Network Set: ${set_name}.netset ... "
+      sed -n -r -e '/^10\./d' -e '/^192\.168\./d' -e '/^172\.16\./d' -e '/^169\.254\./d' \
+                -e '/^224\./d' -e '/^239\./d' -e '/^127\./d' \
+                -e "s/^([1-9][0-9./]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
+      if [ $? -ne 0 ]; then
+        swap_err=1
+        RULE_WARNING=$((RULE_WARNING + 1))
+      fi
+    else
+      printf "Loading IPv6 Network Set: ${set_name}.netset ... "
+      sed -n -r -e '/^::1/d' \
+                -e "s/^([1-9a-fA-F][0-9a-fA-F:/]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
+      if [ $? -ne 0 ]; then
+        swap_err=1
+        RULE_WARNING=$((RULE_WARNING + 1))
+      fi
+    fi
+
+    if [ $swap_err -eq 0 ]; then
+      ipset swap ${set_name} ${set_name}_tmp
+      echo "Done."
+    else
+      echo ""
+      printf "\033[40m\033[1;31mERROR: \"ipset swap ${set_name} ...\" not applied.\033[0m\n" >&2
+    fi
+    ipset destroy ${set_name}_tmp
+  done
+}
+
+
 # This creates the separate host block
 ######################################
 setup_hostblock_chain()
 {
-  local hashsize maxelem swap4_err=0 swap6_err=0
+  local hashsize maxelem swap4_err swap6_err
 
   if iptables -F HOST_BLOCK_SRC 2>&1 |grep -q "No chain" || \
      iptables -F HOST_BLOCK_DST 2>&1 |grep -q "No chain"; then
@@ -4168,7 +4275,7 @@ setup_hostblock_chain()
   fi
 
   # Return if no Blocked Hosts are defined
-  if [ -z "$BLOCK_HOSTS" -a -z "$BLOCK_HOSTS_FILE" ]; then
+  if [ -z "$BLOCK_HOSTS" -a -z "$BLOCK_HOSTS_FILE" -a -z "$BLOCK_NETSET_DIR" ]; then
     return
   fi
 
@@ -4184,25 +4291,44 @@ if ipset_check; then
   hashsize="${IPTABLES_IPSET_HASHSIZE:-2048}"
   maxelem="${IPTABLES_IPSET_MAXELEM:-131072}"
 
-  ipset create -exist aif_blocklist hash:net hashsize $hashsize maxelem $maxelem
-  ipset create -exist aif_blocklist_tmp hash:net hashsize $hashsize maxelem $maxelem
-  ipset flush aif_blocklist_tmp
-  if [ "$IPV6_SUPPORT" = "1" ]; then
-    ipset create -exist aif_blocklist6 hash:net family inet6 hashsize $hashsize maxelem $maxelem
-    ipset create -exist aif_blocklist6_tmp hash:net family inet6 hashsize $hashsize maxelem $maxelem
-    ipset flush aif_blocklist6_tmp
-  fi
+  if [ -n "$BLOCK_HOSTS" -o -n "$BLOCK_HOSTS_FILE" ]; then
+    ipset create -exist aif_blocklist hash:net family inet hashsize $hashsize maxelem $maxelem
 
-  ip4tables -A HOST_BLOCK_SRC -m set --match-set aif_blocklist src -j HOST_BLOCK_DROP
-  if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-    ip4tables -A HOST_BLOCK_DST -m set --match-set aif_blocklist dst -j HOST_BLOCK_DROP
-  fi
-  if [ "$IPV6_SUPPORT" = "1" ]; then
-    ip6tables -A HOST_BLOCK_SRC -m set --match-set aif_blocklist6 src -j HOST_BLOCK_DROP
+    ip4tables -A HOST_BLOCK_SRC -m set --match-set aif_blocklist src -j HOST_BLOCK_DROP
     if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-      ip6tables -A HOST_BLOCK_DST -m set --match-set aif_blocklist6 dst -j HOST_BLOCK_DROP
+      ip4tables -A HOST_BLOCK_DST -m set --match-set aif_blocklist dst -j HOST_BLOCK_DROP
+    fi
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      ipset create -exist aif_blocklistv6 hash:net family inet6 hashsize $hashsize maxelem $maxelem
+
+      ip6tables -A HOST_BLOCK_SRC -m set --match-set aif_blocklistv6 src -j HOST_BLOCK_DROP
+      if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+        ip6tables -A HOST_BLOCK_DST -m set --match-set aif_blocklistv6 dst -j HOST_BLOCK_DROP
+      fi
     fi
   fi
+
+  if [ -n "$BLOCK_NETSET_DIR" ] && [ -d "$BLOCK_NETSET_DIR" ] && ls "$BLOCK_NETSET_DIR"/*.netset >/dev/null 2>&1; then
+    setup_ipset_netset "$BLOCK_NETSET_DIR" $hashsize $maxelem
+
+    ## Optimization, add ipsets to iptables (above) first, then apply ipset contents (below) which takes time
+
+    apply_ipset_netset "$BLOCK_NETSET_DIR" $hashsize $maxelem
+  fi
+
+  if [ -z "$BLOCK_HOSTS" -a -z "$BLOCK_HOSTS_FILE" ]; then
+    return
+  fi
+
+  ipset create -exist aif_blocklist_tmp hash:net family inet hashsize $hashsize maxelem $maxelem
+  ipset flush aif_blocklist_tmp
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    ipset create -exist aif_blocklistv6_tmp hash:net family inet6 hashsize $hashsize maxelem $maxelem
+    ipset flush aif_blocklistv6_tmp
+  fi
+
+  swap4_err=0
+  swap6_err=0
 
   if [ -n "$BLOCK_HOSTS" ]; then
     printf "Blocking (blackhole) host(s): "
@@ -4223,7 +4349,7 @@ if ipset_check; then
           ;;
         6)
           if [ "$IPV6_SUPPORT" = "1" ]; then
-            ipset add -exist aif_blocklist6_tmp $host
+            ipset add -exist aif_blocklistv6_tmp $host
             if [ $? -ne 0 ]; then
               swap6_err=1
               RULE_WARNING=$((RULE_WARNING + 1))
@@ -4267,7 +4393,7 @@ if ipset_check; then
                 ;;
               6)
                 if [ "$IPV6_SUPPORT" = "1" ]; then
-                  echo "add -exist aif_blocklist6_tmp $host" >> "$IP6TABLES_BATCH_FILE"
+                  echo "add -exist aif_blocklistv6_tmp $host" >> "$IP6TABLES_BATCH_FILE"
                 fi
                 ;;
               esac
@@ -4307,13 +4433,21 @@ if ipset_check; then
   ipset destroy aif_blocklist_tmp
   if [ "$IPV6_SUPPORT" = "1" ]; then
     if [ $swap6_err -eq 0 ]; then
-      ipset swap aif_blocklist6 aif_blocklist6_tmp
+      ipset swap aif_blocklistv6 aif_blocklistv6_tmp
     else
       printf "\033[40m\033[1;31mERROR: IPv6 \"ipset swap ...\" not applied.\033[0m\n" >&2
     fi
-    ipset destroy aif_blocklist6_tmp
+    ipset destroy aif_blocklistv6_tmp
   fi
 else
+  if [ -n "$BLOCK_NETSET_DIR" ]; then
+    printf "\033[40m\033[1;31mNOTE: Blocking using .netset files in BLOCK_NETSET_DIR requires IPTABLES_IPSET to be enabled.\033[0m\n"
+  fi
+
+  if [ -z "$BLOCK_HOSTS" -a -z "$BLOCK_HOSTS_FILE" ]; then
+    return
+  fi
+
   # Set default to DROP all while rules are added
   iptables -A HOST_BLOCK_SRC -j DROP
   iptables -A HOST_BLOCK_DST -j DROP
