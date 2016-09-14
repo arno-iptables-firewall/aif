@@ -1,5 +1,6 @@
-Version 2.0.1g-RC2 (September 10, 2016)
+Version 2.0.1g-RC3 (September 14, 2016)
 ---------------------------------------
++ Added new BLOCK_NETSET_DIR variable which efficiently creates ipsets for blocklists using .netset files.
 + Added ipset support when IPTABLES_IPSET=1 and ipset is installed, disabled by default, Issues: #1, #24, #31
 + Added LAN to DMZ forwarding policy, new optional LAN_DMZ_ALLOW_IF variable, Issue #30
 + Added NAT_IF option to optionally specify external interfaces to be used for NAT
