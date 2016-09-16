@@ -1,4 +1,4 @@
-Version 2.0.1g-RC3 (September 14, 2016)
+Version 2.0.1g-RC4 (September 16, 2016)
 ---------------------------------------
 + Added new BLOCK_NETSET_DIR variable which efficiently creates ipsets for blocklists using .netset files.
 + Added ipset support when IPTABLES_IPSET=1 and ipset is installed, disabled by default, Issues: #1, #24, #31
