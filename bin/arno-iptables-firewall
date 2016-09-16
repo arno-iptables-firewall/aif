@@ -4318,14 +4318,14 @@ apply_ipset_netset()
     swap_err=0
 
     if [ "$family" = "inet" ]; then
-      printf "Loading IPv4 Network Set: ${set_name}.netset ... "
+      printf "Loading IPv4 Blocklist Set: ${set_name}.netset ... "
       sed -n -r -e "s/^([1-9][0-9./]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
       if [ $? -ne 0 ]; then
         swap_err=1
         RULE_WARNING=$((RULE_WARNING + 1))
       fi
     else
-      printf "Loading IPv6 Network Set: ${set_name}.netset ... "
+      printf "Loading IPv6 Blocklist Set: ${set_name}.netset ... "
       sed -n -r -e "s/^([1-9a-fA-F][0-9a-fA-F:/]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
       if [ $? -ne 0 ]; then
         swap_err=1
