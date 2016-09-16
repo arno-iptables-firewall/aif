@@ -4160,6 +4160,23 @@ setup_ipset_netset()
 {
   local dir="$1" hashsize="$2" maxelem="$3" family netset set_name IFS
 
+  ## Setup Whitelist
+  ipset create -exist aif_whitelist hash:net family inet hashsize $hashsize maxelem $maxelem
+
+  ip4tables -A HOST_BLOCK_SRC -m set --match-set aif_whitelist src -j RETURN
+  if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+    ip4tables -A HOST_BLOCK_DST -m set --match-set aif_whitelist dst -j RETURN
+  fi
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    ipset create -exist aif_whitelistv6 hash:net family inet6 hashsize $hashsize maxelem $maxelem
+
+    ip6tables -A HOST_BLOCK_SRC -m set --match-set aif_whitelistv6 src -j RETURN
+    if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+      ip6tables -A HOST_BLOCK_DST -m set --match-set aif_whitelistv6 dst -j RETURN
+    fi
+  fi
+
+  ## Setup *.netset files
   unset IFS
   for netset in "$dir"/*.netset; do
     set_name="${netset##*/}"
@@ -4177,6 +4194,11 @@ setup_ipset_netset()
     esac
 
     if [ "$IPV6_SUPPORT" != "1" -a "$family" = "inet6" ]; then
+      continue
+    fi
+
+    ## Whitelist already setup above
+    if [ "$set_name" = "whitelist" -o "$set_name" = "whitelistv6" ]; then
       continue
     fi
 
@@ -4202,7 +4224,67 @@ setup_ipset_netset()
 apply_ipset_netset()
 {
   local dir="$1" hashsize="$2" maxelem="$3" family netset set_name swap_err IFS
+  local x default_whitelist default_whitelistv6
 
+  default_whitelist="127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 224.0.0.0/4"
+  default_whitelistv6="::1 fe80::/10 ff00::/8"
+
+  ## Apply Whitelist
+  unset IFS
+  for netset in "$dir/whitelist.netset" "$dir/whitelistv6.netset"; do
+    set_name="${netset##*/}"
+    set_name="aif_${set_name%.netset}"
+
+    case $set_name in
+      *v6|*V6) family="inet6" ;;
+            *) family="inet" ;;
+    esac
+
+    if [ "$IPV6_SUPPORT" != "1" -a "$family" = "inet6" ]; then
+      continue
+    fi
+
+    ipset create -exist ${set_name}_tmp hash:net family $family hashsize $hashsize maxelem $maxelem
+    ipset flush ${set_name}_tmp
+
+    if [ "$family" = "inet" ]; then
+      unset IFS
+      for x in $default_whitelist; do
+        ipset add -exist ${set_name}_tmp $x
+        if [ $? -ne 0 ]; then
+          RULE_WARNING=$((RULE_WARNING + 1))
+        fi
+      done
+      if [ -f "$netset" ]; then
+        printf "Loading IPv4 Whitelist Set: whitelist.netset ... "
+        sed -n -r -e "s/^([1-9][0-9./]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
+        if [ $? -ne 0 ]; then
+          RULE_WARNING=$((RULE_WARNING + 1))
+        fi
+        echo "Done."
+      fi
+    else
+      unset IFS
+      for x in $default_whitelistv6; do
+        ipset add -exist ${set_name}_tmp $x
+        if [ $? -ne 0 ]; then
+          RULE_WARNING=$((RULE_WARNING + 1))
+        fi
+      done
+      if [ -f "$netset" ]; then
+        printf "Loading IPv6 Whitelist Set: whitelistv6.netset ... "
+        sed -n -r -e "s/^([1-9a-fA-F][0-9a-fA-F:/]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
+        if [ $? -ne 0 ]; then
+          RULE_WARNING=$((RULE_WARNING + 1))
+        fi
+        echo "Done."
+      fi
+    fi
+    ipset swap ${set_name} ${set_name}_tmp
+    ipset destroy ${set_name}_tmp
+  done
+
+  ## Apply *.netset files
   unset IFS
   for netset in "$dir"/*.netset; do
     set_name="${netset##*/}"
@@ -4225,6 +4307,11 @@ apply_ipset_netset()
       continue
     fi
 
+    ## Whitelist already applied above
+    if [ "$set_name" = "whitelist" -o "$set_name" = "whitelistv6" ]; then
+      continue
+    fi
+
     ipset create -exist ${set_name}_tmp hash:net family $family hashsize $hashsize maxelem $maxelem
     ipset flush ${set_name}_tmp
 
@@ -4232,17 +4319,14 @@ apply_ipset_netset()
 
     if [ "$family" = "inet" ]; then
       printf "Loading IPv4 Network Set: ${set_name}.netset ... "
-      sed -n -r -e '/^10\./d' -e '/^192\.168\./d' -e '/^172\.16\./d' -e '/^169\.254\./d' \
-                -e '/^224\./d' -e '/^239\./d' -e '/^127\./d' \
-                -e "s/^([1-9][0-9./]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
+      sed -n -r -e "s/^([1-9][0-9./]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
       if [ $? -ne 0 ]; then
         swap_err=1
         RULE_WARNING=$((RULE_WARNING + 1))
       fi
     else
       printf "Loading IPv6 Network Set: ${set_name}.netset ... "
-      sed -n -r -e '/^::1/d' \
-                -e "s/^([1-9a-fA-F][0-9a-fA-F:/]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
+      sed -n -r -e "s/^([1-9a-fA-F][0-9a-fA-F:/]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
       if [ $? -ne 0 ]; then
         swap_err=1
         RULE_WARNING=$((RULE_WARNING + 1))
