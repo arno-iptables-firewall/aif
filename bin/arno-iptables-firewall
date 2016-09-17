@@ -4226,7 +4226,7 @@ apply_ipset_netset()
   local dir="$1" hashsize="$2" maxelem="$3" family netset set_name swap_err IFS
   local x default_whitelist default_whitelistv6
 
-  default_whitelist="127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 224.0.0.0/4"
+  default_whitelist="127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 224.0.0.0/3"
   default_whitelistv6="::1 fe80::/10 ff00::/8"
 
   ## Apply Whitelist
