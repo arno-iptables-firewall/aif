@@ -4226,8 +4226,8 @@ apply_ipset_netset()
   local dir="$1" hashsize="$2" maxelem="$3" family netset set_name swap_err IFS
   local x default_whitelist default_whitelistv6
 
-  default_whitelist="127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 224.0.0.0/3"
-  default_whitelistv6="::1 fe80::/10 ff00::/8"
+  default_whitelist="${DEFAULT_NETSET_WHITELIST:-127.0.0.0/8 0.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 224.0.0.0/3}"
+  default_whitelistv6="${DEFAULT_NETSET_WHITELISTV6:-::1 fe80::/10 ff00::/8}"
 
   ## Apply Whitelist
   unset IFS
@@ -4257,7 +4257,7 @@ apply_ipset_netset()
       done
       if [ -f "$netset" ]; then
         printf "Loading IPv4 Whitelist Set: whitelist.netset ... "
-        sed -n -r -e "s/^([1-9][0-9./]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
+        sed -n -r -e "s/^([0-9][0-9./]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
         if [ $? -ne 0 ]; then
           RULE_WARNING=$((RULE_WARNING + 1))
         fi
@@ -4273,7 +4273,7 @@ apply_ipset_netset()
       done
       if [ -f "$netset" ]; then
         printf "Loading IPv6 Whitelist Set: whitelistv6.netset ... "
-        sed -n -r -e "s/^([1-9a-fA-F][0-9a-fA-F:/]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
+        sed -n -r -e "s/^([0-9a-fA-F][0-9a-fA-F:/]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
         if [ $? -ne 0 ]; then
           RULE_WARNING=$((RULE_WARNING + 1))
         fi
@@ -4319,14 +4319,14 @@ apply_ipset_netset()
 
     if [ "$family" = "inet" ]; then
       printf "Loading IPv4 Blocklist Set: ${set_name}.netset ... "
-      sed -n -r -e "s/^([1-9][0-9./]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
+      sed -n -r -e "s/^([0-9][0-9./]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
       if [ $? -ne 0 ]; then
         swap_err=1
         RULE_WARNING=$((RULE_WARNING + 1))
       fi
     else
       printf "Loading IPv6 Blocklist Set: ${set_name}.netset ... "
-      sed -n -r -e "s/^([1-9a-fA-F][0-9a-fA-F:/]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
+      sed -n -r -e "s/^([0-9a-fA-F][0-9a-fA-F:/]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
       if [ $? -ne 0 ]; then
         swap_err=1
         RULE_WARNING=$((RULE_WARNING + 1))
