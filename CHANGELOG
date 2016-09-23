@@ -1,4 +1,4 @@
-Version 2.0.1g-RC6 (September 22, 2016)
+Version 2.0.1g-RC7 (September 23, 2016)
 ---------------------------------------
 + Added new BLOCK_NETSET_DIR variable which efficiently creates ipsets for blocklists using .netset files.
 + Added expert DEFAULT_NETSET_WHITELIST and DEFAULT_NETSET_WHITELISTV6 variables when BLOCK_NETSET_DIR is defined.
