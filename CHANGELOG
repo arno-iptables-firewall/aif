@@ -1,5 +1,7 @@
 Version 2.0.1h-DEVEL (January 5, 2017)
 --------------------------------------
++ Added ability to selectively log blocked hosts by inbound and outbound direction.
+  BLOCKED_HOST_LOG Options: 0 = Disable, 1 = Inbound & Outbound, 2 = Inbound, 3 = Outbound
 
 Version 2.0.1g (October 11, 2016)
 ---------------------------------
