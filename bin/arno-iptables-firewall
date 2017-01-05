@@ -886,12 +886,19 @@ setup_default_policies()
   ###########################################################
   iptables -A POST_INPUT_DROP_CHAIN -j DROP
 
-  # The HOST_BLOCK_DROP chain should always DROP
+  # The HOST_BLOCK_SRC_DROP chain should always DROP
   ###########################################################
-  if [ "$BLOCKED_HOST_LOG" != "0" ]; then
-    iptables -A HOST_BLOCK_DROP -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s): "
+  if [ "$BLOCKED_HOST_LOG" = "1" -o "$BLOCKED_HOST_LOG" = "2" ]; then
+    iptables -A HOST_BLOCK_SRC_DROP -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s) Inbound: "
   fi
-  iptables -A HOST_BLOCK_DROP -j DROP
+  iptables -A HOST_BLOCK_SRC_DROP -j DROP
+
+  # The HOST_BLOCK_DST_DROP chain should always DROP
+  ###########################################################
+  if [ "$BLOCKED_HOST_LOG" = "1" -o "$BLOCKED_HOST_LOG" = "3" ]; then
+    iptables -A HOST_BLOCK_DST_DROP -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s) Outbound: "
+  fi
+  iptables -A HOST_BLOCK_DST_DROP -j DROP
 
   # The LINK_LOCAL_DROP chain should always DROP
   ###########################################################
@@ -2734,8 +2741,12 @@ setup_ext_input_chain()
 
   # Enable logging of blocked hosts?
   ##################################
-  if [ "$BLOCKED_HOST_LOG" != "0" ]; then
-    echo " Logging of explicitly blocked hosts enabled"
+  if [ "$BLOCKED_HOST_LOG" = "1" ]; then
+    echo " Logging of explicitly blocked hosts inbound/outbound enabled"
+  elif [ "$BLOCKED_HOST_LOG" = "2" ]; then
+    echo " Logging of explicitly blocked hosts inbound enabled"
+  elif [ "$BLOCKED_HOST_LOG" = "3" ]; then
+    echo " Logging of explicitly blocked hosts outbound enabled"
   else
     echo " Logging of explicitly blocked hosts disabled"
   fi
@@ -4205,14 +4216,14 @@ setup_ipset_netset()
     ipset create -exist ${set_name} hash:net family $family hashsize $hashsize maxelem $maxelem
 
     if [ "$family" = "inet" ]; then
-      ip4tables -A HOST_BLOCK_SRC -m set --match-set ${set_name} src -j HOST_BLOCK_DROP
+      ip4tables -A HOST_BLOCK_SRC -m set --match-set ${set_name} src -j HOST_BLOCK_SRC_DROP
       if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-        ip4tables -A HOST_BLOCK_DST -m set --match-set ${set_name} dst -j HOST_BLOCK_DROP
+        ip4tables -A HOST_BLOCK_DST -m set --match-set ${set_name} dst -j HOST_BLOCK_DST_DROP
       fi
     else
-      ip6tables -A HOST_BLOCK_SRC -m set --match-set ${set_name} src -j HOST_BLOCK_DROP
+      ip6tables -A HOST_BLOCK_SRC -m set --match-set ${set_name} src -j HOST_BLOCK_SRC_DROP
       if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-        ip6tables -A HOST_BLOCK_DST -m set --match-set ${set_name} dst -j HOST_BLOCK_DROP
+        ip6tables -A HOST_BLOCK_DST -m set --match-set ${set_name} dst -j HOST_BLOCK_DST_DROP
       fi
     fi
   done
@@ -4378,16 +4389,16 @@ if ipset_check; then
   if [ -n "$BLOCK_HOSTS" -o -n "$BLOCK_HOSTS_FILE" ]; then
     ipset create -exist aif_blocklist hash:net family inet hashsize $hashsize maxelem $maxelem
 
-    ip4tables -A HOST_BLOCK_SRC -m set --match-set aif_blocklist src -j HOST_BLOCK_DROP
+    ip4tables -A HOST_BLOCK_SRC -m set --match-set aif_blocklist src -j HOST_BLOCK_SRC_DROP
     if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-      ip4tables -A HOST_BLOCK_DST -m set --match-set aif_blocklist dst -j HOST_BLOCK_DROP
+      ip4tables -A HOST_BLOCK_DST -m set --match-set aif_blocklist dst -j HOST_BLOCK_DST_DROP
     fi
     if [ "$IPV6_SUPPORT" = "1" ]; then
       ipset create -exist aif_blocklistv6 hash:net family inet6 hashsize $hashsize maxelem $maxelem
 
-      ip6tables -A HOST_BLOCK_SRC -m set --match-set aif_blocklistv6 src -j HOST_BLOCK_DROP
+      ip6tables -A HOST_BLOCK_SRC -m set --match-set aif_blocklistv6 src -j HOST_BLOCK_SRC_DROP
       if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-        ip6tables -A HOST_BLOCK_DST -m set --match-set aif_blocklistv6 dst -j HOST_BLOCK_DROP
+        ip6tables -A HOST_BLOCK_DST -m set --match-set aif_blocklistv6 dst -j HOST_BLOCK_DST_DROP
       fi
     fi
   fi
@@ -4551,16 +4562,16 @@ else
         get_numeric_ip_version "$host"
         case $? in
         4)
-          ip4tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+          ip4tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_SRC_DROP
           if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-            ip4tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+            ip4tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DST_DROP
           fi
           ;;
         6)
           if [ "$IPV6_SUPPORT" = "1" ]; then
-            ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+            ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_SRC_DROP
             if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-              ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+              ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DST_DROP
             fi
           fi
           ;;
@@ -4593,16 +4604,16 @@ else
               get_numeric_ip_version "$host"
               case $? in
               4)
-                ip4tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+                ip4tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_SRC_DROP
                 if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-                  ip4tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+                  ip4tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DST_DROP
                 fi
                 ;;
               6)
                 if [ "$IPV6_SUPPORT" = "1" ]; then
-                  ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+                  ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_SRC_DROP
                   if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-                    ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+                    ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DST_DROP
                   fi
                 fi
                 ;;
@@ -5462,7 +5473,8 @@ create_user_chains()
   # General chains
   iptables -N HOST_BLOCK_SRC
   iptables -N HOST_BLOCK_DST
-  iptables -N HOST_BLOCK_DROP
+  iptables -N HOST_BLOCK_SRC_DROP
+  iptables -N HOST_BLOCK_DST_DROP
   iptables -N VALID_CHK
   iptables -N RESERVED_NET_CHK
   iptables -N SPOOF_CHK
@@ -5516,7 +5528,8 @@ flush_user_chains()
   # General chains
   iptables -F HOST_BLOCK_SRC
   iptables -F HOST_BLOCK_DST
-  iptables -F HOST_BLOCK_DROP
+  iptables -F HOST_BLOCK_SRC_DROP
+  iptables -F HOST_BLOCK_DST_DROP
   iptables -F VALID_CHK
   iptables -F RESERVED_NET_CHK
   iptables -F SPOOF_CHK

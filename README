@@ -471,11 +471,10 @@ DMZ_INPUT_CHAIN             - DMZ INPUT chain
 DMZ_LAN_FORWARD_CHAIN       - DMZ to LAN/internal-net forward chain
 DMZ_OUTPUT_CHAIN            - DMZ output chain
 INET_DMZ_FORWARD_CHAIN      - External-net(internet) to DMZ forward chain
-HOST_BLOCK_DROP             - Chain where packets from dropped blocked hosts go
-HOST_BLOCK_DST              - Chain containing the list of destination based
-                              blocked hosts
-HOST_BLOCK_SRC              - Chain containing the list of source based blocked
-                              hosts
+HOST_BLOCK_SRC              - Chain containing the list of inbound blocked hosts
+HOST_BLOCK_DST              - Chain containing the list of outbound blocked hosts
+HOST_BLOCK_SRC_DROP         - Chain where packets from dropped inbound blocked hosts go
+HOST_BLOCK_DST_DROP         - Chain where packets from dropped outbound blocked hosts go
 INT_INPUT_CHAIN             - Internal-net INPUT chain
 INT_OUTPUT_CHAIN            - Internal-net OUTPUT chain
 LAN_LAN_FORWARD_CHAIN       - LAN to LAN (Inter-LAN) forward chain (AIF private use only)
