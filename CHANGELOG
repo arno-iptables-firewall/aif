@@ -1,3 +1,6 @@
+Version 2.0.1h-DEVEL (January 5, 2017)
+--------------------------------------
+
 Version 2.0.1g (October 11, 2016)
 ---------------------------------
 + Added new BLOCK_NETSET_DIR variable which efficiently creates ipsets for blocklists using .netset files.
