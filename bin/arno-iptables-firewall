@@ -41,7 +41,7 @@ if [ -e "$CONFIG_FILE" ]; then
   . "$CONFIG_FILE"
 else
   printf "\033[40m\033[1;31mERROR: Could not read configuration file $CONFIG_FILE!\033[0m\n" >&2
-  printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n" >&2
+  printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n\n" >&2
   exit 2
 fi
 
@@ -55,7 +55,7 @@ if [ -z "$ENV_FILE" ]; then
       ENV_FILE="/usr/share/arno-iptables-firewall/environment"
     else
       printf "\033[40m\033[1;31mERROR: The environment file (ENV_FILE) has not been specified\033[0m\n" >&2
-      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n\n" >&2
       exit 2
     fi
   fi
@@ -65,16 +65,19 @@ if [ -e "$ENV_FILE" ]; then
   . "$ENV_FILE"
 else
   printf "\033[40m\033[1;31mERROR: Could not read environment file \"$ENV_FILE\"!\033[0m\n" >&2
-  printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n" >&2
+  printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n\n" >&2
   exit 2
 fi
 
 
 sanity_check()
 {
+  # Show uname information
+  echo "Platform: $(uname -s -r -m)"
+
   # root check
   if [ "$(id -u)" != "0" ]; then
-    printf "\033[40m\033[1;31mERROR: Root check FAILED (you MUST be root to use this script)! Quitting...\033[0m\n" >&2
+    printf "\033[40m\033[1;31mERROR: Root check FAILED (you MUST be root to use this script)! Quitting...\033[0m\n\n" >&2
     exit 1
   fi
 
@@ -135,8 +138,8 @@ config_check()
   ########################
   if [ -z "$EXT_IF" ]; then
     printf "\033[40m\033[1;31mERROR: The required variable EXT_IF is empty!\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       Please, check the configuration file.\033[0m\n" >&2
-    exit 2
+    printf "\033[40m\033[1;31m       Please, check the configuration file.\033[0m\n\n" >&2
+    return 2
   fi
 
   # Check whether EXT_IF exists
@@ -144,7 +147,7 @@ config_check()
   IFS=' ,'
   for interface in $EXT_IF; do
     if ! check_interface $interface; then
-      printf "\033[40m\033[1;31mWARNING: External interface $interface does NOT exist (yet?)\033[0m\n" >&2
+      printf "\033[40m\033[1;31mWARNING: External interface $interface does NOT exist (yet?)\033[0m\n\n" >&2
     fi
   done
 
@@ -153,7 +156,7 @@ config_check()
   IFS=' ,'
   for interface in $INT_IF; do
     if ! check_interface $interface; then
-      printf "\033[40m\033[1;31mWARNING: Internal interface $interface does NOT exist (yet?)\033[0m\n" >&2
+      printf "\033[40m\033[1;31mWARNING: Internal interface $interface does NOT exist (yet?)\033[0m\n\n" >&2
     fi
   done
 
@@ -162,7 +165,7 @@ config_check()
   IFS=' ,'
   for interface in $DMZ_IF; do
     if ! check_interface $interface; then
-      printf "\033[40m\033[1;31mWARNING: DMZ interface $interface does NOT exist (yet?)\033[0m\n" >&2
+      printf "\033[40m\033[1;31mWARNING: DMZ interface $interface does NOT exist (yet?)\033[0m\n\n" >&2
     fi
   done
 
@@ -171,7 +174,7 @@ config_check()
   IFS=' ,'
   for interface in $TRUSTED_IF; do
     if ! check_interface $interface; then
-      printf "\033[40m\033[1;31mWARNING: Trusted interface $interface does NOT exist (yet?)\033[0m\n" >&2
+      printf "\033[40m\033[1;31mWARNING: Trusted interface $interface does NOT exist (yet?)\033[0m\n\n" >&2
     fi
   done
 
@@ -182,8 +185,8 @@ config_check()
     for iif in $INT_IF; do
       if [ "$iif" = "$eif" ]; then
         printf "\033[40m\033[1;31mERROR: One or more interfaces specified in EXT_IF is the same as one in\033[0m\n" >&2
-        printf "\033[40m\033[1;31m       INT_IF! Please, check the configuration file.\033[0m\n" >&2
-        exit 3
+        printf "\033[40m\033[1;31m       INT_IF! Please, check the configuration file.\033[0m\n\n" >&2
+        return 3
       fi
     done
   done
@@ -194,8 +197,8 @@ config_check()
   for eif in $EXT_IF; do
     if [ "$eif" = "lo" -o "$eif" = "127.0.0.1" ]; then
       printf "\033[40m\033[1;31mERROR: One or more interfaces specified in EXT_IF has the address or name of the\033[0m\n" >&2
-      printf "\033[40m\033[1;31m       local loopback device! Please, check the configuration file.\033[0m\n" >&2
-      exit 6
+      printf "\033[40m\033[1;31m       local loopback device! Please, check the configuration file.\033[0m\n\n" >&2
+      return 6
     fi
   done
 
@@ -205,8 +208,8 @@ config_check()
   for iif in $INT_IF; do
     if [ "$iif" = "lo" -o "$iif" = "127.0.0.1" ]; then
       printf "\033[40m\033[1;31mERROR: At least one of the interfaces specified in INT_IF has the address or\033[0m\n" >&2
-      printf "\033[40m\033[1;31m       name of the local loopback device! Please, check the configuration file.\033[0m\n" >&2
-      exit 7
+      printf "\033[40m\033[1;31m       name of the local loopback device! Please, check the configuration file.\033[0m\n\n" >&2
+      return 7
     fi
   done
 
@@ -215,22 +218,22 @@ config_check()
   ##########################################################################
   if [ "$EXTERNAL_DHCP_SERVER" = "1" -a -z "$EXTERNAL_NET" ]; then
     printf "\033[40m\033[1;31mERROR: You have enabled external DHCP server support but required variable\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n" >&2
-    exit 10
+    printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n\n" >&2
+    return 10
   fi
 
   # We can only perform NAT if NAT_INTERNAL_NET is defined
   if [ "$NAT" = "1" -a -z "$NAT_INTERNAL_NET" ]; then
-    printf "\033[40m\033[1;31mERROR: Unable to enable NAT because there's no (NAT_)INTERNAL_NET specified!\033[0m\n" >&2
-    exit 11
+    printf "\033[40m\033[1;31mERROR: Unable to enable NAT because there's no (NAT_)INTERNAL_NET specified!\033[0m\n\n" >&2
+    return 11
   fi
 
   # If support the nmb_broadcast_fix is enabled we need the EXTERNAL_NET set
   ##########################################################################
   if [ "$NMB_BROADCAST_FIX" = "1" -a -z "$EXTERNAL_NET" ]; then
     printf "\033[40m\033[1;31mERROR: You have enabled the NMB_BROADCAST_FIX but required variable\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n" >&2
-    exit 12
+    printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n\n" >&2
+    return 12
   fi
 
   # Warn if no_broadcast variables are used and external net is NOT defined
@@ -238,7 +241,7 @@ config_check()
   if [ -n "$BROADCAST_TCP_NOLOG" -o -n "$BROADCAST_UDP_NOLOG" ]; then
     if [ -z "$EXTERNAL_NET" -a -z "$EXT_NET_BCAST_ADDRESS" ]; then
       printf "\033[40m\033[1;31mWARNING: You are using the BROADCAST_xxx_NOLOG variables but EXTERNAL_NET (or EXT_NET_BCAST_ADDRESS)\033[0m\n" >&2
-      printf "\033[40m\033[1;31m         has NOT been defined!\033[0m\n" >&2
+      printf "\033[40m\033[1;31m         has NOT been defined!\033[0m\n\n" >&2
     fi
   fi
 
@@ -246,17 +249,19 @@ config_check()
   ##############################################
   if [ ! -d "$PLUGIN_BIN_PATH" ]; then
     printf "\033[40m\033[1;31mERROR: The PLUGIN_BIN_PATH ($PLUGIN_BIN_PATH) does not exist!\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n" >&2
-    exit 2
+    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n\n" >&2
+    return 2
   fi
 
   # Check whether we know the plugin config path
   ##############################################
   if [ ! -d "$PLUGIN_CONF_PATH" ]; then
     printf "\033[40m\033[1;31mERROR: The PLUGIN_CONF_PATH ($PLUGIN_CONF_PATH) does not exist!\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n" >&2
-    exit 2
+    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n\n" >&2
+    return 2
   fi
+
+  return 0 # Success
 }
 
 
@@ -5794,6 +5799,14 @@ show_restart()
 }
 
 
+show_failed()
+{
+  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
+  echo "$DATE ** ERROR: Firewall failed to start! **" >> $FIREWALL_LOG
+  echo "** ERROR: Firewall failed to start! **" |logger -t firewall -p kern.info
+}
+
+
 show_stop()
 {
   DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
@@ -5818,8 +5831,8 @@ show_applied()
 
   if [ $RULE_WARNING -ne 0 ]; then
     printf "$DATE \033[40m\033[1;31mWARNING: $RULE_WARNING firewall rules failed to apply!\n\033[0m" >&2
-    echo "$DATE ** WARNING: $RULE_WARNING firewall rules failed to apply **" >> $FIREWALL_LOG
-    echo "** WARNING: $RULE_WARNING firewall rules failed to apply **" |logger -t firewall -p kern.info
+    echo "$DATE ** WARNING: $RULE_WARNING firewall rules failed to apply! **" >> $FIREWALL_LOG
+    echo "** WARNING: $RULE_WARNING firewall rules failed to apply! **" |logger -t firewall -p kern.info
   else
     printf "$DATE \033[40m\033[1;32mAll firewall rules applied.\033[0m\n"
     echo "$DATE ** All firewall rules applied **" >> $FIREWALL_LOG
@@ -5846,6 +5859,7 @@ show_help()
   echo "check-conf                  = Check configuration file (only)" >&2
   echo "status [-t {table}] [chain] = View firewall ruleset ([chain] & [-t {table}] are optional)" >&2
   echo "status-plugins [name]       = View plugins status (view only plugin [name] is optional)" >&2
+  echo "" >&2
 }
 
 
@@ -5891,11 +5905,6 @@ main_restart()
 
 start_restart()
 {
-  # Show uname information
-  echo "Platform: $(uname -s -r -m)"
-
-  config_check;
-  
   # Check whether we are actually stopped
   case $(check_for_base_chains) in
     no)    main_start;;
@@ -5918,12 +5927,29 @@ start_restart()
 case "$1" in
   'start' )             sanity_check;
                         show_start;
+                        config_check;
+                        retval=$?
+                        if [ $retval -ne 0 ]; then
+                          show_failed;
+                          exit $retval
+                        fi
                         start_restart;;
   'restart' )           sanity_check;
                         show_restart;
+                        config_check;
+                        retval=$?
+                        if [ $retval -ne 0 ]; then
+                          show_failed;
+                          exit $retval
+                        fi
                         start_restart;;
   'force-reload' )      sanity_check;
                         config_check;
+                        retval=$?
+                        if [ $retval -ne 0 ]; then
+                          show_failed;
+                          exit $retval
+                        fi
                         setup_hostblock_chain;
                         show_applied;;
   'stop' )              sanity_check;
@@ -5946,4 +5972,5 @@ esac
 if [ $RULE_WARNING -ne 0 ]; then
   exit 1
 fi
+
 exit 0
