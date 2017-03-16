@@ -101,9 +101,9 @@ sanity_check()
   check_command_error tail
   check_command_error wc
   check_command_error logger
-  
+
   check_command_warning dig nslookup
-  
+
   if [ "$IPV6_SUPPORT" = "1" ]; then
     if ! kernel_ver_chk 2 6 24; then
       printf "\033[40m\033[1;31mWARNING: IPv6 support is enabled but your kernel is rather old (<2.6.24)! This *could* cause problems...\033[0m\n" >&2
@@ -272,7 +272,7 @@ load_modules()
   INDENT=' '
 
   echo "Checking/probing Iptables modules:"
-  
+
   # Required; all IPv4 modules depend on this one
   modprobe ip_tables
   if [ "$IPV6_SUPPORT" = "1" ]; then
@@ -288,41 +288,41 @@ load_modules()
 
   # Permits active FTP; requires ip_conntrack
   modprobe_multi nf_conntrack_ftp ip_conntrack_ftp
-  
+
   # Allows tracking for various protocols, placing entries in the conntrack table etc.
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe_multi xt_conntrack "ipt_conntrack,ip6t_conntrack"
   else
     modprobe_multi xt_conntrack ipt_conntrack
   fi
-  
+
   # Allows log limits
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe_multi xt_limit "ipt_limit,ip6t_limit"
   else
     modprobe_multi xt_limit ipt_limit
   fi
-  
+
   # Permits packet state checking (SYN, SYN-ACK, ACK, and so on).
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe_multi xt_state "ipt_state,ip6t_state"
   else
     modprobe_multi xt_state ipt_state
   fi
-  
+
   # Allows packet specifications on multiple ports
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe_multi xt_multiport "ipt_multiport,ip6t_multiport"
   else
     modprobe_multi xt_multiport ipt_multiport
   fi
-  
+
   # Implement the filter table:
   modprobe iptable_filter
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe ip6table_filter
   fi
-  
+
   # Implement the mangle table
   modprobe iptable_mangle
   if [ "$IPV6_SUPPORT" = "1" ]; then
@@ -334,7 +334,7 @@ load_modules()
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe ip6t_REJECT
   fi
-  
+
   # Implement the LOG target
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe_multi xt_LOG "ipt_LOG,ip6t_LOG"
@@ -350,7 +350,7 @@ load_modules()
       modprobe_multi xt_TCPMSS ipt_TCPMSS
     fi
   fi
-  
+
   if [ "$MANGLE_TOS" != "0" ]; then
     # Implement the TOS target
     if [ "$IPV6_SUPPORT" = "1" ]; then
@@ -383,13 +383,13 @@ load_modules()
 
   if [ "$NAT" = "1" ]; then
     modprobe_multi nf_nat_ftp ip_nat_ftp             # Permits active FTP via nat; requires ip_conntrack & iptable_nat
-    
+
     if [ -z "$NAT_STATIC_IP" ]; then
       # Load the MASQUERADE target:
       modprobe ipt_MASQUERADE
     fi
   fi
-  
+
   if [ "$USE_IRC" = "1" ]; then
 #    echo "Enabling IRC DCC module support..."
     modprobe_multi nf_conntrack_irc ip_conntrack_irc        #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
@@ -407,10 +407,10 @@ setup_misc()
 {
   # Remove any stale plugin restart file
   rm -f "$PLUGIN_LOAD_FILE_RESTART"
-  
+
   # Remove stale host-cache file
   rm -f "$HOST_CACHE_FILE"
-  
+
   # Most people don't want to get any firewall logs being spit to the console
   # This option makes the kernel ring buffer only log messages with level "panic"
   if [ "$DMESG_PANIC_ONLY" = "1" ]; then
@@ -425,7 +425,7 @@ setup_kernel_settings()
 {
   # Set INDENT value for functions
   INDENT='  '
-  
+
   echo "Configuring general kernel parameters:"
 
   # Set the maximum number of connections to track.
@@ -736,7 +736,7 @@ init_firewall_chains()
   ip4tables -t nat -X
   ip4tables -t mangle -F
   ip4tables -t mangle -X
-  
+
   if [ "$IPV6_DETECTED" = "1" ]; then
     # Attempt to flush all IPv6 chains
     ##################################
@@ -754,7 +754,7 @@ init_firewall_chains()
     ip6tables -t mangle -F
     ip6tables -t mangle -X
   fi
-  
+
   # Create our "base" chains
   ##########################
   iptables -N BASE_INPUT_CHAIN
@@ -818,7 +818,7 @@ check_for_base_chains()
 
   ip4tables -nL BASE_INPUT_CHAIN >/dev/null 2>&1
   ipv4_rtn=$?
-  
+
   if [ "$IPV6_DETECTED" = "1" ]; then
     ip6tables -nL BASE_INPUT_CHAIN >/dev/null 2>&1
     ipv6_rtn=$?
@@ -827,7 +827,7 @@ check_for_base_chains()
     # Set a return error result of 1 to specify no IPv6 BASE_INPUT_CHAIN
     ipv6_rtn=1
   fi
-  
+
   if [ "$IPV6_SUPPORT" = "1" ]; then
     if [ $ipv4_rtn -eq 0 -a $ipv6_rtn -eq 0 ]; then
       echo "yes"
@@ -1105,10 +1105,10 @@ setup_reserved_net_chk_chain()
 
     ip4tables -A RESERVED_NET_CHK -s 169.254.0.0/16 \
       -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv4 Link-local address: "
-    
+
     ip4tables -A RESERVED_NET_CHK -s 224.0.0.0/24 \
       -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv4 Multicast address: "
-    
+
     ip4tables -A RESERVED_NET_CHK -s 239.0.0.0/24 \
       -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv4 Multicast address: "
 
@@ -3328,7 +3328,7 @@ setup_ext_input_chain()
   else
     echo " Packets will NOT be checked for reserved source addresses"
   fi
-  
+
   if [ "$RESERVED_NET_DROP" = "1" -o "$RESERVED_NET_LOG" = "1" ]; then
     iptables -A EXT_INPUT_CHAIN -j RESERVED_NET_CHK
   fi
@@ -3542,10 +3542,10 @@ setup_ext_input_chain()
 
   # Finally drop all in the broadcast chain
   iptables -A EXT_BROADCAST_CHAIN -j DROP
-    
+
   # Jump into the POST_INPUT_CHAIN before we start to DROP
   iptables -A EXT_INPUT_CHAIN -j POST_INPUT_CHAIN
-  
+
   if [ "$ICMP_REQUEST_LOG" != "0" ]; then
     echo " Logging of dropped ICMP-request(ping) packets enabled"
     iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type echo-request \
@@ -3555,7 +3555,7 @@ setup_ext_input_chain()
   else
     echo " Logging of dropped ICMP-request(ping) packets disabled"
   fi
-  
+
   if [ "$ICMP_OTHER_LOG" != "0" ]; then
     echo " Logging of dropped other ICMP packets enabled"
     iptables -A EXT_INPUT_CHAIN -p icmp ! --icmp-type echo-request \
@@ -3568,7 +3568,7 @@ setup_ext_input_chain()
 
   # Drop all in the multicast chain
   iptables -A EXT_MULTICAST_CHAIN -j DROP
-    
+
   # Drop all "standard" IP protocols
   ##################################
   iptables -A EXT_INPUT_CHAIN -p tcp -j POST_INPUT_DROP_CHAIN
@@ -3585,7 +3585,7 @@ setup_ext_input_chain()
   else
     echo " Logging of other IP protocols (non TCP/UDP/ICMP/IGMP) packets disabled"
   fi
-  
+
   # Drop all remaining packets
   ############################
   iptables -A EXT_INPUT_CHAIN -j POST_INPUT_DROP_CHAIN
@@ -4629,7 +4629,7 @@ else
         done
         printf "........."
       fi
-        
+
       echo "$total_cnt host line(s) read"
     else
       printf "\033[40m\033[1;31mNOTE: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
@@ -4639,7 +4639,7 @@ else
   iptables_batch apply HOST_BLOCK_SRC
   iptables_batch apply HOST_BLOCK_DST
   iptables_batch stop
-  
+
   # All Blocked Host rules are applied
   # Remove default rule at the beginning of the HOST_BLOCK_SRC and HOST_BLOCK_DST chains
   iptables -D HOST_BLOCK_SRC 1
@@ -4886,7 +4886,7 @@ plugins_stop()
           plugin_count=$(($plugin_count + 1))
         fi
       else
-        printf "\033[40m\033[1;31mERROR: Could not stop plugin \"$plugin_name\" as it does no exist!\033[0m\n" >&2 
+        printf "\033[40m\033[1;31mERROR: Could not stop plugin \"$plugin_name\" as it does no exist!\033[0m\n" >&2
       fi
     done
 
@@ -5105,7 +5105,7 @@ setup_firewall_rules()
   # Jump to the POST INPUT chain
   ##############################
   iptables -A INPUT -j POST_INPUT_CHAIN
-  
+
   # Everything else is logged & dropped in INPUT (just in case)...
   ################################################################
   iptables -A INPUT -m limit --limit 1/s -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Dropped INPUT packet: "
@@ -5152,7 +5152,7 @@ setup_firewall_rules()
     iptables -A FORWARD -i $eif -j EXT_FORWARD_IN_CHAIN
     iptables -A FORWARD -o $eif -j EXT_FORWARD_OUT_CHAIN
   done
-  
+
   # Source the IN/OUT chains for the dmz interface(s)
   ########################################################
   IFS=' ,'
@@ -5203,7 +5203,7 @@ setup_firewall_rules()
     IFS=' ,'
     for dif in $DMZ_IF; do
       echo "Applying DMZ FORWARD policy to interface: $dif"
-      
+
       # Always make subnets on the SAME interface trust each other
       iptables -A FORWARD -i $dif -o $dif -j ACCEPT
 
@@ -5268,7 +5268,7 @@ setup_firewall_rules()
     IFS=' ,'
     for iif in $INT_IF; do
       echo "Applying internal(LAN) FORWARD policy to interface: $iif"
-      
+
       # Always make subnets on the SAME interface trust each other
       iptables -A FORWARD -i $iif -o $iif -j ACCEPT
 
@@ -5439,7 +5439,7 @@ setup_firewall_rules()
 
   # Jump to the post forward chain
   iptables -A FORWARD -j POST_FORWARD_CHAIN
-  
+
   # Everything else is logged & dropped in FORWARD
   if [ "$FORWARD_DROP_LOG" != "0" ]; then
     echo " Logging of dropped FORWARD packets enabled"
@@ -5462,7 +5462,7 @@ setup_firewall_rules()
 
   # Jump to the post output chain
   iptables -A OUTPUT -j POST_OUTPUT_CHAIN
-  
+
   # Everything else is accepted in OUTPUT
   iptables -A OUTPUT -j ACCEPT
 
@@ -5688,7 +5688,7 @@ stop_block_firewall()
   ip4tables -P INPUT DROP
   ip4tables -P FORWARD DROP
   ip4tables -P OUTPUT DROP
-  
+
   # Flush builtin IPv4 chains
   ip4tables -F INPUT
   ip4tables -F OUTPUT
@@ -5730,7 +5730,7 @@ stop_block_firewall()
   IFS=' ,'
   for interface in $EXT_IF; do
     ip4tables -A INPUT -i $interface -j DROP
-    
+
     if [ "$IPV6_DETECTED" = "1" ]; then
       ip6tables -A INPUT -i $interface -j DROP
     fi
