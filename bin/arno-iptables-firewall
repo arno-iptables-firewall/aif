@@ -134,12 +134,14 @@ ipset_check()
 
 config_check()
 {
+  local retval=0
+
   # Make sure EXT_IF != ""
   ########################
   if [ -z "$EXT_IF" ]; then
     printf "\033[40m\033[1;31mERROR: The required variable EXT_IF is empty!\033[0m\n" >&2
     printf "\033[40m\033[1;31m       Please, check the configuration file.\033[0m\n\n" >&2
-    return 2
+    retval=1
   fi
 
   # Check whether EXT_IF exists
@@ -186,7 +188,8 @@ config_check()
       if [ "$iif" = "$eif" ]; then
         printf "\033[40m\033[1;31mERROR: One or more interfaces specified in EXT_IF is the same as one in\033[0m\n" >&2
         printf "\033[40m\033[1;31m       INT_IF! Please, check the configuration file.\033[0m\n\n" >&2
-        return 3
+        retval=1
+        break
       fi
     done
   done
@@ -198,7 +201,8 @@ config_check()
     if [ "$eif" = "lo" -o "$eif" = "127.0.0.1" ]; then
       printf "\033[40m\033[1;31mERROR: One or more interfaces specified in EXT_IF has the address or name of the\033[0m\n" >&2
       printf "\033[40m\033[1;31m       local loopback device! Please, check the configuration file.\033[0m\n\n" >&2
-      return 6
+      retval=1
+      break
     fi
   done
 
@@ -209,7 +213,8 @@ config_check()
     if [ "$iif" = "lo" -o "$iif" = "127.0.0.1" ]; then
       printf "\033[40m\033[1;31mERROR: At least one of the interfaces specified in INT_IF has the address or\033[0m\n" >&2
       printf "\033[40m\033[1;31m       name of the local loopback device! Please, check the configuration file.\033[0m\n\n" >&2
-      return 7
+      retval=1
+      break
     fi
   done
 
@@ -219,13 +224,13 @@ config_check()
   if [ "$EXTERNAL_DHCP_SERVER" = "1" -a -z "$EXTERNAL_NET" ]; then
     printf "\033[40m\033[1;31mERROR: You have enabled external DHCP server support but required variable\033[0m\n" >&2
     printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n\n" >&2
-    return 10
+    retval=1
   fi
 
   # We can only perform NAT if NAT_INTERNAL_NET is defined
   if [ "$NAT" = "1" -a -z "$NAT_INTERNAL_NET" ]; then
     printf "\033[40m\033[1;31mERROR: Unable to enable NAT because there's no (NAT_)INTERNAL_NET specified!\033[0m\n\n" >&2
-    return 11
+    retval=1
   fi
 
   # If support the nmb_broadcast_fix is enabled we need the EXTERNAL_NET set
@@ -233,7 +238,7 @@ config_check()
   if [ "$NMB_BROADCAST_FIX" = "1" -a -z "$EXTERNAL_NET" ]; then
     printf "\033[40m\033[1;31mERROR: You have enabled the NMB_BROADCAST_FIX but required variable\033[0m\n" >&2
     printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n\n" >&2
-    return 12
+    retval=1
   fi
 
   # Warn if no_broadcast variables are used and external net is NOT defined
@@ -250,7 +255,7 @@ config_check()
   if [ ! -d "$PLUGIN_BIN_PATH" ]; then
     printf "\033[40m\033[1;31mERROR: The PLUGIN_BIN_PATH ($PLUGIN_BIN_PATH) does not exist!\033[0m\n" >&2
     printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n\n" >&2
-    return 2
+    retval=1
   fi
 
   # Check whether we know the plugin config path
@@ -258,10 +263,14 @@ config_check()
   if [ ! -d "$PLUGIN_CONF_PATH" ]; then
     printf "\033[40m\033[1;31mERROR: The PLUGIN_CONF_PATH ($PLUGIN_CONF_PATH) does not exist!\033[0m\n" >&2
     printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n\n" >&2
-    return 2
+    retval=1
   fi
 
-  return 0 # Success
+  # Check for errors
+  if [ $retval -ne 0 ]; then
+    show_failed
+    exit $retval
+  fi
 }
 
 
@@ -5928,28 +5937,13 @@ case "$1" in
   'start' )             sanity_check;
                         show_start;
                         config_check;
-                        retval=$?
-                        if [ $retval -ne 0 ]; then
-                          show_failed;
-                          exit $retval
-                        fi
                         start_restart;;
   'restart' )           sanity_check;
                         show_restart;
                         config_check;
-                        retval=$?
-                        if [ $retval -ne 0 ]; then
-                          show_failed;
-                          exit $retval
-                        fi
                         start_restart;;
   'force-reload' )      sanity_check;
                         config_check;
-                        retval=$?
-                        if [ $retval -ne 0 ]; then
-                          show_failed;
-                          exit $retval
-                        fi
                         setup_hostblock_chain;
                         show_applied;;
   'stop' )              sanity_check;
