@@ -180,7 +180,7 @@ traffic_accounting_setup_rules()
     # Get host_ip, if it fails, skip rule
     if ! traffic_accounting_get_host "$host"; then
       echo "** WARNING: Skipping rule for \"$host\"! **" >&2
-      continue;
+      continue
     fi
 
     echo "${INDENT}Monitoring host \"$host\""
@@ -371,7 +371,7 @@ else
         trap 'rm -f "$LOCK_FILE"; exit $?' INT TERM EXIT
 
         # Create actual rules
-        traffic_accounting_setup_rules;
+        traffic_accounting_setup_rules
 
         # Remove lockfile
         rm -f "$LOCK_FILE"

@@ -1082,7 +1082,7 @@ get_hosts_ih()
 
   if [ -n "$result" ]; then
     echo "$result"
-    return 0;
+    return 0
   else
     echo "$2"
     return 1

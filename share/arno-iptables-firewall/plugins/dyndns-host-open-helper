@@ -193,7 +193,7 @@ dyndns_host_open()
         # dyndns_get_host_cached returns hostname in $host_ip
         if ! dyndns_get_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
-          continue;
+          continue
         fi
         for interface in $interfaces; do
           for destip in $destips; do
@@ -218,7 +218,7 @@ dyndns_host_open()
         # dyndns_get_host_cached returns hostname in $host_ip
         if ! dyndns_get_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping UDP rule(s) for \"$host\"! **" >&2
-          continue;
+          continue
         fi
         for interface in $interfaces; do
           for destip in $destips; do
@@ -243,7 +243,7 @@ dyndns_host_open()
         # dyndns_get_host_cached returns hostname in $host_ip
         if ! dyndns_get_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping IP rule(s) for \"$host\"! **" >&2
-          continue;
+          continue
         fi
         for interface in $interfaces; do
           for destip in $destips; do
@@ -268,7 +268,7 @@ dyndns_host_open()
         # dyndns_get_host_cached returns hostname in $host_ip
         if ! dyndns_get_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping ICMP rule(s) for \"$host\"! **" >&2
-          continue;
+          continue
         fi
 
         for interface in $interfaces; do
@@ -289,7 +289,7 @@ dyndns_host_open()
     # dyndns_get_host_cached returns hostname in $host_ip
     if ! dyndns_get_host_cached $host || [ -z "$host_ip" ]; then
       echo "** WARNING: Skipping host rule for \"$host\"! **" >&2
-      continue;
+      continue
     fi
   done
 }
@@ -325,7 +325,7 @@ else
         printf "" >"${DYNDNS_HOST_CACHE}.new"
 
         # Parse rules
-        dyndns_host_open;
+        dyndns_host_open
 
         # Remove old cache file
         rm -f "$DYNDNS_HOST_CACHE"
