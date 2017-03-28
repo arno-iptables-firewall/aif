@@ -810,7 +810,7 @@ init_firewall_chains()
 
   # Create several chains that we will use later on
   #################################################
-  create_user_chains;
+  create_user_chains
 
   # Reset the iptables counters
   iptables -Z
@@ -4952,11 +4952,11 @@ setup_firewall_rules()
 
   # Setup all TCP MSS stuff
   #########################
-  setup_tcp_mss;
+  setup_tcp_mss
 
   # Setup all mangle stuff
   ########################
-  setup_mangle_tables;
+  setup_mangle_tables
 
   # Setup basic input/forward/output/... chains
   #############################################
@@ -4980,9 +4980,9 @@ setup_firewall_rules()
 
   # Setup global helper chains
   ############################
-  setup_valid_chk_chain;
-  setup_reserved_net_chk_chain;
-  setup_spoof_chk_chain;
+  setup_valid_chk_chain
+  setup_reserved_net_chk_chain
+  setup_spoof_chk_chain
 
   # Check if source address is spoofed
   ####################################
@@ -4990,8 +4990,8 @@ setup_firewall_rules()
 
   # Setup rules for input/output logging
   ######################################
-  setup_input_log;
-  setup_output_log;
+  setup_input_log
+  setup_output_log
 
   # Explicit unset IFS, just in case
   unset IFS
@@ -5005,7 +5005,7 @@ setup_firewall_rules()
 
   # Start (user) plugins
   ######################
-  plugins_start;
+  plugins_start
 
   # Drop outgoing fragmented packets (this should in principle never happen because of netfilter's
   # packet defragmentation
@@ -5016,13 +5016,13 @@ setup_firewall_rules()
 
   # Setup helper chains for EXTERNAL input traffic:
   echo "Setting up external(INET) INPUT policy"
-  setup_ext_broadcast_chain;
-  setup_ext_icmp_flood_chain;
-  setup_ext_input_chain;
+  setup_ext_broadcast_chain
+  setup_ext_icmp_flood_chain
+  setup_ext_input_chain
 
   # Setup helper chains for EXTERNAL output traffic:
   echo "Setting up external(INET) OUTPUT policy"
-  setup_ext_output_chain;
+  setup_ext_output_chain
 
   # This is used for your external (untrusted) interfaces
   #######################################################
@@ -5076,7 +5076,7 @@ setup_firewall_rules()
   if [ -n "$INT_IF" ]; then
     # Setup helper chain for the LAN:
     echo "Setting up internal(LAN) INPUT policy"
-    setup_int_input_chain;
+    setup_int_input_chain
 
     IFS=' ,'
     for interface in $INT_IF; do
@@ -5091,7 +5091,7 @@ setup_firewall_rules()
   if [ -n "$DMZ_IF" ]; then
     # Setup helper chain for the DMZ:
     echo "Setting up DMZ INPUT policy"
-    setup_dmz_input_chain;
+    setup_dmz_input_chain
 
     IFS=' ,'
     for interface in $DMZ_IF; do
@@ -5203,9 +5203,9 @@ setup_firewall_rules()
     fi
 
     # Setup helper chains for the DMZ:
-    setup_inet_dmz_forward_chain;
-    setup_dmz_inet_forward_chain;
-    setup_dmz_lan_forward_chain;
+    setup_inet_dmz_forward_chain
+    setup_dmz_inet_forward_chain
+    setup_dmz_lan_forward_chain
 
     echo " Allowing LAN->DMZ for LAN interface(s): ${LAN_DMZ_ALLOW_IF:-$INT_IF}"
 
@@ -5269,10 +5269,10 @@ setup_firewall_rules()
     fi
 
     # Setup helper chains for the LAN:
-    setup_lan_lan_forward_chain;
+    setup_lan_lan_forward_chain
     lan_lan_forward_result=$?
 
-    setup_lan_inet_forward_chain;
+    setup_lan_inet_forward_chain
 
     IFS=' ,'
     for iif in $INT_IF; do
@@ -5314,12 +5314,12 @@ setup_firewall_rules()
 
         COUNT=0
         for interface in $NAT_IF; do
-          COUNT=$(($COUNT + 1))         # x++;
+          COUNT=$(($COUNT + 1))         # x++
           STATIC_IP=$(echo "$NAT_STATIC_IP" |awk "{ print \$$COUNT }")
 
           if [ -z "$STATIC_IP" ]; then
             # No more IPs specified for the remaining interfaces
-            break;
+            break
           fi
           ip4tables -t nat -A POSTROUTING -o $interface -s $net ! -d $net -j SNAT --to-source $STATIC_IP
         done
@@ -5431,7 +5431,7 @@ setup_firewall_rules()
   done
 
   # Setup rules to allow INET IPv6 and non-NAT'ed IPv4 traffic in FORWARD chain
-  setup_inet_forward_rules;
+  setup_inet_forward_rules
 
   # Do we want to loose the forward chain to make use of protocols like UPnP possible?
   ####################################################################################
@@ -5647,7 +5647,7 @@ reinit_firewall_chains()
   create_user_chains 2>/dev/null
 
   # Flush our user chains
-  flush_user_chains;
+  flush_user_chains
 
   # Temporarily set OUTPUT default policy to ACCEPT
   # Without it, active states will be flushed.
@@ -5784,7 +5784,7 @@ show_status()
     fi
 
     # Show plugin status
-    plugins_status;
+    plugins_status
   else
     #iptables -nvL $2 $3 $4 $5
     iptables -xnvL $@
@@ -5874,11 +5874,11 @@ show_help()
 
 main_stop()
 {
-  plugins_stop;
+  plugins_stop
   if [ "$1" = "block" ]; then
-    stop_block_firewall;
+    stop_block_firewall
   else
-    stop_firewall;
+    stop_firewall
   fi
 
   if [ "$PLUGIN_ERRORS" != "0" ]; then
@@ -5889,26 +5889,26 @@ main_stop()
 
 main_start()
 {
-  load_modules;
-  setup_misc;
-  setup_kernel_settings;
-  init_firewall_chains;
-  setup_default_policies;
-  setup_hostblock_chain;
-  setup_firewall_rules;
+  load_modules
+  setup_misc
+  setup_kernel_settings
+  init_firewall_chains
+  setup_default_policies
+  setup_hostblock_chain
+  setup_firewall_rules
 }
 
 
 main_restart()
 {
-  plugins_stop restart;
-  load_modules;
-#  setup_misc;
-  setup_kernel_settings;
-  reinit_firewall_chains;
-  setup_default_policies;
-  setup_hostblock_chain;
-  setup_firewall_rules;
+  plugins_stop restart
+  load_modules
+#  setup_misc
+  setup_kernel_settings
+  reinit_firewall_chains
+  setup_default_policies
+  setup_hostblock_chain
+  setup_firewall_rules
 }
 
 
@@ -5925,7 +5925,7 @@ start_restart()
     printf "\033[40m\033[1;31m\nWARNING: $PLUGIN_ERRORS Plugin(s) reported errors while starting!\n\033[0m" >&2
   fi
 
-  show_applied;
+  show_applied
 }
 
 
@@ -5934,32 +5934,32 @@ start_restart()
 
 # Check commandline supplied argument:
 case "$1" in
-  'start' )             sanity_check;
-                        show_start;
-                        config_check;
+  'start' )             sanity_check
+                        show_start
+                        config_check
                         start_restart;;
-  'restart' )           sanity_check;
-                        show_restart;
-                        config_check;
+  'restart' )           sanity_check
+                        show_restart
+                        config_check
                         start_restart;;
-  'force-reload' )      sanity_check;
-                        config_check;
-                        setup_hostblock_chain;
+  'force-reload' )      sanity_check
+                        config_check
+                        setup_hostblock_chain
                         show_applied;;
-  'stop' )              sanity_check;
-                        show_stop;
-                        main_stop;
+  'stop' )              sanity_check
+                        show_stop
+                        main_stop
                         show_disabled;;
-  'stop-block' )        sanity_check;
-                        show_stop;
-                        main_stop block;
+  'stop-block' )        sanity_check
+                        show_stop
+                        main_stop block
                         show_stop_blocked;;
-  'status' )            shift;
+  'status' )            shift
                         show_status $@;;
-  'status-plugins' )    shift;
+  'status-plugins' )    shift
                         plugins_status $@;;
   'check-conf' )        config_check;;
-  * )                   printf "\033[40m\033[1;31mERROR: Bad or missing parameter(s)\033[0m\n" >&2;
+  * )                   printf "\033[40m\033[1;31mERROR: Bad or missing parameter(s)\033[0m\n" >&2
                         show_help;;
 esac
 
