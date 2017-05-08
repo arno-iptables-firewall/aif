@@ -1,3 +1,8 @@
+Version 1.23 (May 8, 2017)
+--------------------------
+! On restart we must flush accounting chains to get rid of removed/stale hosts
+* Remove BETA suffix from version
+
 Version 1.22-BETA1 (September 18, 2014)
 ---------------------------------------
 ! We should use DNS_FAST_FAIL not DYNDNS_FAST_FAIL
@@ -21,7 +26,7 @@ Version 1.11 (May 13, 2011)
 ---------------------------
 * Since we have support for the restart() command now the DNS cache file can be
   removed on stop/start
-  
+
 Version 1.1BETA (October 19, 2010)
 ------------------------------------
 * Added plugin_restart() function support for AIF 2.0.0
@@ -79,3 +84,4 @@ Version 0.2BETA (October 12, 2008)
 Version 0.1ALPHA (October 10, 2008)
 ------------------------------------
 + First initial version
+
