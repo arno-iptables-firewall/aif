@@ -138,7 +138,7 @@ traffic_accounting_get_host()
 
 traffic_accounting_setup_rules()
 {
-  # Touch the log file (just in case they doesn't exist yet):
+  # Touch the log file (just in case it doesn't exist yet):
   touch /var/log/traffic-accounting.log
 
   # Truncate file
