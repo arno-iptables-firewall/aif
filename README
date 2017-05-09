@@ -29,17 +29,12 @@ Almost *all* my work is distributed under the terms of the GNU GPL License,
 which means it's free (open-source) software. If you like my work or you want
 me to implement a certain feature, you are encouraged to donate money. You can
 (preferably) donate directly to me through my bank account (mail me for my IBAN
-number (International Bank Account Number). Or you can donate it to one of my
-favourite charity organisations:
+number (International Bank Account Number). My favourite charity organisations are:
 - foundations for cancer research (in The Netherlands: "KWF Kanker Bestrijding");
 - foundations for brain desease research (in The Netherlands: "De Hersenstichting");
 - foundations for the welfare of animals ("IFAW" or in the Netherlands: "De Dierenbescherming")
 
 Note that *ALL* donations I receive go to one of the above foundations.
-
-I can also provide paid support (for commercial businesses). For example for
-firewall customisation, (special) feature requests or other support. Just
-contact me and we can work something out.
 
 IMPORTANT NOTE:
 ---------------
@@ -71,7 +66,7 @@ An explanation of the files in the package:
         The configuration file used for Arno's iptables firewall script.
         Normally you should put it in /etc/arno-iptables-firewall/. Make sure
         root is owner/group (with "chown 0:0").
-        
+
 /etc/arno-iptables-firewall/plugins/ :
         Put any plugin config files (.conf files) for my firewall in this
         directory.
@@ -117,7 +112,7 @@ An explanation of the files in the package:
 
 /configure.sh :
         Script to setup a basic configuration.
-        
+
 /install.sh :
         Install script to deploy my firewall on your system.
 
@@ -128,12 +123,12 @@ An explanation of the files in the package:
         Directory contains any misc. (user contributed) files (scripts etc.) It
         also contains examples on how to modify your syslogger to log your
         firewall stuff into a separate file.
- 
+
 ------------------------------------------
 | Some IMPORTANT (security) information: |
 ------------------------------------------
 1) If possible try to start the firewall before you enable your (ADSL) internet
-   connection (if possible). For an ppp-interface that doesn't exist yet
+   connection. For an ppp-interface that doesn't exist yet
    you can use the wildcard device called "ppp+" (but you can only use
    ppp+ if there aren't any other ppp interfaces!).
 
@@ -319,7 +314,7 @@ features are enabled by default to protect you from hostile attacks.
 
       NOTE 4: Don't forget to set EXT_IF_DHCP_IP=1 in firewall.conf too, in
               case your ISP uses DHCP.
-             
+
    b) In case your on a corporate network which uses public IPs I'd suggest to add
       your local subnet (range) to "FULL_ACCESS_HOSTS".
 
@@ -444,7 +439,7 @@ Notes on writing your own plugins
     chains like INPUT/OUTPUT/FORWARD/PREROUTING/POSTROUTING. Only do this when
     it's absolutely necessary!
 
-    
+
 Available iptables chains created by Arno's Iptables Firewall
 -------------------------------------------------------------
 BASE_INPUT_CHAIN            - Base input chain. For internal use by AIF only!
@@ -640,3 +635,4 @@ topics related to the scope of this firewall script.
 
    CONFIG_NF_CT_ACCT was scheduled to be removed in 2.6.29, but has not yet
    been removed, as of writing.
+
