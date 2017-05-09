@@ -2712,9 +2712,11 @@ setup_ext_input_chain()
     echo " Enabling support for DHCP-assigned-IP (DHCP client)"
     # Allow this host to be an DHCP client:
     ip4tables -A EXT_INPUT_CHAIN -p udp --sport 67 --dport 68 -j ACCEPT
+  fi
+  if [ "$EXT_IF_DHCP_IP" = "1" -o "$EXT_IF_DHCPV6_IPV6" = "1" ]; then
     if [ "$IPV6_SUPPORT" = "1" ]; then
       # Allow this host to be an DHCPv6 client:
-      ip6tables -A EXT_INPUT_CHAIN -p udp --sport 547 --dport 546 -j ACCEPT
+      ip6tables -A EXT_INPUT_CHAIN -s fe80::/10 -p udp --sport 547 --dport 546 -j ACCEPT
     fi
   fi
 
