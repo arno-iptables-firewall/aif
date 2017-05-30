@@ -758,8 +758,10 @@ init_firewall_chains()
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
 
-    # Flush rules in mangle table
+    # Flush rules in nat/mangle table
     #############################
+    try_ip6tables -t nat -F
+    try_ip6tables -t nat -X
     ip6tables -t mangle -F
     ip6tables -t mangle -X
   fi
@@ -5606,11 +5608,11 @@ stop_firewall()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  # Flush rules in the mangle/nat tables
-  ip4tables -t mangle -F
-  ip4tables -t mangle -X
+  # Flush rules in the nat/mangle tables
   ip4tables -t nat -F
   ip4tables -t nat -X
+  ip4tables -t mangle -F
+  ip4tables -t mangle -X
 
   # Attempt to flush all IPv4 chains
   ip4tables -F
@@ -5627,7 +5629,9 @@ stop_firewall()
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
 
-    # Flush rules in the mangle table
+    # Flush rules in the nat/mangle table
+    try_ip6tables -t nat -F
+    try_ip6tables -t nat -X
     ip6tables -t mangle -F
     ip6tables -t mangle -X
 
@@ -5676,6 +5680,11 @@ reinit_firewall_chains()
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
 
+    # Flush builtin IPv6 nat chains
+    try_ip6tables -t nat -F PREROUTING
+    try_ip6tables -t nat -F OUTPUT
+    try_ip6tables -t nat -F POSTROUTING
+
     # Flush builtin IPv6 mangle chains
     #   We don't have to be selective by chain since we don't
     #   expect any external, dynamically managed mangle chains
@@ -5706,10 +5715,10 @@ stop_block_firewall()
   ip4tables -F FORWARD
 
   # Flush nat/mangle table rules
-  ip4tables -t mangle -F
-  ip4tables -t mangle -X
   ip4tables -t nat -F
   ip4tables -t nat -X
+  ip4tables -t mangle -F
+  ip4tables -t mangle -X
 
   # Attempt to flush all IPv4 chains
   ip4tables -F
@@ -5728,7 +5737,9 @@ stop_block_firewall()
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
 
-    # Flush mangle table rules
+    # Flush nat/mangle table rules
+    try_ip6tables -t nat -F
+    try_ip6tables -t nat -X
     ip6tables -t mangle -F
     ip6tables -t mangle -X
 
