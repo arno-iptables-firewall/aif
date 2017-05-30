@@ -1,5 +1,6 @@
-Version 2.0.1h-DEVEL (May 9, 2017)
-----------------------------------
+Version 2.0.1h-DEVEL (May 30, 2017)
+-----------------------------------
+! Fixed IPv6 NAT table was not flushed on start/stop/restart, Issue #36
 + Added EXT_IF_DHCPV6_IPV6 config variable supporting DHCPv6 when DHCP is not enabled, Issue #34
 + Added ability to selectively log blocked hosts by inbound and outbound direction.
   BLOCKED_HOST_LOG Options: 0 = Disable, 1 = Inbound & Outbound, 2 = Inbound, 3 = Outbound
