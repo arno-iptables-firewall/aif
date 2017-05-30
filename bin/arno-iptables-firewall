@@ -4772,7 +4772,7 @@ plugins_start()
   local plugin_count=0
 
   # Truncate/create file
-  cp -f /dev/null "$PLUGIN_LOAD_FILE"
+  : > "$PLUGIN_LOAD_FILE"
 
   printf "Checking for (user) plugins in $PLUGIN_BIN_PATH..."
 
