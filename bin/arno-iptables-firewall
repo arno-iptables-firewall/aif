@@ -5704,6 +5704,9 @@ reinit_firewall_chains()
   # Flush builtin IPv4 raw chains
   try_ip4tables -t raw -F
 
+  # Flush conntrack helper IPv4 chain, may not exist so "try"
+  try_ip4tables -F CONNTRACK_HELPER
+
   if [ "$IPV6_DETECTED" = "1" ]; then
     # Flush builtin IPv6 chains
     ip6tables -F INPUT
@@ -5722,11 +5725,10 @@ reinit_firewall_chains()
 
     # Flush builtin IPv6 raw chains
     try_ip6tables -t raw -F
-  fi
 
-  # Flush conntrack helper chain
-  ##############################
-  iptables -F CONNTRACK_HELPER
+    # Flush conntrack helper IPv6 chain, may not exist so "try"
+    try_ip6tables -F CONNTRACK_HELPER
+  fi
 
   # Restore our base chains (which weren't flushed so any
   # running connections should be maintained
