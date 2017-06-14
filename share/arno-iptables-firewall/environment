@@ -1748,10 +1748,6 @@ else
   IPV6_SUPPORT=0
 fi
 
-# Default conntrack match method, if needed we will fallback to an
-# older method in the main script after the conntrack modules are loaded.
-NF_CONNTRACK_STATE="-m conntrack --ctstate"
-
 # Default NAT_INTERNAL_NET to INTERNAL_NET, if not specified
 ############################################################
 if [ -z "$NAT_INTERNAL_NET" ]; then
@@ -1771,6 +1767,11 @@ ICMPV6_SPECIAL_TYPES="133 134 135 136"
 # IPv6 ICMPv6 Multicast Listener Discovery (RFC 2710, 3810)
 ######################################################################
 ICMPV6_MLD_TYPES="130 131 132 143"
+
+# Default conntrack match method, if needed the main script will
+# fallback to an older method after the conntrack modules are loaded.
+######################################################################
+NF_CONNTRACK_STATE="-m conntrack --ctstate"
 
 # Check plugin bin path and fallback in case it's empty
 #######################################################
