@@ -4971,6 +4971,7 @@ setup_firewall_rules()
 
   # Assign conntrack helper modules
   #################################
+  echo "Enabling assignment of selected conntrack helpers"
   load_conntrack_helper_module ftp tcp 21
   if [ "$USE_IRC" = "1" ]; then
     load_conntrack_helper_module irc tcp 6667:7001

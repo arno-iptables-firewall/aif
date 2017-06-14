@@ -170,7 +170,7 @@ kernel_ver_chk()
 ##
 load_conntrack_helper_module()
 {
-  local helper="$1" proto="$2" dport="$3" related
+  local helper="$1" proto="$2" dport="$3" do_iptables related
 
   modprobe_multi nf_conntrack_$helper ip_conntrack_$helper
   if [ "$NAT" = "1" ]; then
@@ -179,11 +179,12 @@ load_conntrack_helper_module()
 
   if ip4tables -nL CONNTRACK_HELPER >/dev/null 2>&1; then
     case $helper in
-      ftp) related="-p $proto --dport 1024:" ;;
-        *) related="" ;;
+       ftp) do_iptables="iptables" ; related="-p $proto --dport 1024:" ;;
+      pptp) do_iptables="ip4tables"; related="" ;;
+         *) do_iptables="iptables" ; related="" ;;
     esac
-    iptables -A CONNTRACK_HELPER -m conntrack --ctstate RELATED -m helper --helper $helper $related -j ACCEPT
-    iptables -t raw -A PREROUTING -p $proto --dport $dport -j CT --helper $helper
+    $do_iptables -A CONNTRACK_HELPER -m conntrack --ctstate RELATED -m helper --helper $helper $related -j ACCEPT
+    $do_iptables -t raw -A PREROUTING -p $proto --dport $dport -j CT --helper $helper
   fi
 }
 
