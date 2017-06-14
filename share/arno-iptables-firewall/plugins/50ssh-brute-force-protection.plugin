@@ -5,9 +5,9 @@ PLUGIN_NAME="SSH Brute-Force Protection plugin"
 PLUGIN_VERSION="1.1b"
 PLUGIN_CONF_FILE="ssh-brute-force-protection.conf"
 #
-# Last changed          : June 13, 2017
+# Last changed          : June 14, 2017
 # Requirements          : kernel 2.6 + ipt_recent or xt_recent
-#                       : AIF 2.0.1h (and later)
+#                       : AIF 1.9.2k (and later)
 # Comments              : This plugin implements protecting for brute force
 #                         cracking by limiting the amount of connection attempts
 #                         for each source IP in specific time slot. Its
@@ -85,7 +85,7 @@ plugin_start()
   # Insert rule into the EXTERNAL INPUT chain:
   IFS=' ,'
   for port in $SSH_BFP_PORTS; do
-    $IPTABLES -A EXT_INPUT_CHAIN -p tcp --dport $port $NF_CONNTRACK_STATE NEW -j SSH_CHK
+    $IPTABLES -A EXT_INPUT_CHAIN -p tcp --dport $port ${NF_CONNTRACK_STATE:--m state --state} NEW -j SSH_CHK
   done
 
   return 0
