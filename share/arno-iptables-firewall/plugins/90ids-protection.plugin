@@ -5,15 +5,15 @@ PLUGIN_NAME="IDS-protection plugin"
 PLUGIN_VERSION="1.1a"
 PLUGIN_CONF_FILE="ids-protection.conf"
 #
-# Last changed          : October 8, 2010
+# Last changed          : June 13, 2017
 # Requirements          : kernel 2.6 + ipt_recent or xt_recent
-#                       : AIF 1.9.2k (and later)
+#                       : AIF 2.0.1h (and later)
 # Comments              : This implements IDS protection aka Intrusion-Detection-System.
 #                         It will block remote hosts trying to eg. scan/access your
 #                         system on firewalled ports.
 #                         Updated for mixed IPv4/IPv6
 #
-# Author                : (C) Copyright 2007-2010 by Arno van Amersfoort
+# Author                : (C) Copyright 2007-2017 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -98,7 +98,7 @@ plugin_start()
     $IPTABLES -A INPUT_CHAIN -i $interface -m recent --rcheck --seconds $IDS_MAX_TIME2 --hitcount $IDS_MAX_RATE2 --name idschk -j IDS_LOG_DROP
 
     # Insert rule into the POST_INPUT_DROP_CHAIN chain:
-    $IPTABLES -A POST_INPUT_DROP_CHAIN -i $interface -m state --state NEW -j IDS_CHK
+    $IPTABLES -A POST_INPUT_DROP_CHAIN -i $interface $NF_CONNTRACK_STATE NEW -j IDS_CHK
   done
 
   return 0

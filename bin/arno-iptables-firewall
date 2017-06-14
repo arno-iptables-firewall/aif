@@ -295,9 +295,6 @@ load_modules()
     modprobe nf_conntrack_ipv6
   fi
 
-  # Permits active FTP; requires ip_conntrack
-  modprobe_multi nf_conntrack_ftp ip_conntrack_ftp
-
   # Allows tracking for various protocols, placing entries in the conntrack table etc.
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe_multi xt_conntrack "ipt_conntrack,ip6t_conntrack"
@@ -336,6 +333,12 @@ load_modules()
   modprobe iptable_mangle
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe ip6table_mangle
+  fi
+
+  # Implement the raw table
+  modprobe iptable_raw
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    modprobe ip6table_raw
   fi
 
   # Implement the REJECT target
@@ -391,20 +394,9 @@ load_modules()
   fi
 
   if [ "$NAT" = "1" ]; then
-    modprobe_multi nf_nat_ftp ip_nat_ftp             # Permits active FTP via nat; requires ip_conntrack & iptable_nat
-
     if [ -z "$NAT_STATIC_IP" ]; then
       # Load the MASQUERADE target:
       modprobe ipt_MASQUERADE
-    fi
-  fi
-
-  if [ "$USE_IRC" = "1" ]; then
-#    echo "Enabling IRC DCC module support..."
-    modprobe_multi nf_conntrack_irc ip_conntrack_irc        #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
-
-    if [ "$NAT" = "1" ]; then
-      modprobe_multi nf_nat_irc ip_nat_irc            #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
     fi
   fi
 
@@ -436,6 +428,16 @@ setup_kernel_settings()
   INDENT='  '
 
   echo "Configuring general kernel parameters:"
+
+  # Disable conntrack automatic helper assignment, if supported
+  #############################################################
+  if sysctl_key_match net.netfilter.nf_conntrack_helper; then
+    sysctl -w net.netfilter.nf_conntrack_helper=0
+  else
+    echo " Conntrack legacy automatic helper assignment is ENABLED"
+    # Fallback to an older conntrack match method
+    NF_CONNTRACK_STATE="-m state --state"
+  fi
 
   # Set the maximum number of connections to track.
   # The kernel "default" depends on the available amount of RAM, 128 MB of RAM -> 8192
@@ -739,12 +741,14 @@ init_firewall_chains()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  # Flush rules in nat/mangle tables
-  ##################################
+  # Flush rules in nat/mangle/raw tables
+  ######################################
   ip4tables -t nat -F
   ip4tables -t nat -X
   ip4tables -t mangle -F
   ip4tables -t mangle -X
+  try_ip4tables -t raw -F
+  try_ip4tables -t raw -X
 
   if [ "$IPV6_DETECTED" = "1" ]; then
     # Attempt to flush all IPv6 chains
@@ -758,12 +762,14 @@ init_firewall_chains()
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
 
-    # Flush rules in nat/mangle table
-    #############################
+    # Flush rules in nat/mangle/raw tables
+    ######################################
     try_ip6tables -t nat -F
     try_ip6tables -t nat -X
     ip6tables -t mangle -F
     ip6tables -t mangle -X
+    try_ip6tables -t raw -F
+    try_ip6tables -t raw -X
   fi
 
   # Create our "base" chains
@@ -774,18 +780,27 @@ init_firewall_chains()
 
   # Accept packets of ESTABLISHED connections
   ###########################################
-  iptables -A BASE_INPUT_CHAIN -m state --state ESTABLISHED -j ACCEPT
-  iptables -A BASE_FORWARD_CHAIN -m state --state ESTABLISHED -j ACCEPT
-  iptables -A BASE_OUTPUT_CHAIN -m state --state ESTABLISHED -j ACCEPT
+  iptables -A BASE_INPUT_CHAIN $NF_CONNTRACK_STATE ESTABLISHED -j ACCEPT
+  iptables -A BASE_FORWARD_CHAIN $NF_CONNTRACK_STATE ESTABLISHED -j ACCEPT
+  iptables -A BASE_OUTPUT_CHAIN $NF_CONNTRACK_STATE ESTABLISHED -j ACCEPT
 
   # Accept packets of RELATED connections
   #######################################
-  iptables -A BASE_INPUT_CHAIN -m state --state RELATED -p tcp --dport 1024: -j ACCEPT
-  iptables -A BASE_INPUT_CHAIN -m state --state RELATED -p udp --dport 1024: -j ACCEPT
-  iptables -A BASE_INPUT_CHAIN -m state --state RELATED -p icmp -j ACCEPT
-  iptables -A BASE_FORWARD_CHAIN -m state --state RELATED -p tcp --dport 1024: -j ACCEPT
-  iptables -A BASE_FORWARD_CHAIN -m state --state RELATED -p udp --dport 1024: -j ACCEPT
-  iptables -A BASE_FORWARD_CHAIN -m state --state RELATED -p icmp -j ACCEPT
+  iptables -A BASE_INPUT_CHAIN $NF_CONNTRACK_STATE RELATED -p icmp -j ACCEPT
+  iptables -A BASE_FORWARD_CHAIN $NF_CONNTRACK_STATE RELATED -p icmp -j ACCEPT
+
+  # Apply conntrack helper chain, fallback to RELATED connections
+  ###############################################################
+  if [ "$(sysctl_get_value net.netfilter.nf_conntrack_helper)" = "0" ]; then
+    iptables -N CONNTRACK_HELPER
+    iptables -A BASE_INPUT_CHAIN -j CONNTRACK_HELPER
+    iptables -A BASE_FORWARD_CHAIN -j CONNTRACK_HELPER
+  else
+    iptables -A BASE_INPUT_CHAIN $NF_CONNTRACK_STATE RELATED -p tcp --dport 1024: -j ACCEPT
+    iptables -A BASE_INPUT_CHAIN $NF_CONNTRACK_STATE RELATED -p udp --dport 1024: -j ACCEPT
+    iptables -A BASE_FORWARD_CHAIN $NF_CONNTRACK_STATE RELATED -p tcp --dport 1024: -j ACCEPT
+    iptables -A BASE_FORWARD_CHAIN $NF_CONNTRACK_STATE RELATED -p udp --dport 1024: -j ACCEPT
+  fi
 
   # Drop all IPv6 packets with Routing Header Type 0
   ##################################################
@@ -1043,7 +1058,7 @@ setup_valid_chk_chain()
   if [ "$INVALID_TCP_LOG" = "1" ]; then
     echo "Logging of INVALID TCP packets enabled"
 
-    iptables -A VALID_CHK -p tcp -m state --state INVALID \
+    iptables -A VALID_CHK -p tcp $NF_CONNTRACK_STATE INVALID \
       -m limit --limit 1/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INVALID TCP: "
   else
     echo "Logging of INVALID TCP packets disabled"
@@ -1052,7 +1067,7 @@ setup_valid_chk_chain()
   if [ "$INVALID_UDP_LOG" = "1" ]; then
     echo "Logging of INVALID UDP packets enabled"
 
-    iptables -A VALID_CHK -p udp -m state --state INVALID \
+    iptables -A VALID_CHK -p udp $NF_CONNTRACK_STATE INVALID \
       -m limit --limit 1/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INVALID UDP: "
   else
     echo "Logging of INVALID UDP packets disabled"
@@ -1063,13 +1078,13 @@ setup_valid_chk_chain()
 
     # Only log INVALID ICMP-request packets when we also want to log "normal" ICMP-request packets
     if [ "$ICMP_REQUEST_LOG" != "0" ]; then
-      iptables -A VALID_CHK -p icmp --icmp-type echo-request -m state --state INVALID \
+      iptables -A VALID_CHK -p icmp --icmp-type echo-request $NF_CONNTRACK_STATE INVALID \
         -m limit --limit 1/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INVALID ICMP-request: "
     fi
 
     # Only log INVALID ICMP-other when enabled in the config
     if [ "$ICMP_OTHER_LOG" != "0" ]; then
-      iptables -A VALID_CHK -p icmp ! --icmp-type echo-request -m state --state INVALID \
+      iptables -A VALID_CHK -p icmp ! --icmp-type echo-request $NF_CONNTRACK_STATE INVALID \
         -m limit --limit 1/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INVALID ICMP-other: "
     fi
   else
@@ -1078,7 +1093,7 @@ setup_valid_chk_chain()
 
   # Drop invalid packets
   ######################
-  iptables -A VALID_CHK -m state --state INVALID -j POST_INPUT_DROP_CHAIN
+  iptables -A VALID_CHK $NF_CONNTRACK_STATE INVALID -j POST_INPUT_DROP_CHAIN
 
   # Fragmentation cannot happen with IPV6 (and maybe even not with iptables/ipv4?)
   ## Log fragmented packets
@@ -3878,11 +3893,11 @@ setup_input_log()
 
       echo "$(show_if_ip "$interfaces" "$destips")Logging incoming TCP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A INPUT -i $interface -d $destip -p tcp --dport $port -m state --state NEW -m limit \
+            iptables -A INPUT -i $interface -d $destip -p tcp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:TCP INPUT log: "
           done
         done
@@ -3899,11 +3914,11 @@ setup_input_log()
 
       echo "$(show_if_ip "$interfaces" "$destips")Logging incoming UDP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A INPUT -i $interface -d $destip -p udp --dport $port -m state --state NEW -m limit \
+            iptables -A INPUT -i $interface -d $destip -p udp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UDP INPUT log: "
           done
         done
@@ -3919,11 +3934,11 @@ setup_input_log()
 
       echo "$(show_if_ip "$interfaces" "$destips")Logging incoming IP protocol(s): $protos"
 
-      IFS=','
+      IFS=' ,'
       for proto in $protos; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A INPUT -i $interface -d $destip -p $proto -m state --state NEW -m limit \
+            iptables -A INPUT -i $interface -d $destip -p $proto $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IP INPUT log: "
           done
         done
@@ -3940,11 +3955,11 @@ setup_input_log()
 
       echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of: $hosts"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A INPUT -i $interface -s $host -d $destip -m state --state NEW \
+            iptables -A INPUT -i $interface -s $host -d $destip $NF_CONNTRACK_STATE NEW \
               -m limit --limit 12/m --limit-burst 50 \
               -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise INPUT log: "
           done
@@ -3961,12 +3976,12 @@ setup_input_log()
 
       echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of $hosts to TCP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A INPUT -i $interface -s $host -d $destip -p tcp --dport $port -m state --state NEW \
+              iptables -A INPUT -i $interface -s $host -d $destip -p tcp --dport $port $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise TCP log (IN): "
             done
@@ -3985,12 +4000,12 @@ setup_input_log()
 
       echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of $hosts to UDP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A INPUT -i $interface -s $host -d $destip -p udp --dport $port -m state --state NEW \
+              iptables -A INPUT -i $interface -s $host -d $destip -p udp --dport $port $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise UDP INPUT log: "
             done
@@ -4008,12 +4023,12 @@ setup_input_log()
 
       echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of $hosts to IP protocol(s): $protos"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for proto in $protos; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A INPUT -i $interface -s $host -d $destip -p $proto -m state --state NEW \
+              iptables -A INPUT -i $interface -s $host -d $destip -p $proto $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise IP INPUT log: "
             done
@@ -4037,11 +4052,11 @@ setup_output_log()
 
       echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing TCP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for port in $ports; do
         for interface in $interfaces; do
           for srcip in $srcips; do
-            iptables -A OUTPUT -o $interface -s $srcip -p tcp --dport $port -m state --state NEW -m limit \
+            iptables -A OUTPUT -o $interface -s $srcip -p tcp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:TCP OUTPUT log: "
           done
         done
@@ -4057,11 +4072,11 @@ setup_output_log()
 
       echo "$(show_if_ip "$interfaces")Logging outgoing UDP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for port in $ports; do
         for interface in $interfaces; do
           for srcip in $srcips; do
-            iptables -A OUTPUT -o $interface -s $srcip -p udp --dport $port -m state --state NEW -m limit \
+            iptables -A OUTPUT -o $interface -s $srcip -p udp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UDP OUTPUT log: "
           done
         done
@@ -4077,11 +4092,11 @@ setup_output_log()
 
       echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing IP protocol(s): $protos"
 
-      IFS=','
+      IFS=' ,'
       for proto in $protos; do
         for interface in $interfaces; do
           for srcip in $srcips; do
-            iptables -A OUTPUT -o $interface -s $srcip -p $proto -m state --state NEW -m limit \
+            iptables -A OUTPUT -o $interface -s $srcip -p $proto $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IP OUTPUT log: "
           done
         done
@@ -4097,11 +4112,11 @@ setup_output_log()
 
       echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections to: $hosts"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for interface in $interfaces; do
           for srcip in $srcips; do
-            iptables -A OUTPUT -o $interface -s $srcip -d $host -m state --state NEW \
+            iptables -A OUTPUT -o $interface -s $srcip -d $host $NF_CONNTRACK_STATE NEW \
               -m limit --limit 12/m --limit-burst 50 \
               -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise OUTPUT log: "
           done
@@ -4119,12 +4134,12 @@ setup_output_log()
 
       echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections of $hosts to TCP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for port in $ports; do
           for interface in $interfaces; do
             for srcip in $srcips; do
-              iptables -A OUTPUT -o $interface -s $srcip -d $host -p tcp --dport $port -m state --state NEW \
+              iptables -A OUTPUT -o $interface -s $srcip -d $host -p tcp --dport $port $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host TCP log (OUT): "
             done
@@ -4143,12 +4158,12 @@ setup_output_log()
 
       echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections of $hosts to UDP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for port in $ports; do
           for interface in $interfaces; do
             for srcip in $srcips; do
-              iptables -A OUTPUT -o $interface -s $srcip -d $host -p udp --dport $port -m state --state NEW \
+              iptables -A OUTPUT -o $interface -s $srcip -d $host -p udp --dport $port $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host UDP log (OUT): "
             done
@@ -4166,12 +4181,12 @@ setup_output_log()
 
       echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections of $hosts to IP protocol(s): $protos"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for proto in $protos; do
           for interface in $interfaces; do
             for srcip in $srcips; do
-              iptables -A OUTPUT -o $interface -s $srcip -d $host -p $proto -m state --state NEW \
+              iptables -A OUTPUT -o $interface -s $srcip -d $host -p $proto $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host IP log (OUT): "
             done
@@ -4954,6 +4969,13 @@ setup_firewall_rules()
   echo "Setting up firewall rules:"
   echo "-------------------------------------------------------------------------------"
 
+  # Assign conntrack helper modules
+  #################################
+  load_conntrack_helper_module ftp tcp 21
+  if [ "$USE_IRC" = "1" ]; then
+    load_conntrack_helper_module irc tcp 6667:7001
+  fi
+
   # Setup all TCP MSS stuff
   #########################
   setup_tcp_mss
@@ -5059,14 +5081,14 @@ setup_firewall_rules()
     # Perform check:
     ################
     # Non-ICMP traffic:
-    iptables -A INPUT -i $interface ! -p icmp -m state --state NEW -j EXT_INPUT_CHAIN
+    iptables -A INPUT -i $interface ! -p icmp $NF_CONNTRACK_STATE NEW -j EXT_INPUT_CHAIN
 
     # ICMP traffic (rate limited):
-    iptables -A INPUT -i $interface -p icmp -m state --state NEW \
+    iptables -A INPUT -i $interface -p icmp $NF_CONNTRACK_STATE NEW \
       -m limit --limit 60/second --limit-burst 100 -j EXT_INPUT_CHAIN
 
     # ICMP traffic (flood)
-    iptables -A INPUT -i $interface -p icmp -m state --state NEW -j EXT_ICMP_FLOOD_CHAIN
+    iptables -A INPUT -i $interface -p icmp $NF_CONNTRACK_STATE NEW -j EXT_ICMP_FLOOD_CHAIN
 
     # Drop any remaining ICMPv6 traffic
     if [ "$IPV6_SUPPORT" = "1" ]; then
@@ -5608,11 +5630,13 @@ stop_firewall()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  # Flush rules in the nat/mangle tables
+  # Flush rules in the nat/mangle/raw tables
   ip4tables -t nat -F
   ip4tables -t nat -X
   ip4tables -t mangle -F
   ip4tables -t mangle -X
+  try_ip4tables -t raw -F
+  try_ip4tables -t raw -X
 
   # Attempt to flush all IPv4 chains
   ip4tables -F
@@ -5629,11 +5653,13 @@ stop_firewall()
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
 
-    # Flush rules in the nat/mangle table
+    # Flush rules in the nat/mangle/raw tables
     try_ip6tables -t nat -F
     try_ip6tables -t nat -X
     ip6tables -t mangle -F
     ip6tables -t mangle -X
+    try_ip6tables -t raw -F
+    try_ip6tables -t raw -X
 
     # Attempt to flush all IPv6 chains
     ip6tables -F
@@ -5674,6 +5700,9 @@ reinit_firewall_chains()
   #   expect any external, dynamically managed mangle chains
   ip4tables -t mangle -F
 
+  # Flush builtin IPv4 raw chains
+  try_ip4tables -t raw -F
+
   if [ "$IPV6_DETECTED" = "1" ]; then
     # Flush builtin IPv6 chains
     ip6tables -F INPUT
@@ -5689,7 +5718,14 @@ reinit_firewall_chains()
     #   We don't have to be selective by chain since we don't
     #   expect any external, dynamically managed mangle chains
     ip6tables -t mangle -F
+
+    # Flush builtin IPv6 raw chains
+    try_ip6tables -t raw -F
   fi
+
+  # Flush conntrack helper chain
+  ##############################
+  iptables -F CONNTRACK_HELPER
 
   # Restore our base chains (which weren't flushed so any
   # running connections should be maintained
@@ -5714,11 +5750,13 @@ stop_block_firewall()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  # Flush nat/mangle table rules
+  # Flush nat/mangle/raw table rules
   ip4tables -t nat -F
   ip4tables -t nat -X
   ip4tables -t mangle -F
   ip4tables -t mangle -X
+  try_ip4tables -t raw -F
+  try_ip4tables -t raw -X
 
   # Attempt to flush all IPv4 chains
   ip4tables -F
@@ -5737,11 +5775,13 @@ stop_block_firewall()
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
 
-    # Flush nat/mangle table rules
+    # Flush nat/mangle/raw table rules
     try_ip6tables -t nat -F
     try_ip6tables -t nat -X
     ip6tables -t mangle -F
     ip6tables -t mangle -X
+    try_ip6tables -t raw -F
+    try_ip6tables -t raw -X
 
     # Attempt to flush all IPv6 chains
     ip6tables -F
