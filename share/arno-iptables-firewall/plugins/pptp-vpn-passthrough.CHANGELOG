@@ -1,6 +1,6 @@
-Version 1.01 (June 13, 2017)
+Version 1.01 (June 15, 2017)
 ----------------------------
-+ Add support for v2.0.1h load_conntrack_helper_module() function
++ Add support for v2.0.1h using the CONNTRACK_HELPER chain
 
 Version 1.00 (January 9, 2016)
 ------------------------------

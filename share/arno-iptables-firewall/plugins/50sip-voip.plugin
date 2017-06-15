@@ -6,7 +6,7 @@ PLUGIN_VERSION="0.32BETA"
 PLUGIN_CONF_FILE="sip-voip.conf"
 #
 # Last changed          : June 13, 2017
-# Requirements          : AIF 2.0.1h+ and nf_conntrack_sip
+# Requirements          : AIF 2.0.0+ and ip_conntrack_sip
 # Comments              : This plugin will allow/enable SIP (VOIP) support
 #
 # Author                : (C) Copyright 2010-2017 by Arno van Amersfoort

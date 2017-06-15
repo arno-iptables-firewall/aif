@@ -5,8 +5,8 @@ PLUGIN_NAME="PPTP VPN Passthrough plugin"
 PLUGIN_VERSION="1.01"
 PLUGIN_CONF_FILE="pptp-vpn-passthrough.conf"
 #
-# Last changed          : June 13, 2017
-# Requirements          : AIF 2.0.1h+ and ip_nat_pptp
+# Last changed          : June 15, 2017
+# Requirements          : AIF 2.0.0+ and ip_nat_pptp
 # Comments              : This plugin loads the required kernel modules for PPTP VPN Clients
 #                         to access remote PPTP VPN Server(s) when NAT is enabled.
 #
@@ -36,7 +36,12 @@ plugin_start()
 
   if [ "$NAT" = "1" ]; then
     echo "${INDENT}Enable PPTP NAT helper module"
-    load_conntrack_helper_module pptp tcp 1723
+    modprobe_multi nf_nat_pptp ip_nat_pptp
+
+    if ip4tables -nL CONNTRACK_HELPER >/dev/null 2>&1; then
+      ip4tables -A CONNTRACK_HELPER -m conntrack --ctstate RELATED -m helper --helper pptp -j ACCEPT
+      ip4tables -t raw -A PREROUTING -p tcp --dport 1723 -j CT --helper pptp
+    fi
   else
     echo "${INDENT}ERROR: NAT is not enabled, this plugin will be ignored."
   fi
