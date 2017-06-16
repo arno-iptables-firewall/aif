@@ -165,6 +165,28 @@ kernel_ver_chk()
   return 0
 }
 
+# nf_conntrack helper assignment
+# Example: load_conntrack_helper_module ftp tcp 21
+##
+load_conntrack_helper_module()
+{
+  local helper="$1" proto="$2" dport="$3" do_iptables related
+
+  modprobe_multi nf_conntrack_$helper ip_conntrack_$helper
+  if [ "$NAT" = "1" ]; then
+    modprobe_multi nf_nat_$helper ip_nat_$helper
+  fi
+
+  if ip4tables -nL CONNTRACK_HELPER >/dev/null 2>&1; then
+    case $helper in
+       ftp) do_iptables="iptables" ; related="-p $proto --dport 1024:" ;;
+      pptp) do_iptables="ip4tables"; related="" ;;
+         *) do_iptables="iptables" ; related="" ;;
+    esac
+    $do_iptables -A CONNTRACK_HELPER -m conntrack --ctstate RELATED -m helper --helper $helper $related -j ACCEPT
+    $do_iptables -t raw -A PREROUTING -p $proto --dport $dport -j CT --helper $helper
+  fi
+}
 
 # Linecount function
 lc()
@@ -630,9 +652,21 @@ sysctl_set_all()
 }
 
 
-sysctl_key()
+sysctl_key_prefix()
 {
   $SYSCTL -a 2>/dev/null |grep -q "^$1"
+}
+
+
+sysctl_key_match()
+{
+  $SYSCTL "$1" >/dev/null 2>&1
+}
+
+
+sysctl_get_value()
+{
+  $SYSCTL -n "$1" 2>/dev/null
 }
 
 
@@ -1708,7 +1742,7 @@ else
 fi
 
 # Setup IPv6 detected environment variable
-if sysctl_key net.ipv6.conf; then
+if sysctl_key_prefix net.ipv6.conf; then
   IPV6_DETECTED=1
 else
   IPV6_DETECTED=0
@@ -1734,6 +1768,11 @@ ICMPV6_SPECIAL_TYPES="133 134 135 136"
 # IPv6 ICMPv6 Multicast Listener Discovery (RFC 2710, 3810)
 ######################################################################
 ICMPV6_MLD_TYPES="130 131 132 143"
+
+# Default conntrack match method, if needed the main script will
+# fallback to an older method after the conntrack modules are loaded.
+######################################################################
+NF_CONNTRACK_STATE="-m conntrack --ctstate"
 
 # Check plugin bin path and fallback in case it's empty
 #######################################################

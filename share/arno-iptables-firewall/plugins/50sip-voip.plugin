@@ -2,14 +2,14 @@
 #            -= Arno's iptables firewall - SIP-VOIP plugin =-
 #
 PLUGIN_NAME="SIP-VOIP plugin"
-PLUGIN_VERSION="0.31BETA"
+PLUGIN_VERSION="0.32BETA"
 PLUGIN_CONF_FILE="sip-voip.conf"
 #
-# Last changed          : July 31, 2015
-# Requirements          : kernel 2.6 + ip_conntrack_sip
+# Last changed          : June 13, 2017
+# Requirements          : AIF 2.0.0+ and ip_conntrack_sip
 # Comments              : This plugin will allow/enable SIP (VOIP) support
 #
-# Author                : (C) Copyright 2010 by Arno van Amersfoort
+# Author                : (C) Copyright 2010-2017 by Arno van Amersfoort
 # Credits               : Philip Prindeville for his initial idea
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
@@ -67,6 +67,15 @@ plugin_start()
   # Load the SIP NAT module only when required
   if [ "$NAT" = "1" ]; then
     modprobe_multi nf_nat_sip ip_nat_sip
+  fi
+
+  if ip4tables -nL CONNTRACK_HELPER >/dev/null 2>&1; then
+    iptables -A CONNTRACK_HELPER -m conntrack --ctstate RELATED -m helper --helper sip -j ACCEPT
+
+    IFS=' ,'
+    for port in $SIP_VOIP_PORTS; do
+      iptables -t raw -A PREROUTING -p udp --dport $port -j CT --helper sip
+    done
   fi
 
   IFS=' ,'
