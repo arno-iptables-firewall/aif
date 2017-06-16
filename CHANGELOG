@@ -1,5 +1,6 @@
-Version 2.0.1h-DEVEL (May 30, 2017)
------------------------------------
+Version 2.0.2-RC1 (June 16, 2017)
+---------------------------------
++ Disable nf_conntrack automatic helper assignment when possible, attach with CT target, Issue #35
 ! Fixed IPv6 NAT table was not flushed on start/stop/restart, Issue #36
 + Added EXT_IF_DHCPV6_IPV6 config variable supporting DHCPv6 when DHCP is not enabled, Issue #34
 + Added ability to selectively log blocked hosts by inbound and outbound direction.
