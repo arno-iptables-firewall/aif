@@ -2,16 +2,16 @@
 #               -= Arno's iptables firewall - Outbound SNAT plugin =-
 #
 PLUGIN_NAME="Outbound SNAT plugin"
-PLUGIN_VERSION="1.00 BETA"
+PLUGIN_VERSION="1.01"
 PLUGIN_CONF_FILE="outbound-snat.conf"
 #
-# Last changed          : September 22, 2012
+# Last changed          : July 12, 2016
 # Requirements          : AIF 2.0.0+
 # Comments              : When a NAT'ed external interface has multiple IPv4 addresses,
 #                         it may be desirable to specify which internal IP's or CIDR's
 #                         use which external IPv4 addresses for outbound connections.
 #
-# Author                : (C) Copyright 2012 by Lonnie Abelbeck & Arno van Amersfoort
+# Author                : (C) Copyright 2012-2016 by Lonnie Abelbeck & Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -42,7 +42,7 @@ get_extif_with_ipv4_address()
   local host="$1" eif eip eips IFS
 
   IFS=' ,'
-  for eif in $(wildcard_ifs $EXT_IF); do
+  for eif in $(wildcard_ifs ${NAT_IF:-$EXT_IF}); do
     eips="$(get_extif_ipv4_addresses $eif)"
     if [ -n "$eips" ]; then
       unset IFS
@@ -80,9 +80,9 @@ plugin_start()
         ip4tables -t nat -A OUTBOUND_SNAT -o $eif -s $net ! -d $net -j SNAT --to-source $host
       else
         # Apply to all external interface(s) if "host" is not currently found.
-        echo "${INDENT}Outbound SNAT internal $net via external $host for interface(s): $EXT_IF"
+        echo "${INDENT}Outbound SNAT internal $net via external $host for interface(s): ${NAT_IF:-$EXT_IF}"
         IFS=' ,'
-        for eif in $EXT_IF; do
+        for eif in ${NAT_IF:-$EXT_IF}; do
           ip4tables -t nat -A OUTBOUND_SNAT -o $eif -s $net ! -d $net -j SNAT --to-source $host
         done
       fi

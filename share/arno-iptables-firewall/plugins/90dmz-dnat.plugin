@@ -2,17 +2,17 @@
 #            -= Arno's iptables firewall - DMZ-host default port forwarding plugin =-
 #
 PLUGIN_NAME="DMZ-host DNAT plugin"
-PLUGIN_VERSION="0.07BETA (EXPERIMENTAL!)"
+PLUGIN_VERSION="0.08"
 PLUGIN_CONF_FILE="dmz-dnat.conf"
 #
-# Last changed          : August 14, 2011
+# Last changed          : July 12, 2016
 # Requirements          : kernel 2.6 and AIF 2.0.1+
 # Comments              : This plugin allows forwarding of all traffic to a
 #                         "DMZ" host.  It's only been tested with 1.9+.
 #                         Updated to be IPv4-only
 #                         Updated to support parse_rule()
 #
-# Author                : (C) Copyright 2010-2011 by Philip A. Prindeville
+# Author                : (C) Copyright 2010-2016 by Philip A. Prindeville
 # Email                 : philipp AT redfish-solutions DOT com
 #                         (note: you must remove all spaces and substitute the @ and the .
 #                         at the proper locations!)
@@ -43,7 +43,7 @@ plugin_start()
 
   # bail if ICMP...
   IFS=' ,'
-  for eif in $EXT_IF; do
+  for eif in ${NAT_IF:-$EXT_IF}; do
     ip4tables -t nat -A NAT_PREROUTING_LOCAL -i $eif -p icmp -j RETURN
   done
 
@@ -119,7 +119,7 @@ plugin_start()
   echo "${INDENT}DMZ-DNAT: sending all non-local packets to $DMZ_IP"
 
   IFS=' ,'
-  for eif in $EXT_IF; do
+  for eif in ${NAT_IF:-$EXT_IF}; do
     ip4tables -t nat -A NAT_PREROUTING_LOCAL -i $eif -j DNAT --to-destination $DMZ_IP
     ip4tables -A POST_FORWARD_CHAIN -i $eif -d $DMZ_IP -j ACCEPT
   done
@@ -137,7 +137,7 @@ plugin_stop()
   ip4tables -t nat -X NAT_PREROUTING_LOCAL 2>/dev/null
 
   IFS=' ,'
-  for eif in $EXT_IF; do
+  for eif in ${NAT_IF:-$EXT_IF}; do
     ip4tables -D POST_FORWARD_CHAIN -i $eif -d $DMZ_IP -j ACCEPT
   done
 

@@ -2,14 +2,14 @@
 #               -= Arno's iptables firewall - IPsec VPN plugin =-
 #
 PLUGIN_NAME="IPsec VPN plugin"
-PLUGIN_VERSION="0.84BETA"
+PLUGIN_VERSION="0.85"
 PLUGIN_CONF_FILE="ipsec-vpn.conf"
 #
-# Last changed          : July 31, 2015
+# Last changed          : July 12, 2016
 # Requirements          : AIF 2.0.0+ and kernel 2.6 + ipt_policy + iptable_nat
 # Comments              : This plugin adds all required rules for using Racoon IPSEC.
 #
-# Author                : (C) Copyright 2006-2010 by Philip Prindeville & Arno van Amersfoort
+# Author                : (C) Copyright 2006-2016 by Philip Prindeville & Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : philipp AT redfish-solutions DOT com
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -97,15 +97,18 @@ plugin_start()
   done
 
   IFS=' ,'
-  for eif in $EXT_IF; do
+  for eif in ${NAT_IF:-$EXT_IF}; do
     # Allow IPSEC packets in after decapsulation
     ip4tables -t nat -A PREROUTING -i $eif -m policy --pol ipsec --dir in -j ACCEPT
 
-    iptables -A FORWARD -i $eif -m policy --pol ipsec --dir in -j VPN_FORWARD
-    iptables -A INPUT -i $eif -m policy --pol ipsec --dir in -j VPN_INPUT
-
     # Do not apply masquerading to outbound traffic
     ip4tables -t nat -A POSTROUTING -o $eif -m policy --pol ipsec --dir out -j ACCEPT
+  done
+
+  IFS=' ,'
+  for eif in $EXT_IF; do
+    iptables -A FORWARD -i $eif -m policy --pol ipsec --dir in -j VPN_FORWARD
+    iptables -A INPUT -i $eif -m policy --pol ipsec --dir in -j VPN_INPUT
   done
 
   return 0

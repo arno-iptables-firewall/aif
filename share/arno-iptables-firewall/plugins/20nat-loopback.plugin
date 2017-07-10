@@ -2,17 +2,17 @@
 #               -= Arno's iptables firewall - NAT Loopback plugin =-
 #
 PLUGIN_NAME="NAT Loopback plugin"
-PLUGIN_VERSION="1.00 BETA"
+PLUGIN_VERSION="1.01"
 PLUGIN_CONF_FILE="nat-loopback.conf"
 #
-# Last changed          : October 15, 2012
-# Requirements          : AIF 2.0.0+
+# Last changed          : July 12, 2016
+# Requirements          : AIF 2.0.1g+
 # Comments              : NAT Loopback for local nets using existing NAT_FORWARD_TCP
 #                         and NAT_FORWARD_UDP rules.
 #                         Local nets may be able to use the external IPv4 address and
 #                         port to access NAT forwarded internal servers.
 #
-# Author                : (C) Copyright 2012 by Lonnie Abelbeck & Arno van Amersfoort
+# Author                : (C) Copyright 2012-2016 by Lonnie Abelbeck & Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -39,7 +39,7 @@ nat_loopback_default_ext_ipv4()
   local eif IFS
 
   IFS=' ,'
-  for eif in $(wildcard_ifs $EXT_IF); do
+  for eif in $(wildcard_ifs $NAT_IF); do
     ip -o addr show dev $eif \
       | awk '$3 == "inet" { split($4, field, "/"); print field[1]; nextfile; }'
     break # Only use first external interface
@@ -108,7 +108,7 @@ plugin_start()
 
   unset IFS
   for rule in $NAT_FORWARD_TCP; do
-    if parse_rule "$rule" NAT_FORWARD_TCP "interfaces:EXT_IF-destips-shosts-ports-dhost_dport"; then
+    if parse_rule "$rule" NAT_FORWARD_TCP "interfaces:NAT_IF-destips-shosts-ports-dhost_dport"; then
 
       IFS=' ,'
       for shost in $(ip_range "$shosts"); do
@@ -140,7 +140,7 @@ plugin_start()
 
   unset IFS
   for rule in $NAT_FORWARD_UDP; do
-    if parse_rule "$rule" NAT_FORWARD_UDP "interfaces:EXT_IF-destips-shosts-ports-dhost_dport"; then
+    if parse_rule "$rule" NAT_FORWARD_UDP "interfaces:NAT_IF-destips-shosts-ports-dhost_dport"; then
 
       IFS=' ,'
       for shost in $(ip_range "$shosts"); do

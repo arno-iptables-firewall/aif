@@ -1,3 +1,7 @@
+Version 1.01 (July 12, 2016)
+----------------------------
++ Add support for NAT_IF with fallback to EXT_IF
+
 Version 1.00 BETA (September 22, 2012)
 --------------------------------------
 + Initial version

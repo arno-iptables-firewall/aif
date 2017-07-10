@@ -1,3 +1,7 @@
+Version 0.32BETA (June 13, 2017)
+--------------------------------
+* Add support for v2.0.2 using the CONNTRACK_HELPER chain
+
 Version 0.31BETA (July 31, 2015)
 --------------------------------
 * Use modprobe_multi for newer kernels

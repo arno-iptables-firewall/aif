@@ -1,5 +1,17 @@
-Version 2.0.1g-DEVEL (June 23, 2016)
-------------------------------------
+Version 2.0.2-RC1 (June 16, 2017)
+---------------------------------
++ Disable nf_conntrack automatic helper assignment when possible, attach with CT target, Issue #35
+! Fixed IPv6 NAT table was not flushed on start/stop/restart, Issue #36
++ Added EXT_IF_DHCPV6_IPV6 config variable supporting DHCPv6 when DHCP is not enabled, Issue #34
++ Added ability to selectively log blocked hosts by inbound and outbound direction.
+  BLOCKED_HOST_LOG Options: 0 = Disable, 1 = Inbound & Outbound, 2 = Inbound, 3 = Outbound
+
+Version 2.0.1g (October 11, 2016)
+---------------------------------
++ Added new BLOCK_NETSET_DIR variable which efficiently creates ipsets for blocklists using .netset files.
++ Added expert DEFAULT_NETSET_WHITELIST and DEFAULT_NETSET_WHITELISTV6 variables when BLOCK_NETSET_DIR is defined.
++ Added ipset support when IPTABLES_IPSET=1 and ipset is installed, disabled by default, Issues: #1, #24, #31
++ Added LAN to DMZ forwarding policy, new optional LAN_DMZ_ALLOW_IF variable, Issue #30
 + Added NAT_IF option to optionally specify external interfaces to be used for NAT
 + Added LAN to LAN (Inter-LAN) filtering rules, LAN_LAN_HOST_OPEN_xxx, Issue #28
 - Removed unused INT_FORWARD_IN_CHAIN and INT_FORWARD_OUT_CHAIN user chains, related to Issue #28

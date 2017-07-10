@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="2.0.1g-DEVEL"
+MY_VERSION="2.0.2-RC1"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -12,7 +12,7 @@ CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2016 by Arno van Amersfoort & Lonnie Abelbeck
+# (C) Copyright 2001-2017 by Arno van Amersfoort & Lonnie Abelbeck
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -41,7 +41,7 @@ if [ -e "$CONFIG_FILE" ]; then
   . "$CONFIG_FILE"
 else
   printf "\033[40m\033[1;31mERROR: Could not read configuration file $CONFIG_FILE!\033[0m\n" >&2
-  printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n" >&2
+  printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n\n" >&2
   exit 2
 fi
 
@@ -55,7 +55,7 @@ if [ -z "$ENV_FILE" ]; then
       ENV_FILE="/usr/share/arno-iptables-firewall/environment"
     else
       printf "\033[40m\033[1;31mERROR: The environment file (ENV_FILE) has not been specified\033[0m\n" >&2
-      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n" >&2
+      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n\n" >&2
       exit 2
     fi
   fi
@@ -65,16 +65,19 @@ if [ -e "$ENV_FILE" ]; then
   . "$ENV_FILE"
 else
   printf "\033[40m\033[1;31mERROR: Could not read environment file \"$ENV_FILE\"!\033[0m\n" >&2
-  printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n" >&2
+  printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n\n" >&2
   exit 2
 fi
 
 
 sanity_check()
 {
+  # Show uname information
+  echo "Platform: $(uname -s -r -m)"
+
   # root check
   if [ "$(id -u)" != "0" ]; then
-    printf "\033[40m\033[1;31mERROR: Root check FAILED (you MUST be root to use this script)! Quitting...\033[0m\n" >&2
+    printf "\033[40m\033[1;31mERROR: Root check FAILED (you MUST be root to use this script)! Quitting...\033[0m\n\n" >&2
     exit 1
   fi
 
@@ -98,9 +101,9 @@ sanity_check()
   check_command_error tail
   check_command_error wc
   check_command_error logger
-  
+
   check_command_warning dig nslookup
-  
+
   if [ "$IPV6_SUPPORT" = "1" ]; then
     if ! kernel_ver_chk 2 6 24; then
       printf "\033[40m\033[1;31mWARNING: IPv6 support is enabled but your kernel is rather old (<2.6.24)! This *could* cause problems...\033[0m\n" >&2
@@ -109,14 +112,36 @@ sanity_check()
 }
 
 
+ipset_check()
+{
+  if [ "$IPTABLES_IPSET" != "1" ]; then
+    return 1
+  fi
+
+  ## Check if userspace 'ipset' command is installed
+  if ! check_command ipset; then
+    return 1
+  fi
+
+  ## Issue a simple command that will fail without kernel support
+  if ! ipset list -n >/dev/null 2>&1; then
+    return 1
+  fi
+
+  return 0
+}
+
+
 config_check()
 {
+  local retval=0
+
   # Make sure EXT_IF != ""
   ########################
   if [ -z "$EXT_IF" ]; then
     printf "\033[40m\033[1;31mERROR: The required variable EXT_IF is empty!\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       Please, check the configuration file.\033[0m\n" >&2
-    exit 2
+    printf "\033[40m\033[1;31m       Please, check the configuration file.\033[0m\n\n" >&2
+    retval=1
   fi
 
   # Check whether EXT_IF exists
@@ -124,7 +149,7 @@ config_check()
   IFS=' ,'
   for interface in $EXT_IF; do
     if ! check_interface $interface; then
-      printf "\033[40m\033[1;31mWARNING: External interface $interface does NOT exist (yet?)\033[0m\n" >&2
+      printf "\033[40m\033[1;31mWARNING: External interface $interface does NOT exist (yet?)\033[0m\n\n" >&2
     fi
   done
 
@@ -133,7 +158,7 @@ config_check()
   IFS=' ,'
   for interface in $INT_IF; do
     if ! check_interface $interface; then
-      printf "\033[40m\033[1;31mWARNING: Internal interface $interface does NOT exist (yet?)\033[0m\n" >&2
+      printf "\033[40m\033[1;31mWARNING: Internal interface $interface does NOT exist (yet?)\033[0m\n\n" >&2
     fi
   done
 
@@ -142,7 +167,7 @@ config_check()
   IFS=' ,'
   for interface in $DMZ_IF; do
     if ! check_interface $interface; then
-      printf "\033[40m\033[1;31mWARNING: DMZ interface $interface does NOT exist (yet?)\033[0m\n" >&2
+      printf "\033[40m\033[1;31mWARNING: DMZ interface $interface does NOT exist (yet?)\033[0m\n\n" >&2
     fi
   done
 
@@ -151,7 +176,7 @@ config_check()
   IFS=' ,'
   for interface in $TRUSTED_IF; do
     if ! check_interface $interface; then
-      printf "\033[40m\033[1;31mWARNING: Trusted interface $interface does NOT exist (yet?)\033[0m\n" >&2
+      printf "\033[40m\033[1;31mWARNING: Trusted interface $interface does NOT exist (yet?)\033[0m\n\n" >&2
     fi
   done
 
@@ -162,8 +187,9 @@ config_check()
     for iif in $INT_IF; do
       if [ "$iif" = "$eif" ]; then
         printf "\033[40m\033[1;31mERROR: One or more interfaces specified in EXT_IF is the same as one in\033[0m\n" >&2
-        printf "\033[40m\033[1;31m       INT_IF! Please, check the configuration file.\033[0m\n" >&2
-        exit 3
+        printf "\033[40m\033[1;31m       INT_IF! Please, check the configuration file.\033[0m\n\n" >&2
+        retval=1
+        break
       fi
     done
   done
@@ -174,8 +200,9 @@ config_check()
   for eif in $EXT_IF; do
     if [ "$eif" = "lo" -o "$eif" = "127.0.0.1" ]; then
       printf "\033[40m\033[1;31mERROR: One or more interfaces specified in EXT_IF has the address or name of the\033[0m\n" >&2
-      printf "\033[40m\033[1;31m       local loopback device! Please, check the configuration file.\033[0m\n" >&2
-      exit 6
+      printf "\033[40m\033[1;31m       local loopback device! Please, check the configuration file.\033[0m\n\n" >&2
+      retval=1
+      break
     fi
   done
 
@@ -185,8 +212,9 @@ config_check()
   for iif in $INT_IF; do
     if [ "$iif" = "lo" -o "$iif" = "127.0.0.1" ]; then
       printf "\033[40m\033[1;31mERROR: At least one of the interfaces specified in INT_IF has the address or\033[0m\n" >&2
-      printf "\033[40m\033[1;31m       name of the local loopback device! Please, check the configuration file.\033[0m\n" >&2
-      exit 7
+      printf "\033[40m\033[1;31m       name of the local loopback device! Please, check the configuration file.\033[0m\n\n" >&2
+      retval=1
+      break
     fi
   done
 
@@ -195,22 +223,22 @@ config_check()
   ##########################################################################
   if [ "$EXTERNAL_DHCP_SERVER" = "1" -a -z "$EXTERNAL_NET" ]; then
     printf "\033[40m\033[1;31mERROR: You have enabled external DHCP server support but required variable\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n" >&2
-    exit 10
+    printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n\n" >&2
+    retval=1
   fi
 
   # We can only perform NAT if NAT_INTERNAL_NET is defined
   if [ "$NAT" = "1" -a -z "$NAT_INTERNAL_NET" ]; then
-    printf "\033[40m\033[1;31mERROR: Unable to enable NAT because there's no (NAT_)INTERNAL_NET specified!\033[0m\n" >&2
-    exit 11
+    printf "\033[40m\033[1;31mERROR: Unable to enable NAT because there's no (NAT_)INTERNAL_NET specified!\033[0m\n\n" >&2
+    retval=1
   fi
 
   # If support the nmb_broadcast_fix is enabled we need the EXTERNAL_NET set
   ##########################################################################
   if [ "$NMB_BROADCAST_FIX" = "1" -a -z "$EXTERNAL_NET" ]; then
     printf "\033[40m\033[1;31mERROR: You have enabled the NMB_BROADCAST_FIX but required variable\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n" >&2
-    exit 12
+    printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n\n" >&2
+    retval=1
   fi
 
   # Warn if no_broadcast variables are used and external net is NOT defined
@@ -218,7 +246,7 @@ config_check()
   if [ -n "$BROADCAST_TCP_NOLOG" -o -n "$BROADCAST_UDP_NOLOG" ]; then
     if [ -z "$EXTERNAL_NET" -a -z "$EXT_NET_BCAST_ADDRESS" ]; then
       printf "\033[40m\033[1;31mWARNING: You are using the BROADCAST_xxx_NOLOG variables but EXTERNAL_NET (or EXT_NET_BCAST_ADDRESS)\033[0m\n" >&2
-      printf "\033[40m\033[1;31m         has NOT been defined!\033[0m\n" >&2
+      printf "\033[40m\033[1;31m         has NOT been defined!\033[0m\n\n" >&2
     fi
   fi
 
@@ -226,16 +254,22 @@ config_check()
   ##############################################
   if [ ! -d "$PLUGIN_BIN_PATH" ]; then
     printf "\033[40m\033[1;31mERROR: The PLUGIN_BIN_PATH ($PLUGIN_BIN_PATH) does not exist!\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n" >&2
-    exit 2
+    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n\n" >&2
+    retval=1
   fi
 
   # Check whether we know the plugin config path
   ##############################################
   if [ ! -d "$PLUGIN_CONF_PATH" ]; then
     printf "\033[40m\033[1;31mERROR: The PLUGIN_CONF_PATH ($PLUGIN_CONF_PATH) does not exist!\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n" >&2
-    exit 2
+    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n\n" >&2
+    retval=1
+  fi
+
+  # Check for errors
+  if [ $retval -ne 0 ]; then
+    show_failed
+    exit $retval
   fi
 }
 
@@ -247,7 +281,7 @@ load_modules()
   INDENT=' '
 
   echo "Checking/probing Iptables modules:"
-  
+
   # Required; all IPv4 modules depend on this one
   modprobe ip_tables
   if [ "$IPV6_SUPPORT" = "1" ]; then
@@ -261,47 +295,50 @@ load_modules()
     modprobe nf_conntrack_ipv6
   fi
 
-  # Permits active FTP; requires ip_conntrack
-  modprobe_multi nf_conntrack_ftp ip_conntrack_ftp
-  
   # Allows tracking for various protocols, placing entries in the conntrack table etc.
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe_multi xt_conntrack "ipt_conntrack,ip6t_conntrack"
   else
     modprobe_multi xt_conntrack ipt_conntrack
   fi
-  
+
   # Allows log limits
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe_multi xt_limit "ipt_limit,ip6t_limit"
   else
     modprobe_multi xt_limit ipt_limit
   fi
-  
+
   # Permits packet state checking (SYN, SYN-ACK, ACK, and so on).
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe_multi xt_state "ipt_state,ip6t_state"
   else
     modprobe_multi xt_state ipt_state
   fi
-  
+
   # Allows packet specifications on multiple ports
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe_multi xt_multiport "ipt_multiport,ip6t_multiport"
   else
     modprobe_multi xt_multiport ipt_multiport
   fi
-  
+
   # Implement the filter table:
   modprobe iptable_filter
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe ip6table_filter
   fi
-  
+
   # Implement the mangle table
   modprobe iptable_mangle
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe ip6table_mangle
+  fi
+
+  # Implement the raw table
+  modprobe iptable_raw
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    modprobe ip6table_raw
   fi
 
   # Implement the REJECT target
@@ -309,7 +346,7 @@ load_modules()
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe ip6t_REJECT
   fi
-  
+
   # Implement the LOG target
   if [ "$IPV6_SUPPORT" = "1" ]; then
     modprobe_multi xt_LOG "ipt_LOG,ip6t_LOG"
@@ -325,7 +362,7 @@ load_modules()
       modprobe_multi xt_TCPMSS ipt_TCPMSS
     fi
   fi
-  
+
   if [ "$MANGLE_TOS" != "0" ]; then
     # Implement the TOS target
     if [ "$IPV6_SUPPORT" = "1" ]; then
@@ -357,20 +394,9 @@ load_modules()
   fi
 
   if [ "$NAT" = "1" ]; then
-    modprobe_multi nf_nat_ftp ip_nat_ftp             # Permits active FTP via nat; requires ip_conntrack & iptable_nat
-    
     if [ -z "$NAT_STATIC_IP" ]; then
       # Load the MASQUERADE target:
       modprobe ipt_MASQUERADE
-    fi
-  fi
-  
-  if [ "$USE_IRC" = "1" ]; then
-#    echo "Enabling IRC DCC module support..."
-    modprobe_multi nf_conntrack_irc ip_conntrack_irc        #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
-
-    if [ "$NAT" = "1" ]; then
-      modprobe_multi nf_nat_irc ip_nat_irc            #ports=6661,6662,6663,6664,6665,6666,6667,6668,6669,7000,7001
     fi
   fi
 
@@ -382,10 +408,10 @@ setup_misc()
 {
   # Remove any stale plugin restart file
   rm -f "$PLUGIN_LOAD_FILE_RESTART"
-  
+
   # Remove stale host-cache file
   rm -f "$HOST_CACHE_FILE"
-  
+
   # Most people don't want to get any firewall logs being spit to the console
   # This option makes the kernel ring buffer only log messages with level "panic"
   if [ "$DMESG_PANIC_ONLY" = "1" ]; then
@@ -400,8 +426,18 @@ setup_kernel_settings()
 {
   # Set INDENT value for functions
   INDENT='  '
-  
+
   echo "Configuring general kernel parameters:"
+
+  # Disable conntrack automatic helper assignment, if supported
+  #############################################################
+  if sysctl_key_match net.netfilter.nf_conntrack_helper; then
+    sysctl -w net.netfilter.nf_conntrack_helper=0
+  else
+    echo " Conntrack legacy automatic helper assignment is ENABLED"
+    # Fallback to an older conntrack match method
+    NF_CONNTRACK_STATE="-m state --state"
+  fi
 
   # Set the maximum number of connections to track.
   # The kernel "default" depends on the available amount of RAM, 128 MB of RAM -> 8192
@@ -705,13 +741,15 @@ init_firewall_chains()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  # Flush rules in nat/mangle tables
-  ##################################
+  # Flush rules in nat/mangle/raw tables
+  ######################################
   ip4tables -t nat -F
   ip4tables -t nat -X
   ip4tables -t mangle -F
   ip4tables -t mangle -X
-  
+  try_ip4tables -t raw -F
+  try_ip4tables -t raw -X
+
   if [ "$IPV6_DETECTED" = "1" ]; then
     # Attempt to flush all IPv6 chains
     ##################################
@@ -724,12 +762,16 @@ init_firewall_chains()
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
 
-    # Flush rules in mangle table
-    #############################
+    # Flush rules in nat/mangle/raw tables
+    ######################################
+    try_ip6tables -t nat -F
+    try_ip6tables -t nat -X
     ip6tables -t mangle -F
     ip6tables -t mangle -X
+    try_ip6tables -t raw -F
+    try_ip6tables -t raw -X
   fi
-  
+
   # Create our "base" chains
   ##########################
   iptables -N BASE_INPUT_CHAIN
@@ -738,18 +780,27 @@ init_firewall_chains()
 
   # Accept packets of ESTABLISHED connections
   ###########################################
-  iptables -A BASE_INPUT_CHAIN -m state --state ESTABLISHED -j ACCEPT
-  iptables -A BASE_FORWARD_CHAIN -m state --state ESTABLISHED -j ACCEPT
-  iptables -A BASE_OUTPUT_CHAIN -m state --state ESTABLISHED -j ACCEPT
+  iptables -A BASE_INPUT_CHAIN $NF_CONNTRACK_STATE ESTABLISHED -j ACCEPT
+  iptables -A BASE_FORWARD_CHAIN $NF_CONNTRACK_STATE ESTABLISHED -j ACCEPT
+  iptables -A BASE_OUTPUT_CHAIN $NF_CONNTRACK_STATE ESTABLISHED -j ACCEPT
 
   # Accept packets of RELATED connections
   #######################################
-  iptables -A BASE_INPUT_CHAIN -m state --state RELATED -p tcp --dport 1024: -j ACCEPT
-  iptables -A BASE_INPUT_CHAIN -m state --state RELATED -p udp --dport 1024: -j ACCEPT
-  iptables -A BASE_INPUT_CHAIN -m state --state RELATED -p icmp -j ACCEPT
-  iptables -A BASE_FORWARD_CHAIN -m state --state RELATED -p tcp --dport 1024: -j ACCEPT
-  iptables -A BASE_FORWARD_CHAIN -m state --state RELATED -p udp --dport 1024: -j ACCEPT
-  iptables -A BASE_FORWARD_CHAIN -m state --state RELATED -p icmp -j ACCEPT
+  iptables -A BASE_INPUT_CHAIN $NF_CONNTRACK_STATE RELATED -p icmp -j ACCEPT
+  iptables -A BASE_FORWARD_CHAIN $NF_CONNTRACK_STATE RELATED -p icmp -j ACCEPT
+
+  # Apply conntrack helper chain, fallback to RELATED connections
+  ###############################################################
+  if [ "$(sysctl_get_value net.netfilter.nf_conntrack_helper)" = "0" ]; then
+    iptables -N CONNTRACK_HELPER
+    iptables -A BASE_INPUT_CHAIN -j CONNTRACK_HELPER
+    iptables -A BASE_FORWARD_CHAIN -j CONNTRACK_HELPER
+  else
+    iptables -A BASE_INPUT_CHAIN $NF_CONNTRACK_STATE RELATED -p tcp --dport 1024: -j ACCEPT
+    iptables -A BASE_INPUT_CHAIN $NF_CONNTRACK_STATE RELATED -p udp --dport 1024: -j ACCEPT
+    iptables -A BASE_FORWARD_CHAIN $NF_CONNTRACK_STATE RELATED -p tcp --dport 1024: -j ACCEPT
+    iptables -A BASE_FORWARD_CHAIN $NF_CONNTRACK_STATE RELATED -p udp --dport 1024: -j ACCEPT
+  fi
 
   # Drop all IPv6 packets with Routing Header Type 0
   ##################################################
@@ -776,7 +827,7 @@ init_firewall_chains()
 
   # Create several chains that we will use later on
   #################################################
-  create_user_chains;
+  create_user_chains
 
   # Reset the iptables counters
   iptables -Z
@@ -793,7 +844,7 @@ check_for_base_chains()
 
   ip4tables -nL BASE_INPUT_CHAIN >/dev/null 2>&1
   ipv4_rtn=$?
-  
+
   if [ "$IPV6_DETECTED" = "1" ]; then
     ip6tables -nL BASE_INPUT_CHAIN >/dev/null 2>&1
     ipv6_rtn=$?
@@ -802,7 +853,7 @@ check_for_base_chains()
     # Set a return error result of 1 to specify no IPv6 BASE_INPUT_CHAIN
     ipv6_rtn=1
   fi
-  
+
   if [ "$IPV6_SUPPORT" = "1" ]; then
     if [ $ipv4_rtn -eq 0 -a $ipv6_rtn -eq 0 ]; then
       echo "yes"
@@ -866,12 +917,19 @@ setup_default_policies()
   ###########################################################
   iptables -A POST_INPUT_DROP_CHAIN -j DROP
 
-  # The HOST_BLOCK_DROP chain should always DROP
+  # The HOST_BLOCK_SRC_DROP chain should always DROP
   ###########################################################
-  if [ "$BLOCKED_HOST_LOG" != "0" ]; then
-    iptables -A HOST_BLOCK_DROP -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s): "
+  if [ "$BLOCKED_HOST_LOG" = "1" -o "$BLOCKED_HOST_LOG" = "2" ]; then
+    iptables -A HOST_BLOCK_SRC_DROP -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s) Inbound: "
   fi
-  iptables -A HOST_BLOCK_DROP -j DROP
+  iptables -A HOST_BLOCK_SRC_DROP -j DROP
+
+  # The HOST_BLOCK_DST_DROP chain should always DROP
+  ###########################################################
+  if [ "$BLOCKED_HOST_LOG" = "1" -o "$BLOCKED_HOST_LOG" = "3" ]; then
+    iptables -A HOST_BLOCK_DST_DROP -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s) Outbound: "
+  fi
+  iptables -A HOST_BLOCK_DST_DROP -j DROP
 
   # The LINK_LOCAL_DROP chain should always DROP
   ###########################################################
@@ -1000,7 +1058,7 @@ setup_valid_chk_chain()
   if [ "$INVALID_TCP_LOG" = "1" ]; then
     echo "Logging of INVALID TCP packets enabled"
 
-    iptables -A VALID_CHK -p tcp -m state --state INVALID \
+    iptables -A VALID_CHK -p tcp $NF_CONNTRACK_STATE INVALID \
       -m limit --limit 1/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INVALID TCP: "
   else
     echo "Logging of INVALID TCP packets disabled"
@@ -1009,7 +1067,7 @@ setup_valid_chk_chain()
   if [ "$INVALID_UDP_LOG" = "1" ]; then
     echo "Logging of INVALID UDP packets enabled"
 
-    iptables -A VALID_CHK -p udp -m state --state INVALID \
+    iptables -A VALID_CHK -p udp $NF_CONNTRACK_STATE INVALID \
       -m limit --limit 1/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INVALID UDP: "
   else
     echo "Logging of INVALID UDP packets disabled"
@@ -1020,13 +1078,13 @@ setup_valid_chk_chain()
 
     # Only log INVALID ICMP-request packets when we also want to log "normal" ICMP-request packets
     if [ "$ICMP_REQUEST_LOG" != "0" ]; then
-      iptables -A VALID_CHK -p icmp --icmp-type echo-request -m state --state INVALID \
+      iptables -A VALID_CHK -p icmp --icmp-type echo-request $NF_CONNTRACK_STATE INVALID \
         -m limit --limit 1/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INVALID ICMP-request: "
     fi
 
     # Only log INVALID ICMP-other when enabled in the config
     if [ "$ICMP_OTHER_LOG" != "0" ]; then
-      iptables -A VALID_CHK -p icmp ! --icmp-type echo-request -m state --state INVALID \
+      iptables -A VALID_CHK -p icmp ! --icmp-type echo-request $NF_CONNTRACK_STATE INVALID \
         -m limit --limit 1/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INVALID ICMP-other: "
     fi
   else
@@ -1035,7 +1093,7 @@ setup_valid_chk_chain()
 
   # Drop invalid packets
   ######################
-  iptables -A VALID_CHK -m state --state INVALID -j POST_INPUT_DROP_CHAIN
+  iptables -A VALID_CHK $NF_CONNTRACK_STATE INVALID -j POST_INPUT_DROP_CHAIN
 
   # Fragmentation cannot happen with IPV6 (and maybe even not with iptables/ipv4?)
   ## Log fragmented packets
@@ -1073,10 +1131,10 @@ setup_reserved_net_chk_chain()
 
     ip4tables -A RESERVED_NET_CHK -s 169.254.0.0/16 \
       -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv4 Link-local address: "
-    
+
     ip4tables -A RESERVED_NET_CHK -s 224.0.0.0/24 \
       -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv4 Multicast address: "
-    
+
     ip4tables -A RESERVED_NET_CHK -s 239.0.0.0/24 \
       -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IPv4 Multicast address: "
 
@@ -2671,9 +2729,11 @@ setup_ext_input_chain()
     echo " Enabling support for DHCP-assigned-IP (DHCP client)"
     # Allow this host to be an DHCP client:
     ip4tables -A EXT_INPUT_CHAIN -p udp --sport 67 --dport 68 -j ACCEPT
+  fi
+  if [ "$EXT_IF_DHCP_IP" = "1" -o "$EXT_IF_DHCPV6_IPV6" = "1" ]; then
     if [ "$IPV6_SUPPORT" = "1" ]; then
       # Allow this host to be an DHCPv6 client:
-      ip6tables -A EXT_INPUT_CHAIN -p udp --sport 547 --dport 546 -j ACCEPT
+      ip6tables -A EXT_INPUT_CHAIN -s fe80::/10 -p udp --sport 547 --dport 546 -j ACCEPT
     fi
   fi
 
@@ -2714,8 +2774,12 @@ setup_ext_input_chain()
 
   # Enable logging of blocked hosts?
   ##################################
-  if [ "$BLOCKED_HOST_LOG" != "0" ]; then
-    echo " Logging of explicitly blocked hosts enabled"
+  if [ "$BLOCKED_HOST_LOG" = "1" ]; then
+    echo " Logging of explicitly blocked hosts inbound/outbound enabled"
+  elif [ "$BLOCKED_HOST_LOG" = "2" ]; then
+    echo " Logging of explicitly blocked hosts inbound enabled"
+  elif [ "$BLOCKED_HOST_LOG" = "3" ]; then
+    echo " Logging of explicitly blocked hosts outbound enabled"
   else
     echo " Logging of explicitly blocked hosts disabled"
   fi
@@ -3292,7 +3356,7 @@ setup_ext_input_chain()
   else
     echo " Packets will NOT be checked for reserved source addresses"
   fi
-  
+
   if [ "$RESERVED_NET_DROP" = "1" -o "$RESERVED_NET_LOG" = "1" ]; then
     iptables -A EXT_INPUT_CHAIN -j RESERVED_NET_CHK
   fi
@@ -3506,10 +3570,10 @@ setup_ext_input_chain()
 
   # Finally drop all in the broadcast chain
   iptables -A EXT_BROADCAST_CHAIN -j DROP
-    
+
   # Jump into the POST_INPUT_CHAIN before we start to DROP
   iptables -A EXT_INPUT_CHAIN -j POST_INPUT_CHAIN
-  
+
   if [ "$ICMP_REQUEST_LOG" != "0" ]; then
     echo " Logging of dropped ICMP-request(ping) packets enabled"
     iptables -A EXT_INPUT_CHAIN -p icmp --icmp-type echo-request \
@@ -3519,7 +3583,7 @@ setup_ext_input_chain()
   else
     echo " Logging of dropped ICMP-request(ping) packets disabled"
   fi
-  
+
   if [ "$ICMP_OTHER_LOG" != "0" ]; then
     echo " Logging of dropped other ICMP packets enabled"
     iptables -A EXT_INPUT_CHAIN -p icmp ! --icmp-type echo-request \
@@ -3532,7 +3596,7 @@ setup_ext_input_chain()
 
   # Drop all in the multicast chain
   iptables -A EXT_MULTICAST_CHAIN -j DROP
-    
+
   # Drop all "standard" IP protocols
   ##################################
   iptables -A EXT_INPUT_CHAIN -p tcp -j POST_INPUT_DROP_CHAIN
@@ -3549,7 +3613,7 @@ setup_ext_input_chain()
   else
     echo " Logging of other IP protocols (non TCP/UDP/ICMP/IGMP) packets disabled"
   fi
-  
+
   # Drop all remaining packets
   ############################
   iptables -A EXT_INPUT_CHAIN -j POST_INPUT_DROP_CHAIN
@@ -3829,11 +3893,11 @@ setup_input_log()
 
       echo "$(show_if_ip "$interfaces" "$destips")Logging incoming TCP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A INPUT -i $interface -d $destip -p tcp --dport $port -m state --state NEW -m limit \
+            iptables -A INPUT -i $interface -d $destip -p tcp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:TCP INPUT log: "
           done
         done
@@ -3850,11 +3914,11 @@ setup_input_log()
 
       echo "$(show_if_ip "$interfaces" "$destips")Logging incoming UDP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A INPUT -i $interface -d $destip -p udp --dport $port -m state --state NEW -m limit \
+            iptables -A INPUT -i $interface -d $destip -p udp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UDP INPUT log: "
           done
         done
@@ -3870,11 +3934,11 @@ setup_input_log()
 
       echo "$(show_if_ip "$interfaces" "$destips")Logging incoming IP protocol(s): $protos"
 
-      IFS=','
+      IFS=' ,'
       for proto in $protos; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A INPUT -i $interface -d $destip -p $proto -m state --state NEW -m limit \
+            iptables -A INPUT -i $interface -d $destip -p $proto $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IP INPUT log: "
           done
         done
@@ -3891,11 +3955,11 @@ setup_input_log()
 
       echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of: $hosts"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A INPUT -i $interface -s $host -d $destip -m state --state NEW \
+            iptables -A INPUT -i $interface -s $host -d $destip $NF_CONNTRACK_STATE NEW \
               -m limit --limit 12/m --limit-burst 50 \
               -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise INPUT log: "
           done
@@ -3912,12 +3976,12 @@ setup_input_log()
 
       echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of $hosts to TCP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A INPUT -i $interface -s $host -d $destip -p tcp --dport $port -m state --state NEW \
+              iptables -A INPUT -i $interface -s $host -d $destip -p tcp --dport $port $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise TCP log (IN): "
             done
@@ -3936,12 +4000,12 @@ setup_input_log()
 
       echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of $hosts to UDP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A INPUT -i $interface -s $host -d $destip -p udp --dport $port -m state --state NEW \
+              iptables -A INPUT -i $interface -s $host -d $destip -p udp --dport $port $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise UDP INPUT log: "
             done
@@ -3959,12 +4023,12 @@ setup_input_log()
 
       echo "$(show_if_ip "$interfaces" "$destips")Logging incoming connections of $hosts to IP protocol(s): $protos"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for proto in $protos; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A INPUT -i $interface -s $host -d $destip -p $proto -m state --state NEW \
+              iptables -A INPUT -i $interface -s $host -d $destip -p $proto $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise IP INPUT log: "
             done
@@ -3988,11 +4052,11 @@ setup_output_log()
 
       echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing TCP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for port in $ports; do
         for interface in $interfaces; do
           for srcip in $srcips; do
-            iptables -A OUTPUT -o $interface -s $srcip -p tcp --dport $port -m state --state NEW -m limit \
+            iptables -A OUTPUT -o $interface -s $srcip -p tcp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:TCP OUTPUT log: "
           done
         done
@@ -4008,11 +4072,11 @@ setup_output_log()
 
       echo "$(show_if_ip "$interfaces")Logging outgoing UDP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for port in $ports; do
         for interface in $interfaces; do
           for srcip in $srcips; do
-            iptables -A OUTPUT -o $interface -s $srcip -p udp --dport $port -m state --state NEW -m limit \
+            iptables -A OUTPUT -o $interface -s $srcip -p udp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UDP OUTPUT log: "
           done
         done
@@ -4028,11 +4092,11 @@ setup_output_log()
 
       echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing IP protocol(s): $protos"
 
-      IFS=','
+      IFS=' ,'
       for proto in $protos; do
         for interface in $interfaces; do
           for srcip in $srcips; do
-            iptables -A OUTPUT -o $interface -s $srcip -p $proto -m state --state NEW -m limit \
+            iptables -A OUTPUT -o $interface -s $srcip -p $proto $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IP OUTPUT log: "
           done
         done
@@ -4048,11 +4112,11 @@ setup_output_log()
 
       echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections to: $hosts"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for interface in $interfaces; do
           for srcip in $srcips; do
-            iptables -A OUTPUT -o $interface -s $srcip -d $host -m state --state NEW \
+            iptables -A OUTPUT -o $interface -s $srcip -d $host $NF_CONNTRACK_STATE NEW \
               -m limit --limit 12/m --limit-burst 50 \
               -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise OUTPUT log: "
           done
@@ -4070,12 +4134,12 @@ setup_output_log()
 
       echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections of $hosts to TCP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for port in $ports; do
           for interface in $interfaces; do
             for srcip in $srcips; do
-              iptables -A OUTPUT -o $interface -s $srcip -d $host -p tcp --dport $port -m state --state NEW \
+              iptables -A OUTPUT -o $interface -s $srcip -d $host -p tcp --dport $port $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host TCP log (OUT): "
             done
@@ -4094,12 +4158,12 @@ setup_output_log()
 
       echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections of $hosts to UDP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for port in $ports; do
           for interface in $interfaces; do
             for srcip in $srcips; do
-              iptables -A OUTPUT -o $interface -s $srcip -d $host -p udp --dport $port -m state --state NEW \
+              iptables -A OUTPUT -o $interface -s $srcip -d $host -p udp --dport $port $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host UDP log (OUT): "
             done
@@ -4117,12 +4181,12 @@ setup_output_log()
 
       echo "$(show_if_ip "$interfaces" "$srcips")Logging outgoing connections of $hosts to IP protocol(s): $protos"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         for proto in $protos; do
           for interface in $interfaces; do
             for srcip in $srcips; do
-              iptables -A OUTPUT -o $interface -s $srcip -d $host -p $proto -m state --state NEW \
+              iptables -A OUTPUT -o $interface -s $srcip -d $host -p $proto $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host IP log (OUT): "
             done
@@ -4134,10 +4198,203 @@ setup_output_log()
 }
 
 
+# Helper function for setup_hostblock_chain
+###########################################
+setup_ipset_netset()
+{
+  local dir="$1" hashsize="$2" maxelem="$3" family netset set_name IFS
+
+  ## Setup Whitelist
+  ipset create -exist aif_whitelist hash:net family inet hashsize $hashsize maxelem $maxelem
+
+  ip4tables -A HOST_BLOCK_SRC -m set --match-set aif_whitelist src -j RETURN
+  if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+    ip4tables -A HOST_BLOCK_DST -m set --match-set aif_whitelist dst -j RETURN
+  fi
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    ipset create -exist aif_whitelistv6 hash:net family inet6 hashsize $hashsize maxelem $maxelem
+
+    ip6tables -A HOST_BLOCK_SRC -m set --match-set aif_whitelistv6 src -j RETURN
+    if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+      ip6tables -A HOST_BLOCK_DST -m set --match-set aif_whitelistv6 dst -j RETURN
+    fi
+  fi
+
+  ## Setup *.netset files
+  unset IFS
+  for netset in "$dir"/*.netset; do
+    set_name="${netset##*/}"
+    set_name="${set_name%.netset}"
+
+    ## Kernel limits set names to 31 characters, subtract 4 for _tmp
+    if [ ${#set_name} -gt 27 ]; then
+      continue
+    fi
+
+    ## Naming convention, *v6.netset files for IPv6, all other *.netset files default to IPv4
+    case $set_name in
+      *v6|*V6) family="inet6" ;;
+            *) family="inet" ;;
+    esac
+
+    if [ "$IPV6_SUPPORT" != "1" -a "$family" = "inet6" ]; then
+      continue
+    fi
+
+    ## Whitelist already setup above
+    if [ "$set_name" = "whitelist" -o "$set_name" = "whitelistv6" ]; then
+      continue
+    fi
+
+    ipset create -exist ${set_name} hash:net family $family hashsize $hashsize maxelem $maxelem
+
+    if [ "$family" = "inet" ]; then
+      ip4tables -A HOST_BLOCK_SRC -m set --match-set ${set_name} src -j HOST_BLOCK_SRC_DROP
+      if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+        ip4tables -A HOST_BLOCK_DST -m set --match-set ${set_name} dst -j HOST_BLOCK_DST_DROP
+      fi
+    else
+      ip6tables -A HOST_BLOCK_SRC -m set --match-set ${set_name} src -j HOST_BLOCK_SRC_DROP
+      if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+        ip6tables -A HOST_BLOCK_DST -m set --match-set ${set_name} dst -j HOST_BLOCK_DST_DROP
+      fi
+    fi
+  done
+}
+
+
+# Helper function for setup_hostblock_chain
+###########################################
+apply_ipset_netset()
+{
+  local dir="$1" hashsize="$2" maxelem="$3" family netset set_name swap_err IFS
+  local x default_whitelist default_whitelistv6
+
+  default_whitelist="127.0.0.0/8 0.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 224.0.0.0/3"
+  default_whitelistv6="::1 fe80::/10 ff00::/8"
+
+  ## Apply Whitelist
+  unset IFS
+  for netset in "$dir/whitelist.netset" "$dir/whitelistv6.netset"; do
+    set_name="${netset##*/}"
+    set_name="aif_${set_name%.netset}"
+
+    case $set_name in
+      *v6|*V6) family="inet6" ;;
+            *) family="inet" ;;
+    esac
+
+    if [ "$IPV6_SUPPORT" != "1" -a "$family" = "inet6" ]; then
+      continue
+    fi
+
+    ipset create -exist ${set_name}_tmp hash:net family $family hashsize $hashsize maxelem $maxelem
+    ipset flush ${set_name}_tmp
+
+    if [ "$family" = "inet" ]; then
+      unset IFS
+      for x in ${DEFAULT_NETSET_WHITELIST:-$default_whitelist}; do
+        ipset add -exist ${set_name}_tmp $x
+        if [ $? -ne 0 ]; then
+          RULE_WARNING=$((RULE_WARNING + 1))
+        fi
+      done
+      if [ -f "$netset" ]; then
+        printf "Loading IPv4 Whitelist Set: whitelist.netset ... "
+        sed -n -r -e "s/^([0-9][0-9./]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
+        if [ $? -ne 0 ]; then
+          RULE_WARNING=$((RULE_WARNING + 1))
+        fi
+        echo "Done."
+      fi
+    else
+      unset IFS
+      for x in ${DEFAULT_NETSET_WHITELISTV6:-$default_whitelistv6}; do
+        ipset add -exist ${set_name}_tmp $x
+        if [ $? -ne 0 ]; then
+          RULE_WARNING=$((RULE_WARNING + 1))
+        fi
+      done
+      if [ -f "$netset" ]; then
+        printf "Loading IPv6 Whitelist Set: whitelistv6.netset ... "
+        sed -n -r -e "s/^([0-9a-fA-F][0-9a-fA-F:/]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
+        if [ $? -ne 0 ]; then
+          RULE_WARNING=$((RULE_WARNING + 1))
+        fi
+        echo "Done."
+      fi
+    fi
+    ipset swap ${set_name} ${set_name}_tmp
+    ipset destroy ${set_name}_tmp
+  done
+
+  ## Apply *.netset files
+  unset IFS
+  for netset in "$dir"/*.netset; do
+    set_name="${netset##*/}"
+    set_name="${set_name%.netset}"
+
+    ## Kernel limits set names to 31 characters, subtract 4 for _tmp
+    if [ ${#set_name} -gt 27 ]; then
+      printf "\033[40m\033[1;31mERROR: The \"${set_name}.netset\" name is too long, filenames are limited to <27-characters>.netstat\033[0m\n" >&2
+      RULE_WARNING=$((RULE_WARNING + 1))
+      continue
+    fi
+
+    ## Naming convention, *v6.netset files for IPv6, all other *.netset files default to IPv4
+    case $set_name in
+      *v6|*V6) family="inet6" ;;
+            *) family="inet" ;;
+    esac
+
+    if [ "$IPV6_SUPPORT" != "1" -a "$family" = "inet6" ]; then
+      continue
+    fi
+
+    ## Whitelist already applied above
+    if [ "$set_name" = "whitelist" -o "$set_name" = "whitelistv6" ]; then
+      continue
+    fi
+
+    ipset create -exist ${set_name}_tmp hash:net family $family hashsize $hashsize maxelem $maxelem
+    ipset flush ${set_name}_tmp
+
+    swap_err=0
+
+    if [ "$family" = "inet" ]; then
+      printf "Loading IPv4 Blocklist Set: ${set_name}.netset ... "
+      sed -n -r -e "s/^([0-9][0-9./]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
+      if [ $? -ne 0 ]; then
+        swap_err=1
+        RULE_WARNING=$((RULE_WARNING + 1))
+      fi
+    else
+      printf "Loading IPv6 Blocklist Set: ${set_name}.netset ... "
+      sed -n -r -e "s/^([0-9a-fA-F][0-9a-fA-F:/]+)([[:space:]].*|)$/add -exist ${set_name}_tmp \1/p" "$netset" | ipset restore
+      if [ $? -ne 0 ]; then
+        swap_err=1
+        RULE_WARNING=$((RULE_WARNING + 1))
+      fi
+    fi
+
+    if [ $swap_err -eq 0 ]; then
+      ipset swap ${set_name} ${set_name}_tmp
+      echo "Done."
+    else
+      echo ""
+      printf "\033[40m\033[1;31mERROR: \"ipset swap ${set_name} ...\" not applied.\033[0m\n" >&2
+    fi
+    ipset destroy ${set_name}_tmp
+  done
+}
+
+
 # This creates the separate host block
 ######################################
 setup_hostblock_chain()
 {
+  local hashsize maxelem swap4_err swap6_err
+
   if iptables -F HOST_BLOCK_SRC 2>&1 |grep -q "No chain" || \
      iptables -F HOST_BLOCK_DST 2>&1 |grep -q "No chain"; then
     printf "\033[40m\033[1;31mERROR: The firewall isn't running!\033[0m\n" >&2
@@ -4146,7 +4403,7 @@ setup_hostblock_chain()
   fi
 
   # Return if no Blocked Hosts are defined
-  if [ -z "$BLOCK_HOSTS" -a -z "$BLOCK_HOSTS_FILE" ]; then
+  if [ -z "$BLOCK_HOSTS" -a -z "$BLOCK_HOSTS_FILE" -a -z "$BLOCK_NETSET_DIR" ]; then
     return
   fi
 
@@ -4154,6 +4411,169 @@ setup_hostblock_chain()
     echo "Blocking (blackhole) direction: Inbound and Outbound"
   else
     echo "Blocking (blackhole) direction: Inbound Only"
+  fi
+
+## Use 'ipset' if enabled and available, else fallback to discrete iptables rules
+##
+if ipset_check; then
+  hashsize="${IPTABLES_IPSET_HASHSIZE:-2048}"
+  maxelem="${IPTABLES_IPSET_MAXELEM:-131072}"
+
+  if [ -n "$BLOCK_HOSTS" -o -n "$BLOCK_HOSTS_FILE" ]; then
+    ipset create -exist aif_blocklist hash:net family inet hashsize $hashsize maxelem $maxelem
+
+    ip4tables -A HOST_BLOCK_SRC -m set --match-set aif_blocklist src -j HOST_BLOCK_SRC_DROP
+    if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+      ip4tables -A HOST_BLOCK_DST -m set --match-set aif_blocklist dst -j HOST_BLOCK_DST_DROP
+    fi
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      ipset create -exist aif_blocklistv6 hash:net family inet6 hashsize $hashsize maxelem $maxelem
+
+      ip6tables -A HOST_BLOCK_SRC -m set --match-set aif_blocklistv6 src -j HOST_BLOCK_SRC_DROP
+      if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
+        ip6tables -A HOST_BLOCK_DST -m set --match-set aif_blocklistv6 dst -j HOST_BLOCK_DST_DROP
+      fi
+    fi
+  fi
+
+  if [ -n "$BLOCK_NETSET_DIR" ] && [ -d "$BLOCK_NETSET_DIR" ] && ls "$BLOCK_NETSET_DIR"/*.netset >/dev/null 2>&1; then
+    setup_ipset_netset "$BLOCK_NETSET_DIR" $hashsize $maxelem
+
+    ## Optimization, add ipsets to iptables (above) first, then apply ipset contents (below) which takes time
+
+    apply_ipset_netset "$BLOCK_NETSET_DIR" $hashsize $maxelem
+  fi
+
+  if [ -z "$BLOCK_HOSTS" -a -z "$BLOCK_HOSTS_FILE" ]; then
+    return
+  fi
+
+  ipset create -exist aif_blocklist_tmp hash:net family inet hashsize $hashsize maxelem $maxelem
+  ipset flush aif_blocklist_tmp
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    ipset create -exist aif_blocklistv6_tmp hash:net family inet6 hashsize $hashsize maxelem $maxelem
+    ipset flush aif_blocklistv6_tmp
+  fi
+
+  swap4_err=0
+  swap6_err=0
+
+  if [ -n "$BLOCK_HOSTS" ]; then
+    printf "Blocking (blackhole) host(s): "
+
+    IFS=' ,'
+    for hosts in $BLOCK_HOSTS; do
+      printf "$hosts "
+
+      for host in `ip_range "$hosts"`; do
+        get_numeric_ip_version "$host"
+        case $? in
+        4)
+          ipset add -exist aif_blocklist_tmp $host
+          if [ $? -ne 0 ]; then
+            swap4_err=1
+            RULE_WARNING=$((RULE_WARNING + 1))
+          fi
+          ;;
+        6)
+          if [ "$IPV6_SUPPORT" = "1" ]; then
+            ipset add -exist aif_blocklistv6_tmp $host
+            if [ $? -ne 0 ]; then
+              swap6_err=1
+              RULE_WARNING=$((RULE_WARNING + 1))
+            fi
+          fi
+          ;;
+        esac
+      done
+    done
+    echo ""
+  fi
+
+  # Setup the blocked hosts from our file
+  if [ -n "$BLOCK_HOSTS_FILE" ]; then
+    if [ -e "$BLOCK_HOSTS_FILE" ]; then
+      local cur_cnt=0 total_cnt
+      total_cnt=$(( $(cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' -e '/^$/d' |wc -l) ))
+
+      : > "$IP4TABLES_BATCH_FILE"
+      if [ "$IPV6_SUPPORT" = "1" ]; then
+        : > "$IP6TABLES_BATCH_FILE"
+      fi
+
+      echo "(Re)loading list of BLOCKED hosts from $BLOCK_HOSTS_FILE..."
+      if [ $total_cnt -gt 0 ]; then
+        progress_bar $cur_cnt $total_cnt
+
+        # Support both a '#' and a ';' as a comment delimiter in BLOCK_HOSTS_FILE file
+        unset IFS
+        cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' -e '/^$/d' |while read hosts; do
+          cur_cnt=$(($cur_cnt + 100))
+          progress_bar $cur_cnt $total_cnt
+
+          if [ -n "$hosts" ]; then
+            IFS=','
+            for host in `ip_range "$hosts"`; do
+              get_numeric_ip_version "$host"
+              case $? in
+              4)
+                echo "add -exist aif_blocklist_tmp $host" >> "$IP4TABLES_BATCH_FILE"
+                ;;
+              6)
+                if [ "$IPV6_SUPPORT" = "1" ]; then
+                  echo "add -exist aif_blocklistv6_tmp $host" >> "$IP6TABLES_BATCH_FILE"
+                fi
+                ;;
+              esac
+            done
+            unset IFS
+          fi
+        done
+        printf "........."
+      fi
+
+      echo "$total_cnt host line(s) read"
+
+      ipset restore < "$IP4TABLES_BATCH_FILE"
+      if [ $? -ne 0 ]; then
+        swap4_err=1
+        RULE_WARNING=$((RULE_WARNING + 1))
+      fi
+      rm -f "$IP4TABLES_BATCH_FILE"
+      if [ "$IPV6_SUPPORT" = "1" ]; then
+        ipset restore < "$IP6TABLES_BATCH_FILE"
+        if [ $? -ne 0 ]; then
+          swap6_err=1
+          RULE_WARNING=$((RULE_WARNING + 1))
+        fi
+        rm -f "$IP6TABLES_BATCH_FILE"
+      fi
+    else
+      printf "\033[40m\033[1;31mNOTE: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
+    fi
+  fi
+
+  if [ $swap4_err -eq 0 ]; then
+    ipset swap aif_blocklist aif_blocklist_tmp
+  else
+    printf "\033[40m\033[1;31mERROR: IPv4 \"ipset swap ...\" not applied.\033[0m\n" >&2
+  fi
+  ipset destroy aif_blocklist_tmp
+  if [ "$IPV6_SUPPORT" = "1" ]; then
+    if [ $swap6_err -eq 0 ]; then
+      ipset swap aif_blocklistv6 aif_blocklistv6_tmp
+    else
+      printf "\033[40m\033[1;31mERROR: IPv6 \"ipset swap ...\" not applied.\033[0m\n" >&2
+    fi
+    ipset destroy aif_blocklistv6_tmp
+  fi
+else
+  if [ -n "$BLOCK_NETSET_DIR" ]; then
+    printf "\033[40m\033[1;31mNOTE: Blocking using .netset files in BLOCK_NETSET_DIR requires IPTABLES_IPSET to be enabled.\033[0m\n"
+  fi
+
+  if [ -z "$BLOCK_HOSTS" -a -z "$BLOCK_HOSTS_FILE" ]; then
+    return
   fi
 
   # Set default to DROP all while rules are added
@@ -4175,16 +4595,16 @@ setup_hostblock_chain()
         get_numeric_ip_version "$host"
         case $? in
         4)
-          ip4tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+          ip4tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_SRC_DROP
           if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-            ip4tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+            ip4tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DST_DROP
           fi
           ;;
         6)
           if [ "$IPV6_SUPPORT" = "1" ]; then
-            ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+            ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_SRC_DROP
             if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-              ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+              ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DST_DROP
             fi
           fi
           ;;
@@ -4217,16 +4637,16 @@ setup_hostblock_chain()
               get_numeric_ip_version "$host"
               case $? in
               4)
-                ip4tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+                ip4tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_SRC_DROP
                 if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-                  ip4tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+                  ip4tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DST_DROP
                 fi
                 ;;
               6)
                 if [ "$IPV6_SUPPORT" = "1" ]; then
-                  ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_DROP
+                  ip6tables_batch -A HOST_BLOCK_SRC -s $host -j HOST_BLOCK_SRC_DROP
                   if [ "$BLOCK_HOSTS_BIDIRECTIONAL" != "0" ]; then
-                    ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DROP
+                    ip6tables_batch -A HOST_BLOCK_DST -d $host -j HOST_BLOCK_DST_DROP
                   fi
                 fi
                 ;;
@@ -4237,7 +4657,7 @@ setup_hostblock_chain()
         done
         printf "........."
       fi
-        
+
       echo "$total_cnt host line(s) read"
     else
       printf "\033[40m\033[1;31mNOTE: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
@@ -4247,11 +4667,12 @@ setup_hostblock_chain()
   iptables_batch apply HOST_BLOCK_SRC
   iptables_batch apply HOST_BLOCK_DST
   iptables_batch stop
-  
+
   # All Blocked Host rules are applied
   # Remove default rule at the beginning of the HOST_BLOCK_SRC and HOST_BLOCK_DST chains
   iptables -D HOST_BLOCK_SRC 1
   iptables -D HOST_BLOCK_DST 1
+fi
 }
 
 
@@ -4368,7 +4789,7 @@ plugins_start()
   local plugin_count=0
 
   # Truncate/create file
-  cp -f /dev/null "$PLUGIN_LOAD_FILE"
+  : > "$PLUGIN_LOAD_FILE"
 
   printf "Checking for (user) plugins in $PLUGIN_BIN_PATH..."
 
@@ -4493,7 +4914,7 @@ plugins_stop()
           plugin_count=$(($plugin_count + 1))
         fi
       else
-        printf "\033[40m\033[1;31mERROR: Could not stop plugin \"$plugin_name\" as it does no exist!\033[0m\n" >&2 
+        printf "\033[40m\033[1;31mERROR: Could not stop plugin \"$plugin_name\" as it does no exist!\033[0m\n" >&2
       fi
     done
 
@@ -4548,13 +4969,21 @@ setup_firewall_rules()
   echo "Setting up firewall rules:"
   echo "-------------------------------------------------------------------------------"
 
+  # Assign conntrack helper modules
+  #################################
+  echo "Enabling assignment of selected conntrack helpers"
+  load_conntrack_helper_module ftp tcp 21
+  if [ "$USE_IRC" = "1" ]; then
+    load_conntrack_helper_module irc tcp 6667:7001
+  fi
+
   # Setup all TCP MSS stuff
   #########################
-  setup_tcp_mss;
+  setup_tcp_mss
 
   # Setup all mangle stuff
   ########################
-  setup_mangle_tables;
+  setup_mangle_tables
 
   # Setup basic input/forward/output/... chains
   #############################################
@@ -4578,9 +5007,9 @@ setup_firewall_rules()
 
   # Setup global helper chains
   ############################
-  setup_valid_chk_chain;
-  setup_reserved_net_chk_chain;
-  setup_spoof_chk_chain;
+  setup_valid_chk_chain
+  setup_reserved_net_chk_chain
+  setup_spoof_chk_chain
 
   # Check if source address is spoofed
   ####################################
@@ -4588,8 +5017,8 @@ setup_firewall_rules()
 
   # Setup rules for input/output logging
   ######################################
-  setup_input_log;
-  setup_output_log;
+  setup_input_log
+  setup_output_log
 
   # Explicit unset IFS, just in case
   unset IFS
@@ -4603,7 +5032,7 @@ setup_firewall_rules()
 
   # Start (user) plugins
   ######################
-  plugins_start;
+  plugins_start
 
   # Drop outgoing fragmented packets (this should in principle never happen because of netfilter's
   # packet defragmentation
@@ -4614,13 +5043,13 @@ setup_firewall_rules()
 
   # Setup helper chains for EXTERNAL input traffic:
   echo "Setting up external(INET) INPUT policy"
-  setup_ext_broadcast_chain;
-  setup_ext_icmp_flood_chain;
-  setup_ext_input_chain;
+  setup_ext_broadcast_chain
+  setup_ext_icmp_flood_chain
+  setup_ext_input_chain
 
   # Setup helper chains for EXTERNAL output traffic:
   echo "Setting up external(INET) OUTPUT policy"
-  setup_ext_output_chain;
+  setup_ext_output_chain
 
   # This is used for your external (untrusted) interfaces
   #######################################################
@@ -4653,14 +5082,14 @@ setup_firewall_rules()
     # Perform check:
     ################
     # Non-ICMP traffic:
-    iptables -A INPUT -i $interface ! -p icmp -m state --state NEW -j EXT_INPUT_CHAIN
+    iptables -A INPUT -i $interface ! -p icmp $NF_CONNTRACK_STATE NEW -j EXT_INPUT_CHAIN
 
     # ICMP traffic (rate limited):
-    iptables -A INPUT -i $interface -p icmp -m state --state NEW \
+    iptables -A INPUT -i $interface -p icmp $NF_CONNTRACK_STATE NEW \
       -m limit --limit 60/second --limit-burst 100 -j EXT_INPUT_CHAIN
 
     # ICMP traffic (flood)
-    iptables -A INPUT -i $interface -p icmp -m state --state NEW -j EXT_ICMP_FLOOD_CHAIN
+    iptables -A INPUT -i $interface -p icmp $NF_CONNTRACK_STATE NEW -j EXT_ICMP_FLOOD_CHAIN
 
     # Drop any remaining ICMPv6 traffic
     if [ "$IPV6_SUPPORT" = "1" ]; then
@@ -4674,7 +5103,7 @@ setup_firewall_rules()
   if [ -n "$INT_IF" ]; then
     # Setup helper chain for the LAN:
     echo "Setting up internal(LAN) INPUT policy"
-    setup_int_input_chain;
+    setup_int_input_chain
 
     IFS=' ,'
     for interface in $INT_IF; do
@@ -4689,7 +5118,7 @@ setup_firewall_rules()
   if [ -n "$DMZ_IF" ]; then
     # Setup helper chain for the DMZ:
     echo "Setting up DMZ INPUT policy"
-    setup_dmz_input_chain;
+    setup_dmz_input_chain
 
     IFS=' ,'
     for interface in $DMZ_IF; do
@@ -4712,7 +5141,7 @@ setup_firewall_rules()
   # Jump to the POST INPUT chain
   ##############################
   iptables -A INPUT -j POST_INPUT_CHAIN
-  
+
   # Everything else is logged & dropped in INPUT (just in case)...
   ################################################################
   iptables -A INPUT -m limit --limit 1/s -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Dropped INPUT packet: "
@@ -4759,7 +5188,7 @@ setup_firewall_rules()
     iptables -A FORWARD -i $eif -j EXT_FORWARD_IN_CHAIN
     iptables -A FORWARD -o $eif -j EXT_FORWARD_OUT_CHAIN
   done
-  
+
   # Source the IN/OUT chains for the dmz interface(s)
   ########################################################
   IFS=' ,'
@@ -4801,14 +5230,16 @@ setup_firewall_rules()
     fi
 
     # Setup helper chains for the DMZ:
-    setup_inet_dmz_forward_chain;
-    setup_dmz_inet_forward_chain;
-    setup_dmz_lan_forward_chain;
+    setup_inet_dmz_forward_chain
+    setup_dmz_inet_forward_chain
+    setup_dmz_lan_forward_chain
+
+    echo " Allowing LAN->DMZ for LAN interface(s): ${LAN_DMZ_ALLOW_IF:-$INT_IF}"
 
     IFS=' ,'
     for dif in $DMZ_IF; do
       echo "Applying DMZ FORWARD policy to interface: $dif"
-      
+
       # Always make subnets on the SAME interface trust each other
       iptables -A FORWARD -i $dif -o $dif -j ACCEPT
 
@@ -4825,8 +5256,13 @@ setup_firewall_rules()
         # Apply policy for DMZ->LAN
         iptables -A FORWARD -i $dif -o $iif -j DMZ_LAN_FORWARD_CHAIN
 
-        # Apply policy for LAN->DMZ (allow all)
-        iptables -A FORWARD -i $iif -o $dif -j ACCEPT
+        # Apply policy for LAN->DMZ (allow all INT_IF when LAN_DMZ_ALLOW_IF is not defined)
+        for interface in ${LAN_DMZ_ALLOW_IF:-$INT_IF}; do
+          if [ "$iif" = "$interface" ]; then
+            iptables -A FORWARD -i $iif -o $dif -j ACCEPT
+            break
+          fi
+        done
       done
     done
   fi
@@ -4860,15 +5296,15 @@ setup_firewall_rules()
     fi
 
     # Setup helper chains for the LAN:
-    setup_lan_lan_forward_chain;
+    setup_lan_lan_forward_chain
     lan_lan_forward_result=$?
 
-    setup_lan_inet_forward_chain;
+    setup_lan_inet_forward_chain
 
     IFS=' ,'
     for iif in $INT_IF; do
       echo "Applying internal(LAN) FORWARD policy to interface: $iif"
-      
+
       # Always make subnets on the SAME interface trust each other
       iptables -A FORWARD -i $iif -o $iif -j ACCEPT
 
@@ -4904,22 +5340,19 @@ setup_firewall_rules()
         printf "$net "
 
         COUNT=0
-        for interface in $EXT_IF; do
-          COUNT=$(($COUNT + 1))         # x++;
+        for interface in $NAT_IF; do
+          COUNT=$(($COUNT + 1))         # x++
           STATIC_IP=$(echo "$NAT_STATIC_IP" |awk "{ print \$$COUNT }")
 
           if [ -z "$STATIC_IP" ]; then
             # No more IPs specified for the remaining interfaces
-            break;
+            break
           fi
           ip4tables -t nat -A POSTROUTING -o $interface -s $net ! -d $net -j SNAT --to-source $STATIC_IP
         done
       done
       echo ""
     else
-      if [ -z "$NAT_IF" ]; then
-        NAT_IF="$EXT_IF"
-      fi
       echo "Enabling masquerading(NAT) via (external) interface(s): $NAT_IF"
 
       printf " Adding (internal) host(s): "
@@ -4944,7 +5377,7 @@ setup_firewall_rules()
   #######################
   unset IFS
   for rule in $NAT_FORWARD_TCP; do
-    if parse_rule "$rule" NAT_FORWARD_TCP "interfaces:EXT_IF-destips-shosts-ports-dhost_dport"; then
+    if parse_rule "$rule" NAT_FORWARD_TCP "interfaces:NAT_IF-destips-shosts-ports-dhost_dport"; then
 
       echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) TCP port(s) $(show_hosts_ports "$shosts" "$ports") to $(echo "$dhost_dport" |tr "$SEP-" '::')"
 
@@ -4974,7 +5407,7 @@ setup_firewall_rules()
   #######################
   unset IFS
   for rule in $NAT_FORWARD_UDP; do
-    if parse_rule "$rule" NAT_FORWARD_UDP "interfaces:EXT_IF-destips-shosts-ports-dhost_dport"; then
+    if parse_rule "$rule" NAT_FORWARD_UDP "interfaces:NAT_IF-destips-shosts-ports-dhost_dport"; then
 
       echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) UDP port(s) $(show_hosts_ports "$shosts" "$ports") to $(echo "$dhost_dport" |tr "$SEP-" '::')"
 
@@ -5004,7 +5437,7 @@ setup_firewall_rules()
   ############################################
   unset IFS
   for rule in $NAT_FORWARD_IP; do
-    if parse_rule "$rule" NAT_FORWARD_IP "interfaces:EXT_IF-destips-shosts-protos-dhost"; then
+    if parse_rule "$rule" NAT_FORWARD_IP "interfaces:NAT_IF-destips-shosts-protos-dhost"; then
 
       echo "$(show_if_ip "$interfaces" "$destips")Forwarding(NAT) IP protocol(s) $(show_hosts_ports "$shosts" "$protos") to $dhost"
 
@@ -5025,7 +5458,7 @@ setup_firewall_rules()
   done
 
   # Setup rules to allow INET IPv6 and non-NAT'ed IPv4 traffic in FORWARD chain
-  setup_inet_forward_rules;
+  setup_inet_forward_rules
 
   # Do we want to loose the forward chain to make use of protocols like UPnP possible?
   ####################################################################################
@@ -5042,7 +5475,7 @@ setup_firewall_rules()
 
   # Jump to the post forward chain
   iptables -A FORWARD -j POST_FORWARD_CHAIN
-  
+
   # Everything else is logged & dropped in FORWARD
   if [ "$FORWARD_DROP_LOG" != "0" ]; then
     echo " Logging of dropped FORWARD packets enabled"
@@ -5065,7 +5498,7 @@ setup_firewall_rules()
 
   # Jump to the post output chain
   iptables -A OUTPUT -j POST_OUTPUT_CHAIN
-  
+
   # Everything else is accepted in OUTPUT
   iptables -A OUTPUT -j ACCEPT
 
@@ -5081,7 +5514,8 @@ create_user_chains()
   # General chains
   iptables -N HOST_BLOCK_SRC
   iptables -N HOST_BLOCK_DST
-  iptables -N HOST_BLOCK_DROP
+  iptables -N HOST_BLOCK_SRC_DROP
+  iptables -N HOST_BLOCK_DST_DROP
   iptables -N VALID_CHK
   iptables -N RESERVED_NET_CHK
   iptables -N SPOOF_CHK
@@ -5135,7 +5569,8 @@ flush_user_chains()
   # General chains
   iptables -F HOST_BLOCK_SRC
   iptables -F HOST_BLOCK_DST
-  iptables -F HOST_BLOCK_DROP
+  iptables -F HOST_BLOCK_SRC_DROP
+  iptables -F HOST_BLOCK_DST_DROP
   iptables -F VALID_CHK
   iptables -F RESERVED_NET_CHK
   iptables -F SPOOF_CHK
@@ -5196,11 +5631,13 @@ stop_firewall()
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  # Flush rules in the mangle/nat tables
-  ip4tables -t mangle -F
-  ip4tables -t mangle -X
+  # Flush rules in the nat/mangle/raw tables
   ip4tables -t nat -F
   ip4tables -t nat -X
+  ip4tables -t mangle -F
+  ip4tables -t mangle -X
+  try_ip4tables -t raw -F
+  try_ip4tables -t raw -X
 
   # Attempt to flush all IPv4 chains
   ip4tables -F
@@ -5217,9 +5654,13 @@ stop_firewall()
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
 
-    # Flush rules in the mangle table
+    # Flush rules in the nat/mangle/raw tables
+    try_ip6tables -t nat -F
+    try_ip6tables -t nat -X
     ip6tables -t mangle -F
     ip6tables -t mangle -X
+    try_ip6tables -t raw -F
+    try_ip6tables -t raw -X
 
     # Attempt to flush all IPv6 chains
     ip6tables -F
@@ -5239,7 +5680,7 @@ reinit_firewall_chains()
   create_user_chains 2>/dev/null
 
   # Flush our user chains
-  flush_user_chains;
+  flush_user_chains
 
   # Temporarily set OUTPUT default policy to ACCEPT
   # Without it, active states will be flushed.
@@ -5260,16 +5701,33 @@ reinit_firewall_chains()
   #   expect any external, dynamically managed mangle chains
   ip4tables -t mangle -F
 
+  # Flush builtin IPv4 raw chains
+  try_ip4tables -t raw -F
+
+  # Flush conntrack helper IPv4 chain, may not exist so "try"
+  try_ip4tables -F CONNTRACK_HELPER
+
   if [ "$IPV6_DETECTED" = "1" ]; then
     # Flush builtin IPv6 chains
     ip6tables -F INPUT
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
 
+    # Flush builtin IPv6 nat chains
+    try_ip6tables -t nat -F PREROUTING
+    try_ip6tables -t nat -F OUTPUT
+    try_ip6tables -t nat -F POSTROUTING
+
     # Flush builtin IPv6 mangle chains
     #   We don't have to be selective by chain since we don't
     #   expect any external, dynamically managed mangle chains
     ip6tables -t mangle -F
+
+    # Flush builtin IPv6 raw chains
+    try_ip6tables -t raw -F
+
+    # Flush conntrack helper IPv6 chain, may not exist so "try"
+    try_ip6tables -F CONNTRACK_HELPER
   fi
 
   # Restore our base chains (which weren't flushed so any
@@ -5289,17 +5747,19 @@ stop_block_firewall()
   ip4tables -P INPUT DROP
   ip4tables -P FORWARD DROP
   ip4tables -P OUTPUT DROP
-  
+
   # Flush builtin IPv4 chains
   ip4tables -F INPUT
   ip4tables -F OUTPUT
   ip4tables -F FORWARD
 
-  # Flush nat/mangle table rules
-  ip4tables -t mangle -F
-  ip4tables -t mangle -X
+  # Flush nat/mangle/raw table rules
   ip4tables -t nat -F
   ip4tables -t nat -X
+  ip4tables -t mangle -F
+  ip4tables -t mangle -X
+  try_ip4tables -t raw -F
+  try_ip4tables -t raw -X
 
   # Attempt to flush all IPv4 chains
   ip4tables -F
@@ -5318,9 +5778,13 @@ stop_block_firewall()
     ip6tables -F OUTPUT
     ip6tables -F FORWARD
 
-    # Flush mangle table rules
+    # Flush nat/mangle/raw table rules
+    try_ip6tables -t nat -F
+    try_ip6tables -t nat -X
     ip6tables -t mangle -F
     ip6tables -t mangle -X
+    try_ip6tables -t raw -F
+    try_ip6tables -t raw -X
 
     # Attempt to flush all IPv6 chains
     ip6tables -F
@@ -5331,7 +5795,7 @@ stop_block_firewall()
   IFS=' ,'
   for interface in $EXT_IF; do
     ip4tables -A INPUT -i $interface -j DROP
-    
+
     if [ "$IPV6_DETECTED" = "1" ]; then
       ip6tables -A INPUT -i $interface -j DROP
     fi
@@ -5376,7 +5840,7 @@ show_status()
     fi
 
     # Show plugin status
-    plugins_status;
+    plugins_status
   else
     #iptables -nvL $2 $3 $4 $5
     iptables -xnvL $@
@@ -5397,6 +5861,14 @@ show_restart()
   DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
   echo "$DATE ** Restarting Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
   echo "** Restarting Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
+}
+
+
+show_failed()
+{
+  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
+  echo "$DATE ** ERROR: Firewall failed to start! **" >> $FIREWALL_LOG
+  echo "** ERROR: Firewall failed to start! **" |logger -t firewall -p kern.info
 }
 
 
@@ -5424,8 +5896,8 @@ show_applied()
 
   if [ $RULE_WARNING -ne 0 ]; then
     printf "$DATE \033[40m\033[1;31mWARNING: $RULE_WARNING firewall rules failed to apply!\n\033[0m" >&2
-    echo "$DATE ** WARNING: $RULE_WARNING firewall rules failed to apply **" >> $FIREWALL_LOG
-    echo "** WARNING: $RULE_WARNING firewall rules failed to apply **" |logger -t firewall -p kern.info
+    echo "$DATE ** WARNING: $RULE_WARNING firewall rules failed to apply! **" >> $FIREWALL_LOG
+    echo "** WARNING: $RULE_WARNING firewall rules failed to apply! **" |logger -t firewall -p kern.info
   else
     printf "$DATE \033[40m\033[1;32mAll firewall rules applied.\033[0m\n"
     echo "$DATE ** All firewall rules applied **" >> $FIREWALL_LOG
@@ -5452,16 +5924,17 @@ show_help()
   echo "check-conf                  = Check configuration file (only)" >&2
   echo "status [-t {table}] [chain] = View firewall ruleset ([chain] & [-t {table}] are optional)" >&2
   echo "status-plugins [name]       = View plugins status (view only plugin [name] is optional)" >&2
+  echo "" >&2
 }
 
 
 main_stop()
 {
-  plugins_stop;
+  plugins_stop
   if [ "$1" = "block" ]; then
-    stop_block_firewall;
+    stop_block_firewall
   else
-    stop_firewall;
+    stop_firewall
   fi
 
   if [ "$PLUGIN_ERRORS" != "0" ]; then
@@ -5472,36 +5945,31 @@ main_stop()
 
 main_start()
 {
-  load_modules;
-  setup_misc;
-  setup_kernel_settings;
-  init_firewall_chains;
-  setup_default_policies;
-  setup_hostblock_chain;
-  setup_firewall_rules;
+  load_modules
+  setup_misc
+  setup_kernel_settings
+  init_firewall_chains
+  setup_default_policies
+  setup_hostblock_chain
+  setup_firewall_rules
 }
 
 
 main_restart()
 {
-  plugins_stop restart;
-  load_modules;
-#  setup_misc;
-  setup_kernel_settings;
-  reinit_firewall_chains;
-  setup_default_policies;
-  setup_hostblock_chain;
-  setup_firewall_rules;
+  plugins_stop restart
+  load_modules
+#  setup_misc
+  setup_kernel_settings
+  reinit_firewall_chains
+  setup_default_policies
+  setup_hostblock_chain
+  setup_firewall_rules
 }
 
 
 start_restart()
 {
-  # Show uname information
-  echo "Platform: $(uname -s -r -m)"
-
-  config_check;
-  
   # Check whether we are actually stopped
   case $(check_for_base_chains) in
     no)    main_start;;
@@ -5513,7 +5981,7 @@ start_restart()
     printf "\033[40m\033[1;31m\nWARNING: $PLUGIN_ERRORS Plugin(s) reported errors while starting!\n\033[0m" >&2
   fi
 
-  show_applied;
+  show_applied
 }
 
 
@@ -5522,34 +5990,37 @@ start_restart()
 
 # Check commandline supplied argument:
 case "$1" in
-  'start' )             sanity_check;
-                        show_start;
+  'start' )             sanity_check
+                        show_start
+                        config_check
                         start_restart;;
-  'restart' )           sanity_check;
-                        show_restart;
+  'restart' )           sanity_check
+                        show_restart
+                        config_check
                         start_restart;;
-  'force-reload' )      sanity_check;
-                        config_check;
-                        setup_hostblock_chain;
+  'force-reload' )      sanity_check
+                        config_check
+                        setup_hostblock_chain
                         show_applied;;
-  'stop' )              sanity_check;
-                        show_stop;
-                        main_stop;
+  'stop' )              sanity_check
+                        show_stop
+                        main_stop
                         show_disabled;;
-  'stop-block' )        sanity_check;
-                        show_stop;
-                        main_stop block;
+  'stop-block' )        sanity_check
+                        show_stop
+                        main_stop block
                         show_stop_blocked;;
-  'status' )            shift;
+  'status' )            shift
                         show_status $@;;
-  'status-plugins' )    shift;
+  'status-plugins' )    shift
                         plugins_status $@;;
   'check-conf' )        config_check;;
-  * )                   printf "\033[40m\033[1;31mERROR: Bad or missing parameter(s)\033[0m\n" >&2;
+  * )                   printf "\033[40m\033[1;31mERROR: Bad or missing parameter(s)\033[0m\n" >&2
                         show_help;;
 esac
 
 if [ $RULE_WARNING -ne 0 ]; then
   exit 1
 fi
+
 exit 0

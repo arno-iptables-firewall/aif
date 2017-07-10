@@ -138,7 +138,7 @@ traffic_accounting_get_host()
 
 traffic_accounting_setup_rules()
 {
-  # Touch the log file (just in case they doesn't exist yet):
+  # Touch the log file (just in case it doesn't exist yet):
   touch /var/log/traffic-accounting.log
 
   # Truncate file
@@ -180,7 +180,7 @@ traffic_accounting_setup_rules()
     # Get host_ip, if it fails, skip rule
     if ! traffic_accounting_get_host "$host"; then
       echo "** WARNING: Skipping rule for \"$host\"! **" >&2
-      continue;
+      continue
     fi
 
     echo "${INDENT}Monitoring host \"$host\""
@@ -424,7 +424,7 @@ else
       # This is a critical section so we use a lockfile
       if lock_enter; then
         # Create actual rules
-        traffic_accounting_setup_rules;
+        traffic_accounting_setup_rules
 
         # We're done
         lock_leave

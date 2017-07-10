@@ -4,7 +4,7 @@
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2016 by Arno van Amersfoort & Lonnie Abelbeck
+# (C) Copyright 2001-2017 by Arno van Amersfoort & Lonnie Abelbeck
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -72,6 +72,7 @@ check_command()
       /*) path="" ;;
       ip|tc|modprobe|sysctl) path="/sbin/" ;;
       sed|cat|date|uname) path="/bin/" ;;
+      ipset) path="/usr/sbin/" ;;
       *) path="/usr/bin/" ;;
     esac
 
@@ -164,6 +165,28 @@ kernel_ver_chk()
   return 0
 }
 
+# nf_conntrack helper assignment
+# Example: load_conntrack_helper_module ftp tcp 21
+##
+load_conntrack_helper_module()
+{
+  local helper="$1" proto="$2" dport="$3" do_iptables related
+
+  modprobe_multi nf_conntrack_$helper ip_conntrack_$helper
+  if [ "$NAT" = "1" ]; then
+    modprobe_multi nf_nat_$helper ip_nat_$helper
+  fi
+
+  if ip4tables -nL CONNTRACK_HELPER >/dev/null 2>&1; then
+    case $helper in
+       ftp) do_iptables="iptables" ; related="-p $proto --dport 1024:" ;;
+      pptp) do_iptables="ip4tables"; related="" ;;
+         *) do_iptables="iptables" ; related="" ;;
+    esac
+    $do_iptables -A CONNTRACK_HELPER -m conntrack --ctstate RELATED -m helper --helper $helper $related -j ACCEPT
+    $do_iptables -t raw -A PREROUTING -p $proto --dport $dport -j CT --helper $helper
+  fi
+}
 
 # Linecount function
 lc()
@@ -629,9 +652,21 @@ sysctl_set_all()
 }
 
 
-sysctl_key()
+sysctl_key_prefix()
 {
   $SYSCTL -a 2>/dev/null |grep -q "^$1"
+}
+
+
+sysctl_key_match()
+{
+  $SYSCTL "$1" >/dev/null 2>&1
+}
+
+
+sysctl_get_value()
+{
+  $SYSCTL -n "$1" 2>/dev/null
 }
 
 
@@ -981,6 +1016,32 @@ parse_rule()
     dhost="$dhost_dport"
     ;;
 
+  interfaces:NAT_IF-destips-shosts-ports-dhost_dport|interfaces:NAT_IF-destips-shosts-protos-dhost)
+    left_rule=$(echo "$rule" |cut -s -d'>' -f1)
+    right_rule=$(echo "$rule" |cut -s -d'>' -f2)
+
+    interfaces=$(get_ifs "$left_rule" "$NAT_IF")
+    destips=$(get_ips "$left_rule")
+
+    # Check for separator(SEP)
+    if echo "$left_rule" |grep -q "$SEP"; then
+      shosts=$(get_hosts_ihp "$left_rule")
+      ports=$(get_ports_ihp "$left_rule")
+    else
+      # Assume ports/protos only if no separator
+      shosts="$ANYHOST"
+      ports=$(get_ports_ip "$left_rule")
+    fi
+  
+    dhost_dport="$right_rule"
+    if [ -z "$shosts" -o -z "$ports" ]; then
+      parse_rule_warning "$rule"
+      return 1
+    fi
+    protos="$ports"
+    dhost="$dhost_dport"
+    ;;
+
   *)
     echo "** ERROR: Invalid rule parse type! **" >&2
     return 1
@@ -1055,7 +1116,7 @@ get_hosts_ih()
 
   if [ -n "$result" ]; then
     echo "$result"
-    return 0;
+    return 0
   else
     echo "$2"
     return 1
@@ -1681,7 +1742,7 @@ else
 fi
 
 # Setup IPv6 detected environment variable
-if sysctl_key net.ipv6.conf; then
+if sysctl_key_prefix net.ipv6.conf; then
   IPV6_DETECTED=1
 else
   IPV6_DETECTED=0
@@ -1694,6 +1755,12 @@ if [ -z "$NAT_INTERNAL_NET" ]; then
   NAT_INTERNAL_NET="$INTERNAL_NET"
 fi
 
+# Default NAT_IF to EXT_IF, if not specified
+#############################################################
+if [ -z "$NAT_IF" ]; then
+  NAT_IF="$EXT_IF"
+fi
+
 # IPv6 ICMPv6 types that are allowed, not including echo-request (128)
 ######################################################################
 ICMPV6_SPECIAL_TYPES="133 134 135 136"
@@ -1701,6 +1768,11 @@ ICMPV6_SPECIAL_TYPES="133 134 135 136"
 # IPv6 ICMPv6 Multicast Listener Discovery (RFC 2710, 3810)
 ######################################################################
 ICMPV6_MLD_TYPES="130 131 132 143"
+
+# Default conntrack match method, if needed the main script will
+# fallback to an older method after the conntrack modules are loaded.
+######################################################################
+NF_CONNTRACK_STATE="-m conntrack --ctstate"
 
 # Check plugin bin path and fallback in case it's empty
 #######################################################
@@ -1770,3 +1842,4 @@ if [ -z "$EXTERNAL_NET" -a -n "$EXT_IF" ]; then
     done
   done
 fi
+

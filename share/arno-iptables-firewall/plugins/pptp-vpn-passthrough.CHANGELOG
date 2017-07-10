@@ -1,4 +1,8 @@
+Version 1.01 (June 15, 2017)
+----------------------------
++ Add support for v2.0.2 using the CONNTRACK_HELPER chain
+
 Version 1.00 (January 9, 2016)
------------------------------------
+------------------------------
 + Initial version
 
