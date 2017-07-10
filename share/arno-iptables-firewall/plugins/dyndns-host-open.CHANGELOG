@@ -1,3 +1,7 @@
+Version 1.34a (July 10, 2017)
+---------------------------
+* Improve locking (handle stale lock files etc.)
+
 Version 1.34 (May 8, 2017)
 --------------------------
 * Remove BETA suffix from version

@@ -1,3 +1,7 @@
+Version 1.23a (July 10, 2017)
+----------------------------
+* Improve locking (handle stale lock files etc.)
+
 Version 1.23 (May 8, 2017)
 --------------------------
 ! On restart we must flush accounting chains to get rid of removed/stale hosts

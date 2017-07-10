@@ -2,10 +2,10 @@
 #            -= Arno's iptables firewall - DynDNS Host Open plugin =-
 #
 PLUGIN_NAME="DynDNS Host Open plugin"
-PLUGIN_VERSION="1.34"
+PLUGIN_VERSION="1.34a"
 PLUGIN_CONF_FILE="dyndns-host-open.conf"
 #
-# Last changed          : May 8, 2017
+# Last changed          : July 10, 2017
 # Requirements          : kernel 2.6 + AIF 2.0.1f or better
 # Comments              : This implements dynamic DNS (DynDNS) support for eg. opening ports
 #
@@ -37,7 +37,7 @@ else
 fi
 
 # Use a lock file for protection
-LOCK_FILE="/var/tmp/aif_dyndns_helper.lock"
+LOCK_FILE="/var/lock/aif_dyndns_helper.lock"
 
 # Plugin start function
 plugin_start()
@@ -73,7 +73,7 @@ plugin_restart()
 {
   ## Re-add standard chain rules that are flushed on a restart
   echo "${INDENT}Restarting..."
-  
+
   # Insert rule into the main chain:
   iptables -A EXT_INPUT_CHAIN -j DYNDNS_CHAIN
 
@@ -102,7 +102,7 @@ plugin_stop()
 
   # Remove the cache file
   rm -f "$DYNDNS_HOST_CACHE"
-  
+
   iptables -D EXT_INPUT_CHAIN -j DYNDNS_CHAIN 2>/dev/null
 
   iptables -F DYNDNS_CHAIN
@@ -116,7 +116,7 @@ plugin_stop()
 plugin_status()
 {
   iptables -L DYNDNS_CHAIN
-  
+
   # Show IP->hostname mappings from our host-cache
   if [ -e "$DYNDNS_HOST_CACHE" ]; then
     echo ""
@@ -143,7 +143,7 @@ plugin_sanity_check()
     printf "\033[40m\033[1;31m${INDENT}ERROR: The dyndns-host-open-helper script can not be found or is not executable!\033[0m\n" >&2
     return 1
   fi
-  
+
   if ! check_command dig nslookup; then
     printf "\033[40m\033[1;31m${INDENT}ERROR: Required command dig (or nslookup) is not available!\033[0m\n" >&2
     return 1
@@ -197,3 +197,4 @@ else
     fi
   fi
 fi
+

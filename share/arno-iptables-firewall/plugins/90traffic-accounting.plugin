@@ -2,10 +2,10 @@
 #            -= Arno's iptables firewall - Traffic Accounting plugin =-
 #
 PLUGIN_NAME="Traffic Accounting plugin"
-PLUGIN_VERSION="1.23"
+PLUGIN_VERSION="1.23a"
 PLUGIN_CONF_FILE="traffic-accounting.conf"
 #
-# Last changed          : May 8, 2017
+# Last changed          : July 10, 2017
 # Requirements          : AIF 2.0.1f (or later)
 # Comments              : This implements support for traffic accounting for
 #                         IPv4 & IPv6. It can take advantage of the
@@ -34,7 +34,7 @@ PLUGIN_CONF_FILE="traffic-accounting.conf"
 # ------------------------------------------------------------------------------
 
 # Use a lock file for protection
-LOCK_FILE="/var/tmp/aif_traffic_accounting_helper.lock"
+LOCK_FILE="/var/lock/aif_traffic_accounting_helper.lock"
 
 # Plugin start function
 plugin_start()
