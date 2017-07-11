@@ -4963,6 +4963,9 @@ plugins_status()
 ###########################################
 setup_firewall_rules()
 {
+  # Set indent for functions
+  INDENT=' '
+
   echo "Using loglevel \"$LOGLEVEL\" for syslogd"
   echo ""
 
