@@ -246,7 +246,7 @@ iptables()
 {
   local arg action="" IFS
   local src=0 dst=0 table="" proto=""
-  
+
   if [ "$IPV6_SUPPORT" = "1" ]; then
     IFS='~'  # expand command-line args using the unique 'tilde' character
     for arg in $*; do
@@ -287,7 +287,7 @@ iptables()
       fi
     done
     unset IFS
-    
+
     #
     # Call ip4tables and/or ip6tables as appropriate
     #
@@ -518,7 +518,7 @@ modprobe_multi()
     MODPROBE_OPTIONS=""
 
     local module modules fail modprobe_commandline
-    
+
     IFS=' '
     for modules in $MODULES; do
       fail=0
@@ -560,7 +560,7 @@ modprobe_multi()
   elif [ "$COMPILED_IN_KERNEL_MESSAGES" != "0" ]; then
     echo "${INDENT}NOTE: Kernel has no module support. Assuming compiled-in-kernel for modules \"$(echo "$MODULES" |tr ' ' '|')\""
   fi
-  
+
   return 0
 }
 
@@ -579,11 +579,11 @@ sysctl()
     printf "\033[40m\033[1;31m${SYSCTL} $*\nERROR ($retval): ${result}\033[0m\n" >&2
     return $retval
   fi
-  
+
   if [ -n "$result" ]; then
     echo "${INDENT}$result"
   fi
-  
+
   return 0
 }
 
@@ -638,7 +638,7 @@ sysctl_set_all()
 {
   local prefix="$1" variable="$2" value="$3"
   local interface line IFS
-  
+
   IFS=$EOL
   for line in $($SYSCTL -a 2>/dev/null |cut -d' ' -f1 |grep "^${prefix}\..*\.${variable}$"); do
     IFS=' ,'
@@ -709,7 +709,7 @@ dig()
       fi
       shift
     done
-    
+
     IFS=$EOL
     for line in $lines; do
       case "$line" in
@@ -746,7 +746,7 @@ dig()
       else
         lines="$($NSLOOKUP "$1" 2>/dev/null)"
       fi
-      
+
       IFS=$EOL
       for line in $lines; do
         cnt=$((cnt + 1))
@@ -1006,7 +1006,7 @@ parse_rule()
       shosts="$ANYHOST"
       ports=$(get_ports_ip "$left_rule")
     fi
-  
+
     dhost_dport="$right_rule"
     if [ -z "$shosts" -o -z "$ports" ]; then
       parse_rule_warning "$rule"
@@ -1067,7 +1067,7 @@ parse_rule_warning()
 get_ifs()
 {
   local result=""
-  
+
   if echo "$1" |grep -q -e "$SEP2"; then
     result="$(echo "$1" |cut -s -d"$SEP2" -f1 |grep -v -e '[.][0-9][0-9]*[.]' -e ':[0-9a-fA-F]*:' -e "$ANYHOST" |tr ' ' ',')"
   fi
@@ -1128,7 +1128,7 @@ get_hosts_ih()
 get_hosts_ihp()
 {
   local result="$(echo "$1" |sed "s!^.*$SEP2!!" |cut -s -d"$SEP" -f1)"
-  
+
   if [ -n "$result" ]; then
     echo "$result"
     return 0
@@ -1282,7 +1282,7 @@ gethostbyaddr()
     echo "$host"
     return 0
   fi
-  
+
   shift
   result="$(dig -x "$@" "$host")"
   retval=$?
@@ -1312,7 +1312,7 @@ gethostbyname()
     echo "$host"
     return 0
   fi
-  
+
   shift
   result="$(dig "$@" "$host")"
   retval=$?
@@ -1466,14 +1466,14 @@ ip4tables_batch()
   #
   ARGS="$@"
   CHAIN="$2"
-  
+
   if [ "$DISABLE_IPTABLES_BATCH" = "1" ]; then
     if [ "$1" = "-A" ]; then
       ip4tables "$@"
     fi
     return
   fi
-  
+
   if [ -n "$CHAIN" ]; then
     CHAINFILE="$IP4TABLES_BATCH_FILE"_"$CHAIN"
     if [ "$1" = "-A" ]; then
@@ -1498,7 +1498,7 @@ ip4tables_batch()
       RESULT=1
     fi
   fi
-  
+
   return $RESULT
 }
 
@@ -1507,7 +1507,7 @@ ip4tables_batch()
 ip6tables_batch()
 {
   local ARGS CHAIN CHAINFILE RESULT=0 IFS=' '
-  
+
   # Args must be of the form and called in this order:
   #   start
   #   init CHAIN
@@ -1527,7 +1527,7 @@ ip6tables_batch()
     fi
     return
   fi
-  
+
   if [ -n "$CHAIN" ]; then
     CHAINFILE="$IP6TABLES_BATCH_FILE"_"$CHAIN"
     if [ "$1" = "-A" ]; then
@@ -1552,7 +1552,7 @@ ip6tables_batch()
       RESULT=1
     fi
   fi
-  
+
   return $RESULT
 }
 
@@ -1592,7 +1592,7 @@ progress_bar()
 check_interface()
 {
   local interface IFS=' '
-  
+
   local interfaces="$(ip -o link show | cut -d':' -f2)"
 
   unset IFS
