@@ -155,10 +155,10 @@ plugin_status()
 plugin_sanity_check()
 {
   if [ -z "$DMZ_IP" ]; then
-    printf "\033[40m\033[1;31m{$INDENT}ERROR: The plugin config file is not properly set!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not (properly) setup!\033[0m\n" >&2
     return 1
   fi
-  
+
   return 0
 }
 
