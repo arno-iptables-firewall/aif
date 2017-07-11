@@ -67,15 +67,15 @@ sanity_check()
   fi
 
   # Check if chains inserted in the main chains
-  if ! ip4tables -nL INPUT |grep -q '^ACCOUNTING_INPUT_CHAIN '; then
-    echo "** ERROR: ACCOUNTING_INPUT_CHAIN is not inserted in the INPUT chain! **" >&2
-    return 1
-  fi
+#  if ! ip4tables -nL INPUT |grep -q '^ACCOUNTING_INPUT_CHAIN '; then
+#    echo "** ERROR: ACCOUNTING_INPUT_CHAIN is not inserted in the INPUT chain! **" >&2
+#    return 1
+#  fi
 
-  if ! ip4tables -nL OUTPUT |grep -q '^ACCOUNTING_OUTPUT_CHAIN '; then
-    echo "** ERROR: ACCOUNTING_OUTPUT_CHAIN is not inserted in the OUTPUT chain! **" >&2
-    return 1
-  fi
+#  if ! ip4tables -nL OUTPUT |grep -q '^ACCOUNTING_OUTPUT_CHAIN '; then
+#    echo "** ERROR: ACCOUNTING_OUTPUT_CHAIN is not inserted in the OUTPUT chain! **" >&2
+#    return 1
+#  fi
 
   if ! check_command dig nslookup; then
     echo "** ERROR: Required command dig (or nslookup) is not available!" >&2

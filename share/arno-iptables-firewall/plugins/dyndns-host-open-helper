@@ -66,10 +66,10 @@ sanity_check()
   fi
 
   # Check if chain is inserted in the main chains
-  if ! ip4tables -nL EXT_INPUT_CHAIN |grep -q '^DYNDNS_CHAIN '; then
-    echo "** ERROR: DYNDNS_CHAIN is not inserted in the EXT_INPUT_CHAIN chain! **" >&2
-    return 1
-  fi
+#  if ! ip4tables -nL EXT_INPUT_CHAIN |grep -q '^DYNDNS_CHAIN '; then
+#    echo "** ERROR: DYNDNS_CHAIN is not inserted in the EXT_INPUT_CHAIN chain! **" >&2
+#    return 1
+#  fi
 
   if ! check_command dig nslookup; then
     echo "** ERROR: Required command dig (or nslookup) is not available!" >&2
