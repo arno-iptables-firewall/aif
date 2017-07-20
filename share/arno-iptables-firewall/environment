@@ -1404,7 +1404,7 @@ ip_range()
 
   FIRST=1
 
-  IFS=','
+  IFS=', '
   # Get variable from commandline
   for item in $*; do
     # Check whether an IP range was specified (only works like w.x.y.z1-z2!):
