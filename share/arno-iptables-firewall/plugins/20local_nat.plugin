@@ -1,0 +1,147 @@
+# ------------------------------------------------------------------------------
+#            -= Arno's iptables firewall - DMZ-host default port forwarding plugin =-
+#
+PLUGIN_NAME="Local NAT plugin"
+PLUGIN_VERSION="0.1ALPHA (EXPERIMENTAL!)"
+PLUGIN_CONF_FILE="local-nat.conf"
+#
+# Last changed          : July 10, 2017
+# Requirements          : kernel 2.6 and AIF 2.0.1+
+# Comments              : This plugin allows setting up a (local) NAT gateway.
+#                         Its main purpose is to limit certain local computers to specific
+#                         (internet) hosts. This is extremely useful for eg. old XP computers
+#                         where you want them to only access certain (validated) servers. Note
+#                         that you must configure clients to use this machine as their network
+#                         gateway
+#
+# Author                : (C) Copyright 2017 by Arno van Amersfoort
+# Email                 : arnova AT rocky DOT eld DOT leidenuniv DOT nl
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------
+
+# Plugin start function
+plugin_start()
+{
+  echo "${INDENT}Input (client) interface: $LOCAL_NAT_IF"
+  echo "${INDENT}Output (internet) interface: $LOCAL_NAT_IF_OUT"
+  echo "${INDENT}SNAT (internet) IP: $LOCAL_NAT_IP"
+
+  #sysctl -w net.ipv4.conf.all.arp_filter=1
+
+  ip4tables -N LOCAL_NAT 2>/dev/null
+  ip4tables -F LOCAL_NAT
+
+  # Allowed destination hosts for the "NAT" hosts
+  IFS=' ,'
+  for LN_HOST in $LOCAL_NAT_HOSTS; do
+    echo "${INDENT}Allowing remote host: $LN_HOST"
+    ip4tables -A LOCAL_NAT -d $LN_HOST -j ACCEPT
+  done
+
+  if [ "$LOCAL_NAT_DROP_LOG" != "0" ]; then
+    ip4tables -A LOCAL_NAT -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LOCAL_NAT DROP: "
+  else
+    echo "${INDENT}NOT logging dropped packets"
+  fi
+  ip4tables -A LOCAL_NAT -j DROP # Default policy is DROP
+
+  # Allowing forwarding of our traffic
+  ip4tables -A FORWARD -i $LOCAL_NAT_IF -o $LOCAL_NAT_IF_OUT -j LOCAL_NAT
+
+  # Actual SNAT: Note that we do not want traffic generated on this machine to be NAT-ed therefor the ! -s
+  ip4tables -t nat -A POSTROUTING -o $LOCAL_NAT_IF_OUT ! -s $LOCAL_NAT_IP -j SNAT --to-source $LOCAL_NAT_IP
+
+  return 0
+}
+
+
+# Plugin stop function
+plugin_stop()
+{
+  ip4tables -F LOCAL_NAT
+  ip4tables -X LOCAL_NAT 2>/dev/null
+
+  return 0
+}
+
+
+# Plugin status function
+plugin_status()
+{
+  ip4tables -L LOCAL_NAT
+  return 0
+}
+
+# Check sanity of eg. environment
+plugin_sanity_check()
+{
+  if [ -z "$LOCAL_NAT_IF_OUT" ]; then
+    LOCAL_NAT_IF_OUT="$LOCAL_NAT_IF"
+  fi
+
+  if [ -z "$LOCAL_NAT_IF" -o -z "$LOCAL_NAT_IP" ]; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not (properly) setup!\033[0m\n" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+
+############
+# Mainline #
+############
+
+# Check where to find the config file
+CONF_FILE=""
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Preinit to success:
+PLUGIN_RET_VAL=0
+
+# Check if the config file exists
+if [ ! -e "$CONF_FILE" ]; then
+  printf "NOTE: Config file \"$CONF_FILE\" not found!\n        Plugin \"$PLUGIN_NAME v$PLUGIN_VERSION\" ignored!\n" >&2
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  if [ "$ENABLED" = "1" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
+    # Show who we are:
+    echo "${INDENT}$PLUGIN_NAME v$PLUGIN_VERSION"
+
+    # Increment indention
+    INDENT="$INDENT "
+
+    # Only proceed if environment ok
+    if ! plugin_sanity_check; then
+      PLUGIN_RET_VAL=1
+    else
+      case $PLUGIN_CMD in
+        start|'') plugin_start; PLUGIN_RET_VAL=$? ;;
+        stop    ) plugin_stop; PLUGIN_RET_VAL=$? ;;
+        status  ) plugin_status; PLUGIN_RET_VAL=$? ;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2 ;;
+      esac
+    fi
+  fi
+fi
+
