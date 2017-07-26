@@ -1,0 +1,292 @@
+# ------------------------------------------------------------------------------
+#           -= Arno's iptables firewall - Parasitic Network plugin =-
+#
+PLUGIN_NAME="Parasitic Network plugin"
+PLUGIN_VERSION="1.00 BETA"
+PLUGIN_CONF_FILE="parasitic-net.conf"
+#
+# Last changed          : July 25, 2017
+# Requirements          : AIF 2.0.1+
+# Comments              : This plugin allows "clients" on the same subnet to use this
+#                       : device as a gateway upstream. This network of "clients" is
+#                       : SNAT'ed to this device's external interface(s).
+#                       : 
+#                       : This Parasitic Network is useful for situations when the
+#                       : upstream firewall is not under your control and you desire
+#                       : added security for specific devices in your subnet.
+#                       : Set the gateway address of Parasitic Network clients to an
+#                       : external IPv4 address of this device.
+#
+# Author                : (C) Copyright 2017 by Arno van Amersfoort & Lonnie Abelbeck
+# Email                 : arnova AT rocky DOT eld DOT leidenuniv DOT nl
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------
+
+parasitic_net_first_ipv4()
+{
+  ip -o addr show dev "$1" 2>/dev/null \
+    | awk '$3 == "inet" { split($4, field, "/"); print field[1]; nextfile; }'
+}
+
+parasitic_net_all_ipv4()
+{
+  ip -o addr show dev "$1" 2>/dev/null \
+    | awk '$3 == "inet" { split($4, field, "/"); print field[1]; }'
+}
+
+# Plugin start function
+plugin_start()
+{
+  local x host net eif gateway_if gateway_ip snat_if snat_ip snat_ifs_ips IFS
+
+  ip4tables -t nat -N PARASITIC_NET_SNAT 2>/dev/null
+  ip4tables -t nat -F PARASITIC_NET_SNAT
+
+  ip4tables -N PARASITIC_NET_ACL 2>/dev/null
+  ip4tables -F PARASITIC_NET_ACL
+
+  ip4tables -N PARASITIC_NET_FORWARD 2>/dev/null
+  ip4tables -F PARASITIC_NET_FORWARD
+
+  snat_ifs_ips=""
+  IFS=' ,'
+  for eif in $(wildcard_ifs $EXT_IF); do
+    snat_if="$eif"
+    snat_ip="$(parasitic_net_first_ipv4 $eif)"
+    if [ -n "$snat_if" -a -n "$snat_ip" ]; then
+      snat_ifs_ips="$snat_ifs_ips${snat_ifs_ips:+ }$snat_if~$snat_ip"
+    fi
+  done
+
+  if [ -z "$snat_ifs_ips" ]; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: Unable to determine external interface IPv4 address!\033[0m\n" >&2
+    return 1
+  fi
+
+  gateway_if=""
+  gateway_ip=""
+  unset IFS
+  for x in $snat_ifs_ips; do
+    eif="$(echo "$x" | cut -d'~' -f1)"
+    if [ -z "$PARASITIC_NET_IF" -o "$eif" = "$PARASITIC_NET_IF" ]; then
+      gateway_if="$eif"
+      gateway_ip="$(echo "$x" | cut -d'~' -f2)"
+      break
+    fi
+  done
+
+  if [ -z "$gateway_if" -o -z "$gateway_ip" ]; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: Unable to match PARASITIC_NET_IF external gateway interface!\033[0m\n" >&2
+    return 1
+  fi
+
+  echo "${INDENT}Parasitic Network Gateway IPv4 Address: $gateway_ip"
+
+  echo "${INDENT}Parasitic Network Gateway Interface: $gateway_if"
+
+  # Setup Parasitic Network ACL rules
+  if [ -n "$PARASITIC_NET_ALLOW_HOSTS" ]; then
+    echo "${INDENT}Allowing Parasitic Network packets to hosts: $PARASITIC_NET_ALLOW_HOSTS"
+    IFS=' ,'
+    for host in $PARASITIC_NET_ALLOW_HOSTS; do
+      ip4tables -A PARASITIC_NET_ACL -d $host -j ACCEPT
+    done
+  fi
+  if [ -n "$PARASITIC_NET_DENY_HOSTS" ]; then
+    echo "${INDENT}Denying Parasitic Network packets to hosts: $PARASITIC_NET_DENY_HOSTS"
+    IFS=' ,'
+    for host in $PARASITIC_NET_DENY_HOSTS; do
+      if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+        ip4tables -A PARASITIC_NET_ACL -d $host -m limit --limit 1/m -j LOG \
+                 --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-Net denied: "
+      fi
+      ip4tables -A PARASITIC_NET_ACL -d $host -j DROP
+    done
+  fi
+  # Default policy, allow all the rest
+  ip4tables -A PARASITIC_NET_ACL -j ACCEPT
+
+  # Filter traffic related to the Parasitic Network
+  echo "${INDENT}Allowing Parasitic Network client access for host(s): $PARASITIC_NET_CLIENT_HOSTS"
+  IFS=' ,'
+  for host in $(ip_range $PARASITIC_NET_CLIENT_HOSTS); do
+    if [ "$host" != "$gateway_ip" ]; then
+      ip4tables -A PARASITIC_NET_FORWARD -s $host -j PARASITIC_NET_ACL
+    fi
+  done
+
+  IFS=' ,'
+  for eif in $(wildcard_ifs $EXT_IF); do
+    ip4tables -A FORWARD -i $gateway_if -o $eif -j PARASITIC_NET_FORWARD
+  done
+
+  # Actual SNAT, we do not want traffic generated on this machine to be NAT-ed, skip all snat_if IPv4's
+  unset IFS
+  for x in $snat_ifs_ips; do
+    snat_if="$(echo "$x" | cut -d'~' -f1)"
+    unset IFS
+    for host in $(parasitic_net_all_ipv4 $snat_if); do
+      ip4tables -t nat -A PARASITIC_NET_SNAT -s $host -j RETURN
+    done
+  done
+
+  unset IFS
+  for x in $snat_ifs_ips; do
+    snat_if="$(echo "$x" | cut -d'~' -f1)"
+    snat_ip="$(echo "$x" | cut -d'~' -f2)"
+    IFS=' ,'
+    for host in $(ip_range $PARASITIC_NET_CLIENT_HOSTS); do
+      if [ "$host" != "$snat_ip" ]; then
+        ip4tables -t nat -A PARASITIC_NET_SNAT -o $snat_if -s $host ! -d $host -j SNAT --to-source $snat_ip
+      fi
+    done
+  done
+
+  ip4tables -t nat -A POSTROUTING -j PARASITIC_NET_SNAT
+
+  return 0
+}
+
+
+# Plugin restart function
+plugin_restart()
+{
+
+  # Skip plugin_stop on a restart
+  plugin_start
+
+  return 0
+}
+
+
+# Plugin stop function
+plugin_stop()
+{
+
+  ip4tables -t nat -D POSTROUTING -j PARASITIC_NET_SNAT
+
+  ip4tables -t nat -F PARASITIC_NET_SNAT
+  ip4tables -t nat -X PARASITIC_NET_SNAT 2>/dev/null
+
+  ip4tables -F PARASITIC_NET_ACL
+  ip4tables -X PARASITIC_NET_ACL 2>/dev/null
+
+  ip4tables -F PARASITIC_NET_FORWARD
+  ip4tables -X PARASITIC_NET_FORWARD 2>/dev/null
+
+  return 0
+}
+
+
+# Plugin status function
+plugin_status()
+{
+  echo "  Allowed client host(s):"
+  echo "  =============================="
+  ip4tables -n -L PARASITIC_NET_FORWARD | awk '$1 == "PARASITIC_NET_ACL" { print "  "$4 }'
+  echo "  ------------------------------"
+  echo ""
+  
+  echo "  Access Control List:"
+  echo "  =============================="
+  ip4tables -n -L PARASITIC_NET_ACL | sed -n -e 's/^ACCEPT.*$/  &/p' -e 's/^DROP.*$/  &/p'
+  echo "  ------------------------------"
+  echo ""
+
+  return 0
+}
+
+
+# Check sanity of eg. environment
+plugin_sanity_check()
+{
+  local host interface IFS
+
+  # Sanity check
+  if [ -z "$PARASITIC_NET_CLIENT_HOSTS" ]; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: PARASITIC_NET_CLIENT_HOSTS is not set!\033[0m\n" >&2
+    return 1
+  fi
+
+  IFS=' ,'
+  for host in $PARASITIC_NET_CLIENT_HOSTS; do
+    case $host in
+      */0) printf "\033[40m\033[1;31m${INDENT}ERROR: */0 networks are not allowed in PARASITIC_NET_CLIENT_HOSTS.\033[0m\n" >&2
+           printf "\033[40m\033[1;31m${INDENT}       Be restrictive when defining PARASITIC_NET_CLIENT_HOSTS.   \033[0m\n" >&2
+           return 1
+           ;;
+    esac
+  done
+
+  if [ -n "$PARASITIC_NET_IF" ]; then
+    IFS=' ,'
+    for interface in $INT_IF $DMZ_IF; do
+      if [ "$interface" = "$PARASITIC_NET_IF" ]; then
+        printf "\033[40m\033[1;31m${INDENT}ERROR: INT_IF or DMZ_IF interfaces are not allowed for PARASITIC_NET_IF.\033[0m\n" >&2
+        return 1
+      fi
+    done
+  fi
+
+  return 0
+}
+
+
+############
+# Mainline #
+############
+
+# Check where to find the config file
+CONF_FILE=""
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Preinit to success:
+PLUGIN_RET_VAL=0
+
+# Check if the config file exists
+if [ ! -e "$CONF_FILE" ]; then
+  printf "NOTE: Config file \"$CONF_FILE\" not found!\n        Plugin \"$PLUGIN_NAME v$PLUGIN_VERSION\" ignored!\n" >&2
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  if [ "$ENABLED" = "1" -a "$PLUGIN_CMD" != "stop-restart" ] ||
+     [ "$ENABLED" = "0" -a "$PLUGIN_CMD" = "stop-restart" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
+    # Show who we are:
+    echo "${INDENT}$PLUGIN_NAME v$PLUGIN_VERSION"
+
+    # Increment indention
+    INDENT="$INDENT "
+
+    # Only proceed if environment ok
+    if ! plugin_sanity_check; then
+      PLUGIN_RET_VAL=1
+    else
+      case $PLUGIN_CMD in
+        start|'') plugin_start; PLUGIN_RET_VAL=$? ;;
+        restart ) plugin_restart; PLUGIN_RET_VAL=$? ;;
+        stop|stop-restart) plugin_stop; PLUGIN_RET_VAL=$? ;;
+        status  ) plugin_status; PLUGIN_RET_VAL=$? ;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2 ;;
+      esac
+    fi
+  fi
+fi
