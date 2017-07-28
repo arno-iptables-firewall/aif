@@ -1,5 +1,7 @@
-Version 2.0.2-RC1 (June 16, 2017)
----------------------------------
+Version 2.0.2 (July 28, 2017)
+-----------------------------
++ Added new Parasitic Network plugin, allows "clients" on the same subnet to use this device as a gateway upstream.
+* Improve lock-file handling in the "DynDNS Host Open" and "Traffic Accounting" plugins.
 + Disable nf_conntrack automatic helper assignment when possible, attach with CT target, Issue #35
 ! Fixed IPv6 NAT table was not flushed on start/stop/restart, Issue #36
 + Added EXT_IF_DHCPV6_IPV6 config variable supporting DHCPv6 when DHCP is not enabled, Issue #34
