@@ -1,3 +1,7 @@
+Version 2.0.2a-DEVEL (October 25, 2017)
+--------------------------------------
+! Fixed systemd installation failed on some systems
+
 Version 2.0.2 (July 28, 2017)
 -----------------------------
 + Added new Parasitic Network plugin, allows "clients" on the same subnet to use this device as a gateway upstream.

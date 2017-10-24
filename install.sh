@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.07c"
+MY_VERSION="1.08"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -8,7 +8,7 @@ MY_VERSION="1.07c"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2015 by Arno van Amersfoort
+# (C) Copyright 2001-2017 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -337,9 +337,15 @@ copy_overwrite ./README /usr/local/share/doc/arno-iptables-firewall/
 
 copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
 
-# Install service file if systemd directory is available
-if [ -d "/usr/lib/systemd/system/" ]; then
+# Install service file if systemd directory is available, use fallbacks to support different systems
+if [ -d "/lib/systemd/system" ]; then
+  copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /lib/systemd/system/
+elif [ -d "/usr/lib/systemd/system" ]; then
   copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /usr/lib/systemd/system/
+elif [ -d "/etc/systemd/system" ]; then
+ copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /etc/systemd/system/
+else
+  echo "NOTE: Could not find any systemd/system directory, skipping systemd configuration" >&2
 fi
 
 mkdir -pv /etc/arno-iptables-firewall || exit 1
