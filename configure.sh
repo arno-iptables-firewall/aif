@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.02h"
+MY_VERSION="1.03"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -8,7 +8,7 @@ MY_VERSION="1.02h"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2015 by Arno van Amersfoort
+# (C) Copyright 2001-2017 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -289,7 +289,13 @@ rm -f $RC_PATH/rcS.d/*arno-iptables-firewall
 
 if get_user_yn "Do you want to start the firewall at boot" "y"; then
   DONE=0
-  if check_command update-rc.d; then
+
+  if check_command systemctl; then
+    if systemctl enable arno-iptables-firewall; then
+      echo "* Successfully enabled service with systemctl"
+      DONE=1
+    fi
+  elif check_command update-rc.d; then
     # Note: Currently update-rc.d doesn't seem to properly use the init script's LSB header, so specify explicitly
     if update-rc.d -f arno-iptables-firewall start 11 S . stop 10 0 6 .; then
       echo "* Successfully enabled service with update-rc.d"
@@ -300,9 +306,7 @@ if get_user_yn "Do you want to start the firewall at boot" "y"; then
       echo "* Successfully enabled service with chkconfig"
       DONE=1
     fi
-  fi
-
-  if [ $DONE -eq 0 ]; then
+  else
     if [ -d "$RC_PATH/rcS.d" ]; then
       if ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rcS.d/S11arno-iptables-firewall" &&
          ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc0.d/K10arno-iptables-firewall" &&
