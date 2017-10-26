@@ -342,11 +342,11 @@ rm -f /usr/lib/systemd/system/arno-iptables-firewall.service
 
 # Install service file if systemd directory is available, use fallbacks to support different systemsi
 if [ -d "/lib/systemd/system" ]; then
-  copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /lib/systemd/system/
+  copy_overwrite ./lib/systemd/system/arno-iptables-firewall.service /lib/systemd/system/
 elif [ -d "/usr/lib/systemd/system" ]; then
-  copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /usr/lib/systemd/system/
+  copy_overwrite ./lib/systemd/system/arno-iptables-firewall.service /usr/lib/systemd/system/
 elif [ -d "/etc/systemd/system" ]; then
- copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /etc/systemd/system/
+ copy_overwrite ./lib/systemd/system/arno-iptables-firewall.service /etc/systemd/system/
 else
   echo "NOTE: Could not find any systemd/system directory, skipping systemd configuration" >&2
 fi
