@@ -1,6 +1,8 @@
-Version 2.0.2a-DEVEL (October 25, 2017)
---------------------------------------
+Version 2.0.2a-DEVEL (October 26, 2017)
+---------------------------------------
 ! Fixed systemd installation failed on some systems
+! Service file should start AIF after network is up and local filesystems are mounted
+* Tweaks/improvements in configure/install scripts
 
 Version 2.0.2 (July 28, 2017)
 -----------------------------
