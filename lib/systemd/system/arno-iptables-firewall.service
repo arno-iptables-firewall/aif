@@ -1,8 +1,8 @@
 [Unit]
 Description=Arno's Iptables Firewall
 DefaultDependencies=no
-Wants=network-pre.target
-Before=network-pre.target shutdown.target
+After=local-fs.target network-online.target
+Requires=local-fs.target network-online.target
 Conflicts=shutdown.target
 
 [Service]
