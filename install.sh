@@ -337,7 +337,10 @@ copy_overwrite ./README /usr/local/share/doc/arno-iptables-firewall/
 
 copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
 
-# Install service file if systemd directory is available, use fallbacks to support different systems
+# Make sure only one service file exists in /lib/.. or /usr/lib/ where we prefer /lib/
+rm -f /usr/lib/systemd/system/arno-iptables-firewall.service
+
+# Install service file if systemd directory is available, use fallbacks to support different systemsi
 if [ -d "/lib/systemd/system" ]; then
   copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /lib/systemd/system/
 elif [ -d "/usr/lib/systemd/system" ]; then
