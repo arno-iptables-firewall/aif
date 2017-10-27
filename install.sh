@@ -346,7 +346,7 @@ if [ -d "/lib/systemd/system" ]; then
 elif [ -d "/usr/lib/systemd/system" ]; then
   copy_overwrite ./lib/systemd/system/arno-iptables-firewall.service /usr/lib/systemd/system/
 elif [ -d "/etc/systemd/system" ]; then
- copy_overwrite ./lib/systemd/system/arno-iptables-firewall.service /etc/systemd/system/
+ copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /etc/systemd/system/
 else
   echo "NOTE: Could not find any systemd/system directory, skipping systemd configuration" >&2
 fi
