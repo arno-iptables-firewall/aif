@@ -104,7 +104,7 @@ copy_ask_if_exist()
 
     if [ ! -d "$target_dir" ]; then
       printf "\033[40m\033[1;31m* WARNING: Target directory $target_dir does not exist. Skipping copy of $source!\033[0m\n" >&2
-      continue;
+      continue
     fi
 
     if [ -f "$source" -a -f "$target" ]; then
@@ -113,7 +113,7 @@ copy_ask_if_exist()
         if ! get_user_yn "File \"$target\" already exists. Overwrite" "n"; then
           if [ -z "$3" ]; then
             echo "Skipped..."
-            continue;
+            continue
           else
             # Copy as e.g. .dist-file:
             target="${target}.${3}"
@@ -122,7 +122,7 @@ copy_ask_if_exist()
         fi
       else
         echo "* Target file \"$target\" is the same as source. Skipping copy of $source"
-        continue;
+        continue
       fi
     fi
 
@@ -163,13 +163,13 @@ copy_skip_if_exist()
 
     if [ ! -d "$target_dir" ]; then
       printf "\033[40m\033[1;31m* WARNING: Target directory $target_dir does not exist. Skipping copy of $source!\033[0m\n" >&2
-      continue;
+      continue
     fi
 
     if [ -f "$target" ]; then
       if [ -z "$3" ]; then
         echo "* File \"$target\" already exists. Skipping copy of $source"
-        continue;
+        continue
       else
         # Copy as e.g. .dist-file:
         target="${target}.${3}"
@@ -213,14 +213,14 @@ copy_overwrite()
 
     if [ ! -d "$target_dir" ]; then
       printf "\033[40m\033[1;31m* WARNING: Target directory $target_dir does not exist. Skipping copy of $source!\033[0m\n" >&2
-      continue;
+      continue
     fi
 
     if [ -f "$source" -a -f "$target" ]; then
       # Ignore files that are the same in the target
       if diff "$source" "$target" >/dev/null; then
         echo "* Target file \"$target\" is the same as source. Skipping copy of $source"
-        continue;
+        continue
       fi
     fi
 
@@ -303,7 +303,7 @@ printf "\033[40m\033[1;32mArno's Iptables Firewall Script v$AIF_VERSION\033[0m\n
 printf "Install Script v$MY_VERSION\n"
 echo "-------------------------------------------------------------------------------"
 
-sanity_check;
+sanity_check
 
 # We want to run in the dir the install script is in
 cd "$(dirname $0)"
@@ -314,7 +314,7 @@ if ! get_user_yn "Continue install" "n"; then
 fi
 
 # Make sure there still isn't an old version installed
-check_18_version;
+check_18_version
 
 copy_overwrite ./bin/arno-iptables-firewall /usr/local/sbin/
 copy_overwrite ./bin/arno-fwfilter /usr/local/bin/
@@ -340,7 +340,7 @@ copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
 # Make sure only one service file exists in /lib/.. or /usr/lib/ where we prefer /lib/
 rm -f /usr/lib/systemd/system/arno-iptables-firewall.service
 
-# Install service file if systemd directory is available, use fallbacks to support different systemsi
+# Install service file if systemd directory is available, use fallbacks to support different systems
 if [ -d "/lib/systemd/system" ]; then
   copy_overwrite ./lib/systemd/system/arno-iptables-firewall.service /lib/systemd/system/
 elif [ -d "/usr/lib/systemd/system" ]; then
@@ -362,7 +362,7 @@ copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firew
 mkdir -pv /etc/arno-iptables-firewall/conf.d || exit 1
 echo "Files with a .conf extension in this directory will be sourced by the environment file" >/etc/arno-iptables-firewall/conf.d/README
 
-check_plugins;
+check_plugins
 
 echo ""
 echo "** Install done **"

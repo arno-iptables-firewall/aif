@@ -269,7 +269,7 @@ printf "\033[40m\033[1;32mArno's Iptables Firewall Script v$AIF_VERSION\033[0m\n
 printf "Configure Script v$MY_VERSION\n"
 echo "-------------------------------------------------------------------------------"
 
-sanity_check;
+sanity_check
 
 RC_PATH="/etc"
 # Check for Redhat/SUSE rc.d
@@ -339,13 +339,13 @@ fi
 
 if diff ./etc/arno-iptables-firewall/firewall.conf "$FIREWALL_CONF" >/dev/null; then
   if get_user_yn "Your firewall.conf is not configured yet.\nDo you want me to help you setup a basic configuration" "y"; then
-    setup_conf_file;
+    setup_conf_file
   else
     echo "* Skipped"
   fi
 else
   if get_user_yn "Your firewall.conf looks already customized.\nModify configuration" "n"; then
-    setup_conf_file;
+    setup_conf_file
   else
     echo "* Skipped"
   fi
