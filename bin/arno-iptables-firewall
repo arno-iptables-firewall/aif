@@ -920,14 +920,14 @@ setup_default_policies()
   # The HOST_BLOCK_SRC_DROP chain should always DROP
   ###########################################################
   if [ "$BLOCKED_HOST_LOG" = "1" -o "$BLOCKED_HOST_LOG" = "2" ]; then
-    iptables -A HOST_BLOCK_SRC_DROP -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s) Inbound: "
+    iptables -A HOST_BLOCK_SRC_DROP -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked inbound host: "
   fi
   iptables -A HOST_BLOCK_SRC_DROP -j DROP
 
   # The HOST_BLOCK_DST_DROP chain should always DROP
   ###########################################################
   if [ "$BLOCKED_HOST_LOG" = "1" -o "$BLOCKED_HOST_LOG" = "3" ]; then
-    iptables -A HOST_BLOCK_DST_DROP -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked host(s) Outbound: "
+    iptables -A HOST_BLOCK_DST_DROP -m limit --limit 1/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Blocked outbound host: "
   fi
   iptables -A HOST_BLOCK_DST_DROP -j DROP
 
