@@ -1,5 +1,6 @@
 Version 2.0.2a (October 26, 2017)
 ---------------------------------
+! Fixed log line being too long (>28 chars)
 ! Fixed systemd installation failed on some systems
 ! Service file should start AIF after network is up and local filesystems are mounted
 * Tweaks/improvements in configure/install scripts
