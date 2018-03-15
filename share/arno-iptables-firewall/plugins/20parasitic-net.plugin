@@ -39,7 +39,7 @@ PLUGIN_CONF_FILE="parasitic-net.conf"
 # Plugin start function
 plugin_start()
 {
-  local IFS x host interface if_ip snat_if snat_ip snat_ifs_ips snat_ip_out
+  local IFS x host interface if_ip snat_if snat_ip snat_ifs_ips snat_ip_out snat_if_subnet
 
   ip4tables -t nat -N PARASITIC_NET_SNAT 2>/dev/null
   ip4tables -t nat -F PARASITIC_NET_SNAT
@@ -80,6 +80,15 @@ plugin_start()
   fi
 
   echo "${INDENT}Parasitic network SNAT interface(s)/address(es): $snat_ifs_ips"
+
+  if [ -z "$PARASITIC_NET_CLIENT_HOSTS" ]; then
+    IFS=' ,'
+    for if_ip in $(wildcard_ifs $PARASITIC_NET_IF); do
+      snat_if="$(echo "$if_ip" |cut -d'~' -f1)"
+      snat_if_subnet="$(get_network_ipv4_address_mask_all $snat_if)"
+      PARASITIC_NET_CLIENT_HOSTS="$PARASITIC_NET_CLIENT_HOSTS${PARASITIC_NET_CLIENT_HOSTS:+ }$snat_if_subnet"
+    done
+  fi
 
   # Setup Parasitic Network ACL rules
   ###################################
@@ -340,23 +349,7 @@ plugin_status()
 # Check sanity of eg. environment
 plugin_sanity_check()
 {
-  local IFS if1 if2 host
-
-  # Sanity check
-  if [ -z "$PARASITIC_NET_CLIENT_HOSTS" ]; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: PARASITIC_NET_CLIENT_HOSTS is not set!\033[0m\n" >&2
-    return 1
-  fi
-
-  IFS=' ,'
-  for host in $PARASITIC_NET_CLIENT_HOSTS; do
-    case $host in
-      */0) printf "\033[40m\033[1;31m${INDENT}ERROR: */0 networks are not allowed in PARASITIC_NET_CLIENT_HOSTS.\033[0m\n" >&2
-           printf "\033[40m\033[1;31m${INDENT}       Be restrictive when defining PARASITIC_NET_CLIENT_HOSTS.   \033[0m\n" >&2
-           return 1
-           ;;
-    esac
-  done
+  local IFS if1 if2
 
   if [ -n "$PARASITIC_NET_DENY_POLICY" -a "$PARASITIC_NET_DENY_POLICY" != "DROP" -a "$PARASITIC_NET_DENY_POLICY" != "REJECT" ]; then
     printf "\033[40m\033[1;31m${INDENT}ERROR: PARASITIC_NET_DENY_POLICY must be either \"DROP\" (or left empty) or \"REJECT\"!\033[0m\n" >&2
