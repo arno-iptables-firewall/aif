@@ -66,6 +66,10 @@ plugin_start()
     PARASITIC_NET_IF="$EXT_IF"
   fi
 
+  if [ -z "$PARASITIC_NET_DENY_POLICY" ]; then
+    PARASITIC_NET_DENY_POLICY="DROP"
+  fi
+
   snat_ifs_ips=""
   IFS=' ,'
   for interface in $(wildcard_ifs $PARASITIC_NET_IF); do
@@ -100,7 +104,7 @@ plugin_start()
               --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
           fi
 
-          ip4tables -A PARASITIC_NET_ACL -d $host -p tcp --dport $port -j DROP
+          ip4tables -A PARASITIC_NET_ACL -d $host -p tcp --dport $port -j $PARASITIC_NET_DENY_POLICY
         done
       done
     fi
@@ -119,7 +123,7 @@ plugin_start()
               --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
           fi
 
-          ip4tables -A PARASITIC_NET_ACL -d $host -p udp --dport $port -j DROP
+          ip4tables -A PARASITIC_NET_ACL -d $host -p udp --dport $port -j $PARASITIC_NET_DENY_POLICY
         done
       done
     fi
@@ -135,7 +139,7 @@ plugin_start()
           --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
       fi
 
-      ip4tables -A PARASITIC_NET_ACL -d $host -p icmp --icmp-type echo-request -j DROP
+      ip4tables -A PARASITIC_NET_ACL -d $host -p icmp --icmp-type echo-request -j $PARASITIC_NET_DENY_POLICY
     done
   done
 
@@ -151,7 +155,7 @@ plugin_start()
               --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
           fi
 
-          ip4tables -A PARASITIC_NET_ACL -d $host -p $proto -j DROP
+          ip4tables -A PARASITIC_NET_ACL -d $host -p $proto -j $PARASITIC_NET_DENY_POLICY
         done
       done
     fi
@@ -217,7 +221,7 @@ plugin_start()
         --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
     fi
 
-    ip4tables -A PARASITIC_NET_ACL -p tcp -j DROP
+    ip4tables -A PARASITIC_NET_ACL -p tcp -j $PARASITIC_NET_DENY_POLICY
   fi
 
   if [ -z "$PARASITIC_NET_HOST_OPEN_UDP" ]; then
@@ -228,7 +232,7 @@ plugin_start()
         --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
     fi
 
-    ip4tables -A PARASITIC_NET_ACL -p udp -j DROP
+    ip4tables -A PARASITIC_NET_ACL -p udp -j $PARASITIC_NET_DENY_POLICY
   fi
 
   if [ -z "$PARASITIC_NET_HOST_OPEN_ICMP" ]; then
@@ -239,7 +243,7 @@ plugin_start()
         --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
     fi
 
-    ip4tables -A PARASITIC_NET_ACL -p icmp --icmp-type echo-request -j DROP
+    ip4tables -A PARASITIC_NET_ACL -p icmp --icmp-type echo-request -j $PARASITIC_NET_DENY_POLICY
   fi
 
   # Drop the rest ("Other" IP protocols always need to be specified explicitly)
@@ -247,7 +251,7 @@ plugin_start()
     ip4tables -A PARASITIC_NET_ACL -m limit --limit 1/m -j LOG \
       --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
   fi
-  ip4tables -A PARASITIC_NET_ACL -j DROP
+  ip4tables -A PARASITIC_NET_ACL -j $PARASITIC_NET_DENY_POLICY
 
   # Filter traffic related to the Parasitic Network
   echo "${INDENT}Allowing parasitic network access for client host(s): $PARASITIC_NET_CLIENT_HOSTS"
@@ -359,6 +363,11 @@ plugin_sanity_check()
            ;;
     esac
   done
+
+  if [ -n "$PARASITIC_NET_DENY_POLICY" -a "$PARASITIC_NET_DENY_POLICY" != "DROP" -a "$PARASITIC_NET_DENY_POLICY" != "REJECT" ]; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: PARASITIC_NET_DENY_POLICY must be either \"DROP\" (or left empty) or \"REJECT\"!\033[0m\n" >&2
+    return 1
+  fi
 
   IFS=' ,'
   for if1 in $INT_IF $DMZ_IF; do
