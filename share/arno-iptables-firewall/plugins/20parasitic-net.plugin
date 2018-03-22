@@ -5,8 +5,8 @@ PLUGIN_NAME="Parasitic (SNAT) Network plugin"
 PLUGIN_VERSION="1.00-BETA2"
 PLUGIN_CONF_FILE="parasitic-net.conf"
 #
-# Last changed          : March 19, 2018
-# Requirements          : AIF 2.0.1+
+# Last changed          : March 22, 2018
+# Requirements          : AIF 2.0.3+
 # Comments              : This plugin allows "clients" on the same subnet to use this
 #                         device as a gateway upstream. This network of "clients" is
 #                         SNAT'ed to this device's external interface(s).
@@ -36,22 +36,10 @@ PLUGIN_CONF_FILE="parasitic-net.conf"
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
-parasitic_net_first_ipv4()
-{
-  ip -o addr show dev "$1" 2>/dev/null \
-    | awk '$3 == "inet" { split($4, field, "/"); print field[1]; nextfile; }'
-}
-
-parasitic_net_all_ipv4()
-{
-  ip -o addr show dev "$1" 2>/dev/null \
-    | awk '$3 == "inet" { split($4, field, "/"); print field[1]; }'
-}
-
 # Plugin start function
 plugin_start()
 {
-  local x host interface if_ip snat_if snat_ip snat_ifs_ips IFS
+  local IFS x host interface if_ip snat_if snat_ip snat_ifs_ips snat_ip_out
 
   ip4tables -t nat -N PARASITIC_NET_SNAT 2>/dev/null
   ip4tables -t nat -F PARASITIC_NET_SNAT
@@ -72,10 +60,16 @@ plugin_start()
 
   snat_ifs_ips=""
   IFS=' ,'
-  for interface in $(wildcard_ifs $PARASITIC_NET_IF); do
-    snat_if="$interface"
-    snat_ip="$(parasitic_net_first_ipv4 $interface)"
-    if [ -n "$snat_if" -a -n "$snat_ip" ]; then
+  for if_ip in $(wildcard_ifs $PARASITIC_NET_IF); do
+    snat_if="$(echo "$if_ip" |cut -d'~' -f1)"
+    snat_ip="$(echo "$if_ip" |cut -s -d'~' -f2)"
+
+    if [ -z "$snat_ip" ]; then
+      # Add all interface IPs to list
+      for if_ip in $(get_network_ipv4_address_all $snat_if); do
+        snat_ifs_ips="$snat_ifs_ips${snat_ifs_ips:+ }$snat_if~$if_ip"
+      done
+    else
       snat_ifs_ips="$snat_ifs_ips${snat_ifs_ips:+ }$snat_if~$snat_ip"
     fi
   done
@@ -263,27 +257,27 @@ plugin_start()
   # Enable forwarding on the SNAT interfaces.
   # Note: can't check IF IP here, therefore only match interface(s)
   IFS=' ,'
-  for snat_if in $(wildcard_ifs $PARASITIC_NET_IF); do
+  for if_ip in $(wildcard_ifs $PARASITIC_NET_IF); do
+    snat_if="$(echo "$if_ip" |cut -d'~' -f1)"
     ip4tables -A POST_FORWARD_CHAIN -i $snat_if -o $snat_if -j PARASITIC_NET_FORWARD
   done
 
-  # Actual SNAT, we do not want traffic generated on this machine to be NAT-ed, skip all snat_if IPv4's
-  unset IFS
-  for x in $snat_ifs_ips; do
-    snat_if="$(echo "$x" | cut -d'~' -f1)"
-    unset IFS
-    for if_ip in $(parasitic_net_all_ipv4 $snat_if); do
-      ip4tables -t nat -A PARASITIC_NET_SNAT -s $if_ip -j RETURN
-    done
+  # We do not want traffic generated on this machine to be NAT-ed, so skip all SNAT interface IPv4's
+  IFS=' '
+  for if_ip in $snat_ifs_ips; do
+    snat_ip="$(echo "$if_ip" |cut -d'~' -f2)"
+    ip4tables -t nat -A PARASITIC_NET_SNAT -s $snat_ip -j RETURN
   done
 
-  unset IFS
+  IFS=' '
   for x in $snat_ifs_ips; do
-    snat_if="$(echo "$x" | cut -d'~' -f1)"
-    snat_ip="$(echo "$x" | cut -d'~' -f2)"
+    snat_if="$(echo "$x" |cut -d'~' -f1)"
+
     IFS=' ,'
     for host in $(ip_range $PARASITIC_NET_CLIENT_HOSTS); do
-      ip4tables -t nat -A PARASITIC_NET_SNAT -o $snat_if -s $host -j SNAT --to-source $snat_ip
+      # Use primary(!) IPv4 address for SNAT output
+      snat_ip_out="$(get_network_ipv4_address $snat_if)"
+      ip4tables -t nat -A PARASITIC_NET_SNAT -o $snat_if -s $host -j SNAT --to-source $snat_ip_out
     done
   done
 
