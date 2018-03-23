@@ -330,6 +330,12 @@ plugin_stop()
 # Plugin status function
 plugin_status()
 {
+  echo "  Interface forward policy:"
+  echo "  =============================="
+  ip4tables -nv -L POST_FORWARD_CHAIN | awk '$3 == "PARASITIC_NET_FORWARD" { print "  "$3" "$6" "$7" "$8" "$9 }'
+  echo "  ------------------------------"
+  echo ""
+
   echo "  Allowed client host(s):"
   echo "  =============================="
   ip4tables -n -L PARASITIC_NET_FORWARD | awk '$1 == "PARASITIC_NET_ACL" { print "  "$4 }'
