@@ -1,23 +1,23 @@
 # ------------------------------------------------------------------------------
-#           -= Arno's iptables firewall - Parasitic Network plugin =-
+#       -= Arno's iptables firewall - Parasitic (SNAT) Network plugin =-
 #
-PLUGIN_NAME="Parasitic Network plugin"
-PLUGIN_VERSION="1.00 BETA"
+PLUGIN_NAME="Parasitic (SNAT) Network plugin"
+PLUGIN_VERSION="1.00-BETA2"
 PLUGIN_CONF_FILE="parasitic-net.conf"
 #
-# Last changed          : July 25, 2017
-# Requirements          : AIF 2.0.1+
+# Last changed          : April 6, 2018
+# Requirements          : AIF 2.0.3+
 # Comments              : This plugin allows "clients" on the same subnet to use this
-#                       : device as a gateway upstream. This network of "clients" is
-#                       : SNAT'ed to this device's external interface(s).
-#                       : 
-#                       : This Parasitic Network is useful for situations when the
-#                       : upstream firewall is not under your control and you desire
-#                       : added security for specific devices in your subnet.
-#                       : Set the gateway address of Parasitic Network clients to an
-#                       : external IPv4 address of this device.
+#                         device as a gateway upstream. This network of "clients" is
+#                         SNAT'ed to this device's external interface(s).
+#                         This parasitic network is useful for situations when the
+#                         upstream firewall is not under your control and you desire
+#                         added security for specific devices in your subnet.
+#                         Set the gateway address of parasitic network clients to an
+#                         external IPv4 address of this device. Note that this plugin
+#                         only works for IPv4, NOT IPv6
 #
-# Author                : (C) Copyright 2017 by Arno van Amersfoort & Lonnie Abelbeck
+# Author                : (C) Copyright 2017-2018 by Arno van Amersfoort & Lonnie Abelbeck
 # Email                 : arnova AT rocky DOT eld DOT leidenuniv DOT nl
 #                         (note: you must remove all spaces and substitute the @ and the .
 #                         at the proper locations!)
@@ -36,22 +36,10 @@ PLUGIN_CONF_FILE="parasitic-net.conf"
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
-parasitic_net_first_ipv4()
-{
-  ip -o addr show dev "$1" 2>/dev/null \
-    | awk '$3 == "inet" { split($4, field, "/"); print field[1]; nextfile; }'
-}
-
-parasitic_net_all_ipv4()
-{
-  ip -o addr show dev "$1" 2>/dev/null \
-    | awk '$3 == "inet" { split($4, field, "/"); print field[1]; }'
-}
-
 # Plugin start function
 plugin_start()
 {
-  local x host net eif gateway_if gateway_ip snat_if snat_ip snat_ifs_ips IFS
+  local IFS host interface if_ip snat_if snat_ip snat_ifs_ips snat_if_subnet
 
   ip4tables -t nat -N PARASITIC_NET_SNAT 2>/dev/null
   ip4tables -t nat -F PARASITIC_NET_SNAT
@@ -62,101 +50,247 @@ plugin_start()
   ip4tables -N PARASITIC_NET_FORWARD 2>/dev/null
   ip4tables -F PARASITIC_NET_FORWARD
 
+  if [ -z "$PARASITIC_NET_IF" ]; then
+    PARASITIC_NET_IF="$EXT_IF"
+  fi
+
+  if [ -z "$PARASITIC_NET_DENY_POLICY" ]; then
+    PARASITIC_NET_DENY_POLICY="DROP"
+  fi
+
   snat_ifs_ips=""
   IFS=' ,'
-  for eif in $(wildcard_ifs $EXT_IF); do
-    snat_if="$eif"
-    snat_ip="$(parasitic_net_first_ipv4 $eif)"
-    if [ -n "$snat_if" -a -n "$snat_ip" ]; then
+  for if_ip in $(wildcard_ifs $PARASITIC_NET_IF); do
+    snat_if="$(echo "$if_ip" |cut -d'~' -f1)"
+    snat_ip="$(echo "$if_ip" |cut -s -d'~' -f2)"
+
+    if [ -z "$snat_ip" ]; then
+      # Add all interface IPs to list
+      for if_ip in $(get_network_ipv4_address_all $snat_if); do
+        snat_ifs_ips="$snat_ifs_ips${snat_ifs_ips:+ }$snat_if~$if_ip"
+      done
+    else
       snat_ifs_ips="$snat_ifs_ips${snat_ifs_ips:+ }$snat_if~$snat_ip"
     fi
   done
 
   if [ -z "$snat_ifs_ips" ]; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: Unable to determine external interface IPv4 address!\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}ERROR: Unable to determine SNAT interface(s)/address(es)!\033[0m\n" >&2
     return 1
   fi
 
-  gateway_if=""
-  gateway_ip=""
-  unset IFS
-  for x in $snat_ifs_ips; do
-    eif="$(echo "$x" | cut -d'~' -f1)"
-    if [ -z "$PARASITIC_NET_IF" -o "$eif" = "$PARASITIC_NET_IF" ]; then
-      gateway_if="$eif"
-      gateway_ip="$(echo "$x" | cut -d'~' -f2)"
-      break
-    fi
-  done
+  echo "${INDENT}Parasitic network SNAT interface(s)/address(es): $snat_ifs_ips"
 
-  if [ -z "$gateway_if" -o -z "$gateway_ip" ]; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: Unable to match PARASITIC_NET_IF external gateway interface!\033[0m\n" >&2
-    return 1
+  if [ -z "$PARASITIC_NET_CLIENT_HOSTS" ]; then
+    IFS=' ,'
+    for if_ip in $(wildcard_ifs $PARASITIC_NET_IF); do
+      snat_if="$(echo "$if_ip" |cut -d'~' -f1)"
+      snat_if_subnet="$(get_network_ipv4_address_mask_all $snat_if)"
+      PARASITIC_NET_CLIENT_HOSTS="$PARASITIC_NET_CLIENT_HOSTS${PARASITIC_NET_CLIENT_HOSTS:+ }$snat_if_subnet"
+    done
   fi
-
-  echo "${INDENT}Parasitic Network Gateway IPv4 Address: $gateway_ip"
-
-  echo "${INDENT}Parasitic Network Gateway Interface: $gateway_if"
 
   # Setup Parasitic Network ACL rules
-  if [ -n "$PARASITIC_NET_ALLOW_HOSTS" ]; then
-    echo "${INDENT}Allowing Parasitic Network packets to hosts: $PARASITIC_NET_ALLOW_HOSTS"
-    IFS=' ,'
-    for host in $PARASITIC_NET_ALLOW_HOSTS; do
-      ip4tables -A PARASITIC_NET_ACL -d $host -j ACCEPT
-    done
-  fi
-  if [ -n "$PARASITIC_NET_DENY_HOSTS" ]; then
-    echo "${INDENT}Denying Parasitic Network packets to hosts: $PARASITIC_NET_DENY_HOSTS"
-    IFS=' ,'
-    for host in $PARASITIC_NET_DENY_HOSTS; do
-      if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-        ip4tables -A PARASITIC_NET_ACL -d $host -m limit --limit 1/m -j LOG \
-                 --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-Net denied: "
-      fi
-      ip4tables -A PARASITIC_NET_ACL -d $host -j DROP
-    done
-  fi
-  # Default policy, allow all the rest
-  ip4tables -A PARASITIC_NET_ACL -j ACCEPT
+  ###################################
+  echo "${INDENT}Setting up ACLs"
 
-  # Filter traffic related to the Parasitic Network
-  echo "${INDENT}Allowing Parasitic Network client access for host(s): $PARASITIC_NET_CLIENT_HOSTS"
-  IFS=' ,'
-  for host in $(ip_range $PARASITIC_NET_CLIENT_HOSTS); do
-    if [ "$host" != "$gateway_ip" ]; then
-      ip4tables -A PARASITIC_NET_FORWARD -s $host -j PARASITIC_NET_ACL
+  unset IFS
+  for rule in $PARASITIC_NET_HOST_DENY_TCP; do
+    if parse_rule "$rule" PARASITIC_NET_HOST_DENY_TCP "hosts-ports"; then
+      echo "${INDENT} Denying access to $hosts for TCP port(s): $ports"
+
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+            ip4tables -A PARASITIC_NET_ACL -d $host -p tcp --dport $port -m limit --limit 1/m -j LOG \
+              --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+          fi
+
+          ip4tables -A PARASITIC_NET_ACL -d $host -p tcp --dport $port -j $PARASITIC_NET_DENY_POLICY
+        done
+      done
+    fi
+  done
+
+  unset IFS
+  for rule in $PARASITIC_NET_HOST_DENY_UDP; do
+    if parse_rule "$rule" PARASITIC_NET_HOST_DENY_UDP "hosts-ports"; then
+      echo "${INDENT} Denying access to $hosts for UDP port(s): $ports"
+
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+            ip4tables -A PARASITIC_NET_ACL -d $host -p udp --dport $port -m limit --limit 1/m -j LOG \
+              --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+          fi
+
+          ip4tables -A PARASITIC_NET_ACL -d $host -p udp --dport $port -j $PARASITIC_NET_DENY_POLICY
+        done
+      done
     fi
   done
 
   IFS=' ,'
-  for eif in $(wildcard_ifs $EXT_IF); do
-    ip4tables -A FORWARD -i $gateway_if -o $eif -j PARASITIC_NET_FORWARD
-  done
+  for hosts in $PARASITIC_NET_HOST_DENY_ICMP; do
+    echo "${INDENT} Denying access to $hosts for ICMP requests"
 
-  # Actual SNAT, we do not want traffic generated on this machine to be NAT-ed, skip all snat_if IPv4's
-  unset IFS
-  for x in $snat_ifs_ips; do
-    snat_if="$(echo "$x" | cut -d'~' -f1)"
-    unset IFS
-    for host in $(parasitic_net_all_ipv4 $snat_if); do
-      ip4tables -t nat -A PARASITIC_NET_SNAT -s $host -j RETURN
+    for host in `ip_range "$hosts"`; do
+      if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+        ip4tables -A PARASITIC_NET_ACL -d $host -p icmp --icmp-type echo-request -m limit --limit 1/m -j LOG \
+          --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+      fi
+
+      ip4tables -A PARASITIC_NET_ACL -d $host -p icmp --icmp-type echo-request -j $PARASITIC_NET_DENY_POLICY
     done
   done
 
   unset IFS
-  for x in $snat_ifs_ips; do
-    snat_if="$(echo "$x" | cut -d'~' -f1)"
-    snat_ip="$(echo "$x" | cut -d'~' -f2)"
+  for rule in $PARASITIC_NET_HOST_DENY_IP; do
+    if parse_rule "$rule" PARASITIC_NET_HOST_DENY_IP "hosts-protos"; then
+      echo "${INDENT} Denying access to $hosts for IP protocol(s): $protos"
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for proto in $protos; do
+          if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+            ip4tables -A PARASITIC_NET_ACL -d $host -p $proto -m limit --limit 1/m -j LOG \
+              --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+          fi
+
+          ip4tables -A PARASITIC_NET_ACL -d $host -p $proto -j $PARASITIC_NET_DENY_POLICY
+        done
+      done
+    fi
+  done
+
+  unset IFS
+  for rule in $PARASITIC_NET_HOST_OPEN_TCP; do
+    if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_TCP "hosts-ports"; then
+      echo "${INDENT} Allowing access to $hosts for TCP port(s): $ports"
+
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          ip4tables -A PARASITIC_NET_ACL -d $host -p tcp --dport $port -j ACCEPT
+        done
+      done
+    fi
+  done
+
+  unset IFS
+  for rule in $PARASITIC_NET_HOST_OPEN_UDP; do
+    if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_UDP "hosts-ports"; then
+      echo "${INDENT} Allowing access to $hosts for UDP port(s): $ports"
+
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          ip4tables -A PARASITIC_NET_ACL -d $host -p udp --dport $port -j ACCEPT
+        done
+      done
+    fi
+  done
+
+  IFS=' ,'
+  for hosts in $PARASITIC_NET_HOST_OPEN_ICMP; do
+    echo "${INDENT} Allowing access to $hosts for ICMP requests"
+
+    for host in `ip_range "$hosts"`; do
+      ip4tables -A PARASITIC_NET_ACL -d $host -p icmp --icmp-type echo-request -j ACCEPT
+    done
+  done
+
+  unset IFS
+  for rule in $PARASITIC_NET_HOST_OPEN_IP; do
+    if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_IP "hosts-protos"; then
+      echo "${INDENT} Allowing access to $hosts for IP protocol(s): $protos"
+
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for proto in $protos; do
+          ip4tables -A PARASITIC_NET_ACL -d $host -p $proto -j ACCEPT
+        done
+      done
+    fi
+  done
+
+  # Set default policy
+  if [ -z "$PARASITIC_NET_HOST_OPEN_TCP" ]; then
+    ip4tables -A PARASITIC_NET_ACL -p tcp -j ACCEPT
+  else
+    if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+      ip4tables -A PARASITIC_NET_ACL -p tcp -m limit --limit 1/m -j LOG \
+        --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+    fi
+
+    ip4tables -A PARASITIC_NET_ACL -p tcp -j $PARASITIC_NET_DENY_POLICY
+  fi
+
+  if [ -z "$PARASITIC_NET_HOST_OPEN_UDP" ]; then
+    ip4tables -A PARASITIC_NET_ACL -p udp -j ACCEPT
+  else
+    if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+      ip4tables -A PARASITIC_NET_ACL -p udp -m limit --limit 1/m -j LOG \
+        --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+    fi
+
+    ip4tables -A PARASITIC_NET_ACL -p udp -j $PARASITIC_NET_DENY_POLICY
+  fi
+
+  if [ -z "$PARASITIC_NET_HOST_OPEN_ICMP" ]; then
+    ip4tables -A PARASITIC_NET_ACL -p icmp --icmp-type echo-request -j ACCEPT
+  else
+    if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+      ip4tables -A PARASITIC_NET_ACL -p icmp --icmp-type echo-request -m limit --limit 1/m -j LOG \
+        --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+    fi
+
+    ip4tables -A PARASITIC_NET_ACL -p icmp --icmp-type echo-request -j $PARASITIC_NET_DENY_POLICY
+  fi
+
+  # Drop the rest ("Other" IP protocols always need to be specified explicitly)
+  if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+    ip4tables -A PARASITIC_NET_ACL -m limit --limit 1/m -j LOG \
+      --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+  fi
+  ip4tables -A PARASITIC_NET_ACL -j $PARASITIC_NET_DENY_POLICY
+
+  # Filter traffic related to the Parasitic Network
+  echo "${INDENT}Allowing parasitic network access for client host(s): $PARASITIC_NET_CLIENT_HOSTS"
+  IFS=' ,'
+  for host in $(ip_range $PARASITIC_NET_CLIENT_HOSTS); do
+    ip4tables -A PARASITIC_NET_FORWARD -s $host -j PARASITIC_NET_ACL
+  done
+
+  # Enable forwarding on the SNAT interfaces.
+  # Note: can't check IF IP here, therefore only match interface(s)
+  IFS=' ,'
+  for if_ip in $(wildcard_ifs $PARASITIC_NET_IF); do
+    snat_if="$(echo "$if_ip" |cut -d'~' -f1)"
+    ip4tables -A POST_FORWARD_CHAIN -i $snat_if -o $snat_if -j PARASITIC_NET_FORWARD
+  done
+
+  # We do not want traffic generated on this machine to be NAT-ed, so skip all SNAT interface IPv4's
+  IFS=' '
+  for if_ip in $snat_ifs_ips; do
+    snat_ip="$(echo "$if_ip" |cut -d'~' -f2)"
+    ip4tables -t nat -A PARASITIC_NET_SNAT -s $snat_ip -j RETURN
+  done
+
+  IFS=' '
+  for if_ip in $snat_ifs_ips; do
+    snat_if="$(echo "$if_ip" |cut -d'~' -f1)"
+    snat_ip="$(echo "$if_ip" |cut -d'~' -f2)"
+
     IFS=' ,'
     for host in $(ip_range $PARASITIC_NET_CLIENT_HOSTS); do
-      if [ "$host" != "$snat_ip" ]; then
-        ip4tables -t nat -A PARASITIC_NET_SNAT -o $snat_if -s $host ! -d $host -j SNAT --to-source $snat_ip
-      fi
+      ip4tables -t nat -A PARASITIC_NET_SNAT -o $snat_if -s $host -j SNAT --to-source $snat_ip
     done
   done
 
-  ip4tables -t nat -A POSTROUTING -j PARASITIC_NET_SNAT
+  # Hook into the POST POSTROUTING NAT chain
+  ip4tables -t nat -A POST_NAT_POSTROUTING_CHAIN -j PARASITIC_NET_SNAT
 
   return 0
 }
@@ -177,7 +311,7 @@ plugin_restart()
 plugin_stop()
 {
 
-  ip4tables -t nat -D POSTROUTING -j PARASITIC_NET_SNAT
+  ip4tables -t nat -D POST_NAT_POSTROUTING_CHAIN -j PARASITIC_NET_SNAT
 
   ip4tables -t nat -F PARASITIC_NET_SNAT
   ip4tables -t nat -X PARASITIC_NET_SNAT 2>/dev/null
@@ -195,13 +329,19 @@ plugin_stop()
 # Plugin status function
 plugin_status()
 {
+  echo "  Interface forward policy:"
+  echo "  =============================="
+  ip4tables -nv -L POST_FORWARD_CHAIN | awk '$3 == "PARASITIC_NET_FORWARD" { print "  "$3" "$6" "$7" "$8" "$9 }'
+  echo "  ------------------------------"
+  echo ""
+
   echo "  Allowed client host(s):"
   echo "  =============================="
   ip4tables -n -L PARASITIC_NET_FORWARD | awk '$1 == "PARASITIC_NET_ACL" { print "  "$4 }'
   echo "  ------------------------------"
   echo ""
-  
-  echo "  Access Control List:"
+
+  echo "  Access Control List(ACL):"
   echo "  =============================="
   ip4tables -n -L PARASITIC_NET_ACL | sed -n -e 's/^ACCEPT.*$/  &/p' -e 's/^DROP.*$/  &/p'
   echo "  ------------------------------"
@@ -214,33 +354,22 @@ plugin_status()
 # Check sanity of eg. environment
 plugin_sanity_check()
 {
-  local host interface IFS
+  local IFS if1 if2
 
-  # Sanity check
-  if [ -z "$PARASITIC_NET_CLIENT_HOSTS" ]; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: PARASITIC_NET_CLIENT_HOSTS is not set!\033[0m\n" >&2
+  if [ -n "$PARASITIC_NET_DENY_POLICY" -a "$PARASITIC_NET_DENY_POLICY" != "DROP" -a "$PARASITIC_NET_DENY_POLICY" != "REJECT" ]; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: PARASITIC_NET_DENY_POLICY must be either \"DROP\" (or left empty) or \"REJECT\"!\033[0m\n" >&2
     return 1
   fi
 
   IFS=' ,'
-  for host in $PARASITIC_NET_CLIENT_HOSTS; do
-    case $host in
-      */0) printf "\033[40m\033[1;31m${INDENT}ERROR: */0 networks are not allowed in PARASITIC_NET_CLIENT_HOSTS.\033[0m\n" >&2
-           printf "\033[40m\033[1;31m${INDENT}       Be restrictive when defining PARASITIC_NET_CLIENT_HOSTS.   \033[0m\n" >&2
-           return 1
-           ;;
-    esac
-  done
-
-  if [ -n "$PARASITIC_NET_IF" ]; then
-    IFS=' ,'
-    for interface in $INT_IF $DMZ_IF; do
-      if [ "$interface" = "$PARASITIC_NET_IF" ]; then
-        printf "\033[40m\033[1;31m${INDENT}ERROR: INT_IF or DMZ_IF interfaces are not allowed for PARASITIC_NET_IF.\033[0m\n" >&2
+  for if1 in $INT_IF $DMZ_IF; do
+    for if2 in $PARASITIC_NET_IF; do
+      if [ "$if1" = "$if2" ]; then
+        printf "\033[40m\033[1;31m${INDENT}ERROR: INT_IF/DMZ_IF interface $if1 is not allowed as PARASITIC_NET_IF interface $if2.\033[0m\n" >&2
         return 1
       fi
     done
-  fi
+  done
 
   return 0
 }

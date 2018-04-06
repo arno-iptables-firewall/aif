@@ -1,4 +1,12 @@
-Version 1.00 BETA (July 25, 2017)
----------------------------------
-+ Initial version
+Version 1.00-BETA2 (April 5, 2018)
+-----------------------------------
++ Allow specifying multiple interfaces
++ Allow specifying IP for interfaces to use (aliased) interfaces with multiple IPs
++ Allow specifying subnet for PARASITIC_NET_CLIENTS_HOSTS or leaving it empty
++ Instead of only allowing certain hosts, also allow specifying which TCP/UDP/ICMP/IP protos to allow/deny
++ Add setting to select deny-policy (DROP or REJECT)
+* Misc. tweaks/refactor
 
+Version 1.00-BETA1 (July 25, 2017)
+----------------------------------
++ Initial version
