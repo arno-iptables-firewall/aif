@@ -5,7 +5,7 @@ PLUGIN_NAME="Parasitic (SNAT) Network plugin"
 PLUGIN_VERSION="1.00-BETA2"
 PLUGIN_CONF_FILE="parasitic-net.conf"
 #
-# Last changed          : April 5, 2018
+# Last changed          : April 6, 2018
 # Requirements          : AIF 2.0.3+
 # Comments              : This plugin allows "clients" on the same subnet to use this
 #                         device as a gateway upstream. This network of "clients" is
@@ -39,7 +39,7 @@ PLUGIN_CONF_FILE="parasitic-net.conf"
 # Plugin start function
 plugin_start()
 {
-  local IFS x host interface if_ip snat_if snat_ip snat_ifs_ips snat_ip_out snat_if_subnet
+  local IFS host interface if_ip snat_if snat_ip snat_ifs_ips snat_if_subnet
 
   ip4tables -t nat -N PARASITIC_NET_SNAT 2>/dev/null
   ip4tables -t nat -F PARASITIC_NET_SNAT
@@ -279,14 +279,13 @@ plugin_start()
   done
 
   IFS=' '
-  for x in $snat_ifs_ips; do
-    snat_if="$(echo "$x" |cut -d'~' -f1)"
+  for if_ip in $snat_ifs_ips; do
+    snat_if="$(echo "$if_ip" |cut -d'~' -f1)"
+    snat_ip="$(echo "$if_ip" |cut -d'~' -f2)"
 
     IFS=' ,'
     for host in $(ip_range $PARASITIC_NET_CLIENT_HOSTS); do
-      # Use primary(!) IPv4 address for SNAT output
-      snat_ip_out="$(get_network_ipv4_address $snat_if)"
-      ip4tables -t nat -A PARASITIC_NET_SNAT -o $snat_if -s $host -j SNAT --to-source $snat_ip_out
+      ip4tables -t nat -A PARASITIC_NET_SNAT -o $snat_if -s $host -j SNAT --to-source $snat_ip
     done
   done
 
@@ -420,4 +419,3 @@ else
     fi
   fi
 fi
-
