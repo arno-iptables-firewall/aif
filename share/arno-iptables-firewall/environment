@@ -1346,7 +1346,7 @@ get_dynamic_host_from_cache()
     # First try to get host from host-cache
     local find_host=`grep "^$host " -m1 "$HOST_CACHE_FILE"`
     if [ -n "$find_host" ]; then
-      local host_ip=`echo "$find_host" |cut -s -f2 -d' '`
+      local host_ip=`echo "$find_host" |cut -s -d' ' -f2`
 
       if [ "$host_ip" = "NO_IP" ]; then
         host_ip=""
@@ -1362,17 +1362,16 @@ get_dynamic_host_from_cache()
 }
 
 
-# Get IP for (dynamic) host. In case it already exists in our cache
-# use that else resolve and store in our (new) cache
+# Get IP for (dynamic) host. In case it already exists in our cache and is not too old
+# use that else resolve and store in our cache
 # Arguments : $1 = hostname to resolve
 # Returns   : Resolved host's IP in "$host_ip"
 get_dynamic_host_cached()
 {
-  # FIXME: Use lock or move to plugin!
-
   host_ip=""            # Reset result
   local host="$1"
   local retval=0
+  local cache_lookup age max_age cut_time
 
   # Don't try to resolve stuff that's already numeric
   if is_numeric_ip "$host"; then
@@ -1380,14 +1379,28 @@ get_dynamic_host_cached()
     return 0
   fi
 
-  # Check whether we already have it in our (new) cache. FIXME: Properly handle .new, probably have to move this to a (cron) plugin helper
-  host_ip="$(grep "^$host " -m1 "${HOST_CACHE_FILE}.new" |cut -s -f2 -d' ')"
-  if [ -n "$host_ip" ]; then
-    if [ "$host_ip" = "NO_IP" ]; then
-      host_ip=""
-      return 1
+  # Check whether we already have it in our cache
+  if [ -f "${HOST_CACHE_FILE}" ]; then
+    cache_lookup="$(grep "^$host " -m1 "${HOST_CACHE_FILE}")"
+    if [ -n "$cache_lookup" ]; then
+      # Check whether it's not too old
+      age="$(echo "$cache_lookup" |cut -d' ' -f4)"
+      cur_time="$(($(date +'%s') / 60))"
+
+      if [ -n "$DNS_MAX_AGE" ]; then
+        max_age="$DNS_MAX_AGE"
+      else
+        max_age=10 # Fallback to 10 minutes
+      fi
+
+      # Check cache age
+      if [ -n "$age" -a $cur_time -le $((age + max_age)) ]; then
+        host_ip="$(echo "$cache_lookup" |cut -d' ' -f2)"
+        if [ "$host_ip" != "NO_IP" ]; then
+          return 0
+        fi
+      fi
     fi
-    return 0
   fi
 
   printf "${INDENT}Resolving host \"$host\" -> "
@@ -1400,16 +1413,16 @@ get_dynamic_host_cached()
   if [ $gethost_retval -ne 0 -o -z "$host_ip" ]; then
     retval=1 # Error
 
-    host_lookup="$(grep "^$host " -m1 "${HOST_CACHE_FILE}" 2>/dev/null)"
-    if [ -n "$host_lookup" ]; then
-      count="$(echo "$host_lookup" |cut -s -f3 -d' ')"
+    # Use value from cache as a fallback, but only if allowed
+    if [ -n "$cache_lookup" ]; then
+      count="$(echo "$cache_lookup" |cut -s -d' ' -f3)"
       if [ -n "$count" ]; then
         fail_count=$count
       fi
 
       # Try to get from (old) cache, if allowed
       if [ "$DNS_OLD_CACHE_FALLBACK" = "1" ]; then
-        host_ip="$(echo "$host_lookup" |cut -s -f2 -d' ')"
+        host_ip="$(echo "$cache_lookup" |cut -s -d' ' -f2)"
       fi
     fi
 
@@ -1450,11 +1463,22 @@ get_dynamic_host_cached()
     fail_count=0
   fi
 
-  # Explicitly store empty results as well else we'll keep trying over and over again for each rule
-  if [ -z $host_ip ]; then
-    echo "$host NO_IP $fail_count" >>"${HOST_CACHE_FILE}.new"
+  cur_time="$(($(date +'%s') / 60))"
+  if [ -n "$cache_lookup" ]; then
+    # Update existing entry
+    if [ -z $host_ip ]; then
+      # NOTE Explicitly store empty results as well else we'll keep trying over and over again for each plugin/rule
+      sed -i s,"^$host[[:blank:]].*","$host NO_IP $fail_count $cur_time", "${HOST_CACHE_FILE}"
+    else
+      sed -i s,"^$host[[:blank:]].*","$host $host_ip $fail_count $cur_time", "${HOST_CACHE_FILE}"
+    fi
   else
-    echo "$host $host_ip $fail_count" >>"${HOST_CACHE_FILE}.new"
+    if [ -z $host_ip ]; then
+      # NOTE Explicitly store empty results as well else we'll keep trying over and over again for each plugin/rule
+      echo "$host NO_IP $fail_count $cur_time" >>"${HOST_CACHE_FILE}"
+    else
+      echo "$host $host_ip $fail_count $cur_time" >>"${HOST_CACHE_FILE}"
+    fi
   fi
 
   return $retval
