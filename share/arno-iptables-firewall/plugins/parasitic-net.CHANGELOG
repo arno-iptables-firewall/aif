@@ -1,5 +1,9 @@
+Version 1.00-BETA3 (June 11, 2018)
+----------------------------------
+* Added new dynamic host support (requires AIF 2.1.0+)
+
 Version 1.00-BETA2 (April 5, 2018)
------------------------------------
+----------------------------------
 + Allow specifying multiple interfaces
 + Allow specifying IP for interfaces to use (aliased) interfaces with multiple IPs
 + Allow specifying subnet for PARASITIC_NET_CLIENTS_HOSTS or leaving it empty

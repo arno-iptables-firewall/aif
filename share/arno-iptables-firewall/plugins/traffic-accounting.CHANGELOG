@@ -1,3 +1,8 @@
+Version 1.30 (June 11, 2018)
+----------------------------
+* Added new dynamic host support (requires AIF 2.1.0+)
+* Updated helper for new aif job system (requires AIF 2.1.0+)
+
 Version 1.23a (July 10, 2017)
 ----------------------------
 * Improve locking (handle stale lock files etc.)

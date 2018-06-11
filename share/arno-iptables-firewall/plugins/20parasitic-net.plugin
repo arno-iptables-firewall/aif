@@ -5,8 +5,8 @@ PLUGIN_NAME="Parasitic (SNAT) Network plugin"
 PLUGIN_VERSION="1.00-BETA3"
 PLUGIN_CONF_FILE="parasitic-net.conf"
 #
-# Last changed          : June 6, 2018
-# Requirements          : AIF 2.0.3+
+# Last changed          : June 11, 2018
+# Requirements          : AIF 2.1.0 (or newer)
 # Comments              : This plugin allows "clients" on the same subnet to use this
 #                         device as a gateway upstream. This network of "clients" is
 #                         SNAT'ed to this device's external interface(s).

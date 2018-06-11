@@ -1,6 +1,7 @@
-Version 1.40-BETA1 (June 7, 2018)
----------------------------------
-* Refactor plugin for new dynamic host support via environment
+Version 1.40 (June 11, 2018)
+----------------------------
+* Added new dynamic host support (requires AIF 2.1.0+)
+* Updated helper for new aif job system (requires AIF 2.1.0+)
 
 Version 1.34a (July 10, 2017)
 -----------------------------

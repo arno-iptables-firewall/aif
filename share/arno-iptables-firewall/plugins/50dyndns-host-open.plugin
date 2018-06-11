@@ -2,11 +2,11 @@
 #            -= Arno's iptables firewall - DynDNS Host Open plugin =-
 #
 PLUGIN_NAME="DynDNS Host Open plugin"
-PLUGIN_VERSION="1.40-BETA1"
+PLUGIN_VERSION="1.40"
 PLUGIN_CONF_FILE="dyndns-host-open.conf"
 #
-# Last changed          : June 7, 2018
-# Requirements          : kernel 2.6 + AIF 2.1.0 or better
+# Last changed          : June 11, 2018
+# Requirements          : AIF 2.1.0 (or newer)
 # Comments              : This implements dynamic DNS (DynDNS) support for eg. opening ports
 #
 # Author                : (C) Copyright 2008-2018 by Arno van Amersfoort
