@@ -1,3 +1,11 @@
+Version 2.1.0-BETA1-DEVEL (June 28, 2018)
+-----------------------------------------
+* Move dynamic host handling (no longer via DynDNS-host-open plugin but handled internally)
++ Capability for hostnames resolving to multiple IPs in dynamic host support
++ New job manager to accommodate improved (plugin) helper support
+* Move duplicate code from some of the plugins to environment (like locking for instance)
+* Various other tweaks/refactoring
+
 Version 2.0.3 (June 28, 2018)
 -----------------------------
 ! Missing mention in man page of arno-fwfilter's --no-resolve option
