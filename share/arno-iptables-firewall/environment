@@ -1574,7 +1574,7 @@ progress_bar()
         while [ $prev -le $cur ]; do
           if [ $progress_percent -lt $prev ]; then
             progress_percent=$prev
-            if [ $(($progress_percent % 20)) -eq 0 ]; then
+            if [ $((progress_percent % 20)) -eq 0 ]; then
               printf "$progress_percent%%"
             else
               printf "."
@@ -1822,7 +1822,7 @@ if [ -z "$EXT_NET_BCAST_ADDRESS" -a -n "$EXT_IF" ]; then
       fi
     done
 
-    ext_count=$(($ext_count + 1))
+    ext_count=$((ext_count + 1))
     if [ $found -eq 0 -a -n "$EXTERNAL_NET" ]; then
       ext_net="$(echo "$EXTERNAL_NET" |awk "{ print \$$ext_count }")"
 

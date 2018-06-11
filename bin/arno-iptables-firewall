@@ -4508,7 +4508,7 @@ if ipset_check; then
         # Support both a '#' and a ';' as a comment delimiter in BLOCK_HOSTS_FILE file
         unset IFS
         cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' -e '/^$/d' |while read hosts; do
-          cur_cnt=$(($cur_cnt + 100))
+          cur_cnt=$((cur_cnt + 100))
           progress_bar $cur_cnt $total_cnt
 
           if [ -n "$hosts" ]; then
@@ -4628,7 +4628,7 @@ else
         # Support both a '#' and a ';' as a comment delimiter in BLOCK_HOSTS_FILE file
         unset IFS
         cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' -e '/^$/d' |while read hosts; do
-          cur_cnt=$(($cur_cnt + 100))
+          cur_cnt=$((cur_cnt + 100))
           progress_bar $cur_cnt $total_cnt
 
           if [ -n "$hosts" ]; then
@@ -4837,11 +4837,11 @@ plugins_start()
         # By checking the ENABLED variable, we know whether the plugin
         # was actually loaded. If so increase the plugin count:
         echo "$plugin" >> "$PLUGIN_LOAD_FILE"
-        plugin_count=$(($plugin_count + 1))
+        plugin_count=$((plugin_count + 1))
 
         # Check result
         if [ "$PLUGIN_RET_VAL" != "0" -o $STORE_RULE_WARNING -ne $RULE_WARNING ]; then
-          PLUGIN_ERRORS=$(($PLUGIN_ERRORS + 1))
+          PLUGIN_ERRORS=$((PLUGIN_ERRORS + 1))
         fi
       fi
     done
@@ -4908,10 +4908,10 @@ plugins_stop()
 
           # Check result
           if [ "$PLUGIN_RET_VAL" != "0" -o $STORE_RULE_WARNING -ne $RULE_WARNING ]; then
-            PLUGIN_ERRORS=$(($PLUGIN_ERRORS + 1))
+            PLUGIN_ERRORS=$((PLUGIN_ERRORS + 1))
           fi
 
-          plugin_count=$(($plugin_count + 1))
+          plugin_count=$((plugin_count + 1))
         fi
       else
         printf "\033[40m\033[1;31mERROR: Could not stop plugin \"$plugin_name\" as it does no exist!\033[0m\n" >&2
@@ -5344,7 +5344,7 @@ setup_firewall_rules()
 
         COUNT=0
         for interface in $NAT_IF; do
-          COUNT=$(($COUNT + 1))         # x++
+          COUNT=$((COUNT + 1))
           STATIC_IP=$(echo "$NAT_STATIC_IP" |awk "{ print \$$COUNT }")
 
           if [ -z "$STATIC_IP" ]; then
