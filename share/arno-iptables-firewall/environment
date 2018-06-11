@@ -1797,6 +1797,14 @@ if [ -z "$PLUGIN_BIN_PATH" ]; then
   fi
 fi
 
+# Set system wide share path
+############################
+if [ -z "$USR_SHARE_PATH" ]; then
+  # FIXME: For now we simply retrieve the path from what is specified for
+  #        our plugin path. Perhaps there's a smarter way?
+  USR_SHARE_PATH="$(dirname "$PLUGIN_BIN_PATH")"
+fi
+
 # Check plugin bin path and fallback in case it's empty
 #######################################################
 if [ -z "$PLUGIN_CONF_PATH" ]; then
