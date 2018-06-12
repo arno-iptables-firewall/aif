@@ -36,24 +36,18 @@ JOB_NAME="traffic_accounting"
 # (Background) job helper script
 JOB_HELPER_SCRIPT="$PLUGIN_BIN_PATH/traffic-accounting-helper"
 
-# Plugin start function
-plugin_start()
+traffic_accounting_init()
 {
   local BG_TIME
 
-  # Enable Conntrack Accounting (kernel config CONFIG_NF_CT_ACCT)
-  # CONFIG_NF_CT_ACCT is deprecated and will be removed sometime after kernel 2.6.27
-  sysctl net.netfilter.nf_conntrack_acct=1 2>/dev/null
-
-  iptables -N ACCOUNTING_INPUT_CHAIN 2>/dev/null
+  # Flush accounting chains
   iptables -F ACCOUNTING_INPUT_CHAIN
-
-  iptables -N ACCOUNTING_OUTPUT_CHAIN 2>/dev/null
   iptables -F ACCOUNTING_OUTPUT_CHAIN
 
-  # Insert rule in the INPUT chain
+  # (Re)insert rule in the INPUT chain
   iptables -I INPUT 1 -j ACCOUNTING_INPUT_CHAIN
 
+  # (Re)insert rule in the OUTPUT chain
   # Insert rule in the OUTPUT chain
   iptables -I OUTPUT 1 -j ACCOUNTING_OUTPUT_CHAIN
 
@@ -67,15 +61,36 @@ plugin_start()
     BG_TIME="$TRAFFIC_ACCOUNTING_TIME"
   fi
 
-  # Create hourly cron job
-  job_add "$JOB_NAME" $BG_TIME "$JOB_HELPER_SCRIPT"
+  # Create background job
+  if ! job_add "$JOB_NAME" $BG_TIME "$JOB_HELPER_SCRIPT"; then
+    return 1
+  fi
 
   # Call the helper script at startup?
   if [ "$TRAFFIC_ACCOUNTING_RUN_AT_START" = "1" ]; then
     if ! job_run_once "$JOB_HELPER_SCRIPT"; then
       return 1
     fi
+  fi
 
+  return 0
+}
+
+
+# Plugin start function
+plugin_start()
+{
+  # Enable Conntrack Accounting (kernel config CONFIG_NF_CT_ACCT)
+  # CONFIG_NF_CT_ACCT is deprecated and will be removed sometime after kernel 2.6.27
+  sysctl net.netfilter.nf_conntrack_acct=1 2>/dev/null
+
+  # Create new chains
+  iptables -N ACCOUNTING_INPUT_CHAIN 2>/dev/null
+  iptables -N ACCOUNTING_OUTPUT_CHAIN 2>/dev/null
+
+  # Initialize
+  if ! traffic_accounting_init; then
+    return 1
   fi
 
   return 0
@@ -90,24 +105,9 @@ plugin_restart()
   # Store current values (NOTE: Ignore return value)
   job_run_once "$JOB_HELPER_SCRIPT"
 
-  # Flush accounting chains
-  iptables -F ACCOUNTING_INPUT_CHAIN
-  iptables -F ACCOUNTING_OUTPUT_CHAIN
-
-  # (Re)insert rule in the INPUT chain
-  iptables -I INPUT 1 -j ACCOUNTING_INPUT_CHAIN
-
-  # (Re)insert rule in the OUTPUT chain
-  # Insert rule in the OUTPUT chain
-  iptables -I OUTPUT 1 -j ACCOUNTING_OUTPUT_CHAIN
-
-  # Call the helper script at startup?
-  if [ "$TRAFFIC_ACCOUNTING_RUN_AT_START" = "1" ]; then
-    echo "${INDENT}Running helper script..."
-
-    if ! job_run_once "$JOB_HELPER_SCRIPT"; then
-      return 1
-    fi
+  # Initialize
+  if ! traffic_accounting_init; then
+    return 1
   fi
 
   return 0

@@ -35,15 +35,8 @@ JOB_NAME="dyndns_host_open"
 # (Background) job helper script
 JOB_HELPER_SCRIPT="$PLUGIN_BIN_PATH/dyndns-host-open-helper"
 
-# Plugin start function
-plugin_start()
+dyndns_host_open_init()
 {
-  local BG_TIME
-
-  # Create new DYNDNS_CHAIN chain:
-  iptables -N DYNDNS_CHAIN 2>/dev/null
-  iptables -F DYNDNS_CHAIN
-
   # Insert rule into the main chain:
   iptables -A EXT_INPUT_CHAIN -j DYNDNS_CHAIN
 
@@ -58,7 +51,9 @@ plugin_start()
   fi
 
   # Create background job
-  job_add "$JOB_NAME" "$BG_TIME" "$JOB_HELPER_SCRIPT"
+  if ! job_add "$JOB_NAME" "$BG_TIME" "$JOB_HELPER_SCRIPT"; then
+    return 1
+  fi
 
   # Call the helper script at startup?
   if [ "$DYNDNS_RUN_AT_START" = "1" ]; then
@@ -71,22 +66,33 @@ plugin_start()
 }
 
 
+# Plugin start function
+plugin_start()
+{
+  local BG_TIME
+
+  # Create new DYNDNS_CHAIN chain:
+  iptables -N DYNDNS_CHAIN 2>/dev/null
+  iptables -F DYNDNS_CHAIN
+
+  # Initialize
+  if ! dyndns_host_open_init; then
+    return 1
+  fi
+
+  return 0
+}
+
+
 # Plugin restart function
 plugin_restart()
 {
   # Re-add standard chain rules that are flushed on a restart
   echo "${INDENT}Restarting..."
 
-  # Insert rule into the main chain:
-  iptables -A EXT_INPUT_CHAIN -j DYNDNS_CHAIN
-
-  # Call the dyndns-helper script at startup?
-  if [ "$DYNDNS_RUN_AT_START" = "1" ]; then
-    echo "${INDENT}Running helper script..."
-
-    if ! job_run_once "$JOB_HELPER_SCRIPT"; then
-      return 1
-    fi
+  # Initialize
+  if ! dyndns_host_open_init; then
+    return 1
   fi
 
   return 0

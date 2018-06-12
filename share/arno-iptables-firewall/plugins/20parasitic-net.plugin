@@ -133,13 +133,9 @@ parasitic_net_setup_rules()
 }
 
 
-# Plugin start function
-plugin_start()
+parasitic_net_init()
 {
   local BG_TIME
-
-  # Setup rules
-  parasitic_net_setup_rules
 
   if [ -z "$PARASITIC_NET_TIME" ]; then
     # Default to 60 minutes
@@ -162,11 +158,23 @@ plugin_start()
 }
 
 
+# Plugin start function
+plugin_start()
+{
+  # Setup rules
+  parasitic_net_setup_rules
+
+  # Initialize
+  parasitic_net_init
+
+  return 0
+}
+
+
 # Plugin restart function
 plugin_restart()
 {
-  # NOTE: Skip plugin_stop on a restart
-
+  # NOTE: Skip plugin_stop on a restart and basically do the same as with a normal start
   plugin_start
 
   return 0

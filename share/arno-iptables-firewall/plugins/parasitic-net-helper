@@ -237,6 +237,9 @@ if [ -n "$PLUGIN_CONF_PATH" ]; then
   CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
 fi
 
+# Preinit return value for success
+PLUGIN_RET_VAL=0
+
 # Check if the config file exists
 if [ ! -e "$CONF_FILE" ]; then
   echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
@@ -245,14 +248,11 @@ else
   # Source the plugin config file
   . "$CONF_FILE"
 
-  if [ "$ENABLED" = "1" ]; then
-    # Only proceed if environment ok
-    if parasitic_net_sanity_check; then
-      # Create actual rules
-      parasitic_net_setup_rules
-    else
-      PLUGIN_RET_VAL=1
-    fi
+  # Only proceed if environment ok
+  if parasitic_net_sanity_check; then
+    # Create actual rules
+    parasitic_net_setup_rules
+  else
+    PLUGIN_RET_VAL=1
   fi
 fi
-
