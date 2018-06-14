@@ -2,10 +2,10 @@
 #       -= Arno's iptables firewall - Parasitic (SNAT) Network plugin =-
 #
 PLUGIN_NAME="Parasitic (SNAT) Network plugin"
-PLUGIN_VERSION="1.00-BETA2"
+PLUGIN_VERSION="1.00-BETA3"
 PLUGIN_CONF_FILE="parasitic-net.conf"
 #
-# Last changed          : April 6, 2018
+# Last changed          : June 6, 2018
 # Requirements          : AIF 2.0.3+
 # Comments              : This plugin allows "clients" on the same subnet to use this
 #                         device as a gateway upstream. This network of "clients" is
@@ -36,8 +36,14 @@ PLUGIN_CONF_FILE="parasitic-net.conf"
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
-# Plugin start function
-plugin_start()
+# Use a lock file for protection
+LOCK_NAME="parasitic_net_helper"
+
+# (Background) job name
+JOB_NAME="parasitic_net"
+
+
+parasitic_net_setup_rules()
 {
   local IFS host interface if_ip snat_if snat_ip snat_ifs_ips snat_if_subnet
 
@@ -90,172 +96,6 @@ plugin_start()
     done
   fi
 
-  # Setup Parasitic Network ACL rules
-  ###################################
-  echo "${INDENT}Setting up ACLs"
-
-  unset IFS
-  for rule in $PARASITIC_NET_HOST_DENY_TCP; do
-    if parse_rule "$rule" PARASITIC_NET_HOST_DENY_TCP "hosts-ports"; then
-      echo "${INDENT} Denying access to $hosts for TCP port(s): $ports"
-
-      IFS=','
-      for host in `ip_range "$hosts"`; do
-        for port in $ports; do
-          if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-            ip4tables -A PARASITIC_NET_ACL -d $host -p tcp --dport $port -m limit --limit 1/m -j LOG \
-              --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
-          fi
-
-          ip4tables -A PARASITIC_NET_ACL -d $host -p tcp --dport $port -j $PARASITIC_NET_DENY_POLICY
-        done
-      done
-    fi
-  done
-
-  unset IFS
-  for rule in $PARASITIC_NET_HOST_DENY_UDP; do
-    if parse_rule "$rule" PARASITIC_NET_HOST_DENY_UDP "hosts-ports"; then
-      echo "${INDENT} Denying access to $hosts for UDP port(s): $ports"
-
-      IFS=','
-      for host in `ip_range "$hosts"`; do
-        for port in $ports; do
-          if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-            ip4tables -A PARASITIC_NET_ACL -d $host -p udp --dport $port -m limit --limit 1/m -j LOG \
-              --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
-          fi
-
-          ip4tables -A PARASITIC_NET_ACL -d $host -p udp --dport $port -j $PARASITIC_NET_DENY_POLICY
-        done
-      done
-    fi
-  done
-
-  IFS=' ,'
-  for hosts in $PARASITIC_NET_HOST_DENY_ICMP; do
-    echo "${INDENT} Denying access to $hosts for ICMP requests"
-
-    for host in `ip_range "$hosts"`; do
-      if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-        ip4tables -A PARASITIC_NET_ACL -d $host -p icmp --icmp-type echo-request -m limit --limit 1/m -j LOG \
-          --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
-      fi
-
-      ip4tables -A PARASITIC_NET_ACL -d $host -p icmp --icmp-type echo-request -j $PARASITIC_NET_DENY_POLICY
-    done
-  done
-
-  unset IFS
-  for rule in $PARASITIC_NET_HOST_DENY_IP; do
-    if parse_rule "$rule" PARASITIC_NET_HOST_DENY_IP "hosts-protos"; then
-      echo "${INDENT} Denying access to $hosts for IP protocol(s): $protos"
-      IFS=','
-      for host in `ip_range "$hosts"`; do
-        for proto in $protos; do
-          if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-            ip4tables -A PARASITIC_NET_ACL -d $host -p $proto -m limit --limit 1/m -j LOG \
-              --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
-          fi
-
-          ip4tables -A PARASITIC_NET_ACL -d $host -p $proto -j $PARASITIC_NET_DENY_POLICY
-        done
-      done
-    fi
-  done
-
-  unset IFS
-  for rule in $PARASITIC_NET_HOST_OPEN_TCP; do
-    if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_TCP "hosts-ports"; then
-      echo "${INDENT} Allowing access to $hosts for TCP port(s): $ports"
-
-      IFS=','
-      for host in `ip_range "$hosts"`; do
-        for port in $ports; do
-          ip4tables -A PARASITIC_NET_ACL -d $host -p tcp --dport $port -j ACCEPT
-        done
-      done
-    fi
-  done
-
-  unset IFS
-  for rule in $PARASITIC_NET_HOST_OPEN_UDP; do
-    if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_UDP "hosts-ports"; then
-      echo "${INDENT} Allowing access to $hosts for UDP port(s): $ports"
-
-      IFS=','
-      for host in `ip_range "$hosts"`; do
-        for port in $ports; do
-          ip4tables -A PARASITIC_NET_ACL -d $host -p udp --dport $port -j ACCEPT
-        done
-      done
-    fi
-  done
-
-  IFS=' ,'
-  for hosts in $PARASITIC_NET_HOST_OPEN_ICMP; do
-    echo "${INDENT} Allowing access to $hosts for ICMP requests"
-
-    for host in `ip_range "$hosts"`; do
-      ip4tables -A PARASITIC_NET_ACL -d $host -p icmp --icmp-type echo-request -j ACCEPT
-    done
-  done
-
-  unset IFS
-  for rule in $PARASITIC_NET_HOST_OPEN_IP; do
-    if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_IP "hosts-protos"; then
-      echo "${INDENT} Allowing access to $hosts for IP protocol(s): $protos"
-
-      IFS=','
-      for host in `ip_range "$hosts"`; do
-        for proto in $protos; do
-          ip4tables -A PARASITIC_NET_ACL -d $host -p $proto -j ACCEPT
-        done
-      done
-    fi
-  done
-
-  # Set default policy
-  if [ -z "$PARASITIC_NET_HOST_OPEN_TCP" ]; then
-    ip4tables -A PARASITIC_NET_ACL -p tcp -j ACCEPT
-  else
-    if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-      ip4tables -A PARASITIC_NET_ACL -p tcp -m limit --limit 1/m -j LOG \
-        --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
-    fi
-
-    ip4tables -A PARASITIC_NET_ACL -p tcp -j $PARASITIC_NET_DENY_POLICY
-  fi
-
-  if [ -z "$PARASITIC_NET_HOST_OPEN_UDP" ]; then
-    ip4tables -A PARASITIC_NET_ACL -p udp -j ACCEPT
-  else
-    if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-      ip4tables -A PARASITIC_NET_ACL -p udp -m limit --limit 1/m -j LOG \
-        --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
-    fi
-
-    ip4tables -A PARASITIC_NET_ACL -p udp -j $PARASITIC_NET_DENY_POLICY
-  fi
-
-  if [ -z "$PARASITIC_NET_HOST_OPEN_ICMP" ]; then
-    ip4tables -A PARASITIC_NET_ACL -p icmp --icmp-type echo-request -j ACCEPT
-  else
-    if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-      ip4tables -A PARASITIC_NET_ACL -p icmp --icmp-type echo-request -m limit --limit 1/m -j LOG \
-        --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
-    fi
-
-    ip4tables -A PARASITIC_NET_ACL -p icmp --icmp-type echo-request -j $PARASITIC_NET_DENY_POLICY
-  fi
-
-  # Drop the rest ("Other" IP protocols always need to be specified explicitly)
-  if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-    ip4tables -A PARASITIC_NET_ACL -m limit --limit 1/m -j LOG \
-      --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
-  fi
-  ip4tables -A PARASITIC_NET_ACL -j $PARASITIC_NET_DENY_POLICY
-
   # Filter traffic related to the Parasitic Network
   echo "${INDENT}Allowing parasitic network access for client host(s): $PARASITIC_NET_CLIENT_HOSTS"
   IFS=' ,'
@@ -291,6 +131,36 @@ plugin_start()
 
   # Hook into the POST POSTROUTING NAT chain
   ip4tables -t nat -A POST_NAT_POSTROUTING_CHAIN -j PARASITIC_NET_SNAT
+}
+
+
+# Plugin start function
+plugin_start()
+{
+  local BG_TIME
+
+  # Setup rules
+  parasitic_net_setup_rules
+
+  # Check for stale lock file
+  lock_remove "$LOCK_NAME"
+
+  if [ -z "$PARASITIC_NET_TIME" ]; then
+    # Default to 60 minutes
+    BG_TIME=60
+  else
+    BG_TIME="$PARASITIC_NET_TIME"
+  fi
+
+  # Create background job
+  job_add "$JOB_NAME" $BG_TIME "$PLUGIN_BIN_PATH/parasitic-net-helper >/dev/null"
+
+  # Call the host-accounting-helper script at startup?
+  if [ "$PARASITIC_NET_RUN_AT_START" = "1" ]; then
+    echo "${INDENT}Running helper script..."
+
+    "$PLUGIN_BIN_PATH/parasitic-net-helper"
+  fi
 
   return 0
 }
@@ -299,8 +169,8 @@ plugin_start()
 # Plugin restart function
 plugin_restart()
 {
+  # NOTE: Skip plugin_stop on a restart
 
-  # Skip plugin_stop on a restart
   plugin_start
 
   return 0
@@ -310,6 +180,11 @@ plugin_restart()
 # Plugin stop function
 plugin_stop()
 {
+  # Remove (background) job
+  job_remove "$JOB_NAME"
+
+  # Wait for background job to finish
+  lock_wait "$LOCK_NAME"
 
   ip4tables -t nat -D POST_NAT_POSTROUTING_CHAIN -j PARASITIC_NET_SNAT
 
@@ -370,6 +245,11 @@ plugin_sanity_check()
       fi
     done
   done
+
+  if [ ! -x "$PLUGIN_BIN_PATH/parasitic-net-helper" ]; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The parasitic-net-helper script can not be found or is not executable!\033[0m\n" >&2
+    return 1
+  fi
 
   return 0
 }

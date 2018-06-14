@@ -1,0 +1,311 @@
+#!/bin/bash
+
+# The plugin configuration file
+###############################
+PLUGIN_CONF_FILE="parasitic-net.conf"
+
+# Location of the main configuration file for the firewall
+##########################################################
+CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
+
+# Use a lock file for protection
+LOCK_NAME="parasitic_net_helper"
+
+# Check if the main config file exists and if so load it
+########################################################
+if [ -e "$CONFIG_FILE" ]; then
+  . $CONFIG_FILE
+else
+  echo "** ERROR: Could not read configuration file $CONFIG_FILE!" >&2
+  echo "**        Please, check the file's location and (root) rights." >&2
+  exit 2
+fi
+
+# Check if the environment file exists and if so, load it
+#########################################################
+if [ -n "$ENV_FILE" ]; then
+  . "$ENV_FILE"
+else
+  if [ -f /usr/local/share/arno-iptables-firewall/environment ]; then
+    . /usr/local/share/arno-iptables-firewall/environment
+  else
+    if [ -f /usr/share/arno-iptables-firewall/environment ]; then
+      . /usr/share/arno-iptables-firewall/environment
+    else
+      echo "** ERROR: The environment file (ENV_FILE) has not been specified" >&2
+      echo "**        in the configuration file. Try upgrading your config-file!" >&2
+      exit 2
+    fi
+  fi
+fi
+
+# Define some global variables
+INDENT='   '
+
+# Check sanity of eg. environment
+sanity_check()
+{
+  # Check whether chain exists
+  if ! ip4tables -nL PARASITIC_NET_ACL >/dev/null 2>&1; then
+    echo "** ERROR: PARASITIC_NET_ACL does not exist! **" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+
+parasitic_net_setup_rules()
+{
+  # Flush the PARASITIC_NET_ACL
+  iptables -F PARASITIC_NET_ACL
+
+  unset IFS
+  for rule in $PARASITIC_NET_HOST_DENY_TCP; do
+    if parse_rule "$rule" PARASITIC_NET_HOST_DENY_TCP "hosts-ports"; then
+      echo "${INDENT} Denying access to $hosts for TCP port(s): $ports"
+
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+          continue
+        fi
+
+        for port in $ports; do
+          if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+            ip4tables -A PARASITIC_NET_ACL -d $host_ip -p tcp --dport $port -m limit --limit 1/m -j LOG \
+              --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+          fi
+
+          ip4tables -A PARASITIC_NET_ACL -d $host_ip -p tcp --dport $port -j $PARASITIC_NET_DENY_POLICY
+        done
+      done
+    fi
+  done
+
+  unset IFS
+  for rule in $PARASITIC_NET_HOST_DENY_UDP; do
+    if parse_rule "$rule" PARASITIC_NET_HOST_DENY_UDP "hosts-ports"; then
+      echo "${INDENT} Denying access to $hosts for UDP port(s): $ports"
+
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+          continue
+        fi
+
+        for port in $ports; do
+          if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+            ip4tables -A PARASITIC_NET_ACL -d $host_ip -p udp --dport $port -m limit --limit 1/m -j LOG \
+              --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+          fi
+
+          ip4tables -A PARASITIC_NET_ACL -d $host_ip -p udp --dport $port -j $PARASITIC_NET_DENY_POLICY
+        done
+      done
+    fi
+  done
+
+  IFS=' ,'
+  for hosts in $PARASITIC_NET_HOST_DENY_ICMP; do
+    echo "${INDENT} Denying access to $hosts for ICMP requests"
+
+    for host in `ip_range "$hosts"`; do
+      if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
+        echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+        continue
+      fi
+
+      if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+        ip4tables -A PARASITIC_NET_ACL -d $host_ip -p icmp --icmp-type echo-request -m limit --limit 1/m -j LOG \
+          --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+      fi
+
+      ip4tables -A PARASITIC_NET_ACL -d $host_ip -p icmp --icmp-type echo-request -j $PARASITIC_NET_DENY_POLICY
+    done
+  done
+
+  unset IFS
+  for rule in $PARASITIC_NET_HOST_DENY_IP; do
+    if parse_rule "$rule" PARASITIC_NET_HOST_DENY_IP "hosts-protos"; then
+      echo "${INDENT} Denying access to $hosts for IP protocol(s): $protos"
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+          continue
+        fi
+
+        for proto in $protos; do
+          if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+            ip4tables -A PARASITIC_NET_ACL -d $host_ip -p $proto -m limit --limit 1/m -j LOG \
+              --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+          fi
+
+          ip4tables -A PARASITIC_NET_ACL -d $host_ip -p $proto -j $PARASITIC_NET_DENY_POLICY
+        done
+      done
+    fi
+  done
+
+  unset IFS
+  for rule in $PARASITIC_NET_HOST_OPEN_TCP; do
+    if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_TCP "hosts-ports"; then
+      echo "${INDENT} Allowing access to $hosts for TCP port(s): $ports"
+
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+          continue
+        fi
+
+        for port in $ports; do
+          ip4tables -A PARASITIC_NET_ACL -d $host_ip -p tcp --dport $port -j ACCEPT
+        done
+      done
+    fi
+  done
+
+  unset IFS
+  for rule in $PARASITIC_NET_HOST_OPEN_UDP; do
+    if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_UDP "hosts-ports"; then
+      echo "${INDENT} Allowing access to $hosts for UDP port(s): $ports"
+
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+          continue
+        fi
+
+        for port in $ports; do
+          ip4tables -A PARASITIC_NET_ACL -d $host_ip -p udp --dport $port -j ACCEPT
+        done
+      done
+    fi
+  done
+
+  IFS=' ,'
+  for hosts in $PARASITIC_NET_HOST_OPEN_ICMP; do
+    echo "${INDENT} Allowing access to $hosts for ICMP requests"
+
+    for host in `ip_range "$hosts"`; do
+      if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
+        echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+        continue
+      fi
+
+      ip4tables -A PARASITIC_NET_ACL -d $host_ip -p icmp --icmp-type echo-request -j ACCEPT
+    done
+  done
+
+  unset IFS
+  for rule in $PARASITIC_NET_HOST_OPEN_IP; do
+    if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_IP "hosts-protos"; then
+      echo "${INDENT} Allowing access to $hosts for IP protocol(s): $protos"
+
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+          continue
+        fi
+
+        for proto in $protos; do
+          ip4tables -A PARASITIC_NET_ACL -d $host_ip -p $proto -j ACCEPT
+        done
+      done
+    fi
+  done
+
+  # Set default policy
+  if [ -z "$PARASITIC_NET_HOST_OPEN_TCP" ]; then
+    ip4tables -A PARASITIC_NET_ACL -p tcp -j ACCEPT
+  else
+    if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+      ip4tables -A PARASITIC_NET_ACL -p tcp -m limit --limit 1/m -j LOG \
+        --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+    fi
+
+    ip4tables -A PARASITIC_NET_ACL -p tcp -j $PARASITIC_NET_DENY_POLICY
+  fi
+
+  if [ -z "$PARASITIC_NET_HOST_OPEN_UDP" ]; then
+    ip4tables -A PARASITIC_NET_ACL -p udp -j ACCEPT
+  else
+    if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+      ip4tables -A PARASITIC_NET_ACL -p udp -m limit --limit 1/m -j LOG \
+        --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+    fi
+
+    ip4tables -A PARASITIC_NET_ACL -p udp -j $PARASITIC_NET_DENY_POLICY
+  fi
+
+  if [ -z "$PARASITIC_NET_HOST_OPEN_ICMP" ]; then
+    ip4tables -A PARASITIC_NET_ACL -p icmp --icmp-type echo-request -j ACCEPT
+  else
+    if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+      ip4tables -A PARASITIC_NET_ACL -p icmp --icmp-type echo-request -m limit --limit 1/m -j LOG \
+        --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+    fi
+
+    ip4tables -A PARASITIC_NET_ACL -p icmp --icmp-type echo-request -j $PARASITIC_NET_DENY_POLICY
+  fi
+
+  # Drop the rest ("Other" IP protocols always need to be specified explicitly)
+  if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+    ip4tables -A PARASITIC_NET_ACL -m limit --limit 1/m -j LOG \
+      --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+  fi
+  ip4tables -A PARASITIC_NET_ACL -j $PARASITIC_NET_DENY_POLICY
+}
+
+
+ctrl_handler()
+{
+  lock_leave "$LOCK_NAME"
+
+  stty intr ^C # Back to normal
+  exit         # Yep, I meant to do that... Kill/hang the shell.
+}
+
+
+############
+# Mainline #
+############
+
+# Check where to find the config file
+CONF_FILE=""
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Check if the config file exists
+if [ ! -e "$CONF_FILE" ]; then
+  echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
+  exit 1
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  if [ "$ENABLED" = "1" ]; then
+    # Only proceed if environment ok
+    if sanity_check; then
+      # This is a critical section so we use a lock file
+      if lock_enter "$LOCK_NAME"; then
+        # Create actual rules
+        parasitic_net_setup_rules
+
+        # We're done
+        lock_leave "$LOCK_NAME"
+
+        exit 0
+      fi
+    fi
+  fi
+fi
+
+exit 1
