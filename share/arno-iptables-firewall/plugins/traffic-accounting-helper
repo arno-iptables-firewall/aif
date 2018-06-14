@@ -1,43 +1,6 @@
-#!/bin/bash
-
 # The plugin configuration file
 ###############################
 PLUGIN_CONF_FILE="traffic-accounting.conf"
-
-# Location of the main configuration file for the firewall
-##########################################################
-CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
-
-# Use a lock file for protection
-LOCK_NAME="traffic_accounting_helper"
-
-# Check if the main config file exists and if so load it
-########################################################
-if [ -e "$CONFIG_FILE" ]; then
-  . $CONFIG_FILE
-else
-  echo "** ERROR: Could not read configuration file $CONFIG_FILE!" >&2
-  echo "**        Please, check the file's location and (root) rights." >&2
-  exit 2
-fi
-
-# Check if the environment file exists and if so, load it
-#########################################################
-if [ -n "$ENV_FILE" ]; then
-  . "$ENV_FILE"
-else
-  if [ -f /usr/local/share/arno-iptables-firewall/environment ]; then
-    . /usr/local/share/arno-iptables-firewall/environment
-  else
-    if [ -f /usr/share/arno-iptables-firewall/environment ]; then
-      . /usr/share/arno-iptables-firewall/environment
-    else
-      echo "** ERROR: The environment file (ENV_FILE) has not been specified" >&2
-      echo "**        in the configuration file. Try upgrading your config-file!" >&2
-      exit 2
-    fi
-  fi
-fi
 
 # Define some global variables
 INDENT='   '
@@ -48,13 +11,8 @@ if [ "$1" = "-v" -o "$1" = "--verbose" ]; then
 fi
 
 # Check sanity of eg. environment
-sanity_check()
+traffic_accounting_helper_sanity_check()
 {
-  if [ -z "$TRAFFIC_ACCOUNTING_CRON" ]; then
-    printf "** ERROR: The plugin config file is not properly set! **" >&2
-    return 1
-  fi
-
   # Check whether chains exists
   if ! ip4tables -nL ACCOUNTING_INPUT_CHAIN >/dev/null 2>&1; then
     echo "** ERROR: ACCOUNTING_INPUT_CHAIN does not exist! **" >&2
@@ -291,15 +249,6 @@ traffic_accounting_setup_rules()
 }
 
 
-ctrl_handler()
-{
-  lock_leave
-
-  stty intr ^C # Back to normal
-  exit         # Yep, I meant to do that... Kill/hang the shell.
-}
-
-
 ############
 # Mainline #
 ############
@@ -313,30 +262,18 @@ fi
 # Check if the config file exists
 if [ ! -e "$CONF_FILE" ]; then
   echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
-  exit 1
+  PLUGIN_RET_VAL=1
 else
   # Source the plugin config file
   . "$CONF_FILE"
 
   if [ "$ENABLED" = "1" ]; then
     # Only proceed if environment ok
-    if sanity_check; then
-      # This is a critical section so we use a lockfile
-      if lock_enter "$LOCK_NAME"; then
-        # Create actual rules
-        traffic_accounting_setup_rules
-
-        # We're done
-        lock_leave "$LOCK_NAME"
-
-        exit 0
-      else
-        echo "Failed to acquire lockfile: $LOCK_FILE." >&2
-        echo "Held by $(cat "$LOCK_FILE")" >&2
-      fi
+    if traffic_accounting_helper_sanity_check; then
+      # Create actual rules
+      traffic_accounting_setup_rules
+    else
+      PLUGIN_RET_VAL=1
     fi
   fi
 fi
-
-exit 1
-

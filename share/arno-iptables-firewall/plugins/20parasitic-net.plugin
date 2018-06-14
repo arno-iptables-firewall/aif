@@ -36,12 +36,11 @@ PLUGIN_CONF_FILE="parasitic-net.conf"
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
-# Use a lock file for protection
-LOCK_NAME="parasitic_net_helper"
-
 # (Background) job name
 JOB_NAME="parasitic_net"
 
+# (Background) job helper script
+JOB_HELPER_SCRIPT="$PLUGIN_BIN_PATH/parasitic-net-helper"
 
 parasitic_net_setup_rules()
 {
@@ -142,9 +141,6 @@ plugin_start()
   # Setup rules
   parasitic_net_setup_rules
 
-  # Check for stale lock file
-  lock_remove "$LOCK_NAME"
-
   if [ -z "$PARASITIC_NET_TIME" ]; then
     # Default to 60 minutes
     BG_TIME=60
@@ -153,13 +149,13 @@ plugin_start()
   fi
 
   # Create background job
-  job_add "$JOB_NAME" $BG_TIME "$PLUGIN_BIN_PATH/parasitic-net-helper >/dev/null"
+  job_add "$JOB_NAME" $BG_TIME "$JOB_HELPER_SCRIPT"
 
-  # Call the host-accounting-helper script at startup?
+  # Call the helper script at startup?
   if [ "$PARASITIC_NET_RUN_AT_START" = "1" ]; then
-    echo "${INDENT}Running helper script..."
-
-    "$PLUGIN_BIN_PATH/parasitic-net-helper"
+    if ! job_run_once "$JOB_HELPER_SCRIPT"; then
+      return 1
+    fi
   fi
 
   return 0
@@ -182,9 +178,6 @@ plugin_stop()
 {
   # Remove (background) job
   job_remove "$JOB_NAME"
-
-  # Wait for background job to finish
-  lock_wait "$LOCK_NAME"
 
   ip4tables -t nat -D POST_NAT_POSTROUTING_CHAIN -j PARASITIC_NET_SNAT
 
@@ -246,8 +239,8 @@ plugin_sanity_check()
     done
   done
 
-  if [ ! -x "$PLUGIN_BIN_PATH/parasitic-net-helper" ]; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: The parasitic-net-helper script can not be found or is not executable!\033[0m\n" >&2
+  if [ -z "$JOB_HELPER_SCRIPT" -o ! -e "$JOB_HELPER_SCRIPT" ]; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The job helper script($JOB_HELPER_SCRIPT) can not be found!\033[0m\n" >&2
     return 1
   fi
 
