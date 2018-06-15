@@ -9,7 +9,7 @@ PLUGIN_CONF_FILE="dyndns-host-open.conf"
 CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
 
 # Use a lock file for protection
-LOCK_FILE="/var/lock/aif_dyndns_helper.lock"
+LOCK_NAME="dyndns_helper"
 
 # Check if the main config file exists and if so load it
 ########################################################
@@ -183,53 +183,6 @@ ctrl_handler()
 }
 
 
-lock_enter()
-{
-  local FAIL_COUNT=0
-
-  while [ $FAIL_COUNT -lt 2 ]; do
-    # We don't want multiple instances so we use a lockfile
-    if ( set -o noclobber; echo "$$" > "$LOCK_FILE") 2> /dev/null; then
-      # Setup int handler
-      trap 'ctrl_handler' INT TERM EXIT
-
-      return 0 # Lock success
-    fi
-
-    # lock failed, check if the process is dead
-    local PID="$(cat "${LOCK_FILE}")"
-
-    # if cat isn't able to read the file, another instance is probably
-    # about to remove the lock -- exit, we're *still* locked
-    # Thanks to Grzegorz Wierzowiecki for pointing out this race condition on
-    # http://wiki.grzegorz.wierzowiecki.pl/code:mutex-in-bash
-    if [ $? -eq 0 ]; then
-      if ! kill -0 "$PID" 2>/dev/null; then
-        # lock is stale, remove it and restart
-        echo "WARNING: Removing stale lock of nonexistant PID ${PID}" >&2
-        rm -f "$LOCK_FILE"
-      fi
-    fi
-
-    FAIL_COUNT=$((FAIL_COUNT + 1))
-  done
-
-  echo "ERROR: Failed to acquire lockfile: $LOCK_FILE. Held by PID $(cat $LOCK_FILE)" >&2
-
-  return 1 # Lock failed
-}
-
-
-lock_leave()
-{
-  # Remove lockfile
-  rm -f "$LOCK_FILE"
-
-  # Disable int handler
-  trap - INT TERM EXIT
-}
-
-
 ############
 # Mainline #
 ############
@@ -252,26 +205,14 @@ else
     # Only proceed if environment ok
     if sanity_check; then
       # This is a critical section so we use a lockfile
-      if lock_enter; then
-        # Create new empty file
-        printf "" >"${DYNDNS_HOST_CACHE}.new"
-
+      if lock_enter "$LOCK_NAME"; then
         # Parse rules
         dyndns_host_open
 
-        # Remove old cache file
-        rm -f "$DYNDNS_HOST_CACHE"
-
-        # Make our new cache file active
-        mv "${DYNDNS_HOST_CACHE}.new" "$DYNDNS_HOST_CACHE"
-
         # We're done
-        lock_leave
+        lock_leave "$LOCK_NAME"
 
         exit 0
-      else
-        echo "Failed to acquire lockfile: $LOCK_FILE" >&2
-        echo "Held by $(cat "$LOCK_FILE")" >&2
       fi
     fi
   fi
