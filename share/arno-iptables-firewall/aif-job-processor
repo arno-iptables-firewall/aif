@@ -1,0 +1,237 @@
+# ------------------------------------------------------------------------------
+#                           -= Arno's iptables firewall =-
+#               Single- & multi-homed firewall script with DSL/ADSL support
+#
+#                           ~ In memory of my dear father ~
+#
+# (C) Copyright 2001-2018 by Arno van Amersfoort & Lonnie Abelbeck
+# Homepage              : http://rocky.eld.leidenuniv.nl/
+# Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------
+
+# Location of the main configuration file for the firewall
+##########################################################
+CONF_FILE=/etc/arno-iptables-firewall/firewall.conf
+
+# Set environment variables to default
+VERBOSE=0
+
+# Default sleep time (in minutes)
+SLEEP_TIME=1
+
+# Check sanity of environment
+sanity_check()
+{
+  if [ -z "$JOBS_FILE" ]; then
+    echo "** ERROR: Missing JOBS_FILE declaration in environment file!" >&2
+    return 1
+  fi
+
+  if [ ! -f "$JOBS_FILE" ]; then
+    echo "** ERROR: JOBS_FILE($JOBS_FILE) does not exist!" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+
+idle_wait()
+{
+  local time="$1" chk_file="$2" cnt=0
+
+  while [ $((cnt / 60)) -lt $time ]; do
+    cnt=$((cnt + 1))
+    sleep 1
+
+    # Check for file removal
+    if [ ! -f "$chk_file" ]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+
+# (Background) job processor
+job_process()
+{
+  local LINE SCRIPT_NAME SCRIPT_SET_TIME SCRIPT_CUR_TIME SCRIPT_PATH READ_JOBS_FILE
+
+  [ $VERBOSE -eq 1 ] && echo "Starting jobs process..."
+
+  # Loop (until JOBS_FILE is deleted)
+  while true; do
+    [ $VERBOSE -eq 1 ] && echo "Sleeping $SLEEP_TIME minutes..."
+
+    # Loop sleep (in seconds)
+    if idle_wait "$SLEEP_TIME" "$JOBS_FILE"; then
+      [ $VERBOSE -eq 1 ] && echo "Jobs file removed, terminating..."
+      break # No jobs file: We're done
+    fi
+
+    # Enter critical section:
+    if ! lock_enter "$JOBS_LOCK_NAME"; then
+      # Lock failed, just keeping trying forever since there's no point in exiting here
+      [ $VERBOSE -eq 1 ] && echo "Lock failed, (re)trying next loop..." >&2
+      continue
+    fi
+
+    READ_JOBS_FILE="$(cat "$JOBS_FILE" 2>/dev/null)"
+
+    if [ -z "$READ_JOBS_FILE" ]; then
+      # No jobs left: We're done
+      rm -f "$JOBS_FILE"
+      [ $VERBOSE -eq 1 ] && echo "No jobs left, terminating..."
+      break
+    fi
+
+    IFS=$EOL
+    for LINE in $READ_JOBS_FILE; do
+      SCRIPT_NAME="$(echo "$LINE" |cut -d' ' -f1)"
+      SCRIPT_SET_TIME="$(echo "$LINE" |cut -d' ' -f2)"
+      SCRIPT_CUR_TIME="$(echo "$LINE" |cut -d' ' -f3)"
+      SCRIPT_PATH="$(echo "$LINE" |cut -d' ' -f1,2,3 --complement)"
+
+      # Increment current time (in minutes)
+      SCRIPT_CUR_TIME=$((SCRIPT_CUR_TIME + SLEEP_TIME))
+
+      [ $VERBOSE -eq 1 ] && echo "Processing job \"$SCRIPT_NAME\"..."
+
+      if [ $SCRIPT_CUR_TIME -ge $SCRIPT_SET_TIME ]; then
+        [ $VERBOSE -eq 1 ] && echo " Countdown reached, running job \"$SCRIPT_NAME\"..."
+
+        # Countdown reached: Run script.
+        # TODO: Check PLUGIN_RET_VAL for errors
+        if [ $VERBOSE -eq 1 ]; then
+          "$JOB_EXECUTER" "$SCRIPT_PATH"
+        else
+          "$JOB_EXECUTER" "$SCRIPT_PATH" >/dev/null 2>&1
+        fi
+
+        # Reset counter
+        SCRIPT_CUR_TIME=0
+      fi
+
+      # As soon as the jobs file gets removed, stop processing (and terminate)
+      if [ ! -f "$JOBS_FILE" ]; then
+        break
+      fi
+
+      # Update job
+      sed -i s,"^$SCRIPT_NAME[[:blank:]].*","$SCRIPT_NAME $SCRIPT_SET_TIME $SCRIPT_CUR_TIME $SCRIPT_PATH", "$JOBS_FILE"
+    done
+
+    # Leave critical section:
+    lock_leave "$JOBS_LOCK_NAME"
+    #if ! lock_leave "$JOBS_LOCK_NAME"; then
+    #  [ $VERBOSE -eq 1 ] && echo "Lock removal failed, terminating..."
+    #  return 1
+    #fi
+  done
+
+  return 0
+}
+
+
+show_help()
+{
+  echo "Usage: $(basename $0) [options]" >&2
+  echo "" >&2
+  echo "Options:" >&2
+  echo "--help|-h                   - Print this help" >&2
+  echo "--background|-b             - Run in background process (daemonised)" >&2
+  echo "--verbose                   - Be verbose with displaying info (only recommended when --background is not used!)" >&2
+  echo "--sleep=n|-s=n              - Sleep n minutes after each run (default is 1)" >&2
+  echo ""
+}
+
+
+process_commandline()
+{
+  # Check arguments
+  while [ -n "$1" ]; do
+    ARG="$1"
+    ARGNAME=`echo "$ARG" |cut -d= -f1`
+    ARGVAL=`echo "$ARG" |cut -d= -f2 -s`
+
+    case "$ARGNAME" in
+        --background|-b) BACKGROUND=1;;
+             --sleep|-s) SLEEP_TIME="$ARGVAL";;
+           --verbose|-v) VERBOSE=1;;
+              --help|-h) show_help;
+                         exit 0
+                         ;;
+                     -*) echo "ERROR: Bad argument \"$ARG\"" >&2
+                         show_help
+                         exit 1
+                         ;;
+                      *) echo "ERROR: Bad command syntax with argument \"$ARG\"" >&2
+                         show_help
+                         exit 1
+                         ;;
+    esac
+
+    shift # Next argument
+  done
+}
+
+
+############
+# Mainline #
+############
+
+process_commandline $*
+
+if [ -z "$CONF_FILE" -o ! -e "$CONF_FILE" ]; then
+  echo "ERROR: Could not read configuration file ($CONF_FILE)!" >&2
+  echo "" >&2
+  exit 1
+fi
+
+# Source config file
+. "$CONF_FILE"
+
+# Check if the environment file exists and if so, load it
+#########################################################
+if [ -n "$ENV_FILE" ]; then
+  . "$ENV_FILE"
+else
+  if [ -f /usr/local/share/arno-iptables-firewall/environment ]; then
+    . /usr/local/share/arno-iptables-firewall/environment
+  else
+    if [ -f /usr/share/arno-iptables-firewall/environment ]; then
+      . /usr/share/arno-iptables-firewall/environment
+    else
+      echo "** ERROR: The environment file (ENV_FILE) has not been specified" >&2
+      echo "**        in the configuration file. Try upgrading your config-file!" >&2
+      exit 2
+    fi
+  fi
+fi
+
+# Only proceed if environment ok
+if sanity_check; then
+  if [ $BACKGROUND -eq 1 ]; then
+    # Spawn jobs processor
+    job_process &
+  else
+    job_process
+  fi
+fi

@@ -102,6 +102,8 @@ sanity_check()
   check_command_error wc
   check_command_error logger
 
+  check_command_warning pgrep
+  check_command_warning pkill
   check_command_warning dig nslookup
 
   if [ "$IPV6_SUPPORT" = "1" ]; then
@@ -4959,6 +4961,155 @@ plugins_status()
 }
 
 
+# Remove (background) job
+# $1 = Job name
+job_remove()
+{
+  local SCRIPT_NAME="$1"
+
+  # Enter critical section:
+  if ! lock_enter "$JOBS_LOCK_NAME"; then
+    return 1
+  fi
+
+  if [ -f "$JOBS_FILE" ]; then
+    echo "${INDENT}Removing background job \"$SCRIPT_NAME\""
+
+    # Remove job from jobs file
+    sed -i s,"^$SCRIPT_NAME[[:blank:]].*",, "$JOBS_FILE"
+  fi
+
+  # Leave critical section:
+  if ! lock_leave "$JOBS_LOCK_NAME"; then
+    return 1
+  fi
+
+  return 0
+}
+
+
+# Add (background) job
+# $1 = Job name
+# $2 = Path to script/binary
+# $3 = Time in minutes between executes
+job_add()
+{
+  local SCRIPT_NAME SCRIPT_TIME SCRIPT_PATH
+
+  SCRIPT_NAME="$1"
+  shift
+  SCRIPT_TIME="$1"
+  shift
+  SCRIPT_PATH="$*"
+
+  # First remove job (if one exists)
+  job_remove "$SCRIPT_NAME" >/dev/null
+
+  echo "${INDENT}Adding background job \"$SCRIPT_NAME\""
+
+  # Enter critical section:
+  if ! lock_enter "$JOBS_LOCK_NAME"; then
+    return 1
+  fi
+
+  # Add new job to jobs file
+  echo "$SCRIPT_NAME $SCRIPT_TIME 0 $SCRIPT_PATH" >> "$JOBS_FILE"
+
+  # Leave critical section:
+  if ! lock_leave "$JOBS_LOCK_NAME"; then
+    return 1
+  fi
+
+  return 0
+}
+
+
+# Run job once (in foreground)
+# $1 = Path to job helper
+job_run_once()
+{
+  local SCRIPT_NAME="$1"
+
+  echo "${INDENT}Foreground running job helper script \"$SCRIPT_NAME\""
+
+  # Source script
+  if ! "$JOB_EXECUTER" "$SCRIPT_NAME"; then
+    return 1
+  fi
+
+  return 0
+}
+
+
+# Check whether the jobs process is terminated, if not wait 10 seconds for it
+# else (hard) pkill it. This function assumes jobs_process_stop() was previously called
+jobs_process_terminate_check()
+{
+  local wait_count=10
+  local cnt=0
+
+  echo "Waiting for background job process \"$JOB_PROCESSOR\" to terminate"
+
+  # Check if process is not still running
+  while [ $cnt -lt $wait_count ]; do
+    sleep 1
+
+    if ! pgrep -f "$JOB_PROCESSOR" 2>&1 >/dev/null; then
+      return 0 # We're done
+    fi
+
+    cnt=$((cnt+1))
+  done
+
+  echo "** WARNING: Jobs processor \"$JOB_PROCESSOR\" is still running! Attempting to kill" >&2
+
+  # Kill background process
+  if ! pkill -f "$JOB_PROCESSOR"; then
+    echo "** ERROR: Killing jobs processor \"$JOB_PROCESSOR\" failed!" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+
+# Start jobs processor
+jobs_process_start()
+{
+  echo "Starting background jobs processor"
+
+  # Run script for background process
+  if ! "$JOB_PROCESSOR" --background; then
+    return 1
+  fi
+
+  return 0
+}
+
+
+# Stop jobs processor by removing the cron job
+jobs_process_stop()
+{
+  echo "Stopping background jobs processor"
+
+  # Enter critical section (ignore whether we actually can obtain the lock)
+  lock_enter "$JOBS_LOCK_NAME"
+
+  # Remove jobs file (also kills background process (if any))
+  rm -f "$JOBS_FILE"
+
+  # Leave critical section (ignore whether we actually can release the lock)
+  lock_leave "$JOBS_LOCK_NAME"
+
+  # Make sure process is properly terminated
+  if ! jobs_process_terminate_check; then
+    return 1
+  fi
+
+  return 0
+}
+
+
 # Here the actual iptables rules are loaded
 ###########################################
 setup_firewall_rules()
@@ -5033,9 +5184,19 @@ setup_firewall_rules()
     . $CUSTOM_RULES
   fi
 
+  # Make sure jobs processor is stopped before we start any plugins
+  #################################################################
+  jobs_process_stop >/dev/null
+
   # Start (user) plugins
   ######################
   plugins_start
+
+  # Start jobs processor
+  ######################
+  if [ -n "$JOBS_FILE" -a -e "$JOBS_FILE" ]; then
+    jobs_process_start
+  fi
 
   # Drop outgoing fragmented packets (this should in principle never happen because of netfilter's
   # packet defragmentation
@@ -5941,7 +6102,12 @@ show_help()
 
 main_stop()
 {
+  # Stop jobs processor
+  jobs_process_stop
+
+  # Stop all plugins
   plugins_stop
+
   if [ "$1" = "block" ]; then
     stop_block_firewall
   else

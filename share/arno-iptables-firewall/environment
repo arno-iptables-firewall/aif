@@ -2047,6 +2047,17 @@ if [ -z "$USR_SHARE_PATH" ]; then
   USR_SHARE_PATH="$(dirname "$PLUGIN_BIN_PATH")"
 fi
 
+# File containing (background) jobs to run
+JOBS_FILE="/var/tmp/aif_jobs"
+
+# Lock file for accessing the JOBS_FILE
+JOBS_LOCK_NAME="aif_jobs"
+
+# Jobs process (file) name
+JOB_PROCESSOR="$USR_SHARE_PATH/aif-job-processor"
+
+JOB_EXECUTER="$USR_SHARE_PATH/aif-job-execute"
+
 # Check plugin bin path and fallback in case it's empty
 #######################################################
 if [ -z "$PLUGIN_CONF_PATH" ]; then
