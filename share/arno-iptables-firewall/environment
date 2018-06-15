@@ -1573,6 +1573,37 @@ lock_enter()
 }
 
 
+lock_wait()
+{
+  local LOCK_FILE="/var/lock/aif_$1.lock"
+  local cnt=5
+
+  if [ -z "$1" ]; then
+    echo "ERROR: Exception due to missing lock argument" >&2
+    return 1 # Failure
+  fi
+
+  # Wait for helper to stop, if running
+  while [ $cnt -gt 0 ] && [ -f "$LOCK_FILE" ]; do
+    cnt=$((cnt - 1))
+    sleep 1
+  done
+}
+
+
+lock_remove()
+{
+  local LOCK_FILE="/var/lock/aif_$1.lock"
+
+  if [ -z "$1" ]; then
+    echo "ERROR: Exception due to missing lock argument" >&2
+    return 1 # Failure
+  fi
+
+  rm -f "$LOCK_FILE"
+}
+
+
 # Helper function to show interfaces / ips in front of verbose line
 # $1 =  interfaces. $2 = ips
 show_if_ip()
