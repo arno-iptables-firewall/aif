@@ -1485,9 +1485,10 @@ get_dynamic_host_cached()
 }
 
 
+# Leave lock function to release lock
 lock_leave()
 {
-  local LOCK_FILE
+  local LOCK_FILE RETVAL=0
 
   if [ -z "$1" ]; then
     echo "ERROR: Exception due to missing lock argument" >&2
@@ -1497,10 +1498,15 @@ lock_leave()
   LOCK_FILE="/var/lock/aif_$1.lock"
 
   # Remove lockfile
-  rm -f "$LOCK_FILE"
+  if ! rm -f "$LOCK_FILE"; then
+    echo "ERROR: Failed to remove lock file: $LOCK_FILE" >&2
+    RETVAL=1
+  fi
 
   # Disable int handler
   trap - INT TERM EXIT
+
+  return $RETVAL
 }
 
 
@@ -1513,27 +1519,33 @@ lock_ctrl_handler()
 }
 
 
-# Use lock_enter() to prevent running of multiple instances
+# Lock enter function to acquire lock. Prevents running of multiple instances
+# $1 = Lock (file) name
+# $2 = Amount of retries (optional, defaults to 5)
 lock_enter()
 {
-  local LOCK_FILE
+  local LOCK_FILE="/var/lock/aif_$1.lock"
+  local MAX_RETRIES=5
+  local FAIL_COUNT=0
+
+  if [ -n "$2" ]; then
+    MAX_RETRIES="$2"
+  fi
 
   if [ -z "$1" ]; then
     echo "ERROR: Exception due to missing lock argument" >&2
     return 1 # Failure
   fi
 
-  LOCK_FILE="/var/lock/aif_$1.lock"
-
-  local FAIL_COUNT=0
-
-  while [ $FAIL_COUNT -lt 2 ]; do
+  while [ $FAIL_COUNT -lt $MAX_RETRIES ]; do
     if ( set -o noclobber; echo "$$" > "$LOCK_FILE") 2> /dev/null; then
       # Setup int handler
       trap "lock_ctrl_handler $LOCK_FILE" INT TERM EXIT
 
       return 0 # Lock success
     fi
+
+    FAIL_COUNT=$((FAIL_COUNT + 1))
 
     # lock failed, check if the process is dead
     local PID="$(cat "${LOCK_FILE}")"
@@ -1547,10 +1559,12 @@ lock_enter()
         # lock is stale, remove it and restart
         echo "WARNING: Removing stale lock of nonexistant PID ${PID}" >&2
         rm -f "$LOCK_FILE"
+        continue # Immediately retry
       fi
     fi
 
-    FAIL_COUNT=$((FAIL_COUNT + 1))
+    # Sleep between retries
+    sleep 1
   done
 
   echo "ERROR: Failed to acquire lockfile: $LOCK_FILE. Held by PID $(cat $LOCK_FILE)" >&2
