@@ -120,9 +120,9 @@ copy_ask_if_exist()
             rm -f "$target"
           fi
         fi
-      else
-        echo "* Target file \"$target\" is already the same as source." # Skipping copy of $source"
-        #continue
+#      else
+#        echo "* Target file \"$target\" is already the same as source." # Skipping copy of $source"
+#        #continue
       fi
     fi
 
@@ -216,13 +216,13 @@ copy_overwrite()
       continue
     fi
 
-    if [ -f "$source" -a -f "$target" ]; then
+#    if [ -f "$source" -a -f "$target" ]; then
       # Ignore files that are the same in the target
-      if diff "$source" "$target" >/dev/null; then
-        echo "* Target file \"$target\" is already the same as source." # Skipping copy of $source"
-        #continue
-      fi
-    fi
+#      if diff "$source" "$target" >/dev/null; then
+#        echo "* Target file \"$target\" is already the same as source." # Skipping copy of $source"
+#        continue
+#      fi
+#    fi
 
     if ! cp -fv --preserve=mode,timestamps "$source" "$target"; then
       echo "ERROR: Copy error of \"$source\" to \"$target\"!" >&2
