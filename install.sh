@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.08"
+MY_VERSION="1.09"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -8,7 +8,7 @@ MY_VERSION="1.08"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2017 by Arno van Amersfoort
+# (C) Copyright 2001-2018 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -121,13 +121,13 @@ copy_ask_if_exist()
           fi
         fi
       else
-        echo "* Target file \"$target\" is the same as source. Skipping copy of $source"
-        continue
+        echo "* Target file \"$target\" is already the same as source." # Skipping copy of $source"
+        #continue
       fi
     fi
 
     # copy file & create backup of old file if exists
-    if ! cp -bv "$source" "$target"; then
+    if ! cp -bv --preserve=mode,timestamps "$source" "$target"; then
       echo "ERROR: Copy error of \"$source\" to \"$target\"!" >&2
       exit 3
     fi
@@ -177,7 +177,7 @@ copy_skip_if_exist()
       fi
     fi
 
-    if ! cp -v "$source" "$target"; then
+    if ! cp -v --preserve=mode,timestamps "$source" "$target"; then
       echo "ERROR: Copy error of \"$source\" to \"$target!\"" >&2
       exit 3
     fi
@@ -219,12 +219,12 @@ copy_overwrite()
     if [ -f "$source" -a -f "$target" ]; then
       # Ignore files that are the same in the target
       if diff "$source" "$target" >/dev/null; then
-        echo "* Target file \"$target\" is the same as source. Skipping copy of $source"
-        continue
+        echo "* Target file \"$target\" is already the same as source." # Skipping copy of $source"
+        #continue
       fi
     fi
 
-    if ! cp -fv "$source" "$target"; then
+    if ! cp -fv --preserve=mode,timestamps "$source" "$target"; then
       echo "ERROR: Copy error of \"$source\" to \"$target\"!" >&2
       exit 3
     fi
@@ -318,6 +318,8 @@ check_18_version
 
 copy_overwrite ./bin/arno-iptables-firewall /usr/local/sbin/
 copy_overwrite ./bin/arno-fwfilter /usr/local/bin/
+
+# Remove old version:
 rm -f /usr/local/sbin/arno-fwfilter
 
 mkdir -pv /usr/local/share/arno-iptables-firewall/plugins || exit 1
@@ -386,4 +388,3 @@ if get_user_yn "(Re)start firewall"; then
 fi
 
 exit 0
-
