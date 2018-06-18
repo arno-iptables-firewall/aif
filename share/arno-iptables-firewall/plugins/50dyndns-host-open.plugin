@@ -2,14 +2,14 @@
 #            -= Arno's iptables firewall - DynDNS Host Open plugin =-
 #
 PLUGIN_NAME="DynDNS Host Open plugin"
-PLUGIN_VERSION="1.34a"
+PLUGIN_VERSION="1.40-BETA1"
 PLUGIN_CONF_FILE="dyndns-host-open.conf"
 #
-# Last changed          : July 10, 2017
-# Requirements          : kernel 2.6 + AIF 2.0.1f or better
+# Last changed          : June 7, 2018
+# Requirements          : kernel 2.6 + AIF 2.1.0 or better
 # Comments              : This implements dynamic DNS (DynDNS) support for eg. opening ports
 #
-# Author                : (C) Copyright 2008-2017 by Arno van Amersfoort
+# Author                : (C) Copyright 2008-2018 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -29,13 +29,6 @@ PLUGIN_CONF_FILE="dyndns-host-open.conf"
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
-# If HOST_CACHE_FILE is not defined, fallback to old DYNDNS variable
-if [ -n "$HOST_CACHE_FILE" ]; then
-  DYNDNS_HOST_CACHE="$HOST_CACHE_FILE"
-else
-  DYNDNS_HOST_CACHE="/var/tmp/aif_dyndns_host_cache"
-fi
-
 # Use a lock file for protection
 LOCK_FILE="/var/lock/aif_dyndns_helper.lock"
 
@@ -48,9 +41,6 @@ plugin_start()
 
   # Insert rule into the main chain:
   iptables -A EXT_INPUT_CHAIN -j DYNDNS_CHAIN
-
-  # Remove the cache file
-  rm -f "$DYNDNS_HOST_CACHE"
 
   # Check for stale lock file
   rm -f "$LOCK_FILE"
@@ -100,9 +90,6 @@ plugin_stop()
     sleep 1
   done
 
-  # Remove the cache file
-  rm -f "$DYNDNS_HOST_CACHE"
-
   iptables -D EXT_INPUT_CHAIN -j DYNDNS_CHAIN 2>/dev/null
 
   iptables -F DYNDNS_CHAIN
@@ -117,14 +104,6 @@ plugin_status()
 {
   iptables -L DYNDNS_CHAIN
 
-  # Show IP->hostname mappings from our host-cache
-  if [ -e "$DYNDNS_HOST_CACHE" ]; then
-    echo ""
-    echo "Showing hostname->IP mapping"
-    echo "----------------------------"
-    cat "$DYNDNS_HOST_CACHE"
-  fi
-
   return 0
 }
 
@@ -133,19 +112,14 @@ plugin_status()
 plugin_sanity_check()
 {
   if [ -z "$DYNDNS_HOST_OPEN_TCP" -a -z "$DYNDNS_HOST_OPEN_UDP"  -a \
-       -z "$DYNDNS_HOST_OPEN_IP"  -a -z "$DYNDNS_HOST_OPEN_ICMP" -a \
-       -z "$DYNDNS_HOST_MISC" ] || [ -z "$DYNDNS_HOST_OPEN_CRON" ]; then
+       -z "$DYNDNS_HOST_OPEN_IP"  -a -z "$DYNDNS_HOST_OPEN_ICMP" ] ||
+     [ -z "$DYNDNS_HOST_OPEN_CRON" ]; then
     printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not (properly) setup!\033[0m\n" >&2
     return 1
   fi
 
   if [ ! -x "$PLUGIN_BIN_PATH/dyndns-host-open-helper" ]; then
     printf "\033[40m\033[1;31m${INDENT}ERROR: The dyndns-host-open-helper script can not be found or is not executable!\033[0m\n" >&2
-    return 1
-  fi
-
-  if ! check_command dig nslookup; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: Required command dig (or nslookup) is not available!\033[0m\n" >&2
     return 1
   fi
 
@@ -197,4 +171,3 @@ else
     fi
   fi
 fi
-

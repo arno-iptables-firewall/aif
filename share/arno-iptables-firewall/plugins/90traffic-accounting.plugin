@@ -154,12 +154,7 @@ plugin_sanity_check()
     printf "\033[40m\033[1;31m${INDENT}ERROR: The traffic-accounting-helper script can not be found or is not executable!\033[0m\n" >&2
     return 1
   fi
-  
-  if ! check_command dig nslookup; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: Required command dig (or nslookup) is not available!\033[0m\n" >&2
-    return 1
-  fi
-  
+
   return 0
 }
 

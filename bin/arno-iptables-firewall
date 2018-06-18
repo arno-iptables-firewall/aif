@@ -5848,6 +5848,14 @@ show_status()
     #iptables -nvL $2 $3 $4 $5
     iptables -xnvL $@
   fi
+
+  # Show IP->hostname mappings from our host-cache
+  if [ -e "$HOST_CACHE_FILE" ]; then
+    echo ""
+    echo "Showing hostname->IP mapping"
+    echo "----------------------------"
+    cat "$HOST_CACHE_FILE"
+  fi
 }
 
 

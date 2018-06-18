@@ -1333,7 +1333,7 @@ gethostbyname()
 # Get resolved host->ip from host cache
 # Arguments : $1 = hostname to resolve
 # Returns   : 0 = Got result, 1 = no result, 2 = in cache with no-ip. IP is send to stdout (if any)
-get_host_from_cache()
+get_dynamic_host_from_cache()
 {
   local host="$1"
 
@@ -1359,6 +1359,105 @@ get_host_from_cache()
   fi
 
   return 1 # No result
+}
+
+
+# Get IP for (dynamic) host. In case it already exists in our cache
+# use that else resolve and store in our (new) cache
+# Arguments : $1 = hostname to resolve
+# Returns   : Resolved host's IP in "$host_ip"
+get_dynamic_host_cached()
+{
+  # FIXME: Use lock or move to plugin!
+
+  host_ip=""            # Reset result
+  local host="$1"
+  local retval=0
+
+  # Don't try to resolve stuff that's already numeric
+  if is_numeric_ip "$host"; then
+    host_ip="$host"
+    return 0
+  fi
+
+  # Check whether we already have it in our (new) cache. FIXME: Properly handle .new, probably have to move this to a (cron) plugin helper
+  host_ip="$(grep "^$host " -m1 "${HOST_CACHE_FILE}.new" |cut -s -f2 -d' ')"
+  if [ -n "$host_ip" ]; then
+    if [ "$host_ip" = "NO_IP" ]; then
+      host_ip=""
+      return 1
+    fi
+    return 0
+  fi
+
+  printf "${INDENT}Resolving host \"$host\" -> "
+
+  DNS_FAST_FAIL_ONCE="$DNS_FAST_FAIL"
+  host_ip="$(gethostbyname "$host")"
+  gethost_retval=$?
+
+  fail_count=0
+  if [ $gethost_retval -ne 0 -o -z "$host_ip" ]; then
+    retval=1 # Error
+
+    host_lookup="$(grep "^$host " -m1 "${HOST_CACHE_FILE}" 2>/dev/null)"
+    if [ -n "$host_lookup" ]; then
+      count="$(echo "$host_lookup" |cut -s -f3 -d' ')"
+      if [ -n "$count" ]; then
+        fail_count=$count
+      fi
+
+      # Try to get from (old) cache, if allowed
+      if [ "$DNS_OLD_CACHE_FALLBACK" = "1" ]; then
+        host_ip="$(echo "$host_lookup" |cut -s -f2 -d' ')"
+      fi
+    fi
+
+    fail_count=$((fail_count + 1))
+
+    log_repeat=1 # default
+    if [ -n "$DNS_FAIL_LOG_REPEAT" ]; then
+      log_repeat=$DNS_FAIL_LOG_REPEAT
+    fi
+
+    # Check repeat count
+    if [ $fail_count -ge $log_repeat ]; then
+      fail_count=1
+    fi
+
+    threshold=1 # default
+    if [ -n "$DNS_FAIL_THRESHOLD" ]; then
+      threshold=$DNS_FAIL_THRESHOLD
+    fi
+
+    # (Re)check $host_ip
+    if [ -z "$host_ip" -o "$host_ip" = "NO_IP" ]; then
+      host_ip=""
+      printf "\033[40m\033[1;31mFAILED!\n\033[0m"
+      if [ $fail_count -eq $threshold ]; then
+        echo "** ERROR: Unresolvable host \"$host\" after $fail_count tries, and no old IP to fallback on! **" >&2
+      fi
+    else
+      echo "$host_ip (cached!)"
+      if [ $fail_count -eq $threshold ]; then
+        echo "** WARNING($retval): Unresolvable host \"$host\" after $fail_count tries. Re-using old IP ($host_ip)! **" >&2
+      fi
+      # Ignore error:
+      retval=0
+    fi
+  else
+    echo "$host_ip"
+    fail_count=0
+  fi
+
+  # Explicitly store empty results as well else we'll keep trying over and over again for each rule
+  if [ -z $host_ip ]; then
+    echo "$host NO_IP $fail_count" >>"${HOST_CACHE_FILE}.new"
+  else
+    echo "$host $host_ip $fail_count" >>"${HOST_CACHE_FILE}.new"
+  fi
+
+  return $retval
 }
 
 
@@ -1683,7 +1782,7 @@ IP6TABLES_BATCH_FILE="/var/tmp/aif_ip6tables_batch"
 PLUGIN_LOAD_FILE="/var/tmp/aif_active_plugins"
 PLUGIN_LOAD_FILE_RESTART="/var/tmp/aif_active_plugins_restart"
 
-# Host cache: filled by the DynDNS-plugin and used compatible plugins
+# (Dynamic) host cache. Used by compatible plugins
 HOST_CACHE_FILE="/var/tmp/aif_host_cache"
 
 # Check whether we also need to drop messages in a dedicated firewall log file
