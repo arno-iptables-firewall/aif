@@ -6075,6 +6075,8 @@ show_applied()
     echo "$DATE ** All firewall rules applied **" >> $FIREWALL_LOG
     echo "** All firewall rules applied **" |logger -t firewall -p kern.info
   fi
+
+  echo ""
 }
 
 
