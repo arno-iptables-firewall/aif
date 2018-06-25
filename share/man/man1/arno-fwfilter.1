@@ -2,7 +2,7 @@
 .SH "NAME"
 arno\-fwfilter \- a filter script to make iptables firewall logs more readable for humans
 .SH "SYNOPSIS"
-\fBarno\-fwfilter\fR [\fIOPTIONS\fR] 
+\fBarno\-fwfilter\fR [\fIOPTIONS\fR]
 .SH "DESCRIPTION"
 \fBarno\-fwfilter\fR is a pipe filter script to make the firewall\-log better readable. Some usage examples are:
 .TP
@@ -16,11 +16,13 @@ tail \-\-follow <logfile> | arno-fwfilter >/dev/tty10 &
 \fB\-\-help\fR, \fB\-h\fR
 Print the available options.
 .TP
+\fB\-\-no-resolve\fR, \fB\-r\fR
+Disable resolving of IPs to names.
 \fB\-\-html\-output\fR, \fB\-o\fR
-Use basic HTML to format the output
+Use basic HTML to format the output.
 .TP
 \fB\-\-no\-locations\fR, \fB\-l\fR
-Disable to (try to) obtain the IP's geographical location. By default, 
+Disable to (try to) obtain the IP's geographical location. By default,
 http://www.hostip.info/ is visited to get this information.
 .TP
 \fB\-\-no\-colors\fR, \fB\-c\fR
