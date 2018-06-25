@@ -690,47 +690,31 @@ ip()
 ####################
 dig()
 {
-  local cnt=0 x=0 addr name line lines retval IFS
+  local x=0 addr name lines item retval first IFS
 
   if [ -n "$DIG" ]; then
     if [ "$DNS_FAST_FAIL" = "1" -o "$DNS_FAST_FAIL_ONCE" = "1" ]; then
-      lines="$($DIG +short +tries=1 +time=1 "$@" 2>/dev/null)"
+      lines="$($DIG +noauthority +noadditional +tries=1 +time=1 "$@" 2>/dev/null)"
       retval=$?
       DNS_FAST_FAIL_ONCE=0
     else
-      lines="$($DIG +short "$@" 2>/dev/null)"
+      lines="$($DIG +noauthority +noadditional "$@" 2>/dev/null)"
       retval=$?
     fi
     retval=$?
 
-    while [ $# -gt 1 ]; do
-      if [ "$1" = "-x" ]; then
-        x=1
-      fi
-      shift
-    done
-
+    first=1
     IFS=$EOL
-    for line in $lines; do
-      case "$line" in
-        ';'*|'') addr=""
-                 name=""
-                 ;;
-        *'.') addr=""
-              name="$line"
-              ;;
-        *) addr="$line"
-           name=""
-           ;;
-      esac
-      if [ -n "$addr" -a "$x" = 0 ]; then
-        echo "$addr"
-        return 0
-      elif [ -n "$name" -a "$x" = 1 ]; then
-        echo "$name"
-        return 0
+    for item in `echo "$lines" |awk '{ if (substr($0,0,1) != ";" && ($4 == "A" || $4 == "PTR")) print $NF }'`; do
+      if [ $first -eq 1 ]; then
+        first=0
+      else
+        printf " "
       fi
+
+      printf "$item"
     done
+    echo "" # Carriage return
     return $retval
   elif [ -n "$NSLOOKUP" ]; then
     while [ $# -gt 1 ]; do
@@ -741,39 +725,33 @@ dig()
     done
     if [ -n "$1" ]; then
       if [ "$DNS_FAST_FAIL" = "1" -o "$DNS_FAST_FAIL_ONCE" = "1" ]; then
-        lines="$($NSLOOKUP -retry=1 -timeout=1 "$1" 2>/dev/null)"
+        lines="$($NSLOOKUP -retry=1 -timeout=1 "$1" 2>/dev/null |sed -e "1,2d")"
         DNS_FAST_FAIL_ONCE=0
       else
-        lines="$($NSLOOKUP "$1" 2>/dev/null)"
+        lines="$($NSLOOKUP "$1" 2>/dev/null |sed -e "1,2d")"
       fi
 
+      addr=""
+      name=""
       IFS=$EOL
       for line in $lines; do
-        cnt=$((cnt + 1))
-        if [ $cnt -gt 2 ]; then
-          case "$line" in
-            Address*) addr="$(echo "$line" |sed -n -r -e 's/^Address.*: *([0-9.]{7,}).*$/\1/p')"
-                      name="$(echo "$line" |sed -e 's/^.* //')"
-                      ;;
-            *'canonical name = '*) addr=""
-                                   name=""
-                                   ;;
-            *'name = '*) addr="$1"
-                         name="$(echo "$line" |sed -e 's/^.*name = *//' -e 's/ .*$//')"
-                         ;;
-            *) addr=""
-               name=""
-               ;;
-          esac
-          if [ -n "$addr" -a "$x" = 0 ]; then
-            echo "$addr"
-            return 0
-          elif [ -n "$name" -a "$x" = 1 ]; then
-            echo "$name"
-            return 0
-          fi
-        fi
+        case "$line" in
+                      'Address'*) addr="${addr}${addr:+ }$(echo "$line" |sed -n -r -e 's/^Address.*: *([0-9.]{7,}).*$/\1/p')"
+                                  ;;
+                     *'name = '*) name="${name}${name:+ }$(echo "$line" |sed -e 's/^.*name = *//' -e 's/ .*$//')"
+                                  ;;
+        esac
       done
+
+      if [ $x -eq 0 -a -n "$addr" ]; then
+        echo "$addr"
+        return 0
+      elif [ $x -eq 1 -a -n "$name" ]; then
+        echo "$name"
+        return 0
+      fi
+
+      # Failure:
       return 9
     fi
     return 1
@@ -1332,7 +1310,8 @@ gethostbyname()
 
 # Get resolved host->ip from host cache
 # Arguments : $1 = hostname to resolve
-# Returns   : 0 = Got result, 1 = no result, 2 = in cache with no-ip. IP is send to stdout (if any)
+# Returns   : 0 = Got result, 1 = no result, 2 = in cache with no-ip. IP is send to stdout (if any).
+# NOTE      : Hosts with multiple IPs are outputted space separated
 get_dynamic_host_from_cache()
 {
   local host="$1"
@@ -1344,9 +1323,9 @@ get_dynamic_host_from_cache()
 
   if [ -f "$HOST_CACHE_FILE" ]; then
     # First try to get host from host-cache
-    local find_host=`grep "^$host " -m1 "$HOST_CACHE_FILE"`
+    local find_host="$(grep "^$host " -m1 "$HOST_CACHE_FILE")"
     if [ -n "$find_host" ]; then
-      local host_ip=`echo "$find_host" |cut -s -d' ' -f2`
+      local host_ip="$(echo "$find_host" |cut -s -d' ' -f2 |tr ',' ' ')"
 
       if [ "$host_ip" = "NO_IP" ]; then
         host_ip=""
@@ -1366,12 +1345,13 @@ get_dynamic_host_from_cache()
 # use that else resolve and store in our cache
 # Arguments : $1 = hostname to resolve
 # Returns   : Resolved host's IP in "$host_ip"
+# NOTE      : Hosts with multiple IPs are outputted space separated
 get_dynamic_host_cached()
 {
   host_ip=""            # Reset result
   local host="$1"
   local retval=0
-  local cache_lookup age max_age cut_time
+  local cache_lookup age max_age cur_time store_ip
 
   # Don't try to resolve stuff that's already numeric
   if is_numeric_ip "$host"; then
@@ -1395,7 +1375,7 @@ get_dynamic_host_cached()
 
       # Check cache age
       if [ -n "$age" -a $cur_time -le $((age + max_age)) ]; then
-        host_ip="$(echo "$cache_lookup" |cut -d' ' -f2)"
+        host_ip="$(echo "$cache_lookup" |cut -d' ' -f2 |tr ',' ' ')"
         if [ "$host_ip" != "NO_IP" ]; then
           return 0
         fi
@@ -1464,21 +1444,20 @@ get_dynamic_host_cached()
   fi
 
   cur_time="$(($(date +'%s') / 60))"
+
+  if [ -z "$host_ip" ]; then
+    # NOTE Explicitly store empty results as well else we'll keep trying over and over again for each plugin/rule
+    store_ip="NO_IP"
+  else
+    store_ip="$(echo "$host_ip" |tr ' ' ',')"
+  fi
+
   if [ -n "$cache_lookup" ]; then
     # Update existing entry
-    if [ -z $host_ip ]; then
-      # NOTE Explicitly store empty results as well else we'll keep trying over and over again for each plugin/rule
-      sed -i s,"^$host[[:blank:]].*","$host NO_IP $fail_count $cur_time", "${HOST_CACHE_FILE}"
-    else
-      sed -i s,"^$host[[:blank:]].*","$host $host_ip $fail_count $cur_time", "${HOST_CACHE_FILE}"
-    fi
+    sed -i s/"^$host[[:blank:]].*"/"$host $store_ip $fail_count $cur_time"/ "${HOST_CACHE_FILE}"
   else
-    if [ -z $host_ip ]; then
-      # NOTE Explicitly store empty results as well else we'll keep trying over and over again for each plugin/rule
-      echo "$host NO_IP $fail_count $cur_time" >>"${HOST_CACHE_FILE}"
-    else
-      echo "$host $host_ip $fail_count $cur_time" >>"${HOST_CACHE_FILE}"
-    fi
+    # Add new entry
+    echo "$host $store_ip $fail_count $cur_time" >>"${HOST_CACHE_FILE}"
   fi
 
   return $retval
