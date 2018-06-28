@@ -1,60 +1,15 @@
-#!/bin/bash
-
 # The plugin configuration file
 ###############################
 PLUGIN_CONF_FILE="dyndns-host-open.conf"
 
-# Location of the main configuration file for the firewall
-##########################################################
-CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
-
-# Use a lock file for protection
-LOCK_FILE="/var/lock/aif_dyndns_helper.lock"
-
-# Check if the main config file exists and if so load it
-########################################################
-if [ -e "$CONFIG_FILE" ]; then
-  . $CONFIG_FILE
-else
-  echo "** ERROR: Could not read configuration file $CONFIG_FILE!" >&2
-  echo "**        Please, check the file's location and (root) rights." >&2
-  exit 2
-fi
-
-# Check if the environment file exists and if so, load it
-#########################################################
-if [ -n "$ENV_FILE" ]; then
-  . "$ENV_FILE"
-else
-  if [ -f /usr/local/share/arno-iptables-firewall/environment ]; then
-    . /usr/local/share/arno-iptables-firewall/environment
-  else
-    if [ -f /usr/share/arno-iptables-firewall/environment ]; then
-      . /usr/share/arno-iptables-firewall/environment
-    else
-      echo "** ERROR: The environment file (ENV_FILE) has not been specified" >&2
-      echo "**        in the configuration file. Try upgrading your config-file!" >&2
-      exit 2
-    fi
-  fi
-fi
-
 # Define some global variables
 INDENT='   '
 
-# If HOST_CACHE_FILE is not defined, fallback to old DYNDNS variable
-if [ -n "$HOST_CACHE_FILE" ]; then
-  DYNDNS_HOST_CACHE="$HOST_CACHE_FILE"
-else
-  DYNDNS_HOST_CACHE="/var/tmp/aif_dyndns_host_cache"
-fi
-
 # Check sanity of environment
-sanity_check()
+dyndns_host_open_helper_sanity_check()
 {
   if [ -z "$DYNDNS_HOST_OPEN_TCP" -a -z "$DYNDNS_HOST_OPEN_UDP" -a \
-       -z "$DYNDNS_HOST_OPEN_IP"  -a -z "$DYNDNS_HOST_OPEN_ICMP" -a \
-       -z "$DYNDNS_HOST_MISC" ] || [ -z "$DYNDNS_HOST_OPEN_CRON" ]; then
+       -z "$DYNDNS_HOST_OPEN_IP"  -a -z "$DYNDNS_HOST_OPEN_ICMP" ]; then
     echo "** ERROR: The plugin config file is not (properly) setup!" >&2
     return 1
   fi
@@ -71,112 +26,11 @@ sanity_check()
 #    return 1
 #  fi
 
-  if ! check_command dig nslookup; then
-    echo "** ERROR: Required command dig (or nslookup) is not available!" >&2
-    return 1
-  fi
-
   return 0
 }
 
 
-# Resolve hostname to an IP and store in our (new) cache
-# Arguments : $1 = hostname to resolve
-# Returns   : Resolved host's IP in "$host_ip"
-dyndns_get_host_cached()
-{
-  host_ip=""            # Reset result
-  local host="$1"
-  local retval=0
-
-  # Don't try to resolve stuff that's already numeric
-  if is_numeric_ip "$host"; then
-    host_ip="$host"
-    return 0
-  fi
-
-  # Check whether we already have it in our (new) cache
-  host_ip="$(grep "^$host " -m1 "${DYNDNS_HOST_CACHE}.new" |cut -s -f2 -d' ')"
-  if [ -n "$host_ip" ]; then
-    if [ "$host_ip" = "NO_IP" ]; then
-      host_ip=""
-      return 1
-    fi
-    return 0
-  fi
-
-  printf "${INDENT}Resolving host \"$host\" -> "
-
-  DNS_FAST_FAIL_ONCE="$DYNDNS_DNS_FAST_FAIL"
-  host_ip="$(gethostbyname "$host")"
-  gethost_retval=$?
-
-  fail_count=0
-  if [ $gethost_retval -ne 0 -o -z "$host_ip" ]; then
-    retval=1 # Error
-
-    host_lookup="$(grep "^$host " -m1 "${DYNDNS_HOST_CACHE}" 2>/dev/null)"
-    if [ -n "$host_lookup" ]; then
-      count="$(echo "$host_lookup" |cut -s -f3 -d' ')"
-      if [ -n "$count" ]; then
-        fail_count=$count
-      fi
-
-      # Try to get from (old) cache, if allowed
-      if [ "$DYNDNS_OLD_CACHE_FALLBACK" = "1" ]; then
-        host_ip="$(echo "$host_lookup" |cut -s -f2 -d' ')"
-      fi
-    fi
-
-    fail_count=$((fail_count + 1))
-
-    log_repeat=1 # default
-    if [ -n "$DYNDNS_FAIL_LOG_REPEAT" ]; then
-      log_repeat=$DYNDNS_FAIL_LOG_REPEAT
-    fi
-
-    # Check repeat count
-    if [ $fail_count -ge $log_repeat ]; then
-      fail_count=1
-    fi
-
-    threshold=1 # default
-    if [ -n "$DYNDNS_FAIL_THRESHOLD" ]; then
-      threshold=$DYNDNS_FAIL_THRESHOLD
-    fi
-
-    # (Re)check $host_ip
-    if [ -z "$host_ip" -o "$host_ip" = "NO_IP" ]; then
-      host_ip=""
-      printf "\033[40m\033[1;31mFAILED!\n\033[0m"
-      if [ $fail_count -eq $threshold ]; then
-        echo "** ERROR: Unresolvable host \"$host\" after $fail_count tries, and no old IP to fallback on! **" >&2
-      fi
-    else
-      echo "$host_ip (cached!)"
-      if [ $fail_count -eq $threshold ]; then
-        echo "** WARNING($retval): Unresolvable host \"$host\" after $fail_count tries. Re-using old IP ($host_ip)! **" >&2
-      fi
-      # Ignore error:
-      retval=0
-    fi
-  else
-    echo "$host_ip"
-    fail_count=0
-  fi
-
-  # Explicitly store empty results as well else we'll keep trying over and over again for each rule
-  if [ -z $host_ip ]; then
-    echo "$host NO_IP $fail_count" >>"${DYNDNS_HOST_CACHE}.new"
-  else
-    echo "$host $host_ip $fail_count" >>"${DYNDNS_HOST_CACHE}.new"
-  fi
-
-  return $retval
-}
-
-
-dyndns_host_open()
+dyndns_host_open_helper_setup_rules()
 {
   # Flush the DYNDNS_CHAIN
   iptables -F DYNDNS_CHAIN
@@ -190,8 +44,8 @@ dyndns_host_open()
 
       IFS=','
       for host in $hosts; do
-        # dyndns_get_host_cached returns hostname in $host_ip
-        if ! dyndns_get_host_cached $host || [ -z "$host_ip" ]; then
+        # get_dynamic_host_cached returns hostname in $host_ip
+        if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
           continue
         fi
@@ -215,8 +69,8 @@ dyndns_host_open()
 
       IFS=','
       for host in $hosts; do
-        # dyndns_get_host_cached returns hostname in $host_ip
-        if ! dyndns_get_host_cached $host || [ -z "$host_ip" ]; then
+        # get_dynamic_host_cached returns hostname in $host_ip
+        if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping UDP rule(s) for \"$host\"! **" >&2
           continue
         fi
@@ -240,8 +94,8 @@ dyndns_host_open()
 
       IFS=','
       for host in $hosts; do
-        # dyndns_get_host_cached returns hostname in $host_ip
-        if ! dyndns_get_host_cached $host || [ -z "$host_ip" ]; then
+        # get_dynamic_host_cached returns hostname in $host_ip
+        if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping IP rule(s) for \"$host\"! **" >&2
           continue
         fi
@@ -265,8 +119,8 @@ dyndns_host_open()
 
       IFS=','
       for host in $hosts; do
-        # dyndns_get_host_cached returns hostname in $host_ip
-        if ! dyndns_get_host_cached $host || [ -z "$host_ip" ]; then
+        # get_dynamic_host_cached returns hostname in $host_ip
+        if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping ICMP rule(s) for \"$host\"! **" >&2
           continue
         fi
@@ -279,75 +133,6 @@ dyndns_host_open()
       done
     fi
   done
-
-  # Store additional hosts in our cache, although this is a no-op for this
-  # plugin, it does allow use of our name-cache by eg. other (aware) plugins
-  unset IFS
-  for host in $DYNDNS_HOST_MISC; do
-    echo "${INDENT}Caching misc. host $host"
-
-    # dyndns_get_host_cached returns hostname in $host_ip
-    if ! dyndns_get_host_cached $host || [ -z "$host_ip" ]; then
-      echo "** WARNING: Skipping host rule for \"$host\"! **" >&2
-      continue
-    fi
-  done
-}
-
-
-ctrl_handler()
-{
-  lock_leave
-
-  stty intr ^C # Back to normal
-  exit         # Yep, I meant to do that... Kill/hang the shell.
-}
-
-
-lock_enter()
-{
-  local FAIL_COUNT=0
-
-  while [ $FAIL_COUNT -lt 2 ]; do
-    # We don't want multiple instances so we use a lockfile
-    if ( set -o noclobber; echo "$$" > "$LOCK_FILE") 2> /dev/null; then
-      # Setup int handler
-      trap 'ctrl_handler' INT TERM EXIT
-
-      return 0 # Lock success
-    fi
-
-    # lock failed, check if the process is dead
-    local PID="$(cat "${LOCK_FILE}")"
-
-    # if cat isn't able to read the file, another instance is probably
-    # about to remove the lock -- exit, we're *still* locked
-    # Thanks to Grzegorz Wierzowiecki for pointing out this race condition on
-    # http://wiki.grzegorz.wierzowiecki.pl/code:mutex-in-bash
-    if [ $? -eq 0 ]; then
-      if ! kill -0 "$PID" 2>/dev/null; then
-        # lock is stale, remove it and restart
-        echo "WARNING: Removing stale lock of nonexistant PID ${PID}" >&2
-        rm -f "$LOCK_FILE"
-      fi
-    fi
-
-    FAIL_COUNT=$((FAIL_COUNT + 1))
-  done
-
-  echo "ERROR: Failed to acquire lockfile: $LOCK_FILE. Held by PID $(cat $LOCK_FILE)" >&2
-
-  return 1 # Lock failed
-}
-
-
-lock_leave()
-{
-  # Remove lockfile
-  rm -f "$LOCK_FILE"
-
-  # Disable int handler
-  trap - INT TERM EXIT
 }
 
 
@@ -361,41 +146,22 @@ if [ -n "$PLUGIN_CONF_PATH" ]; then
   CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
 fi
 
+# Preinit return value for success
+PLUGIN_RET_VAL=0
+
 # Check if the config file exists
 if [ ! -e "$CONF_FILE" ]; then
   echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
-  exit 1
+  PLUGIN_RET_VAL=1
 else
   # Source the plugin config file
   . "$CONF_FILE"
 
-  if [ "$ENABLED" = "1" ]; then
-    # Only proceed if environment ok
-    if sanity_check; then
-      # This is a critical section so we use a lockfile
-      if lock_enter; then
-        # Create new empty file
-        printf "" >"${DYNDNS_HOST_CACHE}.new"
-
-        # Parse rules
-        dyndns_host_open
-
-        # Remove old cache file
-        rm -f "$DYNDNS_HOST_CACHE"
-
-        # Make our new cache file active
-        mv "${DYNDNS_HOST_CACHE}.new" "$DYNDNS_HOST_CACHE"
-
-        # We're done
-        lock_leave
-
-        exit 0
-      else
-        echo "Failed to acquire lockfile: $LOCK_FILE" >&2
-        echo "Held by $(cat "$LOCK_FILE")" >&2
-      fi
-    fi
+  # Only proceed if environment ok
+  if dyndns_host_open_helper_sanity_check; then
+    # Parse rules
+    dyndns_host_open_helper_setup_rules
+  else
+    PLUGIN_RET_VAL=1
   fi
 fi
-
-exit 1

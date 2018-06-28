@@ -2,18 +2,15 @@
 #            -= Arno's iptables firewall - Traffic Accounting plugin =-
 #
 PLUGIN_NAME="Traffic Accounting plugin"
-PLUGIN_VERSION="1.23a"
+PLUGIN_VERSION="1.30"
 PLUGIN_CONF_FILE="traffic-accounting.conf"
 #
-# Last changed          : July 10, 2017
-# Requirements          : AIF 2.0.1f (or later)
+# Last changed          : June 11, 2018
+# Requirements          : AIF 2.1.0 (or newer)
 # Comments              : This implements support for traffic accounting for
-#                         IPv4 & IPv6. It can take advantage of the
-#                         DynDNS-plugin (v1.20+) by using its hostname-cache.
-#                         You may want to use the plugin's DYNDNS_HOSTS_MISC
-#                         for that
+#                         IPv4 & IPv6. It has support for dynamic host resolving
 #
-# Author                : (C) Copyright 2008-2017 by Arno van Amersfoort
+# Author                : (C) Copyright 2008-2018 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -33,52 +30,15 @@ PLUGIN_CONF_FILE="traffic-accounting.conf"
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
-# Use a lock file for protection
-LOCK_FILE="/var/lock/aif_traffic_accounting_helper.lock"
+# (Background) job name
+JOB_NAME="traffic_accounting"
 
-# Plugin start function
-plugin_start()
+# (Background) job helper script
+JOB_HELPER_SCRIPT="$PLUGIN_BIN_PATH/traffic-accounting-helper"
+
+traffic_accounting_init()
 {
-  # Enable Conntrack Accounting (kernel config CONFIG_NF_CT_ACCT)
-  # CONFIG_NF_CT_ACCT is deprecated and will be removed sometime after kernel 2.6.27
-  sysctl net.netfilter.nf_conntrack_acct=1 2>/dev/null
-
-  iptables -N ACCOUNTING_INPUT_CHAIN 2>/dev/null
-  iptables -F ACCOUNTING_INPUT_CHAIN
-
-  iptables -N ACCOUNTING_OUTPUT_CHAIN 2>/dev/null
-  iptables -F ACCOUNTING_OUTPUT_CHAIN
-
-  # Insert rule in the INPUT chain
-  iptables -I INPUT 1 -j ACCOUNTING_INPUT_CHAIN
-
-  # Insert rule in the OUTPUT chain
-  iptables -I OUTPUT 1 -j ACCOUNTING_OUTPUT_CHAIN
-
-  # Check for stale lock file
-  rm -f "$LOCK_FILE"
-
-  # Create hourly cron job
-  echo "$TRAFFIC_ACCOUNTING_CRON        root    \"$PLUGIN_BIN_PATH/traffic-accounting-helper\" >/dev/null" >/etc/cron.d/traffic-accounting
-
-  # Call the host-accounting-helper script at startup?
-  if [ "$TRAFFIC_ACCOUNTING_RUN_AT_START" = "1" ]; then
-    echo "${INDENT}Running helper script..."
-    "$PLUGIN_BIN_PATH/traffic-accounting-helper"
-  fi
-
-  return 0
-}
-
-
-# Plugin restart function
-plugin_restart()
-{
-  ## Re-add standard chain rules that are flushed on a restart
-  echo "${INDENT}Restarting..."
-
-  # Store current values
-  "$PLUGIN_BIN_PATH/traffic-accounting-helper" >/dev/null
+  local BG_TIME
 
   # Flush accounting chains
   iptables -F ACCOUNTING_INPUT_CHAIN
@@ -91,10 +51,63 @@ plugin_restart()
   # Insert rule in the OUTPUT chain
   iptables -I OUTPUT 1 -j ACCOUNTING_OUTPUT_CHAIN
 
-  # Call the host-accounting-helper script at startup?
+  # Remove old cron job (this is in case a legacy plugin left it)
+  rm -f /etc/cron.d/traffic-accounting
+
+  if [ -z "$TRAFFIC_ACCOUNTING_TIME" ]; then
+    # Default to 60 minutes
+    BG_TIME=60
+  else
+    BG_TIME="$TRAFFIC_ACCOUNTING_TIME"
+  fi
+
+  # Create background job
+  if ! job_add "$JOB_NAME" $BG_TIME "$JOB_HELPER_SCRIPT"; then
+    return 1
+  fi
+
+  # Call the helper script at startup?
   if [ "$TRAFFIC_ACCOUNTING_RUN_AT_START" = "1" ]; then
-    echo "${INDENT}Running helper script..."
-    "$PLUGIN_BIN_PATH/traffic-accounting-helper"
+    if ! job_run_once "$JOB_HELPER_SCRIPT"; then
+      return 1
+    fi
+  fi
+
+  return 0
+}
+
+
+# Plugin start function
+plugin_start()
+{
+  # Enable Conntrack Accounting (kernel config CONFIG_NF_CT_ACCT)
+  # CONFIG_NF_CT_ACCT is deprecated and will be removed sometime after kernel 2.6.27
+  sysctl net.netfilter.nf_conntrack_acct=1 2>/dev/null
+
+  # Create new chains
+  iptables -N ACCOUNTING_INPUT_CHAIN 2>/dev/null
+  iptables -N ACCOUNTING_OUTPUT_CHAIN 2>/dev/null
+
+  # Initialize
+  if ! traffic_accounting_init; then
+    return 1
+  fi
+
+  return 0
+}
+
+
+# Plugin restart function
+plugin_restart()
+{
+  echo "${INDENT}Restarting..."
+
+  # Store current values (NOTE: Ignore return value)
+  job_run_once "$JOB_HELPER_SCRIPT"
+
+  # Initialize
+  if ! traffic_accounting_init; then
+    return 1
   fi
 
   return 0
@@ -104,18 +117,14 @@ plugin_restart()
 # Plugin stop function
 plugin_stop()
 {
-  # Remove cron job
+  # Remove old cron job (this is in case a legacy plugin left it)
   rm -f /etc/cron.d/traffic-accounting
 
-  # Wait for helper to stop, if running
-  cnt=5
-  while [ $cnt -gt 0 ] && [ -f "$LOCK_FILE" ]; do
-    cnt=$((cnt - 1))
-    sleep 1
-  done
+  # Remove (background) job
+  job_remove "$JOB_NAME"
 
-  # Store current values
-  "$PLUGIN_BIN_PATH/traffic-accounting-helper" >/dev/null
+  # Store current values (NOTE: Ignore return value)
+  job_run_once "$JOB_HELPER_SCRIPT"
 
   iptables -D INPUT -j ACCOUNTING_INPUT_CHAIN 2>/dev/null
   iptables -D OUTPUT -j ACCOUNTING_OUTPUT_CHAIN 2>/dev/null
@@ -132,8 +141,8 @@ plugin_stop()
 # Plugin status function
 plugin_status()
 {
-  # Store current values
-  "$PLUGIN_BIN_PATH/traffic-accounting-helper" >/dev/null
+  # Store current values (NOTE: Ignore return value)
+  job_run_once "$JOB_HELPER_SCRIPT"
 
   # Call parse script
   "$PLUGIN_BIN_PATH/traffic-accounting-show"
@@ -145,21 +154,11 @@ plugin_status()
 # Check sanity of eg. environment
 plugin_sanity_check()
 {
-  if [ -z "$TRAFFIC_ACCOUNTING_CRON" ]; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not properly set!\033[0m\n" >&2
+  if [ -z "$JOB_HELPER_SCRIPT" -o ! -e "$JOB_HELPER_SCRIPT" ]; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The job helper script($JOB_HELPER_SCRIPT) can not be found!\033[0m\n" >&2
     return 1
   fi
 
-  if [ ! -x "$PLUGIN_BIN_PATH/traffic-accounting-helper" ]; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: The traffic-accounting-helper script can not be found or is not executable!\033[0m\n" >&2
-    return 1
-  fi
-  
-  if ! check_command dig nslookup; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: Required command dig (or nslookup) is not available!\033[0m\n" >&2
-    return 1
-  fi
-  
   return 0
 }
 
@@ -208,3 +207,4 @@ else
     fi
   fi
 fi
+

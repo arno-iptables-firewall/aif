@@ -1,0 +1,139 @@
+#!/bin/sh
+
+# ------------------------------------------------------------------------------
+#                           -= Arno's iptables firewall =-
+#               Single- & multi-homed firewall script with DSL/ADSL support
+#
+#                           ~ In memory of my dear father ~
+#
+# (C) Copyright 2001-2018 by Arno van Amersfoort & Lonnie Abelbeck
+# Homepage              : http://rocky.eld.leidenuniv.nl/
+# Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------
+
+# Location of the main configuration file for the firewall
+##########################################################
+CONF_FILE=/etc/arno-iptables-firewall/firewall.conf
+
+JOB_HELPER_PATH=""
+
+# Check sanity of environment
+sanity_check()
+{
+  if [ -z "$JOB_HELPER_PATH" ]; then
+    echo "** ERROR: Missing job-helper argument!" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+
+show_help()
+{
+  echo "Usage: $(basename $0) [options] {plugin_helper_path}" >&2
+  echo "" >&2
+  echo "Options:" >&2
+  echo "--help|-h                   - Print this help" >&2
+  echo ""
+}
+
+
+process_commandline()
+{
+  # Check arguments
+  while [ -n "$1" ]; do
+    ARG="$1"
+    ARGNAME=`echo "$ARG" |cut -d= -f1`
+    ARGVAL=`echo "$ARG" |cut -d= -f2 -s`
+
+    case "$ARGNAME" in
+              --help|-h) show_help;
+                         exit 0
+                         ;;
+                     -*) echo "ERROR: Bad argument \"$ARG\"" >&2
+                         show_help
+                         exit 1
+                         ;;
+                      *) JOB_HELPER_PATH="$ARG"
+                         ;;
+    esac
+
+    shift # Next argument
+  done
+}
+
+
+############
+# Mainline #
+############
+
+process_commandline $*
+
+if [ -z "$CONF_FILE" -o ! -e "$CONF_FILE" ]; then
+  echo "ERROR: Could not read configuration file ($CONF_FILE)!" >&2
+  echo "" >&2
+  exit 2
+fi
+
+# Source config file
+. "$CONF_FILE"
+
+# Check if the environment file exists and if so, load it
+#########################################################
+if [ -n "$ENV_FILE" ]; then
+  . "$ENV_FILE"
+else
+  if [ -f /usr/local/share/arno-iptables-firewall/environment ]; then
+    . /usr/local/share/arno-iptables-firewall/environment
+  else
+    if [ -f /usr/share/arno-iptables-firewall/environment ]; then
+      . /usr/share/arno-iptables-firewall/environment
+    else
+      echo "** ERROR: The environment file (ENV_FILE) has not been specified" >&2
+      echo "**        in the configuration file. Try upgrading your config-file!" >&2
+      exit 2
+    fi
+  fi
+fi
+
+# Only proceed if environment ok
+if ! sanity_check; then
+  exit 2
+fi
+
+# Reset to 0, just in case
+PLUGIN_RET_VAL=0
+
+LOCK_NAME="$(basename "$JOB_HELPER_PATH")"
+
+# Enter critical section
+if ! lock_enter $LOCK_NAME; then
+  exit 2
+fi
+
+# Source helper
+. "$JOB_HELPER_PATH"
+
+# Leave critical section
+if ! lock_leave $LOCK_NAME; then
+  exit 2
+fi
+
+# Return helper's return code
+return $PLUGIN_RET_VAL

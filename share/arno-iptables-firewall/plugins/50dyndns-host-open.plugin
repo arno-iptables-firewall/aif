@@ -2,14 +2,14 @@
 #            -= Arno's iptables firewall - DynDNS Host Open plugin =-
 #
 PLUGIN_NAME="DynDNS Host Open plugin"
-PLUGIN_VERSION="1.34a"
+PLUGIN_VERSION="1.40"
 PLUGIN_CONF_FILE="dyndns-host-open.conf"
 #
-# Last changed          : July 10, 2017
-# Requirements          : kernel 2.6 + AIF 2.0.1f or better
+# Last changed          : June 11, 2018
+# Requirements          : AIF 2.1.0 (or newer)
 # Comments              : This implements dynamic DNS (DynDNS) support for eg. opening ports
 #
-# Author                : (C) Copyright 2008-2017 by Arno van Amersfoort
+# Author                : (C) Copyright 2008-2018 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -29,39 +29,55 @@ PLUGIN_CONF_FILE="dyndns-host-open.conf"
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
-# If HOST_CACHE_FILE is not defined, fallback to old DYNDNS variable
-if [ -n "$HOST_CACHE_FILE" ]; then
-  DYNDNS_HOST_CACHE="$HOST_CACHE_FILE"
-else
-  DYNDNS_HOST_CACHE="/var/tmp/aif_dyndns_host_cache"
-fi
+# (Background) job name
+JOB_NAME="dyndns_host_open"
 
-# Use a lock file for protection
-LOCK_FILE="/var/lock/aif_dyndns_helper.lock"
+# (Background) job helper script
+JOB_HELPER_SCRIPT="$PLUGIN_BIN_PATH/dyndns-host-open-helper"
+
+dyndns_host_open_init()
+{
+  # Insert rule into the main chain:
+  iptables -A EXT_INPUT_CHAIN -j DYNDNS_CHAIN
+
+  # Remove old cron job (this is in case a legacy plugin left it)
+  rm -f /etc/cron.d/dyndns-host-open
+
+  if [ -z "$DYNDNS_HOST_OPEN_TIME" ]; then
+    # Default to 60 minutes
+    BG_TIME=60
+  else
+    BG_TIME="$DYNDNS_HOST_OPEN_TIME"
+  fi
+
+  # Create background job
+  if ! job_add "$JOB_NAME" "$BG_TIME" "$JOB_HELPER_SCRIPT"; then
+    return 1
+  fi
+
+  # Call the helper script at startup?
+  if [ "$DYNDNS_RUN_AT_START" = "1" ]; then
+    if ! job_run_once "$JOB_HELPER_SCRIPT"; then
+      return 1
+    fi
+  fi
+
+  return 0
+}
+
 
 # Plugin start function
 plugin_start()
 {
+  local BG_TIME
+
   # Create new DYNDNS_CHAIN chain:
   iptables -N DYNDNS_CHAIN 2>/dev/null
   iptables -F DYNDNS_CHAIN
 
-  # Insert rule into the main chain:
-  iptables -A EXT_INPUT_CHAIN -j DYNDNS_CHAIN
-
-  # Remove the cache file
-  rm -f "$DYNDNS_HOST_CACHE"
-
-  # Check for stale lock file
-  rm -f "$LOCK_FILE"
-
-  # Create cron job
-  echo "$DYNDNS_HOST_OPEN_CRON        root    $PLUGIN_BIN_PATH/dyndns-host-open-helper >/dev/null" >/etc/cron.d/dyndns-host-open
-
-  # Call the dyndns-helper script at startup?
-  if [ "$DYNDNS_RUN_AT_START" = "1" ]; then
-    echo "${INDENT}Running helper script..."
-    "$PLUGIN_BIN_PATH/dyndns-host-open-helper"
+  # Initialize
+  if ! dyndns_host_open_init; then
+    return 1
   fi
 
   return 0
@@ -71,16 +87,12 @@ plugin_start()
 # Plugin restart function
 plugin_restart()
 {
-  ## Re-add standard chain rules that are flushed on a restart
+  # Re-add standard chain rules that are flushed on a restart
   echo "${INDENT}Restarting..."
 
-  # Insert rule into the main chain:
-  iptables -A EXT_INPUT_CHAIN -j DYNDNS_CHAIN
-
-  # Call the dyndns-helper script at startup?
-  if [ "$DYNDNS_RUN_AT_START" = "1" ]; then
-    echo "${INDENT}Running helper script..."
-    "$PLUGIN_BIN_PATH/dyndns-host-open-helper"
+  # Initialize
+  if ! dyndns_host_open_init; then
+    return 1
   fi
 
   return 0
@@ -90,18 +102,11 @@ plugin_restart()
 # Plugin stop function
 plugin_stop()
 {
-  # Remove cron job
-  rm -f /etc/cron.d/dyndns-host-open
+  # Remove old cron job (this is in case a legacy plugin left it)
+  rm -f /etc/cron.d/traffic-accounting
 
-  # Wait for helper to stop, if running
-  cnt=5
-  while [ $cnt -gt 0 ] && [ -f "$LOCK_FILE" ]; do
-    cnt=$((cnt - 1))
-    sleep 1
-  done
-
-  # Remove the cache file
-  rm -f "$DYNDNS_HOST_CACHE"
+  # Remove job
+  job_remove "$JOB_NAME"
 
   iptables -D EXT_INPUT_CHAIN -j DYNDNS_CHAIN 2>/dev/null
 
@@ -117,14 +122,6 @@ plugin_status()
 {
   iptables -L DYNDNS_CHAIN
 
-  # Show IP->hostname mappings from our host-cache
-  if [ -e "$DYNDNS_HOST_CACHE" ]; then
-    echo ""
-    echo "Showing hostname->IP mapping"
-    echo "----------------------------"
-    cat "$DYNDNS_HOST_CACHE"
-  fi
-
   return 0
 }
 
@@ -133,19 +130,13 @@ plugin_status()
 plugin_sanity_check()
 {
   if [ -z "$DYNDNS_HOST_OPEN_TCP" -a -z "$DYNDNS_HOST_OPEN_UDP"  -a \
-       -z "$DYNDNS_HOST_OPEN_IP"  -a -z "$DYNDNS_HOST_OPEN_ICMP" -a \
-       -z "$DYNDNS_HOST_MISC" ] || [ -z "$DYNDNS_HOST_OPEN_CRON" ]; then
+       -z "$DYNDNS_HOST_OPEN_IP"  -a -z "$DYNDNS_HOST_OPEN_ICMP" ]; then
     printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not (properly) setup!\033[0m\n" >&2
     return 1
   fi
 
-  if [ ! -x "$PLUGIN_BIN_PATH/dyndns-host-open-helper" ]; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: The dyndns-host-open-helper script can not be found or is not executable!\033[0m\n" >&2
-    return 1
-  fi
-
-  if ! check_command dig nslookup; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: Required command dig (or nslookup) is not available!\033[0m\n" >&2
+  if [ -z "$JOB_HELPER_SCRIPT" -o ! -e "$JOB_HELPER_SCRIPT" ]; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The job helper script($JOB_HELPER_SCRIPT) can not be found!\033[0m\n" >&2
     return 1
   fi
 

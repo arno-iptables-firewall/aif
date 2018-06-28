@@ -1,43 +1,6 @@
-#!/bin/bash
-
 # The plugin configuration file
 ###############################
 PLUGIN_CONF_FILE="traffic-accounting.conf"
-
-# Location of the main configuration file for the firewall
-##########################################################
-CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
-
-# Use a lock file for protection
-LOCK_FILE="/var/lock/aif_traffic_accounting_helper.lock"
-
-# Check if the main config file exists and if so load it
-########################################################
-if [ -e "$CONFIG_FILE" ]; then
-  . $CONFIG_FILE
-else
-  echo "** ERROR: Could not read configuration file $CONFIG_FILE!" >&2
-  echo "**        Please, check the file's location and (root) rights." >&2
-  exit 2
-fi
-
-# Check if the environment file exists and if so, load it
-#########################################################
-if [ -n "$ENV_FILE" ]; then
-  . "$ENV_FILE"
-else
-  if [ -f /usr/local/share/arno-iptables-firewall/environment ]; then
-    . /usr/local/share/arno-iptables-firewall/environment
-  else
-    if [ -f /usr/share/arno-iptables-firewall/environment ]; then
-      . /usr/share/arno-iptables-firewall/environment
-    else
-      echo "** ERROR: The environment file (ENV_FILE) has not been specified" >&2
-      echo "**        in the configuration file. Try upgrading your config-file!" >&2
-      exit 2
-    fi
-  fi
-fi
 
 # Define some global variables
 INDENT='   '
@@ -48,13 +11,8 @@ if [ "$1" = "-v" -o "$1" = "--verbose" ]; then
 fi
 
 # Check sanity of eg. environment
-sanity_check()
+traffic_accounting_helper_sanity_check()
 {
-  if [ -z "$TRAFFIC_ACCOUNTING_CRON" ]; then
-    printf "** ERROR: The plugin config file is not properly set! **" >&2
-    return 1
-  fi
-
   # Check whether chains exists
   if ! ip4tables -nL ACCOUNTING_INPUT_CHAIN >/dev/null 2>&1; then
     echo "** ERROR: ACCOUNTING_INPUT_CHAIN does not exist! **" >&2
@@ -77,62 +35,7 @@ sanity_check()
 #    return 1
 #  fi
 
-  if ! check_command dig nslookup; then
-    echo "** ERROR: Required command dig (or nslookup) is not available!" >&2
-    return 1
-  fi
-
   return 0
-}
-
-
-# Parse/get hostname. Try to use host cache if applicable
-# Resolve hostname to an IP and store in our (new) cache
-# Arguments : $1 = hostname to resolve
-# Returns   : Resolved host's IP in "$host_ip"
-traffic_accounting_get_host()
-{
-  host_ip=""      # Reset result
-  local host="$1"
-  local retval=0
-
-  printf "${INDENT}Resolving \"$host\" -> "
-
-  if is_numeric_ip "$host"; then
-    echo "$host"
-    host_ip="$host"
-    return 0
-  fi
-
-  # First try to get host from host-cache
-  if [ "$TRAFFIC_ACCOUNTING_USE_HOST_CACHE" != "0" ]; then
-    host_ip=`get_host_from_cache "$host"`
-    local retval=$?
-
-    # TODO: Detect NO-IP condition
-    if [ $retval -eq 0 -o $retval -eq 2 ]; then
-      if [ -n "$host_ip" ]; then
-        echo "$host_ip (cached)"
-      else
-        echo "NO-IP (cached)"
-      fi
-      return 0
-    fi
-  fi
-
-  # Perform normal lookup
-  DNS_FAST_FAIL_ONCE="$DNS_FAST_FAIL"
-  host_ip=`gethostbyname "$host"`
-  retval=$?
-
-  if [ -z "$host_ip" -o $retval -ne 0 ]; then
-    printf "\033[40m\033[1;31mFAILED!\n\033[0m"
-    echo "** ERROR($retval): Unresolvable host \"$host\"! **" >&2
-  else
-    echo "$host_ip"
-  fi
-
-  return $retval
 }
 
 
@@ -178,7 +81,9 @@ traffic_accounting_setup_rules()
     fi
 
     # Get host_ip, if it fails, skip rule
-    if ! traffic_accounting_get_host "$host"; then
+    # Parse/get hostname. Try to use host cache if applicable
+    # NOTE: get_dynamic_host_cached returns hostname in $host_ip
+    if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
       echo "** WARNING: Skipping rule for \"$host\"! **" >&2
       continue
     fi
@@ -344,62 +249,6 @@ traffic_accounting_setup_rules()
 }
 
 
-ctrl_handler()
-{
-  lock_leave
-
-  stty intr ^C # Back to normal
-  exit         # Yep, I meant to do that... Kill/hang the shell.
-}
-
-
-lock_enter()
-{
-  local FAIL_COUNT=0
-
-  while [ $FAIL_COUNT -lt 2 ]; do
-    # We don't want multiple instances so we use a lockfile
-    if ( set -o noclobber; echo "$$" > "$LOCK_FILE") 2> /dev/null; then
-      # Setup int handler
-      trap 'ctrl_handler' INT TERM EXIT
-
-      return 0 # Lock success
-    fi
-
-    # lock failed, check if the process is dead
-    local PID="$(cat "${LOCK_FILE}")"
-
-    # if cat isn't able to read the file, another instance is probably
-    # about to remove the lock -- exit, we're *still* locked
-    # Thanks to Grzegorz Wierzowiecki for pointing out this race condition on
-    # http://wiki.grzegorz.wierzowiecki.pl/code:mutex-in-bash
-    if [ $? -eq 0 ]; then
-      if ! kill -0 "$PID" 2>/dev/null; then
-        # lock is stale, remove it and restart
-        echo "WARNING: Removing stale lock of nonexistant PID ${PID}" >&2
-        rm -f "$LOCK_FILE"
-      fi
-    fi
-
-    FAIL_COUNT=$((FAIL_COUNT + 1))
-  done
-
-  echo "ERROR: Failed to acquire lockfile: $LOCK_FILE. Held by PID $(cat $LOCK_FILE)" >&2
-
-  return 1 # Lock failed
-}
-
-
-lock_leave()
-{
-  # Remove lockfile
-  rm -f "$LOCK_FILE"
-
-  # Disable int handler
-  trap - INT TERM EXIT
-}
-
-
 ############
 # Mainline #
 ############
@@ -410,33 +259,22 @@ if [ -n "$PLUGIN_CONF_PATH" ]; then
   CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
 fi
 
+# Preinit return value for success
+PLUGIN_RET_VAL=0
+
 # Check if the config file exists
 if [ ! -e "$CONF_FILE" ]; then
   echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
-  exit 1
+  PLUGIN_RET_VAL=1
 else
   # Source the plugin config file
   . "$CONF_FILE"
 
-  if [ "$ENABLED" = "1" ]; then
-    # Only proceed if environment ok
-    if sanity_check; then
-      # This is a critical section so we use a lockfile
-      if lock_enter; then
-        # Create actual rules
-        traffic_accounting_setup_rules
-
-        # We're done
-        lock_leave
-
-        exit 0
-      else
-        echo "Failed to acquire lockfile: $LOCK_FILE." >&2
-        echo "Held by $(cat "$LOCK_FILE")" >&2
-      fi
-    fi
+  # Only proceed if environment ok
+  if traffic_accounting_helper_sanity_check; then
+    # Create actual rules
+    traffic_accounting_setup_rules
+  else
+    PLUGIN_RET_VAL=1
   fi
 fi
-
-exit 1
-
