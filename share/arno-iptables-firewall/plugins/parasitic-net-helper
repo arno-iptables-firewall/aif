@@ -26,7 +26,7 @@ parasitic_net_setup_rules()
   unset IFS
   for rule in $PARASITIC_NET_HOST_DENY_TCP; do
     if parse_rule "$rule" PARASITIC_NET_HOST_DENY_TCP "hosts-ports"; then
-      echo "${INDENT} Denying access to $hosts for TCP port(s): $ports"
+      echo "${INDENT}Denying access to $hosts for TCP port(s): $ports"
 
       IFS=','
       for host in `ip_range "$hosts"`; do
@@ -50,7 +50,7 @@ parasitic_net_setup_rules()
   unset IFS
   for rule in $PARASITIC_NET_HOST_DENY_UDP; do
     if parse_rule "$rule" PARASITIC_NET_HOST_DENY_UDP "hosts-ports"; then
-      echo "${INDENT} Denying access to $hosts for UDP port(s): $ports"
+      echo "${INDENT}Denying access to $hosts for UDP port(s): $ports"
 
       IFS=','
       for host in `ip_range "$hosts"`; do
@@ -73,7 +73,7 @@ parasitic_net_setup_rules()
 
   IFS=' ,'
   for hosts in $PARASITIC_NET_HOST_DENY_ICMP; do
-    echo "${INDENT} Denying access to $hosts for ICMP requests"
+    echo "${INDENT}Denying access to $hosts for ICMP requests"
 
     for host in `ip_range "$hosts"`; do
       if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
@@ -93,7 +93,7 @@ parasitic_net_setup_rules()
   unset IFS
   for rule in $PARASITIC_NET_HOST_DENY_IP; do
     if parse_rule "$rule" PARASITIC_NET_HOST_DENY_IP "hosts-protos"; then
-      echo "${INDENT} Denying access to $hosts for IP protocol(s): $protos"
+      echo "${INDENT}Denying access to $hosts for IP protocol(s): $protos"
       IFS=','
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
@@ -116,7 +116,7 @@ parasitic_net_setup_rules()
   unset IFS
   for rule in $PARASITIC_NET_HOST_OPEN_TCP; do
     if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_TCP "hosts-ports"; then
-      echo "${INDENT} Allowing access to $hosts for TCP port(s): $ports"
+      echo "${INDENT}Allowing access to $hosts for TCP port(s): $ports"
 
       IFS=','
       for host in `ip_range "$hosts"`; do
@@ -135,7 +135,7 @@ parasitic_net_setup_rules()
   unset IFS
   for rule in $PARASITIC_NET_HOST_OPEN_UDP; do
     if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_UDP "hosts-ports"; then
-      echo "${INDENT} Allowing access to $hosts for UDP port(s): $ports"
+      echo "${INDENT}Allowing access to $hosts for UDP port(s): $ports"
 
       IFS=','
       for host in `ip_range "$hosts"`; do
@@ -153,7 +153,7 @@ parasitic_net_setup_rules()
 
   IFS=' ,'
   for hosts in $PARASITIC_NET_HOST_OPEN_ICMP; do
-    echo "${INDENT} Allowing access to $hosts for ICMP requests"
+    echo "${INDENT}Allowing access to $hosts for ICMP requests"
 
     for host in `ip_range "$hosts"`; do
       if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
@@ -168,7 +168,7 @@ parasitic_net_setup_rules()
   unset IFS
   for rule in $PARASITIC_NET_HOST_OPEN_IP; do
     if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_IP "hosts-protos"; then
-      echo "${INDENT} Allowing access to $hosts for IP protocol(s): $protos"
+      echo "${INDENT}Allowing access to $hosts for IP protocol(s): $protos"
 
       IFS=','
       for host in `ip_range "$hosts"`; do
