@@ -1498,6 +1498,28 @@ lock_ctrl_handler()
 }
 
 
+lock_enter_single()
+{
+  local LOCK_FILE="/var/lock/aif_$1.lock"
+
+  if [ -z "$1" ]; then
+    echo "ERROR: Exception due to missing lock argument" >&2
+    return 1 # Failure
+  fi
+
+  if ( set -o noclobber; echo "$$" > "$LOCK_FILE") 2> /dev/null; then
+    # Setup int handler
+    trap "lock_ctrl_handler $LOCK_FILE" INT TERM EXIT
+
+    return 0 # Lock success
+  fi
+
+  echo "NOTE: Another instance is already running for lock \"$1\". Held by PID $(cat $LOCK_FILE)" >&2
+
+  return 1 # Lock failed
+}
+
+
 # Lock enter function to acquire lock. Prevents running of multiple instances
 # $1 = Lock (file) name
 # $2 = Amount of retries (optional, defaults to 5)
@@ -1562,11 +1584,17 @@ lock_wait()
     return 1 # Failure
   fi
 
-  # Wait for helper to stop, if running
-  while [ $cnt -gt 0 ] && [ -f "$LOCK_FILE" ]; do
+  # Wait for lock to disappear
+  while [ $cnt -gt 0 ]; do
+    if [ ! -f "$LOCK_FILE" ]; then
+      return 0 # Lock wait success
+    fi
+
     cnt=$((cnt - 1))
     sleep 1
   done
+
+  return 1 # Lock wait failed
 }
 
 
