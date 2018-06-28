@@ -1,3 +1,10 @@
+Version 2.0.3 (June 28, 2018)
+-----------------------------
+! Missing mention in man page of arno-fwfilter's --no-resolve option
+! Various fixes in the installer
+* Improvements in the parasitic net plugin
+* Various tweaks
+
 Version 2.0.2a (October 26, 2017)
 ---------------------------------
 ! Fixed log line being too long (>28 chars)
