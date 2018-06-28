@@ -122,8 +122,8 @@ PLUGIN_RET_VAL=0
 
 LOCK_NAME="$(basename "$JOB_HELPER_PATH")"
 
-# Enter critical section
-if ! lock_enter $LOCK_NAME; then
+# Enter critical section (single lock)
+if ! lock_enter_single $LOCK_NAME; then
   exit 2
 fi
 
