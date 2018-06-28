@@ -5033,7 +5033,7 @@ job_run_once()
   echo "${INDENT}Foreground running job helper script \"$SCRIPT_NAME\""
 
   # Source script
-  if ! "$JOB_EXECUTER" "$SCRIPT_NAME"; then
+  if ! "$JOB_EXECUTER" --indent="${INDENT} " "$SCRIPT_NAME"; then
     return 1
   fi
 

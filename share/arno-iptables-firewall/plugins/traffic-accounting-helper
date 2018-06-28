@@ -3,7 +3,6 @@
 PLUGIN_CONF_FILE="traffic-accounting.conf"
 
 # Define some global variables
-INDENT='   '
 VERBOSE=0
 
 if [ "$1" = "-v" -o "$1" = "--verbose" ]; then

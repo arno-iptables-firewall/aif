@@ -30,6 +30,8 @@
 ##########################################################
 CONF_FILE=/etc/arno-iptables-firewall/firewall.conf
 
+# Define some global variables
+OPT_INDENT=""
 JOB_HELPER_PATH=""
 
 # Check sanity of environment
@@ -50,6 +52,7 @@ show_help()
   echo "" >&2
   echo "Options:" >&2
   echo "--help|-h                   - Print this help" >&2
+  echo "--indent=\'{indent}\'       - Use {indent} for line indention" >&2
   echo ""
 }
 
@@ -65,6 +68,8 @@ process_commandline()
     case "$ARGNAME" in
               --help|-h) show_help;
                          exit 0
+                         ;;
+            --indent|-i) OPT_INDENT="$ARGVAL"
                          ;;
                      -*) echo "ERROR: Bad argument \"$ARG\"" >&2
                          show_help
@@ -83,7 +88,7 @@ process_commandline()
 # Mainline #
 ############
 
-process_commandline $*
+process_commandline "$@"
 
 if [ -z "$CONF_FILE" -o ! -e "$CONF_FILE" ]; then
   echo "ERROR: Could not read configuration file ($CONF_FILE)!" >&2
@@ -126,6 +131,9 @@ LOCK_NAME="$(basename "$JOB_HELPER_PATH")"
 if ! lock_enter_single $LOCK_NAME; then
   exit 2
 fi
+
+# Set indent
+INDENT="$OPT_INDENT"
 
 # Source helper
 . "$JOB_HELPER_PATH"
