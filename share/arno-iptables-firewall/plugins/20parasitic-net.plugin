@@ -162,10 +162,14 @@ parasitic_net_init()
 plugin_start()
 {
   # Setup rules
-  parasitic_net_setup_rules
+  if ! parasitic_net_setup_rules; then
+    return 1
+  fi
 
   # Initialize
-  parasitic_net_init
+  if ! parasitic_net_init; then
+    return 1
+  fi
 
   return 0
 }
@@ -177,7 +181,7 @@ plugin_restart()
   # NOTE: Skip plugin_stop on a restart and basically do the same as with a normal start
   plugin_start
 
-  return 0
+  return $?
 }
 
 

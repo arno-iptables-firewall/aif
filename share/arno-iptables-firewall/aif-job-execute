@@ -144,4 +144,4 @@ if ! lock_leave $LOCK_NAME; then
 fi
 
 # Return helper's return code
-return $PLUGIN_RET_VAL
+exit $PLUGIN_RET_VAL
