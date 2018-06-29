@@ -2,6 +2,10 @@
 ###############################
 PLUGIN_CONF_FILE="dyndns-host-open.conf"
 
+# Preinit return value for success
+PLUGIN_RET_VAL=0
+
+
 # Check sanity of environment
 dyndns_host_open_helper_sanity_check()
 {
@@ -29,6 +33,8 @@ dyndns_host_open_helper_sanity_check()
 
 dyndns_host_open_helper_setup_rules()
 {
+  local RETVAL=0
+
   # Flush the DYNDNS_CHAIN
   iptables -F DYNDNS_CHAIN
 
@@ -44,6 +50,7 @@ dyndns_host_open_helper_setup_rules()
         # get_dynamic_host_cached returns hostname in $host_ip
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+          RETVAL=1
           continue
         fi
         for interface in $interfaces; do
@@ -69,6 +76,7 @@ dyndns_host_open_helper_setup_rules()
         # get_dynamic_host_cached returns hostname in $host_ip
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping UDP rule(s) for \"$host\"! **" >&2
+          RETVAL=1
           continue
         fi
         for interface in $interfaces; do
@@ -94,6 +102,7 @@ dyndns_host_open_helper_setup_rules()
         # get_dynamic_host_cached returns hostname in $host_ip
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping IP rule(s) for \"$host\"! **" >&2
+          RETVAL=1
           continue
         fi
         for interface in $interfaces; do
@@ -119,6 +128,7 @@ dyndns_host_open_helper_setup_rules()
         # get_dynamic_host_cached returns hostname in $host_ip
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping ICMP rule(s) for \"$host\"! **" >&2
+          RETVAL=1
           continue
         fi
 
@@ -130,6 +140,8 @@ dyndns_host_open_helper_setup_rules()
       done
     fi
   done
+
+  return $RETVAL
 }
 
 
@@ -143,22 +155,21 @@ if [ -n "$PLUGIN_CONF_PATH" ]; then
   CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
 fi
 
-# Preinit return value for success
-PLUGIN_RET_VAL=0
-
 # Check if the config file exists
 if [ ! -e "$CONF_FILE" ]; then
   echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
   PLUGIN_RET_VAL=1
-else
-  # Source the plugin config file
-  . "$CONF_FILE"
+fi
 
-  # Only proceed if environment ok
-  if dyndns_host_open_helper_sanity_check; then
-    # Parse rules
-    dyndns_host_open_helper_setup_rules
-  else
-    PLUGIN_RET_VAL=1
-  fi
+# Source the plugin config file
+. "$CONF_FILE"
+
+# Only proceed if environment ok
+if ! dyndns_host_open_helper_sanity_check; then
+  PLUGIN_RET_VAL=1
+fi
+
+# Parse rules
+if ! dyndns_host_open_helper_setup_rules; then
+  PLUGIN_RET_VAL=1
 fi

@@ -2,6 +2,10 @@
 ###############################
 PLUGIN_CONF_FILE="parasitic-net.conf"
 
+# Preinit return value for success
+PLUGIN_RET_VAL=0
+
+
 # Check sanity of eg. environment
 parasitic_net_sanity_check()
 {
@@ -17,6 +21,8 @@ parasitic_net_sanity_check()
 
 parasitic_net_setup_rules()
 {
+  local RETVAL=0
+
   # Flush the PARASITIC_NET_ACL
   iptables -F PARASITIC_NET_ACL
 
@@ -29,6 +35,7 @@ parasitic_net_setup_rules()
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+          RETVAL=1
           continue
         fi
 
@@ -53,6 +60,7 @@ parasitic_net_setup_rules()
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+          RETVAL=1
           continue
         fi
 
@@ -75,6 +83,7 @@ parasitic_net_setup_rules()
     for host in `ip_range "$hosts"`; do
       if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
         echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+        RETVAL=1
         continue
       fi
 
@@ -91,6 +100,7 @@ parasitic_net_setup_rules()
   for rule in $PARASITIC_NET_HOST_DENY_IP; do
     if parse_rule "$rule" PARASITIC_NET_HOST_DENY_IP "hosts-protos"; then
       echo "${INDENT}Denying access to $hosts for IP protocol(s): $protos"
+      RETVAL=1
       IFS=','
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
@@ -119,6 +129,7 @@ parasitic_net_setup_rules()
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+          RETVAL=1
           continue
         fi
 
@@ -138,6 +149,7 @@ parasitic_net_setup_rules()
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+          RETVAL=1
           continue
         fi
 
@@ -155,6 +167,7 @@ parasitic_net_setup_rules()
     for host in `ip_range "$hosts"`; do
       if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
         echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+        RETVAL=1
         continue
       fi
 
@@ -171,6 +184,7 @@ parasitic_net_setup_rules()
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping TCP rule(s) for \"$host\"! **" >&2
+          RETVAL=1
           continue
         fi
 
@@ -221,6 +235,8 @@ parasitic_net_setup_rules()
       --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
   fi
   ip4tables -A PARASITIC_NET_ACL -j $PARASITIC_NET_DENY_POLICY
+
+  return $RETVAL
 }
 
 
@@ -234,22 +250,21 @@ if [ -n "$PLUGIN_CONF_PATH" ]; then
   CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
 fi
 
-# Preinit return value for success
-PLUGIN_RET_VAL=0
-
 # Check if the config file exists
 if [ ! -e "$CONF_FILE" ]; then
   echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
   PLUGIN_RET_VAL=1
-else
-  # Source the plugin config file
-  . "$CONF_FILE"
+fi
 
-  # Only proceed if environment ok
-  if parasitic_net_sanity_check; then
-    # Create actual rules
-    parasitic_net_setup_rules
-  else
-    PLUGIN_RET_VAL=1
-  fi
+# Source the plugin config file
+. "$CONF_FILE"
+
+# Only proceed if environment ok
+if ! parasitic_net_sanity_check; then
+  PLUGIN_RET_VAL=1
+fi
+
+# Create actual rules
+if ! parasitic_net_setup_rules; then
+  PLUGIN_RET_VAL=1
 fi

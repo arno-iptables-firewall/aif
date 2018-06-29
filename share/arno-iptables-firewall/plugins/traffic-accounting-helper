@@ -2,12 +2,12 @@
 ###############################
 PLUGIN_CONF_FILE="traffic-accounting.conf"
 
+# Preinit return value for success
+PLUGIN_RET_VAL=0
+
 # Define some global variables
 VERBOSE=0
 
-if [ "$1" = "-v" -o "$1" = "--verbose" ]; then
-  VERBOSE=1
-fi
 
 # Check sanity of eg. environment
 traffic_accounting_helper_sanity_check()
@@ -40,6 +40,8 @@ traffic_accounting_helper_sanity_check()
 
 traffic_accounting_setup_rules()
 {
+  local RETVAL=0
+
   # Touch the log file (just in case it doesn't exist yet):
   touch /var/log/traffic-accounting.log
 
@@ -84,6 +86,7 @@ traffic_accounting_setup_rules()
     # NOTE: get_dynamic_host_cached returns hostname in $host_ip
     if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
       echo "** WARNING: Skipping rule for \"$host\"! **" >&2
+      RETVAL=1
       continue
     fi
 
@@ -245,6 +248,8 @@ traffic_accounting_setup_rules()
     mv /var/log/traffic-accounting.log /var/log/traffic-accounting.log.old
   fi
   mv /tmp/traffic-accounting.new /var/log/traffic-accounting.log
+
+  return $RETVAL
 }
 
 
@@ -252,28 +257,31 @@ traffic_accounting_setup_rules()
 # Mainline #
 ############
 
+if [ "$1" = "-v" -o "$1" = "--verbose" ]; then
+  VERBOSE=1
+fi
+
 # Check where to find the config file
 CONF_FILE=""
 if [ -n "$PLUGIN_CONF_PATH" ]; then
   CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
 fi
 
-# Preinit return value for success
-PLUGIN_RET_VAL=0
-
 # Check if the config file exists
 if [ ! -e "$CONF_FILE" ]; then
   echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
   PLUGIN_RET_VAL=1
-else
-  # Source the plugin config file
-  . "$CONF_FILE"
+fi
 
-  # Only proceed if environment ok
-  if traffic_accounting_helper_sanity_check; then
-    # Create actual rules
-    traffic_accounting_setup_rules
-  else
-    PLUGIN_RET_VAL=1
-  fi
+# Source the plugin config file
+. "$CONF_FILE"
+
+# Only proceed if environment ok
+if ! traffic_accounting_helper_sanity_check; then
+  PLUGIN_RET_VAL=1
+fi
+
+# Create actual rules
+if ! traffic_accounting_setup_rules; then
+  PLUGIN_RET_VAL=1
 fi
