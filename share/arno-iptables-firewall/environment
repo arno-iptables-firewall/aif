@@ -1351,7 +1351,7 @@ get_dynamic_host_cached()
   host_ip=""            # Reset result
   local host="$1"
   local retval=0
-  local cache_lookup age max_age cur_time store_ip
+  local cache_lookup age max_age cur_time store_ip threshold fail_count log_repeat
 
   # Don't try to resolve stuff that's already numeric
   if is_numeric_ip "$host"; then
@@ -1401,11 +1401,12 @@ get_dynamic_host_cached()
       fi
 
       # Try to get from (old) cache, if allowed
-      if [ "$DNS_OLD_CACHE_FALLBACK" = "1" ]; then
+      if [ "$DNS_OLD_CACHE_FALLBACK" != "0" ]; then
         host_ip="$(echo "$cache_lookup" |cut -s -d' ' -f2)"
       fi
     fi
 
+    # Increment fail count
     fail_count=$((fail_count + 1))
 
     log_repeat=1 # default
@@ -1418,7 +1419,7 @@ get_dynamic_host_cached()
       fail_count=1
     fi
 
-    threshold=1 # default
+    threshold=3 # default
     if [ -n "$DNS_FAIL_THRESHOLD" ]; then
       threshold=$DNS_FAIL_THRESHOLD
     fi
@@ -1498,6 +1499,10 @@ lock_ctrl_handler()
 }
 
 
+# Lock enter function to acquire a single lock. Prevents running of multiple instances
+# When an instance is already running, a new instance will be aborted
+# $1 = Lock (file) name
+# $2 = Amount of retries (optional, defaults to 5)
 lock_enter_single()
 {
   local LOCK_FILE="/var/lock/aif_$1.lock"
@@ -1521,6 +1526,7 @@ lock_enter_single()
 
 
 # Lock enter function to acquire lock. Prevents running of multiple instances
+# When an instance is already running, a new instance will wait until the lock is released (until a timeout is reached, in that case it will be aborted)
 # $1 = Lock (file) name
 # $2 = Amount of retries (optional, defaults to 5)
 lock_enter()
