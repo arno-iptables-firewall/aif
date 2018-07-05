@@ -72,7 +72,7 @@ idle_wait()
 # (Background) job processor
 job_process()
 {
-  local LINE SCRIPT_NAME SCRIPT_SET_TIME SCRIPT_CUR_TIME SCRIPT_PATH READ_JOBS_FILE
+  local LINE SCRIPT_NAME SCRIPT_SET_TIME SCRIPT_CUR_TIME SCRIPT_PATH READ_JOBS_FILE err_result retval
 
   [ $VERBOSE -eq 1 ] && echo "Starting jobs process..."
 
@@ -117,12 +117,26 @@ job_process()
       if [ $SCRIPT_CUR_TIME -ge $SCRIPT_SET_TIME ]; then
         [ $VERBOSE -eq 1 ] && echo " Countdown reached, running job \"$SCRIPT_NAME\"..."
 
-        # Countdown reached: Run script.
-        # TODO: Check PLUGIN_RET_VAL for errors
+        # Create extra FD
+        exec 3>&1
+
+        if [ $VERBOSE -ne 1 ]; then
+          exec 3>/dev/null
+        fi
+
+        err_result="$("$JOB_EXECUTER" "$SCRIPT_PATH" 2>&1 1>&3)"
+        retval=$?
+
+        # Release extra FD
+        exec 3>&-
+
         if [ $VERBOSE -eq 1 ]; then
-          "$JOB_EXECUTER" "$SCRIPT_PATH"
-        else
-          "$JOB_EXECUTER" "$SCRIPT_PATH" >/dev/null 2>&1
+          echo "$err_result" >&2
+        fi
+
+        # In case an error occurred, log it
+        if [ $retval -ne 0 ]; then
+          echo "${err_result}" |sed s/'^'/'AIF:'/g |logger -t firewall -p kern.info
         fi
 
         # Reset counter
