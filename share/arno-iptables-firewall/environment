@@ -1392,6 +1392,9 @@ get_dynamic_host_cached()
   host_ip="$(gethostbyname "$host")"
   gethost_retval=$?
 
+  # Update cache time
+  cache_time="$(($(date +'%s') / 60))"
+
   if [ $gethost_retval -ne 0 -o -z "$host_ip" ]; then
     retval=1 # Error
 
