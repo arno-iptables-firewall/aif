@@ -1351,7 +1351,9 @@ get_dynamic_host_cached()
   host_ip=""            # Reset result
   local host="$1"
   local retval=0
-  local cache_lookup age max_age cur_time store_ip threshold fail_count log_repeat
+  local cache_lookup=""
+  local cache_time=0 fail_count=0 log_count=0
+  local age max_age cur_time store_ip threshold log_repeat count
 
   # Don't try to resolve stuff that's already numeric
   if is_numeric_ip "$host"; then
@@ -1359,12 +1361,14 @@ get_dynamic_host_cached()
     return 0
   fi
 
+  printf "${INDENT}Resolving host \"$host\" -> "
+
   # Check whether we already have it in our cache
   if [ -f "${HOST_CACHE_FILE}" ]; then
     cache_lookup="$(grep "^$host " -m1 "${HOST_CACHE_FILE}")"
     if [ -n "$cache_lookup" ]; then
       # Check whether it's not too old
-      age="$(echo "$cache_lookup" |cut -d' ' -f4)"
+      cache_time="$(echo "$cache_lookup" |cut -d' ' -f3)"
       cur_time="$(($(date +'%s') / 60))"
 
       if [ -n "$DNS_MAX_AGE" ]; then
@@ -1374,77 +1378,88 @@ get_dynamic_host_cached()
       fi
 
       # Check cache age
-      if [ -n "$age" -a $cur_time -le $((age + max_age)) ]; then
+      if [ -n "$cache_time" -a $cur_time -le $((cache_time + max_age)) ]; then
         host_ip="$(echo "$cache_lookup" |cut -d' ' -f2 |tr ',' ' ')"
         if [ "$host_ip" != "NO_IP" ]; then
+          echo "$host_ip (cached)"
           return 0
         fi
       fi
     fi
   fi
 
-  printf "${INDENT}Resolving host \"$host\" -> "
-
   DNS_FAST_FAIL_ONCE="$DNS_FAST_FAIL"
   host_ip="$(gethostbyname "$host")"
   gethost_retval=$?
 
-  fail_count=0
   if [ $gethost_retval -ne 0 -o -z "$host_ip" ]; then
     retval=1 # Error
 
     # Use value from cache as a fallback, but only if allowed
     if [ -n "$cache_lookup" ]; then
-      count="$(echo "$cache_lookup" |cut -s -d' ' -f3)"
+      count="$(echo "$cache_lookup" |cut -s -d' ' -f4)"
       if [ -n "$count" ]; then
         fail_count=$count
       fi
 
+      count="$(echo "$cache_lookup" |cut -s -d' ' -f5)"
+      if [ -n "$count" ]; then
+        log_count=$count
+      fi
+
       # Try to get from (old) cache, if allowed
-      if [ "$DNS_OLD_CACHE_FALLBACK" != "0" ]; then
+      if [ "$DNS_FAIL_THRESHOLD" != "0" ]; then
         host_ip="$(echo "$cache_lookup" |cut -s -d' ' -f2)"
       fi
+    fi
+
+
+    log_count=$((log_count + 1))
+
+    if [ -z "$host_ip" -o "$host_ip" = "NO_IP" ]; then
+      host_ip=""
+      printf "\033[40m\033[1;31mFAILED!\n\033[0m"
+      if [ $log_count -eq 1 ]; then
+        echo "** ERROR: Unresolvable host \"$host\" and no old IP to fallback on! **" >&2
+      fi
+    else
+      echo "$host_ip (cached!)"
+      if [ $log_count -eq 1 ]; then
+        echo "** WARNING($retval): Unresolvable host \"$host\". Re-using old IP ($host_ip)! **" >&2
+      fi
+      # Ignore error:
+      retval=0
+    fi
+
+
+    if [ -n "$DNS_FAIL_LOG_REPEAT" ]; then
+      log_repeat=$DNS_FAIL_LOG_REPEAT
+    else
+      log_repeat=0 # default
+    fi
+
+    if [ $log_count -gt $log_repeat ]; then
+      log_count=0
+    fi
+
+    if [ -n "$DNS_FAIL_THRESHOLD" ]; then
+      threshold=$DNS_FAIL_THRESHOLD
+    else
+      threshold=4 # default
     fi
 
     # Increment fail count
     fail_count=$((fail_count + 1))
 
-    log_repeat=1 # default
-    if [ -n "$DNS_FAIL_LOG_REPEAT" ]; then
-      log_repeat=$DNS_FAIL_LOG_REPEAT
-    fi
-
-    # Check repeat count
-    if [ $fail_count -ge $log_repeat ]; then
+    # Check fail count
+    if [ $threshold -gt 0 -a $fail_count -ge $threshold ]; then
       fail_count=1
-    fi
-
-    threshold=3 # default
-    if [ -n "$DNS_FAIL_THRESHOLD" ]; then
-      threshold=$DNS_FAIL_THRESHOLD
-    fi
-
-    # (Re)check $host_ip
-    if [ -z "$host_ip" -o "$host_ip" = "NO_IP" ]; then
-      host_ip=""
-      printf "\033[40m\033[1;31mFAILED!\n\033[0m"
-      if [ $fail_count -eq $threshold ]; then
-        echo "** ERROR: Unresolvable host \"$host\" after $fail_count tries, and no old IP to fallback on! **" >&2
-      fi
-    else
-      echo "$host_ip (cached!)"
-      if [ $fail_count -eq $threshold ]; then
-        echo "** WARNING($retval): Unresolvable host \"$host\" after $fail_count tries. Re-using old IP ($host_ip)! **" >&2
-      fi
-      # Ignore error:
-      retval=0
     fi
   else
     echo "$host_ip"
+    cache_time="$(($(date +'%s') / 60))"
     fail_count=0
   fi
-
-  cur_time="$(($(date +'%s') / 60))"
 
   if [ -z "$host_ip" ]; then
     # NOTE Explicitly store empty results as well else we'll keep trying over and over again for each plugin/rule
@@ -1455,10 +1470,10 @@ get_dynamic_host_cached()
 
   if [ -n "$cache_lookup" ]; then
     # Update existing entry
-    sed -i s/"^$host[[:blank:]].*"/"$host $store_ip $fail_count $cur_time"/ "${HOST_CACHE_FILE}"
+    sed -i s/"^$host[[:blank:]].*"/"$host $store_ip $cache_time $fail_count $log_count"/ "${HOST_CACHE_FILE}"
   else
     # Add new entry
-    echo "$host $store_ip $fail_count $cur_time" >>"${HOST_CACHE_FILE}"
+    echo "$host $store_ip $(($(date +'%s') / 60)) 1 1" >>"${HOST_CACHE_FILE}"
   fi
 
   return $retval
