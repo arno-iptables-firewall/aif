@@ -136,7 +136,7 @@ job_process()
 
         # In case an error occurred, log it
         if [ $retval -ne 0 ]; then
-          echo "${err_result}" |sed s/'^'/'AIF:'/g |logger -t firewall -p kern.info
+          echo "${err_result}" |sed s/"^"/"AIF-${SCRIPT_NAME}: "/g |logger -t firewall -p kern.info
         fi
 
         # Reset counter
