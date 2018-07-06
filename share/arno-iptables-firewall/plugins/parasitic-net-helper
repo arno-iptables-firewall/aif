@@ -34,7 +34,7 @@ parasitic_net_setup_rules()
       IFS=','
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
-          echo "** WARNING: Skipping TCP deny rule(s) for \"$host\"! **" >&2
+          echo "** WARNING: Skipping TCP deny rule(s) for unresolvable host \"$host\"! **" >&2
           RETVAL=1
           continue
         fi
@@ -59,7 +59,7 @@ parasitic_net_setup_rules()
       IFS=','
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
-          echo "** WARNING: Skipping UDP deny rule(s) for \"$host\"! **" >&2
+          echo "** WARNING: Skipping UDP deny rule(s) for unresolvable host \"$host\"! **" >&2
           RETVAL=1
           continue
         fi
@@ -82,7 +82,7 @@ parasitic_net_setup_rules()
 
     for host in `ip_range "$hosts"`; do
       if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
-        echo "** WARNING: Skipping ICMP deny rule(s) for \"$host\"! **" >&2
+        echo "** WARNING: Skipping ICMP deny rule(s) for unresolvable host \"$host\"! **" >&2
         RETVAL=1
         continue
       fi
@@ -104,7 +104,7 @@ parasitic_net_setup_rules()
       IFS=','
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
-          echo "** WARNING: Skipping IP deny rule(s) for \"$host\"! **" >&2
+          echo "** WARNING: Skipping IP deny rule(s) for unresolvable host \"$host\"! **" >&2
           continue
         fi
 
@@ -128,7 +128,7 @@ parasitic_net_setup_rules()
       IFS=','
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
-          echo "** WARNING: Skipping TCP allow rule(s) for \"$host\"! **" >&2
+          echo "** WARNING: Skipping TCP allow rule(s) for unresolvable host \"$host\"! **" >&2
           RETVAL=1
           continue
         fi
@@ -148,7 +148,7 @@ parasitic_net_setup_rules()
       IFS=','
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
-          echo "** WARNING: Skipping UDP allow rule(s) for \"$host\"! **" >&2
+          echo "** WARNING: Skipping UDP allow rule(s) for unresolvable host \"$host\"! **" >&2
           RETVAL=1
           continue
         fi
@@ -166,7 +166,7 @@ parasitic_net_setup_rules()
 
     for host in `ip_range "$hosts"`; do
       if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
-        echo "** WARNING: Skipping ICMP allow rule(s) for \"$host\"! **" >&2
+        echo "** WARNING: Skipping ICMP allow rule(s) for unresolvable host \"$host\"! **" >&2
         RETVAL=1
         continue
       fi
@@ -183,7 +183,7 @@ parasitic_net_setup_rules()
       IFS=','
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
-          echo "** WARNING: Skipping IP allow rule(s) for \"$host\"! **" >&2
+          echo "** WARNING: Skipping IP allow rule(s) for unresolvable host \"$host\"! **" >&2
           RETVAL=1
           continue
         fi

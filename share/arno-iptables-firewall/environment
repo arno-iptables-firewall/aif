@@ -1380,8 +1380,13 @@ get_dynamic_host_cached()
       # Check cache age
       if [ -n "$cache_time" -a $cur_time -le $((cache_time + max_age)) ]; then
         host_ip="$(echo "$cache_lookup" |cut -d' ' -f2 |tr ',' ' ')"
-        if [ "$host_ip" != "NO_IP" ]; then
+        if [ -n "$host_ip" ]; then
           echo "$host_ip (cached)"
+
+          if [ "$host_ip" = "NO_IP" ]; then
+            host_ip=""
+            return 1
+          fi
           return 0
         fi
       fi
@@ -1410,7 +1415,6 @@ get_dynamic_host_cached()
         host_ip="$(echo "$cache_lookup" |cut -s -d' ' -f2)"
       fi
     fi
-
 
     if [ -z "$host_ip" -o "$host_ip" = "NO_IP" ]; then
       host_ip=""
