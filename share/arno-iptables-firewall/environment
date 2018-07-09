@@ -1378,7 +1378,7 @@ get_dynamic_host_cached()
       fi
 
       # Check cache age
-      if [ -n "$cache_time" -a $cur_time -le $((cache_time + max_age)) ]; then
+      if [ -n "$cache_time" -a $cache_time -le $cur_time -a $cur_time -le $((cache_time + max_age)) ]; then
         host_ip="$(echo "$cache_lookup" |cut -d' ' -f2 |tr ',' ' ')"
         if [ -n "$host_ip" ]; then
           echo "$host_ip (cached)"
@@ -1527,7 +1527,7 @@ lock_enter_single()
 
 
 # Lock enter function to acquire lock. Prevents running of multiple instances
-# When an instance is already running, a new instance will wait until the lock is released (until a timeout is reached, in that case it will be aborted)
+# When an instance is already running, a new instance will wait until the lock is released (in case a timeout is reached, it will be aborted)
 # $1 = Lock (file) name
 # $2 = Amount of retries (optional, defaults to 5)
 lock_enter()
