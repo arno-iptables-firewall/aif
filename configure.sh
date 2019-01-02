@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.03"
+MY_VERSION="1.04"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -8,7 +8,7 @@ MY_VERSION="1.03"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2017 by Arno van Amersfoort
+# (C) Copyright 2001-2019 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -49,7 +49,7 @@ sanity_check()
     exit 1
   fi
 
-  if [ ! -e "/etc/init.d/arno-iptables-firewall" ]; then
+  if [ ! -e "/etc/arno-iptables-firewall/firewall.conf" ]; then
     printf "\033[40m\033[1;31mERROR: It looks like arno-iptables-firewall is not installed on this system (yet)! Quitting...\033[0m\n\n" >&2
     exit 1
   fi
@@ -255,9 +255,14 @@ setup_conf_file()
     done
   fi
 
+  # Make sure init script is executable and root owned
+  if [ -e /etc/init.d/arno-iptables-firewall ]; then
+    chown 0:0 /etc/init.d/arno-iptables-firewall
+    chmod 755 /etc/init.d/arno-iptables-firewall
+  fi
+
   # Set the correct permissions on the config file
-  chmod 755 /etc/init.d/arno-iptables-firewall
-  chown 0:0 "$FIREWALL_CONF" /etc/init.d/arno-iptables-firewall
+  chown 0:0 "$FIREWALL_CONF"
   chmod 600 "$FIREWALL_CONF"
 }
 
@@ -331,10 +336,12 @@ if get_user_yn "Do you want to start the firewall at boot" "y"; then
   fi
 fi
 
-if get_user_yn "Do you want the init script to be verbose (print out what it's doing)" "n"; then
-  change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "1"
-else
-  change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "0"
+if [ -e /etc/init.d/arno-iptables-firewall ]; then
+  if get_user_yn "Do you want the init script to be verbose (print out what it's doing)" "n"; then
+    change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "1"
+  else
+    change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "0"
+  fi
 fi
 
 if diff ./etc/arno-iptables-firewall/firewall.conf "$FIREWALL_CONF" >/dev/null; then
@@ -356,4 +363,3 @@ echo "** Configuration done **"
 echo ""
 
 exit 0
-

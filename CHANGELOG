@@ -1,3 +1,7 @@
+Version 2.1.0-BETA2 (January 2, 2019)
+-------------------------------------
+! The install and configure scripts didn't work properly on systems without an /etc/init.d directory (eg. Arch Linux)
+
 Version 2.1.0-BETA1 (June 29, 2018)
 -----------------------------------
 * Move dynamic host handling (no longer via DynDNS-host-open plugin but handled internally)

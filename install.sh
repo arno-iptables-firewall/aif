@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.09"
+MY_VERSION="1.10"
 
 # ------------------------------------------------------------------------------------------
 #                           -= Arno's iptables firewall =-
@@ -8,7 +8,7 @@ MY_VERSION="1.09"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2018 by Arno van Amersfoort
+# (C) Copyright 2001-2019 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -337,7 +337,10 @@ gzip -c -v ./share/man/man1/arno-fwfilter.1 >/usr/local/share/man/man8/arno-fwfi
 mkdir -pv /usr/local/share/doc/arno-iptables-firewall || exit 1
 copy_overwrite ./README /usr/local/share/doc/arno-iptables-firewall/
 
-copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
+# Install init.d script, but only if init.d folder existss
+if [ -d "/etc/init.d" ]; then
+  copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
+fi
 
 # Make sure only one service file exists in /lib/.. or /usr/lib/ where we prefer /lib/
 rm -f /usr/lib/systemd/system/arno-iptables-firewall.service
@@ -377,7 +380,7 @@ fi
 echo ""
 echo "-------------------------------------------------------------------------------"
 echo "** NOTE: You can now (manually) start the firewall by executing              **"
-echo "**       \"/etc/init.d/arno-iptables-firewall start\"                          **"
+echo "**       \"/usr/local/sbin/arno-iptables-firewall start\"                      **"
 echo "**       It is recommended however to first review the settings in           **"
 echo "**       /etc/arno-iptables-firewall/firewall.conf!                          **"
 echo "-------------------------------------------------------------------------------"
