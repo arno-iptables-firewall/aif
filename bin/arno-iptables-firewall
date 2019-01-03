@@ -1519,7 +1519,7 @@ setup_inet_dmz_forward_chain()
         for dhost in `ip_range "$dhosts"`; do
           for port in $ports; do
             for interface in $interfaces; do
-              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+              iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
             done
           done
         done
@@ -1540,7 +1540,7 @@ setup_inet_dmz_forward_chain()
         for dhost in `ip_range "$dhosts"`; do
           for port in $ports; do
             for interface in $interfaces; do
-              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+              iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -s $shost -d $dhost -p udp --dport $port -j ACCEPT
             done
           done
         done
@@ -1561,7 +1561,7 @@ setup_inet_dmz_forward_chain()
         for dhost in `ip_range "$dhosts"`; do
           for proto in $protos; do
             for interface in $interfaces; do
-              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p $proto -j ACCEPT
+              iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -s $shost -d $dhost -p $proto -j ACCEPT
             done
           done
         done
@@ -1584,10 +1584,10 @@ setup_inet_dmz_forward_chain()
           for port in $ports; do
             for interface in $interfaces; do
               if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-                iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p tcp --dport $port \
+                iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -s $shost -d $dhost -p tcp --dport $port \
                   -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET->DMZ denied: "
               fi
-              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p tcp --dport $port -j DROP
+              iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -s $shost -d $dhost -p tcp --dport $port -j DROP
             done
           done
         done
@@ -1609,10 +1609,10 @@ setup_inet_dmz_forward_chain()
           for port in $ports; do
             for interface in $interfaces; do
               if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-                iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p udp --dport $port \
+                iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -s $shost -d $dhost -p udp --dport $port \
                   -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET->DMZ denied: "
               fi
-              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p udp --dport $port -j DROP
+              iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -s $shost -d $dhost -p udp --dport $port -j DROP
             done
           done
         done
@@ -1634,10 +1634,10 @@ setup_inet_dmz_forward_chain()
           for proto in $protos; do
             for interface in $interfaces; do
               if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-                iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p $proto \
+                iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -s $shost -d $dhost -p $proto \
                   -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET->DMZ denied: "
               fi
-              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -s $shost -d $dhost -p $proto -j DROP
+              iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -s $shost -d $dhost -p $proto -j DROP
             done
           done
         done
@@ -1657,7 +1657,7 @@ setup_inet_dmz_forward_chain()
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -j ACCEPT
+            iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -d $destip -p tcp --dport $port -j ACCEPT
           done
         done
       done
@@ -1676,7 +1676,7 @@ setup_inet_dmz_forward_chain()
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p udp --dport $port -j ACCEPT
+            iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -d $destip -p udp --dport $port -j ACCEPT
           done
         done
       done
@@ -1695,7 +1695,7 @@ setup_inet_dmz_forward_chain()
       for proto in $protos; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p $proto -j ACCEPT
+            iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -d $destip -p $proto -j ACCEPT
           done
         done
       done
@@ -1723,10 +1723,10 @@ setup_inet_dmz_forward_chain()
         for destip in $destips; do
           for interface in $interfaces; do
             if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -m limit \
+              iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -d $destip -p tcp --dport $port -m limit \
                 --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
             fi
-            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p tcp --dport $port -j DROP
+            iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -d $destip -p tcp --dport $port -j DROP
           done
         done
       done
@@ -1746,10 +1746,10 @@ setup_inet_dmz_forward_chain()
         for destip in $destips; do
           for interface in $interfaces; do
             if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p udp --dport $port -m limit \
+              iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -d $destip -p udp --dport $port -m limit \
                 --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
             fi
-            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p udp --dport $port -j DROP
+            iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -d $destip -p udp --dport $port -j DROP
           done
         done
       done
@@ -1769,10 +1769,10 @@ setup_inet_dmz_forward_chain()
         for destip in $destips; do
           for interface in $interfaces; do
             if [ "$DMZ_INPUT_DENY_LOG" != "0" ]; then
-              iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p $proto -m limit \
+              iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -d $destip -p $proto -m limit \
                 --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET->DMZ denied: "
             fi
-            iptables -A INET_DMZ_FORWARD_CHAIN -i $interface -d $destip -p $proto -j DROP
+            iptables -A INET_DMZ_FORWARD_CHAIN $(ipt_in_if "$interface") -d $destip -p $proto -j DROP
           done
         done
       done
@@ -1819,7 +1819,7 @@ setup_dmz_inet_forward_chain()
         for dhost in `ip_range "$dhosts"`; do
           for port in $ports; do
             for interface in $interfaces; do
-              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+              iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
             done
           done
         done
@@ -1840,7 +1840,7 @@ setup_dmz_inet_forward_chain()
         for dhost in `ip_range "$dhosts"`; do
           for port in $ports; do
             for interface in $interfaces; do
-              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+              iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p udp --dport $port -j ACCEPT
             done
           done
         done
@@ -1861,7 +1861,7 @@ setup_dmz_inet_forward_chain()
         for dhost in `ip_range "$dhosts"`; do
           for proto in $protos; do
             for interface in $interfaces; do
-              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j ACCEPT
+              iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p $proto -j ACCEPT
             done
           done
         done
@@ -1884,10 +1884,10 @@ setup_dmz_inet_forward_chain()
           for port in $ports; do
             for interface in $interfaces; do
               if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
-                iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port \
+                iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p tcp --dport $port \
                   -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host DMZ->INET denied: "
               fi
-              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j DROP
+              iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p tcp --dport $port -j DROP
             done
           done
         done
@@ -1909,10 +1909,10 @@ setup_dmz_inet_forward_chain()
           for port in $ports; do
             for interface in $interfaces; do
               if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
-                iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port \
+                iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p udp --dport $port \
                   -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host DMZ->INET denied: "
               fi
-              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j DROP
+              iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p udp --dport $port -j DROP
             done
           done
         done
@@ -1934,10 +1934,10 @@ setup_dmz_inet_forward_chain()
           for proto in $protos; do
             for interface in $interfaces; do
               if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
-                iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto \
+                iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p $proto \
                   -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host DMZ->INET denied: "
               fi
-              iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j DROP
+              iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p $proto -j DROP
             done
           done
         done
@@ -1956,7 +1956,7 @@ setup_dmz_inet_forward_chain()
       IFS=','
       for port in $ports; do
         for interface in $interfaces; do
-          iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p tcp --dport $port -j ACCEPT
+          iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p tcp --dport $port -j ACCEPT
         done
       done
     fi
@@ -1973,7 +1973,7 @@ setup_dmz_inet_forward_chain()
       IFS=','
       for port in $ports; do
         for interface in $interfaces; do
-          iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p udp --dport $port -j ACCEPT
+          iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p udp --dport $port -j ACCEPT
         done
       done
     fi
@@ -1990,7 +1990,7 @@ setup_dmz_inet_forward_chain()
       IFS=','
       for proto in $protos; do
         for interface in $interfaces; do
-          iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p $proto -j ACCEPT
+          iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p $proto -j ACCEPT
         done
       done
     fi
@@ -2016,10 +2016,10 @@ setup_dmz_inet_forward_chain()
       for port in $ports; do
         for interface in $interfaces; do
           if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
-            iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p tcp --dport $port -m limit \
+            iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p tcp --dport $port -m limit \
               --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ->INET denied: "
           fi
-          iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p tcp --dport $port -j DROP
+          iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p tcp --dport $port -j DROP
         done
       done
     fi
@@ -2037,10 +2037,10 @@ setup_dmz_inet_forward_chain()
       for port in $ports; do
         for interface in $interfaces; do
           if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
-            iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p udp --dport $port -m limit \
+            iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p udp --dport $port -m limit \
               --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ->INET denied: "
           fi
-          iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p udp --dport $port -j DROP
+          iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p udp --dport $port -j DROP
         done
       done
     fi
@@ -2058,10 +2058,10 @@ setup_dmz_inet_forward_chain()
       for proto in $protos; do
         for interface in $interfaces; do
           if [ "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
-            iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p $proto -m limit \
+            iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p $proto -m limit \
               --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:DMZ->INET denied: "
           fi
-          iptables -A DMZ_INET_FORWARD_CHAIN -o $interface -p $proto -j DROP
+          iptables -A DMZ_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p $proto -j DROP
         done
       done
     fi
@@ -2416,7 +2416,7 @@ setup_lan_inet_forward_chain()
         for dhost in `ip_range "$dhosts"`; do
           for port in $ports; do
             for interface in $interfaces; do
-              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
+              iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p tcp --dport $port -j ACCEPT
             done
           done
         done
@@ -2437,7 +2437,7 @@ setup_lan_inet_forward_chain()
         for dhost in `ip_range "$dhosts"`; do
           for port in $ports; do
             for interface in $interfaces; do
-              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j ACCEPT
+              iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p udp --dport $port -j ACCEPT
             done
           done
         done
@@ -2458,7 +2458,7 @@ setup_lan_inet_forward_chain()
         for dhost in `ip_range "$dhosts"`; do
           for proto in $protos; do
             for interface in $interfaces; do
-              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j ACCEPT
+              iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p $proto -j ACCEPT
             done
           done
         done
@@ -2480,10 +2480,10 @@ setup_lan_inet_forward_chain()
           for port in $ports; do
             for interface in $interfaces; do
               if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
-                iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port \
+                iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p tcp --dport $port \
                   -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host LAN->INET denied: "
               fi
-              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p tcp --dport $port -j DROP
+              iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p tcp --dport $port -j DROP
             done
           done
         done
@@ -2505,10 +2505,10 @@ setup_lan_inet_forward_chain()
           for port in $ports; do
             for interface in $interfaces; do
               if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
-                iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port \
+                iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p udp --dport $port \
                   -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host LAN->INET denied: "
               fi
-              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p udp --dport $port -j DROP
+              iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p udp --dport $port -j DROP
             done
           done
         done
@@ -2530,10 +2530,10 @@ setup_lan_inet_forward_chain()
           for proto in $protos; do
             for interface in $interfaces; do
               if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
-                iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto \
+                iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p $proto \
                   -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host LAN->INET denied: "
               fi
-              iptables -A LAN_INET_FORWARD_CHAIN -o $interface -s $shost -d $dhost -p $proto -j DROP
+              iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -s $shost -d $dhost -p $proto -j DROP
             done
           done
         done
@@ -2552,7 +2552,7 @@ setup_lan_inet_forward_chain()
       IFS=','
       for port in $ports; do
         for interface in $interfaces; do
-          iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p tcp --dport $port -j ACCEPT
+          iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p tcp --dport $port -j ACCEPT
         done
       done
     fi
@@ -2569,7 +2569,7 @@ setup_lan_inet_forward_chain()
       IFS=','
       for port in $ports; do
         for interface in $interfaces; do
-          iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p udp --dport $port -j ACCEPT
+          iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p udp --dport $port -j ACCEPT
         done
       done
     fi
@@ -2586,7 +2586,7 @@ setup_lan_inet_forward_chain()
       IFS=','
       for proto in $protos; do
         for interface in $interfaces; do
-          iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p $proto -j ACCEPT
+          iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p $proto -j ACCEPT
         done
       done
     fi
@@ -2612,10 +2612,10 @@ setup_lan_inet_forward_chain()
       for port in $ports; do
         for interface in $interfaces; do
           if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
-            iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p tcp --dport $port -m limit \
+            iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p tcp --dport $port -m limit \
               --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN->INET denied: "
           fi
-          iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p tcp --dport $port -j DROP
+          iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p tcp --dport $port -j DROP
         done
       done
     fi
@@ -2633,10 +2633,10 @@ setup_lan_inet_forward_chain()
       for port in $ports; do
         for interface in $interfaces; do
           if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
-            iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p udp --dport $port -m limit \
+            iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p udp --dport $port -m limit \
               --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN->INET denied: "
           fi
-          iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p udp --dport $port -j DROP
+          iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p udp --dport $port -j DROP
         done
       done
     fi
@@ -2654,10 +2654,10 @@ setup_lan_inet_forward_chain()
       for proto in $protos; do
         for interface in $interfaces; do
           if [ "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
-            iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p $proto -m limit \
+            iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p $proto -m limit \
               --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:LAN->INET denied: "
           fi
-          iptables -A LAN_INET_FORWARD_CHAIN -o $interface -p $proto -j DROP
+          iptables -A LAN_INET_FORWARD_CHAIN $(ipt_out_if "$interface") -p $proto -j DROP
         done
       done
     fi
@@ -2807,7 +2807,7 @@ setup_ext_input_chain()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j ACCEPT
+              iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p tcp --dport $port -j ACCEPT
             done
           done
         done
@@ -2829,7 +2829,7 @@ setup_ext_input_chain()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j ACCEPT
+              iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p udp --dport $port -j ACCEPT
             done
           done
         done
@@ -2851,7 +2851,7 @@ setup_ext_input_chain()
         for proto in $protos; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p $proto -j ACCEPT
+              iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p $proto -j ACCEPT
             done
           done
         done
@@ -2872,7 +2872,7 @@ setup_ext_input_chain()
       for host in `ip_range "$hosts"`; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p icmp --icmp-type echo-request -j ACCEPT
+            iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p icmp --icmp-type echo-request -j ACCEPT
           done
         done
       done
@@ -2893,7 +2893,7 @@ setup_ext_input_chain()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+              iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
             done
           done
         done
@@ -2915,9 +2915,9 @@ setup_ext_input_chain()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              ip4tables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+              ip4tables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
               if [ "$IPV6_SUPPORT" = "1" ]; then
-                ip6tables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp6-addr-unreachable
+                ip6tables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp6-addr-unreachable
               fi
             done
           done
@@ -2940,10 +2940,10 @@ setup_ext_input_chain()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port \
+              iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p tcp --dport $port \
                 -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise TCP rejected: "
 
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+              iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
             done
           done
         done
@@ -2965,12 +2965,12 @@ setup_ext_input_chain()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port \
+              iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p udp --dport $port \
                 -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise UDP rejected: "
 
-              ip4tables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+              ip4tables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
               if [ "$IPV6_SUPPORT" = "1" ]; then
-                ip6tables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp6-addr-unreachable
+                ip6tables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p udp --dport $port -j REJECT --reject-with icmp6-addr-unreachable
               fi
             done
           done
@@ -2993,7 +2993,7 @@ setup_ext_input_chain()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+              iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
             done
           done
         done
@@ -3015,7 +3015,7 @@ setup_ext_input_chain()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+              iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
             done
           done
         done
@@ -3036,7 +3036,7 @@ setup_ext_input_chain()
         for proto in $protos; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p $proto -j POST_INPUT_DROP_CHAIN
+              iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p $proto -j POST_INPUT_DROP_CHAIN
             done
           done
         done
@@ -3056,7 +3056,7 @@ setup_ext_input_chain()
       for host in `ip_range "$hosts"`; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p icmp --icmp-type echo-request -j POST_INPUT_DROP_CHAIN
+            iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p icmp --icmp-type echo-request -j POST_INPUT_DROP_CHAIN
           done
         done
       done
@@ -3077,10 +3077,10 @@ setup_ext_input_chain()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port \
+              iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p tcp --dport $port \
                 -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
 
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+              iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
             done
           done
         done
@@ -3102,10 +3102,10 @@ setup_ext_input_chain()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port \
+              iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p udp --dport $port \
                 -m limit --limit 1/h --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host INET denied: "
 
-              iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+              iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
             done
           done
         done
@@ -3174,10 +3174,10 @@ setup_ext_input_chain()
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port \
+            iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -d $destip -p tcp --dport $port \
               -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-INPUT denied: "
 
-            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+            iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
           done
         done
       done
@@ -3196,10 +3196,10 @@ setup_ext_input_chain()
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port \
+            iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -d $destip -p udp --dport $port \
               -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-INPUT denied: "
 
-            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+            iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
           done
         done
       done
@@ -3218,10 +3218,10 @@ setup_ext_input_chain()
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port \
+            iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -d $destip -p tcp --dport $port \
               -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Rejected TCP port: "
 
-            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+            iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
           done
         done
       done
@@ -3265,7 +3265,7 @@ setup_ext_input_chain()
       for host in `ip_range "$hosts"`; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -s $host -d $destip -j ACCEPT
+            iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -s $host -d $destip -j ACCEPT
           done
         done
       done
@@ -3284,7 +3284,7 @@ setup_ext_input_chain()
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
+            iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -d $destip -p tcp --dport $port -j POST_INPUT_DROP_CHAIN
           done
         done
       done
@@ -3303,7 +3303,7 @@ setup_ext_input_chain()
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
+            iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -d $destip -p udp --dport $port -j POST_INPUT_DROP_CHAIN
           done
         done
       done
@@ -3322,7 +3322,7 @@ setup_ext_input_chain()
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
+            iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -d $destip -p tcp --dport $port -j REJECT --reject-with tcp-reset
           done
         done
       done
@@ -3341,9 +3341,9 @@ setup_ext_input_chain()
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            ip4tables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
+            ip4tables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -d $destip -p udp --dport $port -j REJECT --reject-with icmp-host-unreachable
             if [ "$IPV6_SUPPORT" = "1" ]; then
-              ip6tables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j REJECT --reject-with icmp6-addr-unreachable
+              ip6tables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -d $destip -p udp --dport $port -j REJECT --reject-with icmp6-addr-unreachable
             fi
           done
         done
@@ -3389,7 +3389,7 @@ setup_ext_input_chain()
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p tcp --dport $port -j ACCEPT
+            iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -d $destip -p tcp --dport $port -j ACCEPT
           done
         done
       done
@@ -3409,7 +3409,7 @@ setup_ext_input_chain()
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p udp --dport $port -j ACCEPT
+            iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -d $destip -p udp --dport $port -j ACCEPT
           done
         done
       done
@@ -3429,7 +3429,7 @@ setup_ext_input_chain()
       for proto in $protos; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A EXT_INPUT_CHAIN -i $interface -d $destip -p $proto -j ACCEPT
+            iptables -A EXT_INPUT_CHAIN $(ipt_in_if "$interface") -d $destip -p $proto -j ACCEPT
           done
         done
       done
@@ -3693,10 +3693,10 @@ setup_ext_output_chain()
           for interface in $interfaces; do
             for srcip in $srcips; do
               if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
-                iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p tcp --dport $port \
+                iptables -A EXT_OUTPUT_CHAIN $(ipt_out_if "$interface") -s $srcip -d $host -p tcp --dport $port \
                   -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
               fi
-              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p tcp --dport $port -j DROP
+              iptables -A EXT_OUTPUT_CHAIN $(ipt_out_if "$interface") -s $srcip -d $host -p tcp --dport $port -j DROP
             done
           done
         done
@@ -3718,10 +3718,10 @@ setup_ext_output_chain()
           for interface in $interfaces; do
             for srcip in $srcips; do
               if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
-                iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p udp --dport $port \
+                iptables -A EXT_OUTPUT_CHAIN $(ipt_out_if "$interface") -s $srcip -d $host -p udp --dport $port \
                   -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
               fi
-              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p udp --dport $port -j DROP
+              iptables -A EXT_OUTPUT_CHAIN $(ipt_out_if "$interface") -s $srcip -d $host -p udp --dport $port -j DROP
             done
           done
         done
@@ -3743,10 +3743,10 @@ setup_ext_output_chain()
           for interface in $interfaces; do
             for srcip in $srcips; do
               if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
-                iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p $proto \
+                iptables -A EXT_OUTPUT_CHAIN $(ipt_out_if "$interface") -s $srcip -d $host -p $proto \
                   -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
               fi
-              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -p $proto -j DROP
+              iptables -A EXT_OUTPUT_CHAIN $(ipt_out_if "$interface") -s $srcip -d $host -p $proto -j DROP
             done
           done
         done
@@ -3766,7 +3766,7 @@ setup_ext_output_chain()
       for host in `ip_range "$hosts"`; do
         for interface in $interfaces; do
           for srcip in $srcips; do
-            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -d $host -j ACCEPT
+            iptables -A EXT_OUTPUT_CHAIN $(ipt_out_if "$interface") -s $srcip -d $host -j ACCEPT
           done
         done
       done
@@ -3786,10 +3786,10 @@ setup_ext_output_chain()
         for interface in $interfaces; do
           for srcip in $srcips; do
             if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
-              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p tcp --dport $port \
+              iptables -A EXT_OUTPUT_CHAIN $(ipt_out_if "$interface") -s $srcip -p tcp --dport $port \
                 -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
             fi
-            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p tcp --dport $port -j DROP
+            iptables -A EXT_OUTPUT_CHAIN $(ipt_out_if "$interface") -s $srcip -p tcp --dport $port -j DROP
           done
         done
       done
@@ -3809,10 +3809,10 @@ setup_ext_output_chain()
         for interface in $interfaces; do
           for srcip in $srcips; do
             if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
-              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p udp --dport $port \
+              iptables -A EXT_OUTPUT_CHAIN $(ipt_out_if "$interface") -s $srcip -p udp --dport $port \
                 -m limit --limit 3/m --limit-burst 5 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
             fi
-            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p udp --dport $port -j DROP
+            iptables -A EXT_OUTPUT_CHAIN $(ipt_out_if "$interface") -s $srcip -p udp --dport $port -j DROP
           done
         done
       done
@@ -3832,10 +3832,10 @@ setup_ext_output_chain()
         for interface in $interfaces; do
           for srcip in $srcips; do
             if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
-              iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p $proto \
+              iptables -A EXT_OUTPUT_CHAIN $(ipt_out_if "$interface") -s $srcip -p $proto \
                 -m limit --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
             fi
-            iptables -A EXT_OUTPUT_CHAIN -o $interface -s $srcip -p $proto -j DROP
+            iptables -A EXT_OUTPUT_CHAIN $(ipt_out_if "$interface") -s $srcip -p $proto -j DROP
           done
         done
       done
@@ -3858,7 +3858,7 @@ setup_ext_broadcast_chain()
       IFS=' ,'
       for port in $ports; do
         for interface in $interfaces; do
-          iptables -A EXT_BROADCAST_CHAIN -i $interface -p tcp --dport $port -j DROP
+          iptables -A EXT_BROADCAST_CHAIN $(ipt_in_if "$interface") -p tcp --dport $port -j DROP
         done
       done
     fi
@@ -3875,7 +3875,7 @@ setup_ext_broadcast_chain()
       IFS=' ,'
       for port in $ports; do
         for interface in $interfaces; do
-          iptables -A EXT_BROADCAST_CHAIN -i $interface -p udp --dport $port -j DROP
+          iptables -A EXT_BROADCAST_CHAIN $(ipt_in_if "$interface") -p udp --dport $port -j DROP
         done
       done
     fi
@@ -3899,7 +3899,7 @@ setup_input_log()
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A INPUT -i $interface -d $destip -p tcp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
+            iptables -A INPUT $(ipt_in_if "$interface") -d $destip -p tcp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:TCP INPUT log: "
           done
         done
@@ -3920,7 +3920,7 @@ setup_input_log()
       for port in $ports; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A INPUT -i $interface -d $destip -p udp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
+            iptables -A INPUT $(ipt_in_if "$interface") -d $destip -p udp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UDP INPUT log: "
           done
         done
@@ -3940,7 +3940,7 @@ setup_input_log()
       for proto in $protos; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A INPUT -i $interface -d $destip -p $proto $NF_CONNTRACK_STATE NEW -m limit \
+            iptables -A INPUT $(ipt_in_if "$interface") -d $destip -p $proto $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IP INPUT log: "
           done
         done
@@ -3961,7 +3961,7 @@ setup_input_log()
       for host in `ip_range "$hosts"`; do
         for destip in $destips; do
           for interface in $interfaces; do
-            iptables -A INPUT -i $interface -s $host -d $destip $NF_CONNTRACK_STATE NEW \
+            iptables -A INPUT $(ipt_in_if "$interface") -s $host -d $destip $NF_CONNTRACK_STATE NEW \
               -m limit --limit 12/m --limit-burst 50 \
               -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise INPUT log: "
           done
@@ -3983,7 +3983,7 @@ setup_input_log()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A INPUT -i $interface -s $host -d $destip -p tcp --dport $port $NF_CONNTRACK_STATE NEW \
+              iptables -A INPUT $(ipt_in_if "$interface") -s $host -d $destip -p tcp --dport $port $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise TCP log (IN): "
             done
@@ -4007,7 +4007,7 @@ setup_input_log()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A INPUT -i $interface -s $host -d $destip -p udp --dport $port $NF_CONNTRACK_STATE NEW \
+              iptables -A INPUT $(ipt_in_if "$interface") -s $host -d $destip -p udp --dport $port $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise UDP INPUT log: "
             done
@@ -4030,7 +4030,7 @@ setup_input_log()
         for proto in $protos; do
           for destip in $destips; do
             for interface in $interfaces; do
-              iptables -A INPUT -i $interface -s $host -d $destip -p $proto $NF_CONNTRACK_STATE NEW \
+              iptables -A INPUT $(ipt_in_if "$interface") -s $host -d $destip -p $proto $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise IP INPUT log: "
             done
@@ -4058,7 +4058,7 @@ setup_output_log()
       for port in $ports; do
         for interface in $interfaces; do
           for srcip in $srcips; do
-            iptables -A OUTPUT -o $interface -s $srcip -p tcp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
+            iptables -A OUTPUT $(ipt_out_if "$interface") -s $srcip -p tcp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:TCP OUTPUT log: "
           done
         done
@@ -4078,7 +4078,7 @@ setup_output_log()
       for port in $ports; do
         for interface in $interfaces; do
           for srcip in $srcips; do
-            iptables -A OUTPUT -o $interface -s $srcip -p udp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
+            iptables -A OUTPUT $(ipt_out_if "$interface") -s $srcip -p udp --dport $port $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UDP OUTPUT log: "
           done
         done
@@ -4098,7 +4098,7 @@ setup_output_log()
       for proto in $protos; do
         for interface in $interfaces; do
           for srcip in $srcips; do
-            iptables -A OUTPUT -o $interface -s $srcip -p $proto $NF_CONNTRACK_STATE NEW -m limit \
+            iptables -A OUTPUT $(ipt_out_if "$interface") -s $srcip -p $proto $NF_CONNTRACK_STATE NEW -m limit \
               --limit 3/m --limit-burst 15 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:IP OUTPUT log: "
           done
         done
@@ -4118,7 +4118,7 @@ setup_output_log()
       for host in `ip_range "$hosts"`; do
         for interface in $interfaces; do
           for srcip in $srcips; do
-            iptables -A OUTPUT -o $interface -s $srcip -d $host $NF_CONNTRACK_STATE NEW \
+            iptables -A OUTPUT $(ipt_out_if "$interface") -s $srcip -d $host $NF_CONNTRACK_STATE NEW \
               -m limit --limit 12/m --limit-burst 50 \
               -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Hostwise OUTPUT log: "
           done
@@ -4141,7 +4141,7 @@ setup_output_log()
         for port in $ports; do
           for interface in $interfaces; do
             for srcip in $srcips; do
-              iptables -A OUTPUT -o $interface -s $srcip -d $host -p tcp --dport $port $NF_CONNTRACK_STATE NEW \
+              iptables -A OUTPUT $(ipt_out_if "$interface") -s $srcip -d $host -p tcp --dport $port $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host TCP log (OUT): "
             done
@@ -4165,7 +4165,7 @@ setup_output_log()
         for port in $ports; do
           for interface in $interfaces; do
             for srcip in $srcips; do
-              iptables -A OUTPUT -o $interface -s $srcip -d $host -p udp --dport $port $NF_CONNTRACK_STATE NEW \
+              iptables -A OUTPUT $(ipt_out_if "$interface") -s $srcip -d $host -p udp --dport $port $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host UDP log (OUT): "
             done
@@ -4188,7 +4188,7 @@ setup_output_log()
         for proto in $protos; do
           for interface in $interfaces; do
             for srcip in $srcips; do
-              iptables -A OUTPUT -o $interface -s $srcip -d $host -p $proto $NF_CONNTRACK_STATE NEW \
+              iptables -A OUTPUT $(ipt_out_if "$interface") -s $srcip -d $host -p $proto $NF_CONNTRACK_STATE NEW \
                 -m limit --limit 12/m --limit-burst 5 \
                 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Host IP log (OUT): "
             done

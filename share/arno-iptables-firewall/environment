@@ -1041,6 +1041,24 @@ parse_rule_warning()
 }
 
 
+# Helper function to work around non working + wildcard in nftables
+ipt_in_if()
+{
+  if [ -n "$1" -a "$1" != "+" ]; then
+    echo "-i $1"
+  fi
+}
+
+
+# Helper function to work around non working + wildcard in nftables
+ipt_out_if()
+{
+  if [ -n "$1" -a "$1" != "+" ]; then
+    echo "-o $1"
+  fi
+}
+
+
 # Helper function to get interface(s) from variable
 get_ifs()
 {
