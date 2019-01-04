@@ -1041,6 +1041,15 @@ parse_rule_warning()
 }
 
 
+# Helper function to work around non working + wildcard in some versions of iptables
+ipt_if()
+{
+  if [ -n "$2" -a "$2" != "+" ]; then
+    echo "$1 $2"
+  fi
+}
+
+
 # Helper function to get interface(s) from variable
 get_ifs()
 {
