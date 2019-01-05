@@ -1,3 +1,7 @@
+Version 1.41 (January 5, 2019)
+------------------------------
+* Changed to support ipt_if() function (requires AIF 2.1.0+)
+
 Version 1.40 (June 11, 2018)
 ----------------------------
 * Added new dynamic host support (requires AIF 2.1.0+)

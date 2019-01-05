@@ -2,17 +2,18 @@
 #            -= Arno's iptables firewall - DMZ-host default port forwarding plugin =-
 #
 PLUGIN_NAME="DMZ-host DNAT plugin"
-PLUGIN_VERSION="0.08"
+PLUGIN_VERSION="0.10"
 PLUGIN_CONF_FILE="dmz-dnat.conf"
 #
-# Last changed          : July 12, 2016
-# Requirements          : kernel 2.6 and AIF 2.0.1+
-# Comments              : This plugin allows forwarding of all traffic to a
-#                         "DMZ" host.  It's only been tested with 1.9+.
+# Last changed          : January 5, 2019
+# Requirements          : AIF 2.1.0 (or newer)
+# Comments              : This plugin allows forwarding of all traffic to a "DMZ" host.
 #                         Updated to be IPv4-only
 #                         Updated to support parse_rule()
+#                         Updated to support ipt_if()
 #
-# Author                : (C) Copyright 2010-2016 by Philip A. Prindeville
+# Author                : (C) Copyright 2010-2019 by Arno van Amersfoort
+#                       : (C) Copyright 2010-2016 by Philip A. Prindeville
 # Email                 : philipp AT redfish-solutions DOT com
 #                         (note: you must remove all spaces and substitute the @ and the .
 #                         at the proper locations!)
@@ -64,7 +65,7 @@ plugin_start()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              ip4tables -t nat -A NAT_PREROUTING_LOCAL -i $interface -s $host -d $destip -p tcp --dport $port -j RETURN
+              ip4tables -t nat -A NAT_PREROUTING_LOCAL $(ipt_if -i "$interface") -s $host -d $destip -p tcp --dport $port -j RETURN
             done
           done
         done
@@ -85,7 +86,7 @@ plugin_start()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              ip4tables -t nat -A NAT_PREROUTING_LOCAL -i $interface -s $host -d $destip -p udp --dport $port -j RETURN
+              ip4tables -t nat -A NAT_PREROUTING_LOCAL $(ipt_if -i "$interface") -s $host -d $destip -p udp --dport $port -j RETURN
             done
           done
         done
@@ -106,7 +107,7 @@ plugin_start()
         for proto in $protos; do
           for destip in $destips; do
             for interface in $interfaces; do
-              ip4tables -t nat -A NAT_PREROUTING_LOCAL -i $interface -s $host -d $destip -p $proto -j RETURN
+              ip4tables -t nat -A NAT_PREROUTING_LOCAL $(ipt_if -i "$interface") -s $host -d $destip -p $proto -j RETURN
             done
           done
         done
