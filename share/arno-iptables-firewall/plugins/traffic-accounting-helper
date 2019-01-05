@@ -8,7 +8,6 @@ PLUGIN_RET_VAL=0
 # Define some global variables
 VERBOSE=0
 
-
 # Check sanity of eg. environment
 traffic_accounting_helper_sanity_check()
 {
@@ -271,17 +270,17 @@ fi
 if [ ! -e "$CONF_FILE" ]; then
   echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
   PLUGIN_RET_VAL=1
-fi
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
 
-# Source the plugin config file
-. "$CONF_FILE"
-
-# Only proceed if environment ok
-if ! traffic_accounting_helper_sanity_check; then
-  PLUGIN_RET_VAL=1
-fi
-
-# Create actual rules
-if ! traffic_accounting_setup_rules; then
-  PLUGIN_RET_VAL=1
+  # Only proceed if environment ok
+  if ! traffic_accounting_helper_sanity_check; then
+    PLUGIN_RET_VAL=1
+  else
+    # Create actual rules
+    if ! traffic_accounting_setup_rules; then
+      PLUGIN_RET_VAL=1
+    fi
+  fi
 fi

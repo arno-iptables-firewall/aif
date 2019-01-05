@@ -5,7 +5,6 @@ PLUGIN_CONF_FILE="dyndns-host-open.conf"
 # Preinit return value for success
 PLUGIN_RET_VAL=0
 
-
 # Check sanity of environment
 dyndns_host_open_helper_sanity_check()
 {
@@ -159,17 +158,17 @@ fi
 if [ ! -e "$CONF_FILE" ]; then
   echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
   PLUGIN_RET_VAL=1
-fi
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
 
-# Source the plugin config file
-. "$CONF_FILE"
-
-# Only proceed if environment ok
-if ! dyndns_host_open_helper_sanity_check; then
-  PLUGIN_RET_VAL=1
-fi
-
-# Parse rules
-if ! dyndns_host_open_helper_setup_rules; then
-  PLUGIN_RET_VAL=1
+  # Only proceed if environment ok
+  if ! dyndns_host_open_helper_sanity_check; then
+    PLUGIN_RET_VAL=1
+  else
+    # Parse rules
+    if ! dyndns_host_open_helper_setup_rules; then
+      PLUGIN_RET_VAL=1
+    fi
+  fi
 fi
