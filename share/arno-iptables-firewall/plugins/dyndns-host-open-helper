@@ -55,7 +55,7 @@ dyndns_host_open_helper_setup_rules()
         for interface in $interfaces; do
           for destip in $destips; do
             for port in $ports; do
-              iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p tcp --dport $port -j ACCEPT
+              iptables -A DYNDNS_CHAIN $(ipt_if -i "$interface") -s $host_ip -d $destip -p tcp --dport $port -j ACCEPT
             done
           done
         done
@@ -81,7 +81,7 @@ dyndns_host_open_helper_setup_rules()
         for interface in $interfaces; do
           for destip in $destips; do
             for port in $ports; do
-              iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p udp --dport $port -j ACCEPT
+              iptables -A DYNDNS_CHAIN $(ipt_if -i "$interface") -s $host_ip -d $destip -p udp --dport $port -j ACCEPT
             done
           done
         done
@@ -107,7 +107,7 @@ dyndns_host_open_helper_setup_rules()
         for interface in $interfaces; do
           for destip in $destips; do
             for proto in $protos; do
-              iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p $proto -j ACCEPT
+              iptables -A DYNDNS_CHAIN $(ipt_if -i "$interface") -s $host_ip -d $destip -p $proto -j ACCEPT
             done
           done
         done
@@ -133,7 +133,7 @@ dyndns_host_open_helper_setup_rules()
 
         for interface in $interfaces; do
           for destip in $destips; do
-            iptables -A DYNDNS_CHAIN -i $interface -s $host_ip -d $destip -p icmp --icmp-type echo-request -j ACCEPT
+            iptables -A DYNDNS_CHAIN $(ipt_if -i "$interface") -s $host_ip -d $destip -p icmp --icmp-type echo-request -j ACCEPT
           done
         done
       done

@@ -1,3 +1,7 @@
+Version 0.10 (January 5, 2019)
+----------------------------
+* Changed to support ipt_if() function (requires AIF 2.1.0+)
+
 Version 0.08 (July 12, 2016)
 ----------------------------
 + Add support for NAT_IF with fallback to EXT_IF
