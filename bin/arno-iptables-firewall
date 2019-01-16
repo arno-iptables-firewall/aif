@@ -1073,20 +1073,6 @@ setup_valid_chk_chain()
   # Drop invalid packets
   ######################
   iptables -A VALID_CHK $NF_CONNTRACK_STATE INVALID -j POST_INPUT_DROP_CHAIN
-
-  # Log fragmented packets
-  ########################
-  if [ "$FRAG_LOG" = "1" ]; then
-    echo "Logging of IPv4 fragmented packets enabled"
-    ip4tables -A VALID_CHK -f -m limit --limit 3/m --limit-burst 1 -j LOG --log-prefix "AIF:Fragment packet: "
-  else
-    echo "Logging of IPv4 fragmented packets disabled"
-  fi
-
-  # Drop fragmented packets
-  # NOTE: Fragmentation cannot happen with IPv6 (and maybe even not with iptables/ipv4?)
-  ######################################################################################
-  ip4tables -A VALID_CHK -f -j DROP
 }
 
 
@@ -5175,13 +5161,6 @@ setup_firewall_rules()
     jobs_process_start
   fi
 
-  # Drop outgoing fragmented packets (this should in principle never happen because of netfilter's
-  # packet defragmentation
-  ################################################################################################
-  ip4tables -A OUTPUT -f \
-    -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Fragment packet: "
-  ip4tables -A OUTPUT -f -j DROP
-
   # Setup helper chains for EXTERNAL input traffic:
   echo "Setting up external(INET) INPUT policy"
   setup_ext_broadcast_chain
@@ -5191,6 +5170,25 @@ setup_firewall_rules()
   # Setup helper chains for EXTERNAL output traffic:
   echo "Setting up external(INET) OUTPUT policy"
   setup_ext_output_chain
+
+  # Fragmented packets handling
+  # NOTE: Fragmentation cannot happen with IPv6 (and probably even not with iptables/IPv4)
+  ########################################################################################
+  if [ "$FRAG_DROP" = "1" ]; then
+    echo "Dropping and logging of IPv4 fragmented packets enabled"
+
+    ip4tables -A INPUT -f -m limit --limit 3/m --limit-burst 1 -j LOG \
+      --log-level $LOGLEVEL --log-prefix "AIF:Fragment packet: "
+    ip4tables -A INPUT -f -j DROP
+
+    ip4tables -A FORWARD -f -m limit --limit 3/m --limit-burst 1 -j LOG \
+      --log-level $LOGLEVEL --log-prefix "AIF:Fragment packet: "
+    ip4tables -A FORWARD -f -j DROP
+
+    ip4tables -A OUTPUT -f -m limit --limit 3/m  --limit-burst 1 -j LOG \
+      --log-level $LOGLEVEL --log-prefix "AIF:Fragment packet: "
+    ip4tables -A OUTPUT -f -j DROP
+  fi
 
   # This is used for your external (untrusted) interfaces
   #######################################################
