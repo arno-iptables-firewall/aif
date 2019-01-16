@@ -1,8 +1,9 @@
-Version 2.1.0-BETA2 (January 5, 2019)
+Version 2.1.0-BETA2 (January 16, 2019)
 -------------------------------------
 ! The install and configure scripts didn't work properly on systems without an /etc/init.d directory (eg. Arch Linux)
 ! Error handling in the plugin helpers was broken
 * Workaround non-working + interface wildcard in nftables's iptables binary
+* It's useless to reset the counters when we've just flushed all chains
 
 Version 2.1.0-BETA1 (June 29, 2018)
 -----------------------------------

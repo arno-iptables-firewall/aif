@@ -830,11 +830,6 @@ init_firewall_chains()
   # Create several chains that we will use later on
   #################################################
   create_user_chains
-
-  # Reset the iptables counters
-  iptables -Z
-  iptables -t mangle -Z
-  ip4tables -t nat -Z
 }
 
 
