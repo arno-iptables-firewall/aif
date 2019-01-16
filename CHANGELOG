@@ -4,6 +4,8 @@ Version 2.1.0-BETA2 (January 16, 2019)
 ! Error handling in the plugin helpers was broken
 * Workaround non-working + interface wildcard in nftables's iptables binary
 * It's useless to reset the counters when we've just flushed all chains
+- Get rid of the BAD_TCP_FLAGS setting, which in fact always was a "bad tcp options" setting. This also fixes
+  problems with nftables's iptables emulation
 
 Version 2.1.0-BETA1 (June 29, 2018)
 -----------------------------------

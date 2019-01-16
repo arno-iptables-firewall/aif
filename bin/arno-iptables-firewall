@@ -1019,24 +1019,6 @@ setup_valid_chk_chain()
   ################
   iptables -A VALID_CHK -p tcp --tcp-flags ALL NONE -j POST_INPUT_DROP_CHAIN
 
-  # Log packets with bad flags?
-  #############################
-  if [ "$BAD_FLAGS_LOG" != "0" ]; then
-    echo "Logging of packets with bad TCP-flags enabled"
-    iptables -A VALID_CHK -p tcp --tcp-option 64 \
-      -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Bad TCP flag(64): "
-
-    iptables -A VALID_CHK -p tcp --tcp-option 128 \
-      -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Bad TCP flag(128): "
-  else
-    echo "Logging of packets with bad TCP-flags disabled"
-  fi
-
-  # Drop packets with bad tcp flags
-  #################################
-  iptables -A VALID_CHK -p tcp --tcp-option 64 -j POST_INPUT_DROP_CHAIN
-  iptables -A VALID_CHK -p tcp --tcp-option 128 -j POST_INPUT_DROP_CHAIN
-
   # These packets are normally from "lost connection" and thus can generate false alarms
   # So we might want to ignore such packets
   ######################################################################################
@@ -1092,18 +1074,18 @@ setup_valid_chk_chain()
   ######################
   iptables -A VALID_CHK $NF_CONNTRACK_STATE INVALID -j POST_INPUT_DROP_CHAIN
 
-  # Fragmentation cannot happen with IPV6 (and maybe even not with iptables/ipv4?)
-  ## Log fragmented packets
-  #########################
+  # Log fragmented packets
+  ########################
   if [ "$FRAG_LOG" = "1" ]; then
-    echo "Logging of fragmented packets enabled"
+    echo "Logging of IPv4 fragmented packets enabled"
     ip4tables -A VALID_CHK -f -m limit --limit 3/m --limit-burst 1 -j LOG --log-prefix "AIF:Fragment packet: "
   else
     echo "Logging of IPv4 fragmented packets disabled"
   fi
 
   # Drop fragmented packets
-  #########################
+  # NOTE: Fragmentation cannot happen with IPv6 (and maybe even not with iptables/ipv4?)
+  ######################################################################################
   ip4tables -A VALID_CHK -f -j DROP
 }
 
