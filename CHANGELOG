@@ -1,4 +1,4 @@
-Version 2.1.0-BETA2 (January 16, 2019)
+Version 2.1.0-BETA2 (January 24, 2019)
 -------------------------------------
 ! The install and configure scripts didn't work properly on systems without an /etc/init.d directory (eg. Arch Linux)
 ! Error handling in the plugin helpers was broken
@@ -6,6 +6,7 @@ Version 2.1.0-BETA2 (January 16, 2019)
 * It's useless to reset the counters when we've just flushed all chains
 - Get rid of the BAD_TCP_FLAGS setting, which in fact always was a "bad tcp options" setting. This also fixes
   problems with nftables's iptables emulation
+! aif-job-processor lock was not removed when jobs file became empty
 
 Version 2.1.0-BETA1 (June 29, 2018)
 -----------------------------------
