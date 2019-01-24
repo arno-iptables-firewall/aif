@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="2.1.0-BETA2"
+MY_VERSION="2.1.0-BETA2-DEVEL"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -1074,19 +1074,16 @@ setup_valid_chk_chain()
   ######################
   iptables -A VALID_CHK $NF_CONNTRACK_STATE INVALID -j POST_INPUT_DROP_CHAIN
 
-  # Log fragmented packets
-  ########################
-  if [ "$FRAG_LOG" = "1" ]; then
-    echo "Logging of IPv4 fragmented packets enabled"
+  # Fragmented packets handling
+  # NOTE: Fragmentation cannot happen with IPv6 (and probably even not with iptables/IPv4)
+  ########################################################################################
+  if [ "$FRAG_DROP" != "0" ]; then
+    echo "Dropping and logging of IPv4 fragmented packets enabled"
     ip4tables -A VALID_CHK -f -m limit --limit 3/m --limit-burst 1 -j LOG --log-prefix "AIF:Fragment packet: "
+    ip4tables -A VALID_CHK -f -j DROP
   else
-    echo "Logging of IPv4 fragmented packets disabled"
+    echo "Dropping and logging of IPv4 fragmented packets disabled"
   fi
-
-  # Drop fragmented packets
-  # NOTE: Fragmentation cannot happen with IPv6 (and maybe even not with iptables/ipv4?)
-  ######################################################################################
-  ip4tables -A VALID_CHK -f -j DROP
 }
 
 
@@ -5175,12 +5172,14 @@ setup_firewall_rules()
     jobs_process_start
   fi
 
-  # Drop outgoing fragmented packets (this should in principle never happen because of netfilter's
-  # packet defragmentation
-  ################################################################################################
-  ip4tables -A OUTPUT -f \
-    -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Fragment packet: "
-  ip4tables -A OUTPUT -f -j DROP
+  # Fragmented packets handling
+  # NOTE: Fragmentation cannot happen with IPv6 (and probably even not with iptables/IPv4)
+  ########################################################################################
+  if [ "$FRAG_DROP" != "0" ]; then
+    ip4tables -A OUTPUT -f \
+      -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Fragment packet: "
+    ip4tables -A OUTPUT -f -j DROP
+  fi
 
   # Setup helper chains for EXTERNAL input traffic:
   echo "Setting up external(INET) INPUT policy"
