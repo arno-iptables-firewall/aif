@@ -72,8 +72,10 @@ fi
 
 sanity_check()
 {
-  # Show uname information
+  # Show uname & iptables information
   echo "Platform: $(uname -s -r -m)"
+  echo "IPtables version: $($IP4TABLES --version)"
+  echo "IP6tables version: $($IP6TABLES --version)"
 
   # root check
   if [ "$(id -u)" != "0" ]; then
