@@ -72,10 +72,20 @@ fi
 
 sanity_check()
 {
+  local ip4t_ver ip6t_ver
+
   # Show uname & iptables information
   echo "Platform: $(uname -s -r -m)"
-  echo "IPtables version: $($IP4TABLES --version)"
-  echo "IP6tables version: $($IP6TABLES --version)"
+  ip4t_ver="$($IP4TABLES --version)"
+  ip4t_ver="${ip4t_ver#* v}"
+  ip4t_ver="${ip4t_ver%% *}"
+  ip6t_ver="$($IP6TABLES --version)"
+  ip6t_ver="${ip6t_ver#* v}"
+  ip6t_ver="${ip6t_ver%% *}"
+  echo "Netfilter iptables version: $ip4t_ver"
+  if [ "$ip4t_ver" != "$ip6t_ver" ]; then
+    printf "\033[40m\033[1;31mWARNING: Mismatched iptables($ip4t_ver) / ip6tables($ip6t_ver) versions.\033[0m\n" >&2
+  fi
 
   # root check
   if [ "$(id -u)" != "0" ]; then
