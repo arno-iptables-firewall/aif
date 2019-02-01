@@ -1590,7 +1590,7 @@ lock_enter()
 lock_wait()
 {
   local LOCK_FILE="/var/lock/aif_$1.lock"
-  local cnt="${2:-5} # Default to 5 seconds
+  local cnt="${2:-5}" # Default to 5 seconds
 
   if [ -z "$1" ]; then
     echo "ERROR: Exception due to missing lock argument" >&2
