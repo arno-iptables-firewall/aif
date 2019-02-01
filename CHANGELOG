@@ -1,4 +1,4 @@
-Version 2.1.0-BETA2-DEVEL (January 24, 2019)
+Version 2.1.0-BETA2-DEVEL (February 1, 2019)
 --------------------------------------------
 ! The install and configure scripts didn't work properly on systems without an /etc/init.d directory (eg. Arch Linux)
 ! Error handling in the plugin helpers was broken
@@ -8,6 +8,7 @@ Version 2.1.0-BETA2-DEVEL (January 24, 2019)
   problems with nftables's iptables emulation
 ! aif-job-processor lock was not removed when jobs file became empty
 * Change FRAG_LOG option to FRAG_DROP to allow disabling fragment dropping (eg. for broken nftables)
+* Backport systemd updates/improvements from Debian (thanks Sven Geuer)
 
 Version 2.1.0-BETA1 (June 29, 2018)
 -----------------------------------

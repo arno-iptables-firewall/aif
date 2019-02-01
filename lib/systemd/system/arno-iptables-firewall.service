@@ -1,5 +1,7 @@
 [Unit]
 Description=Arno's Iptables Firewall
+Documentation=man:arno-iptables-firewall(8)
+Documentation=http://rocky.eld.leidenuniv.nl/
 DefaultDependencies=no
 After=local-fs.target network-online.target
 Requires=local-fs.target network-online.target
@@ -11,6 +13,11 @@ ExecStart=/usr/local/sbin/arno-iptables-firewall start
 ExecStop=/usr/local/sbin/arno-iptables-firewall stop
 ExecReload=/usr/local/sbin/arno-iptables-firewall force-reload
 RemainAfterExit=yes
+ProtectSystem=true
+ProtectHome=true
+PrivateTmp=true
+LimitNPROC=1
+DeviceAllow=/dev/null rw
 
 [Install]
 WantedBy=multi-user.target
