@@ -4976,8 +4976,8 @@ job_remove()
 
 # Add (background) job
 # $1 = Job name
-# $2 = Path to script/binary
-# $3 = Time in minutes between executes
+# $2 = Time in minutes between executes
+# $3 = Path to script/binary
 job_add()
 {
   local SCRIPT_NAME SCRIPT_TIME SCRIPT_PATH

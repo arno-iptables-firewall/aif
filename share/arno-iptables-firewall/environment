@@ -1510,7 +1510,7 @@ lock_ctrl_handler()
 
 
 # Lock enter function to acquire a single lock. Prevents running of multiple instances
-# When an instance is already running, a new instance will be aborted
+# When an instance is already running, this (new) instance will be aborted
 # $1 = Lock (file) name
 # $2 = Amount of retries (optional, defaults to 5)
 lock_enter_single()
@@ -1590,6 +1590,7 @@ lock_enter()
 }
 
 
+# $1 = Optional wait time in seconds (default = 5 seconds)
 lock_wait()
 {
   local LOCK_FILE="/var/lock/aif_$1.lock"
@@ -1614,6 +1615,7 @@ lock_wait()
 }
 
 
+# $1 = Lock (file) name
 lock_remove()
 {
   local LOCK_FILE="/var/lock/aif_$1.lock"
