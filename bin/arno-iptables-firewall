@@ -5073,7 +5073,7 @@ jobs_process_start()
 }
 
 
-# Stop jobs processor by removing the cron job
+# Stop jobs processor
 jobs_process_stop()
 {
   echo "Stopping background jobs processor"
