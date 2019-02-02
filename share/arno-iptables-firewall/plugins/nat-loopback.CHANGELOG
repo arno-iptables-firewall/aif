@@ -1,3 +1,7 @@
+Version 1.02 (February 2, 2019)
+-------------------------------
+* Remove unused for-loops
+
 Version 1.01 (July 12, 2016)
 ----------------------------
 + Add support for NAT_IF requiring AIF 2.0.1g or later

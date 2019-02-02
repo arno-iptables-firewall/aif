@@ -2,17 +2,17 @@
 #               -= Arno's iptables firewall - NAT Loopback plugin =-
 #
 PLUGIN_NAME="NAT Loopback plugin"
-PLUGIN_VERSION="1.01"
+PLUGIN_VERSION="1.02"
 PLUGIN_CONF_FILE="nat-loopback.conf"
 #
-# Last changed          : July 12, 2016
+# Last changed          : February 2, 2019
 # Requirements          : AIF 2.0.1g+
 # Comments              : NAT Loopback for local nets using existing NAT_FORWARD_TCP
 #                         and NAT_FORWARD_UDP rules.
 #                         Local nets may be able to use the external IPv4 address and
 #                         port to access NAT forwarded internal servers.
 #
-# Author                : (C) Copyright 2012-2016 by Lonnie Abelbeck & Arno van Amersfoort
+# Author                : (C) Copyright 2012-2019 by Lonnie Abelbeck & Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -111,27 +111,25 @@ plugin_start()
     if parse_rule "$rule" NAT_FORWARD_TCP "interfaces:NAT_IF-destips-shosts-ports-dhost_dport"; then
 
       IFS=' ,'
-      for shost in $(ip_range "$shosts"); do
-        for port in $ports; do
-          for destip in $destips; do
-            for eif in $interfaces; do
-              dport="$(get_ports_hp "$dhost_dport" "$port")"
-              dhost="$(get_hosts_hp "$dhost_dport")"
-              if [ "$destip" = "0/0" ]; then
-                destip="$defaultip"
-              fi
-              if [ -n "$dhost" -a -n "$destip" ]; then
-                for net in $NAT_LOOPBACK_NET; do
-                  ip4tables -t nat -A NAT_LOOPBACK_DNAT -s $net -d $destip \
-                                   -p tcp --dport $port -j DNAT --to-destination $(echo "$dhost_dport" |tr "$SEP-" '::')
-                  if [ "$NAT_LOOPBACK_FORWARD" = "1" ]; then
-                    ip4tables -A POST_FORWARD_CHAIN -s $net -d $dhost -p tcp --dport $dport -j ACCEPT
-                  fi
-                  ip4tables -t nat -A NAT_LOOPBACK_SNAT -s $net -d $dhost \
-                                   -p tcp --dport $dport -j SNAT --to-source $destip
-                done
-              fi
-            done
+      for port in $ports; do
+        for destip in $destips; do
+          for eif in $interfaces; do
+            dport="$(get_ports_hp "$dhost_dport" "$port")"
+            dhost="$(get_hosts_hp "$dhost_dport")"
+            if [ "$destip" = "0/0" ]; then
+              destip="$defaultip"
+            fi
+            if [ -n "$dhost" -a -n "$destip" ]; then
+              for net in $NAT_LOOPBACK_NET; do
+                ip4tables -t nat -A NAT_LOOPBACK_DNAT -s $net -d $destip \
+                                 -p tcp --dport $port -j DNAT --to-destination $(echo "$dhost_dport" |tr "$SEP-" '::')
+                if [ "$NAT_LOOPBACK_FORWARD" = "1" ]; then
+                  ip4tables -A POST_FORWARD_CHAIN -s $net -d $dhost -p tcp --dport $dport -j ACCEPT
+                fi
+                ip4tables -t nat -A NAT_LOOPBACK_SNAT -s $net -d $dhost \
+                                 -p tcp --dport $dport -j SNAT --to-source $destip
+              done
+            fi
           done
         done
       done
@@ -143,27 +141,25 @@ plugin_start()
     if parse_rule "$rule" NAT_FORWARD_UDP "interfaces:NAT_IF-destips-shosts-ports-dhost_dport"; then
 
       IFS=' ,'
-      for shost in $(ip_range "$shosts"); do
-        for port in $ports; do
-          for destip in $destips; do
-            for eif in $interfaces; do
-              dport="$(get_ports_hp "$dhost_dport" "$port")"
-              dhost="$(get_hosts_hp "$dhost_dport")"
-              if [ "$destip" = "0/0" ]; then
-                destip="$defaultip"
-              fi
-              if [ -n "$dhost" -a -n "$destip" ]; then
-                for net in $NAT_LOOPBACK_NET; do
-                  ip4tables -t nat -A NAT_LOOPBACK_DNAT -s $net -d $destip \
-                                   -p udp --dport $port -j DNAT --to-destination $(echo "$dhost_dport" |tr "$SEP-" '::')
-                  if [ "$NAT_LOOPBACK_FORWARD" = "1" ]; then
-                    ip4tables -A POST_FORWARD_CHAIN -s $net -d $dhost -p udp --dport $dport -j ACCEPT
-                  fi
-                  ip4tables -t nat -A NAT_LOOPBACK_SNAT -s $net -d $dhost \
-                                   -p udp --dport $dport -j SNAT --to-source $destip
-                done
-              fi
-            done
+      for port in $ports; do
+        for destip in $destips; do
+          for eif in $interfaces; do
+            dport="$(get_ports_hp "$dhost_dport" "$port")"
+            dhost="$(get_hosts_hp "$dhost_dport")"
+            if [ "$destip" = "0/0" ]; then
+              destip="$defaultip"
+            fi
+            if [ -n "$dhost" -a -n "$destip" ]; then
+              for net in $NAT_LOOPBACK_NET; do
+                ip4tables -t nat -A NAT_LOOPBACK_DNAT -s $net -d $destip \
+                                 -p udp --dport $port -j DNAT --to-destination $(echo "$dhost_dport" |tr "$SEP-" '::')
+                if [ "$NAT_LOOPBACK_FORWARD" = "1" ]; then
+                  ip4tables -A POST_FORWARD_CHAIN -s $net -d $dhost -p udp --dport $dport -j ACCEPT
+                fi
+                ip4tables -t nat -A NAT_LOOPBACK_SNAT -s $net -d $dhost \
+                                 -p udp --dport $dport -j SNAT --to-source $destip
+              done
+            fi
           done
         done
       done
