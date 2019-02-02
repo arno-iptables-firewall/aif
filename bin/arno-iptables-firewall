@@ -5040,7 +5040,7 @@ jobs_process_terminate_check()
   while [ $cnt -lt $wait_count ]; do
     sleep 1
 
-    if ! pgrep -f "$JOB_PROCESSOR" 2>&1 >/dev/null; then
+    if ! pgrep -f "$JOB_PROCESSOR" >/dev/null 2>&1; then
       return 0 # We're done
     fi
 
