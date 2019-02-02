@@ -96,7 +96,7 @@ IFS='
         src_ip="0/0"
       fi
 
-      MCOUNT=$(($MCOUNT + 1))
+      MCOUNT=$((MCOUNT + 1))
       iptables -A MAC_FILTER -m mac --mac-source $src_mac -s $src_ip -j RETURN
     fi
   done

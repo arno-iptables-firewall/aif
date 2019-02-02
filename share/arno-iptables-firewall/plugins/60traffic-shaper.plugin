@@ -191,7 +191,7 @@ incoming_traffic_limit()
   # filter *everything* to it (0.0.0.0/0), drop everything that's
   # coming in too fast:
   tc filter add dev $1 parent ffff: protocol ip prio 100 u32 match ip src \
-    0.0.0.0/0 police rate ${DOWNLINK}kbit burst $((1*$DOWNLINK/10))k drop flowid :1 || retval=1
+    0.0.0.0/0 police rate ${DOWNLINK}kbit burst $((1 * DOWNLINK / 10))k drop flowid :1 || retval=1
 
   return $retval
 }
@@ -232,27 +232,27 @@ plugin_start_hfsc()
 
       # Highest Priority: guarantee 2/10 uplink for 50ms, then 1/10
       tc class add dev $eif1 parent 1:1 classid 1:10 hfsc \
-        sc m1 $((2*$UPLINK/10))kbit d 50ms m2 $((1*$UPLINK/10))kbit \
+        sc m1 $((2 * UPLINK / 10))kbit d 50ms m2 $((1 * UPLINK / 10))kbit \
         ul rate ${UPLINK}kbit || retval=1
 
       # Streaming Media: guarantee 5/10 uplink for 200ms, then 4/10
       tc class add dev $eif1 parent 1:1 classid 1:20 hfsc \
-        sc m1 $((5*$UPLINK/10))kbit d 200ms m2 $((4*$UPLINK/10))kbit \
+        sc m1 $((5 * UPLINK / 10))kbit d 200ms m2 $((4 * UPLINK / 10))kbit \
         ul rate ${UPLINK}kbit || retval=1
 
       # Interactive traffic: guarantee 3/10 uplink for 50ms, then 3/10
       tc class add dev $eif1 parent 1:1 classid 1:30 hfsc \
-        sc m1 $((3*$UPLINK/10))kbit d 50ms m2 $((3*$UPLINK/10))kbit \
+        sc m1 $((3 * UPLINK / 10))kbit d 50ms m2 $((3 * UPLINK / 10))kbit \
         ul rate ${UPLINK}kbit || retval=1
 
       # Default traffic: don't guarantee for 500ms, then guarentee 3/20
       tc class add dev $eif1 parent 1:1  classid 1:40 hfsc \
-        sc m1           0 d    500ms m2 $((3*$UPLINK/20))kbit \
+        sc m1           0 d    500ms m2 $((3 * UPLINK / 20))kbit \
         ul rate ${UPLINK}kbit || retval=1
 
       # Bulk data traffic: don't guarantee for 2 seconds, then guarantee 1/20
       tc class add dev $eif1 parent 1:1  classid 1:50 hfsc \
-        sc m1           0 d    2s m2 $((1*$UPLINK/20))kbit \
+        sc m1           0 d    2s m2 $((1 * UPLINK / 20))kbit \
         ul rate ${UPLINK}kbit || retval=1
 
       # P2P traffic: don't guarantee anything

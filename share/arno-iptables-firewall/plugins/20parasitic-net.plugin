@@ -44,7 +44,7 @@ JOB_HELPER_SCRIPT="$PLUGIN_BIN_PATH/parasitic-net-helper"
 
 parasitic_net_setup_rules()
 {
-  local IFS host interface if_ip snat_if snat_ip snat_ifs_ips snat_if_subnet
+  local IFS host if_ip snat_if snat_ip snat_ifs_ips snat_if_subnet
 
   ip4tables -t nat -N PARASITIC_NET_SNAT 2>/dev/null
   ip4tables -t nat -F PARASITIC_NET_SNAT

@@ -1362,7 +1362,7 @@ get_dynamic_host_cached()
   local retval=0
   local cache_lookup=""
   local cache_time=0 fail_count=0
-  local age max_age cur_time store_ip threshold count
+  local max_age cur_time store_ip threshold count
 
   # Don't try to resolve stuff that's already numeric
   if is_numeric_ip "$host"; then
@@ -1465,7 +1465,7 @@ get_dynamic_host_cached()
 
   if [ -n "$cache_lookup" ]; then
     # Update existing entry
-    sed -i s/"^$host[[:blank:]].*"/"$host $store_ip $cache_time $fail_count"/ "${HOST_CACHE_FILE}"
+    sed -i "s/^$host[[:blank:]].*/$host $store_ip $cache_time $fail_count/" "${HOST_CACHE_FILE}"
   else
     # Add new entry
     echo "$host $store_ip $(($(date +'%s') / 60)) $fail_count" >>"${HOST_CACHE_FILE}"
@@ -1783,7 +1783,7 @@ ip6tables_batch()
   #
   ARGS="$@"
   CHAIN="$2"
-  
+
   if [ "$DISABLE_IPTABLES_BATCH" = "1" ]; then
     if [ "$1" = "-A" ]; then
       ip6tables "$@"
@@ -1843,7 +1843,7 @@ progress_bar()
               printf "."
             fi
           fi
-          prev=$(($prev + 2))
+          prev=$((prev + 2))
         done
       fi
     fi

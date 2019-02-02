@@ -62,7 +62,7 @@ nat_loopback_update_default_ipv4()
     if [ "$nline" != "$line" ]; then
       ip4tables -t nat -R NAT_LOOPBACK_DNAT $cnt ${nline#-A NAT_LOOPBACK_DNAT }
     fi
-    cnt=$(($cnt+1))
+    cnt=$((cnt + 1))
   done
 
   cnt=1
@@ -71,7 +71,7 @@ nat_loopback_update_default_ipv4()
     if [ "$nline" != "$line" ]; then
       ip4tables -t nat -R NAT_LOOPBACK_SNAT $cnt ${nline#-A NAT_LOOPBACK_SNAT }
     fi
-    cnt=$(($cnt+1))
+    cnt=$((cnt + 1))
   done
 }
 

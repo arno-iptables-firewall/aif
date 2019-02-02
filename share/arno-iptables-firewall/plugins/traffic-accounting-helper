@@ -106,7 +106,7 @@ traffic_accounting_setup_rules()
         for LINE in `ip4tables -xnvL ACCOUNTING_INPUT_CHAIN |sed -e "1,2d"`; do
           ipt_ip="$(echo "$LINE" |awk '{ print $8 }')"
 
-          LCOUNT=$(($LCOUNT + 1))
+          LCOUNT=$((LCOUNT + 1))
           if [ "$ipt_ip" = "$old_ip" ]; then
             ip4tables -R ACCOUNTING_INPUT_CHAIN $LCOUNT -s $host_ip -j RETURN
             if [ "$VERBOSE" = "1" ]; then
@@ -126,7 +126,7 @@ traffic_accounting_setup_rules()
           for LINE in `ip6tables -xnvL ACCOUNTING_INPUT_CHAIN |sed -e "1,2d"`; do
             ipt_ip="$(echo "$LINE" |awk '{ print $7 }')"
 
-            LCOUNT=$(($LCOUNT + 1))
+            LCOUNT=$((LCOUNT + 1))
             if [ "$ipt_ip" = "$old_ip" ]; then
               ip6tables -R ACCOUNTING_INPUT_CHAIN $LCOUNT -s $host_ip -j RETURN
               if [ "$VERBOSE" = "1" ]; then
@@ -169,7 +169,7 @@ traffic_accounting_setup_rules()
         for LINE in `ip4tables -xnvL ACCOUNTING_OUTPUT_CHAIN |sed -e "1,2d"`; do
           ipt_ip="$(echo "$LINE" |awk '{ print $9 }')"
 
-          LCOUNT=$(($LCOUNT + 1))
+          LCOUNT=$((LCOUNT + 1))
           if [ "$ipt_ip" = "$old_ip" ]; then
             ip4tables -R ACCOUNTING_OUTPUT_CHAIN $LCOUNT -d $host_ip -j RETURN
             if [ "$VERBOSE" = "1" ]; then
@@ -189,7 +189,7 @@ traffic_accounting_setup_rules()
           for LINE in `ip6tables -xnvL ACCOUNTING_OUTPUT_CHAIN |sed -e "1,2d"`; do
             ipt_ip="$(echo "$LINE" |awk '{ print $8 }')"
 
-            LCOUNT=$(($LCOUNT + 1))
+            LCOUNT=$((LCOUNT + 1))
             if [ "$ipt_ip" = "$old_ip" ]; then
               ip6tables -R ACCOUNTING_OUTPUT_CHAIN $LCOUNT -d $host_ip -j RETURN
               if [ "$VERBOSE" = "1" ]; then
@@ -222,10 +222,10 @@ traffic_accounting_setup_rules()
     fi
 
     # Calculate new in value
-    new_in_value=$(($old_in_value + $ipt_in_value))
+    new_in_value=$((old_in_value + ipt_in_value))
 
     # Calculate new out value
-    new_out_value=$(($old_out_value + $ipt_out_value))
+    new_out_value=$((old_out_value + ipt_out_value))
     if [ "$VERBOSE" = "1" ]; then
       printf "old_in_val=$old_in_value ipt_in_val=$ipt_in_value new_in_val=$new_in_value old_out_val=$old_out_value ipt_out_val=$ipt_out_value new_out_val=$new_out_value"
     fi
