@@ -38,8 +38,6 @@ JOB_HELPER_SCRIPT="$PLUGIN_BIN_PATH/traffic-accounting-helper"
 
 traffic_accounting_init()
 {
-  local BG_TIME
-
   # Flush accounting chains
   iptables -F ACCOUNTING_INPUT_CHAIN
   iptables -F ACCOUNTING_OUTPUT_CHAIN

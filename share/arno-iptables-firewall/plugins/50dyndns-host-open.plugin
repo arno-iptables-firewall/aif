@@ -62,8 +62,6 @@ dyndns_host_open_init()
 # Plugin start function
 plugin_start()
 {
-  local BG_TIME
-
   # Create new DYNDNS_CHAIN chain:
   iptables -N DYNDNS_CHAIN 2>/dev/null
   iptables -F DYNDNS_CHAIN
