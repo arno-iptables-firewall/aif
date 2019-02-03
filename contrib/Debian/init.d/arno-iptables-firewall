@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # chkconfig: 2345 11 89
-# description: init.d script for Arno's iptables firewall
+# description: init.d script for Arno's Iptables Firewall(AIF)
 
 ### BEGIN INIT INFO
 # Provides:          arno-iptables-firewall
@@ -34,19 +34,19 @@ test -x $PROGRAM || exit 0
 if [ "$VERBOSE" = "0" ]; then
   case "$1" in
     start)
-      log_daemon_msg "Starting Arno's Iptables Firewall..."
+      log_daemon_msg "Starting Arno's Iptables Firewall(AIF)..."
     ;;
 
     stop)
-      log_daemon_msg "Stopping Arno's Iptables Firewall..."
+      log_daemon_msg "Stopping Arno's Iptables Firewall(AIF)..."
     ;;
 
     restart)
-      log_daemon_msg "Restarting Arno's Iptables Firewall..."
+      log_daemon_msg "Restarting Arno's Iptables Firewall(AIF)..."
     ;;
 
     force-reload)
-      log_daemon_msg "(Forced) reloading Arno's Iptables Firewall..."
+      log_daemon_msg "(Forced) reloading Arno's Iptables Firewall(AIF)..."
     ;;
 
     status)

@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-#            -= Arno's iptables firewall - Adaptive Ban plugin =-
+#            -= Arno's Iptables Firewall(AIF) - Adaptive Ban plugin =-
 #
 PLUGIN_NAME="Adaptive Ban plugin"
 PLUGIN_VERSION="1.04 BETA"
@@ -193,4 +193,3 @@ else
     PLUGIN_RET_VAL=0
   fi
 fi
-

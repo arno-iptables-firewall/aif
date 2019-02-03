@@ -7,7 +7,7 @@ MY_VERSION="2.1.0-BETA2-DEVEL"
 CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
 
 # ------------------------------------------------------------------------------
-#                           -= Arno's iptables firewall =-
+#                         -= Arno's Iptables Firewall(AIF) =-
 #               Single- & multi-homed firewall script with DSL/ADSL support
 #
 #                           ~ In memory of my dear father ~
@@ -32,7 +32,7 @@ CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
-printf "\033[40m\033[1;32mArno's Iptables Firewall Script v$MY_VERSION\033[0m\n"
+printf "\033[40m\033[1;32mArno's Iptables Firewall(AIF) v$MY_VERSION\033[0m\n"
 echo "-------------------------------------------------------------------------------"
 
 # Check if the main config file exists and if so load it
@@ -6011,16 +6011,16 @@ show_status()
 show_start()
 {
   DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
-  echo "$DATE ** Starting Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
-  echo "** Starting Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
+  echo "$DATE ** Starting Arno's Iptables Firewall(AIF) v$MY_VERSION **" >> $FIREWALL_LOG
+  echo "** Starting Arno's Iptables Firewall(AIF) v$MY_VERSION **" |logger -t firewall -p kern.info
 }
 
 
 show_restart()
 {
   DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
-  echo "$DATE ** Restarting Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
-  echo "** Restarting Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
+  echo "$DATE ** Restarting Arno's Iptables Firewall(AIF) v$MY_VERSION **" >> $FIREWALL_LOG
+  echo "** Restarting Arno's Iptables Firewall(AIF) v$MY_VERSION **" |logger -t firewall -p kern.info
 }
 
 
@@ -6035,9 +6035,9 @@ show_failed()
 show_stop()
 {
   DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
-  printf "$DATE \033[40m\033[1;32mStopping Arno's Iptables Firewall v$MY_VERSION\033[0m\n"
-  echo "$DATE ** Stopping Arno's Iptables Firewall v$MY_VERSION **" >> $FIREWALL_LOG
-  echo "** Stopping Arno's Iptables Firewall v$MY_VERSION **" |logger -t firewall -p kern.info
+  printf "$DATE \033[40m\033[1;32mStopping Arno's Iptables Firewall(AIF) v$MY_VERSION\033[0m\n"
+  echo "$DATE ** Stopping Arno's Iptables Firewall(AIF) v$MY_VERSION **" >> $FIREWALL_LOG
+  echo "** Stopping Arno's Iptables Firewall(AIF) v$MY_VERSION **" |logger -t firewall -p kern.info
 }
 
 

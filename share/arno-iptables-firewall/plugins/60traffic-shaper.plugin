@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-#      -= Arno's iptables firewall - HTB (well tested), HFSC (experimental) and CFQ traffic shaper plugin =-
+#  -= Arno's Iptables Firewall(AIF) - (HTB/HFSC/CFQ) traffic shaper plugin =-
 #
 PLUGIN_NAME="Traffic Shaper Plugin"
 PLUGIN_VERSION="1.2.2"
@@ -25,6 +25,7 @@ PLUGIN_CONF_FILE="traffic-shaper.conf"
 # Email                 : philipp AT redfish-solutions DOT com
 #                         (note: you must remove all spaces and substitute the @ and the .
 #                         at the proper locations!)
+# Notes                 : HTB/CFQ is well tested, HFSC is experimental
 # ------------------------------------------------------------------------------
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License

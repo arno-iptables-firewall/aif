@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-#       -= Arno's iptables firewall - Parasitic (SNAT) Network plugin =-
+#     -= Arno's Iptables Firewall(AIF) - Parasitic (SNAT) Network plugin =-
 #
 PLUGIN_NAME="Parasitic (SNAT) Network plugin"
 PLUGIN_VERSION="1.00-BETA3"

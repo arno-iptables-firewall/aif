@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-#               -= Arno's iptables firewall - IPsec VPN plugin =-
+#             -= Arno's Iptables Firewall(AIF) - IPsec VPN plugin =-
 #
 PLUGIN_NAME="IPsec VPN plugin"
 PLUGIN_VERSION="0.85"

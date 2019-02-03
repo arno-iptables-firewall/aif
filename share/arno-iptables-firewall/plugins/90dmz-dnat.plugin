@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-#            -= Arno's iptables firewall - DMZ-host default port forwarding plugin =-
+# -= Arno's Iptables Firewall(AIF) - DMZ-host default port forwarding plugin =-
 #
 PLUGIN_NAME="DMZ-host DNAT plugin"
 PLUGIN_VERSION="0.10"

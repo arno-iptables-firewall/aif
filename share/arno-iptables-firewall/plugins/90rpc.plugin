@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-#            -= Arno's iptables firewall - RPC plugin =-
+#               -= Arno's Iptables Firewall(AIF) - RPC plugin =-
 #
 PLUGIN_NAME="RPCplugin"
 PLUGIN_VERSION="0.21-BETA"

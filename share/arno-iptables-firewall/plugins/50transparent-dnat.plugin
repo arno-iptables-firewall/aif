@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-#            -= Arno's iptables firewall - Transparent DNAT plugin =-
+#         -= Arno's Iptables Firewall(AIF) - Transparent DNAT plugin =-
 #
 PLUGIN_NAME="Transparent DNAT plugin"
 PLUGIN_VERSION="0.31BETA (EXPERIMENTAL!)"

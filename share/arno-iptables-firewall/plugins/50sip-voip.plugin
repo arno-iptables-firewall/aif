@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-#            -= Arno's iptables firewall - SIP-VOIP plugin =-
+#              -= Arno's Iptables Firewall(AIF) - SIP-VOIP plugin =-
 #
 PLUGIN_NAME="SIP-VOIP plugin"
 PLUGIN_VERSION="0.32BETA"

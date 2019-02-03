@@ -1,5 +1,5 @@
 [Unit]
-Description=Arno's Iptables Firewall
+Description=Arno's Iptables Firewall(AIF)
 Documentation=man:arno-iptables-firewall(8)
 Documentation=http://rocky.eld.leidenuniv.nl/
 DefaultDependencies=no

@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-#            -= Arno's iptables firewall - Traffic Accounting plugin =-
+#        -= Arno's Iptables Firewall(AIF) - Traffic Accounting plugin =-
 #
 PLUGIN_NAME="Traffic Accounting plugin"
 PLUGIN_VERSION="1.30"

@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-#               -= Arno's iptables firewall - NAT Loopback plugin =-
+#            -= Arno's Iptables Firewall(AIF) - NAT Loopback plugin =-
 #
 PLUGIN_NAME="NAT Loopback plugin"
 PLUGIN_VERSION="1.02"

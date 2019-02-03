@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-#            -= Arno's iptables firewall - IDS-protection plugin =-
+#           -= Arno's Iptables Firewall(AIF) - IDS-protection plugin =-
 #
 PLUGIN_NAME="IDS-protection plugin"
 PLUGIN_VERSION="1.1a"

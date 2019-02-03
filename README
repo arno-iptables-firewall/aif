@@ -1,9 +1,9 @@
-                       -= Arno's iptables firewall =-
+                    -= Arno's Iptables Firewall(AIF) =-
          Single- & multi-homed firewall script with DSL/ADSL support
 
                       ~ In memory of my dear father ~
 
-(C) Copyright 2001-2017 by Arno van Amersfoort & Lonnie Abelbeck
+(C) Copyright 2001-2019 by Arno van Amersfoort & Lonnie Abelbeck
 Homepage   : http://rocky.eld.leidenuniv.nl/
 Email      : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
              (note: you must remove all spaces and substitute the @ and the .
@@ -48,9 +48,9 @@ information in the troubleshooting section below!
 An explanation of the files in the package:
 -------------------------------------------
 /bin/arno-iptables-firewall :
-        The actual firewall script, core of Arno's iptables firewall. You
-        should put this file in eg. /usr/local/sbin/ . You should make sure
-        it's executable (use "chmod 700 or chmod +x).
+        The actual firewall script, core of Arno's Iptables Firewall(AIF).
+        You should put this file in eg. /usr/local/sbin/ . You should make
+        sure it's executable (use "chmod 700 or chmod +x).
 
 /bin/arno-fwfilter :
         A pipe filter script to make the firewall-log better readable. It can
@@ -63,13 +63,12 @@ An explanation of the files in the package:
         should put this file in eg. /usr/local/bin/.
 
 /etc/arno-iptables-firewall/firewall.conf :
-        The configuration file used for Arno's iptables firewall script.
+        The configuration file used for Arno's Iptables Firewall(AIF).
         Normally you should put it in /etc/arno-iptables-firewall/. Make sure
         root is owner/group (with "chown 0:0").
 
 /etc/arno-iptables-firewall/plugins/ :
-        Put any plugin config files (.conf files) for my firewall in this
-        directory.
+        Any plugin config files  (.conf files) are stored here.
 
 /etc/arno-iptables-firewall/conf.d/ :
         Put any (override) configuration files in the directory. Any files here
@@ -81,22 +80,26 @@ An explanation of the files in the package:
         should be put in /etc/arno-iptables-firewall/ . Make sure root
         is owner/group (with "chown 0:0").
 
+/lib/systemd/system/arno-iptables-firewall.service :
+        The systemd service file. Depending on your system it should be
+        put in either /usr/lib/systemd/system, /lib/systemd/system or
+        /etc/systemd/system
+
 /etc/init.d/arno-iptables-firewall :
-        The init.d script to start/stop the script at boot etc. On some (older)
+        The init.d script (for older systems still using init.d). On some (older)
         distributions you may need to put it in /etc/rc.d/ (instead of
         /etc/init.d).  You should make sure it's executable (use "chmod 700 or
         chmod +x). Inside this script you can also enable VERBOSE(=1) logging
         for eg. debugging purposes.
 
 /share/arno-iptables-firewall/environment :
-        This is the environment-file required by the firewall and some plugins.
+        This is the environment-file required by the firewall and plugins.
         It contains several global functions. It should normally be put in
-        /usr/local/share/ on your local system.
+        /usr/local/share/.
 
 /share/arno-iptables-firewall/plugins/ :
         Put any plugin binaries (.plugin files) for my firewall in this
-        directory. It should normally be put in /usr/local/share/ on your local
-        system.
+        directory. It should normally be put in /usr/local/share/.
 
 /share/man/man8/arno-iptables-firewall.8 :
         A man page for the arno-iptables-firewall script.
@@ -186,29 +189,6 @@ An explanation of the files in the package:
 
 6) Port ranges should be written as port_start:port_end, eg. "137:139" would
    select ports 137,138 and 139.
-
------------------------------------------
-| Debian package repository information |
------------------------------------------
-When you are using Debian (or a Debian-flavor: Ubuntu, Kubuntu etc.), you can
-either use the package that comes with the distribution or you can use
-Michael Hanke's package repository. Simply add:
-        deb http://apsy.gse.uni-magdeburg.de/debian sarge main
-
-to your /etc/apt/sources.list and installing the firewall is then as easy as:
-        apt-get install arno-iptables-firewall
-
-That way one can automatically profit from any package update. Even if no
-binary package is available one could build it by adding:
-        deb-src http://apsy.gse.uni-magdeburg.de/debian/source ./
-
-to /etc/apt/sources.list and execute:
-        apt-src install arno-iptables-firewall
-        apt-src build arno-iptables-firewall
-
-NOTE: Currently there is no package available yet for the 1.9-branch, only for
-      version 1.8. If you like to run 1.9, which is recommended, use the
-      .tgz-version from my website.
 
 ---------------
 | Quick setup |
@@ -382,9 +362,7 @@ Troubleshooting: What if it doesn't work?:
 Plugin support
 ------------------------------------------------------------
 As of version 1.8.7-RC2 my firewall also supports plugins -> little scripts
-that implement specific stuff which doesn't exist in the main script (yet).
-They latest versions of all supported plugins can be found here:
-   http://rocky.eld.leidenuniv.nl/iptables-firewall/plugins/
+that implement specific functionality.
 
 Notes on plugins:
 -----------------
@@ -635,4 +613,3 @@ topics related to the scope of this firewall script.
 
    CONFIG_NF_CT_ACCT was scheduled to be removed in 2.6.29, but has not yet
    been removed, as of writing.
-

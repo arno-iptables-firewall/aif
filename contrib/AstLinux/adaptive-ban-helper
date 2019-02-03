@@ -78,7 +78,6 @@ start_run()
 
 stop()
 {
-
   rm -f "$ARGSFILE"
 
   # If the background start_run() is in idle_wait() this ensures a clean stop.
@@ -89,7 +88,6 @@ stop()
 
 status()
 {
-
   echo "  Banned Hosts:"
   echo "  =============================="
   ip4tables -n -L ADAPTIVE_BAN_CHAIN | awk '$1 == "ADAPTIVE_BAN_DROP_CHAIN" { print "  "$4 }'

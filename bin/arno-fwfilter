@@ -13,7 +13,7 @@
 # Email firewall logs to root                           : cat /var/log/firewall |arno-fwfilter --html-output --no-colors |mail -s "Firewall Log" -a "Content-Type: text/html; charset=us-ascii" root
 
 # ------------------------------------------------------------------------------------------
-#                       -= Arno's iptables firewall =-
+#                     -= Arno's Iptables Firewall(AIF) =-
 #                  Firewall-log filter script (arno-fwfilter)
 #
 # (C) Copyright 2001-2015 by Arno van Amersfoort

@@ -3,8 +3,8 @@
 MY_VERSION="1.04"
 
 # ------------------------------------------------------------------------------------------
-#                           -= Arno's iptables firewall =-
-#               Single- & multi-homed firewall script with DSL/ADSL support
+#                         -= Arno's Iptables Firewall(AIF) =-
+#              Single- & multi-homed firewall script with DSL/ADSL support
 #
 #                           ~ In memory of my dear father ~
 #
@@ -270,7 +270,7 @@ setup_conf_file()
 # main line:
 AIF_VERSION="$(grep "MY_VERSION=" ./bin/arno-iptables-firewall |sed -e "s/^MY_VERSION=\"//" -e "s/\"$//")"
 
-printf "\033[40m\033[1;32mArno's Iptables Firewall Script v$AIF_VERSION\033[0m\n"
+printf "\033[40m\033[1;32mArno's Iptables Firewall(AIF) v$AIF_VERSION\033[0m\n"
 printf "Configure Script v$MY_VERSION\n"
 echo "-------------------------------------------------------------------------------"
 

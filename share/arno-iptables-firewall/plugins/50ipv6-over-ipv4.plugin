@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-#            -= Arno's iptables firewall - IPv6-over-IPv4 plugin =-
+#          -= Arno's Iptables Firewall(AIF) - IPv6-over-IPv4 plugin =-
 #
 PLUGIN_NAME="IPv6-over-IPv4 plugin"
 PLUGIN_VERSION="0.2BETA"

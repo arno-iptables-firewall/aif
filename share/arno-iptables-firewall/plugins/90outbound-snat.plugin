@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-#               -= Arno's iptables firewall - Outbound SNAT plugin =-
+#           -= Arno's Iptables Firewall(AIF) - Outbound SNAT plugin =-
 #
 PLUGIN_NAME="Outbound SNAT plugin"
 PLUGIN_VERSION="1.01"

@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # ------------------------------------------------------------------------------
-#                           -= Arno's iptables firewall =-
-#               Single- & multi-homed firewall script with DSL/ADSL support
+#                         -= Arno's Iptables Firewall(AIF) =-
+#              Single- & multi-homed firewall script with DSL/ADSL support
 #
 #                           ~ In memory of my dear father ~
 #
