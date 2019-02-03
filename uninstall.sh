@@ -1,14 +1,14 @@
 #!/bin/bash
 
-MY_VERSION="1.0c"
+MY_VERSION="1.0d"
 
 # ------------------------------------------------------------------------------------------
-#                           -= Arno's iptables firewall =-
-#               Single- & multi-homed firewall script with DSL/ADSL support
+#                         -= Arno's Iptables Firewall(AIF) =-
+#              Single- & multi-homed firewall script with DSL/ADSL support
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2015 by Arno van Amersfoort
+# (C) Copyright 2001-2019 by Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -85,7 +85,7 @@ get_user_yn()
 # main line:
 AIF_VERSION="$(grep "MY_VERSION=" ./bin/arno-iptables-firewall |sed -e "s/^MY_VERSION=\"//" -e "s/\"$//")"
 
-printf "\033[40m\033[1;32mArno's Iptables Firewall Script v$AIF_VERSION\033[0m\n"
+printf "\033[40m\033[1;32mArno's Iptables Firewall(AIF) v$AIF_VERSION\033[0m\n"
 printf "Uninstall Script v$MY_VERSION\n"
 echo "-------------------------------------------------------------------------------"
 
@@ -116,10 +116,14 @@ fi
 
 rm -fv /etc/init.d/arno-iptables-firewall
 
-# Remove leftovers:
+# Remove init.d script
 rm -fv /etc/rc.d/rc*.d/*arno-iptables-firewall
 rm -fv /etc/rc*.d/*arno-iptables-firewall
+
+# Remove systemd files
 rm -fv /usr/lib/systemd/system/arno-iptables-firewall.service
+rm -fv /lib/systemd/system/arno-iptables-firewall.service
+rm -fv /etc/systemd/arno-iptables-firewall.service
 
 if get_user_yn "Also remove ALL configuration files from /etc/arno-iptables-firewall/" "n"; then
   rm -rfv /etc/arno-iptables-firewall
@@ -132,3 +136,4 @@ echo "** Uninstall done **"
 echo ""
 
 exit 0
+
