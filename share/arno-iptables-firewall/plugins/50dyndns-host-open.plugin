@@ -43,15 +43,8 @@ dyndns_host_open_init()
   # Remove old cron job (this is in case a legacy plugin left it)
   rm -f /etc/cron.d/dyndns-host-open
 
-  if [ -z "$DYNDNS_HOST_OPEN_TIME" ]; then
-    # Default to 60 minutes
-    BG_TIME=60
-  else
-    BG_TIME="$DYNDNS_HOST_OPEN_TIME"
-  fi
-
   # Create background job
-  if ! job_add "$JOB_NAME" "$BG_TIME" "$JOB_HELPER_SCRIPT"; then
+  if ! job_add "$JOB_NAME" "${DYNDNS_HOST_OPEN_TIME:-60}" "$JOB_HELPER_SCRIPT"; then
     return 1
   fi
 
@@ -188,4 +181,3 @@ else
     fi
   fi
 fi
-

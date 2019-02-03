@@ -37,7 +37,7 @@ traffic_accounting_helper_sanity_check()
 }
 
 
-traffic_accounting_setup_rules()
+traffic_accounting_helper_do_work()
 {
   local RETVAL=0
 
@@ -279,7 +279,7 @@ else
     PLUGIN_RET_VAL=1
   else
     # Create actual rules
-    if ! traffic_accounting_setup_rules; then
+    if ! traffic_accounting_helper_do_work; then
       PLUGIN_RET_VAL=1
     fi
   fi
