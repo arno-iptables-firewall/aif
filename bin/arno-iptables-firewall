@@ -5178,12 +5178,6 @@ setup_firewall_rules()
   ######################
   plugins_start
 
-  # Start jobs processor
-  ######################
-  if [ -n "$JOBS_FILE" -a -e "$JOBS_FILE" ]; then
-    jobs_process_start
-  fi
-
   # Fragmented packets handling
   # NOTE: Fragmentation cannot happen with IPv6 (and probably even not with iptables/IPv4)
   ########################################################################################
@@ -5657,6 +5651,12 @@ setup_firewall_rules()
   # Clean-up DNS output rules
   iptables -D OUTPUT_CHAIN 2
   iptables -D OUTPUT_CHAIN 1
+
+  # Start jobs processor
+  ######################
+  if [ -n "$JOBS_FILE" -a -e "$JOBS_FILE" ]; then
+    jobs_process_start
+  fi
 }
 
 
