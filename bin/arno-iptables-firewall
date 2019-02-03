@@ -4953,21 +4953,11 @@ job_remove()
 {
   local SCRIPT_NAME="$1"
 
-  # Enter critical section:
-  if ! lock_enter "$JOBS_LOCK_NAME"; then
-    return 1
-  fi
-
   if [ -f "$JOBS_FILE" ]; then
     echo "${INDENT}Removing background job \"$SCRIPT_NAME\""
 
     # Remove job from jobs file
-    sed -i s,"^$SCRIPT_NAME[[:blank:]].*",, "$JOBS_FILE"
-  fi
-
-  # Leave critical section:
-  if ! lock_leave "$JOBS_LOCK_NAME"; then
-    return 1
+    sed -i "s,^$SCRIPT_NAME[[:blank:]].*,," "$JOBS_FILE"
   fi
 
   return 0
@@ -4993,18 +4983,8 @@ job_add()
 
   echo "${INDENT}Adding background job \"$SCRIPT_NAME\""
 
-  # Enter critical section:
-  if ! lock_enter "$JOBS_LOCK_NAME"; then
-    return 1
-  fi
-
   # Add new job to jobs file
   echo "$SCRIPT_NAME $SCRIPT_TIME 0 $SCRIPT_PATH" >> "$JOBS_FILE"
-
-  # Leave critical section:
-  if ! lock_leave "$JOBS_LOCK_NAME"; then
-    return 1
-  fi
 
   return 0
 }
