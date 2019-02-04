@@ -4984,7 +4984,10 @@ job_add()
   echo "${INDENT}Adding background job \"$SCRIPT_NAME\""
 
   # Add new job to jobs file
-  echo "$SCRIPT_NAME $SCRIPT_TIME 0 $SCRIPT_PATH" >> "$JOBS_FILE"
+  # NOTE: The 2nd and 3rd argument are the job repeat time and job passed time
+  #       by setting the job passed time to the repeat time, the job will execute
+  #       as soon as the job processor is executed
+  echo "$SCRIPT_NAME $SCRIPT_TIME $SCRIPT_TIME $SCRIPT_PATH" >> "$JOBS_FILE"
 
   return 0
 }

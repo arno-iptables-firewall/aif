@@ -78,74 +78,65 @@ job_process()
 
   # Loop (until JOBS_FILE is deleted)
   while true; do
-    [ $VERBOSE -eq 1 ] && echo "Sleeping $SLEEP_TIME minutes..."
-
-    # Loop sleep (in seconds)
-    if idle_wait "$SLEEP_TIME" "$JOBS_FILE"; then
-      [ $VERBOSE -eq 1 ] && echo "Jobs file removed, terminating..."
-      break # No jobs file: We're done
-    fi
-
     # Enter critical section:
     if ! lock_enter "$JOBS_LOCK_NAME"; then
       # Lock failed, just keeping trying forever since there's no point in exiting here
       [ $VERBOSE -eq 1 ] && echo "Lock failed, (re)trying next loop..."
-      continue
-    fi
-
-    READ_JOBS_FILE="$(cat "$JOBS_FILE" 2>/dev/null)"
-
-    if [ -z "$READ_JOBS_FILE" ]; then
-      [ $VERBOSE -eq 1 ] && echo "No jobs left, removing job file..."
-
-      rm -f "$JOBS_FILE"
     else
-      IFS=$EOL
-      for LINE in $READ_JOBS_FILE; do
-        SCRIPT_NAME="$(echo "$LINE" |cut -d' ' -f1)"
-        SCRIPT_SET_TIME="$(echo "$LINE" |cut -d' ' -f2)"
-        SCRIPT_CUR_TIME="$(echo "$LINE" |cut -d' ' -f3)"
-        SCRIPT_PATH="$(echo "$LINE" |cut -d' ' -f1,2,3 --complement)"
+      READ_JOBS_FILE="$(cat "$JOBS_FILE" 2>/dev/null)"
 
-        # Increment current time (in minutes)
-        SCRIPT_CUR_TIME=$((SCRIPT_CUR_TIME + SLEEP_TIME))
+      if [ -z "$READ_JOBS_FILE" ]; then
+        [ $VERBOSE -eq 1 ] && echo "No jobs left, removing job file..."
 
-        [ $VERBOSE -eq 1 ] && echo "Processing job \"$SCRIPT_NAME\"..."
+        rm -f "$JOBS_FILE"
+      else
+        IFS=$EOL
+        for LINE in $READ_JOBS_FILE; do
+          SCRIPT_NAME="$(echo "$LINE" |cut -d' ' -f1)"
+          SCRIPT_SET_TIME="$(echo "$LINE" |cut -d' ' -f2)"
+          SCRIPT_CUR_TIME="$(echo "$LINE" |cut -d' ' -f3)"
+          SCRIPT_PATH="$(echo "$LINE" |cut -d' ' -f1,2,3 --complement)"
 
-        if [ $SCRIPT_CUR_TIME -ge $SCRIPT_SET_TIME ]; then
-          [ $VERBOSE -eq 1 ] && echo " Countdown reached, running job \"$SCRIPT_NAME\"..."
+          # Increment current time (in minutes)
+          SCRIPT_CUR_TIME=$((SCRIPT_CUR_TIME + SLEEP_TIME))
 
-          # Create extra FD
-          exec 3>&1
+          [ $VERBOSE -eq 1 ] && echo "Processing job \"$SCRIPT_NAME\"..."
 
-          if [ $VERBOSE -ne 1 ]; then
-            exec 3>/dev/null
+          if [ $SCRIPT_CUR_TIME -ge $SCRIPT_SET_TIME ]; then
+            [ $VERBOSE -eq 1 ] && echo " Countdown reached, running job \"$SCRIPT_NAME\"..."
+
+            # Create extra FD
+            exec 3>&1
+
+            if [ $VERBOSE -ne 1 ]; then
+              exec 3>/dev/null
+            fi
+
+            err_result="$("$JOB_EXECUTER" "$SCRIPT_PATH" 2>&1 1>&3)"
+            retval=$?
+
+            # Release extra FD
+            exec 3>&-
+
+            # In case an error occurred, log it
+            if [ $retval -ne 0 -o -n "$err_result" ]; then
+              echo "$err_result" >&2
+              echo "$err_result" |sed "s/^/AIF-${SCRIPT_NAME}: /g" |logger -t firewall -p kern.info
+            fi
+
+            # Reset counter
+            SCRIPT_CUR_TIME=0
           fi
 
-          err_result="$("$JOB_EXECUTER" "$SCRIPT_PATH" 2>&1 1>&3)"
-          retval=$?
-
-          # Release extra FD
-          exec 3>&-
-
-          # In case an error occurred, log it
-          if [ $retval -ne 0 -o -n "$err_result" ]; then
-            echo "$err_result" >&2
-            echo "$err_result" |sed "s/^/AIF-${SCRIPT_NAME}: /g" |logger -t firewall -p kern.info
+          # As soon as the jobs file gets removed, stop processing (and terminate)
+          if [ ! -f "$JOBS_FILE" ]; then
+            break
           fi
 
-          # Reset counter
-          SCRIPT_CUR_TIME=0
-        fi
-
-        # As soon as the jobs file gets removed, stop processing (and terminate)
-        if [ ! -f "$JOBS_FILE" ]; then
-          break
-        fi
-
-        # Update job
-        sed -i "s,^$SCRIPT_NAME[[:blank:]].*,$SCRIPT_NAME $SCRIPT_SET_TIME $SCRIPT_CUR_TIME $SCRIPT_PATH," "$JOBS_FILE"
-      done
+          # Update job
+          sed -i "s,^$SCRIPT_NAME[[:blank:]].*,$SCRIPT_NAME $SCRIPT_SET_TIME $SCRIPT_CUR_TIME $SCRIPT_PATH," "$JOBS_FILE"
+        done
+      fi
     fi
 
     # Leave critical section:
@@ -154,6 +145,14 @@ job_process()
     #  [ $VERBOSE -eq 1 ] && echo "Lock removal failed, terminating..."
     #  return 1
     #fi
+
+    [ $VERBOSE -eq 1 ] && echo "Sleeping $SLEEP_TIME minutes..."
+
+    # Loop sleep (in seconds)
+    if idle_wait "$SLEEP_TIME" "$JOBS_FILE"; then
+      [ $VERBOSE -eq 1 ] && echo "Jobs file removed, terminating..."
+      break # No jobs file: We're done
+    fi
   done
 
   return 0

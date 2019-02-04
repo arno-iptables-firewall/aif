@@ -57,13 +57,6 @@ traffic_accounting_init()
     return 1
   fi
 
-  # Call the helper script at startup?
-  if [ "$TRAFFIC_ACCOUNTING_RUN_AT_START" = "1" ]; then
-    if ! job_run_once "$JOB_HELPER_SCRIPT"; then
-      return 1
-    fi
-  fi
-
   return 0
 }
 
