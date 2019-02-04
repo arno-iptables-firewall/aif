@@ -104,9 +104,6 @@ plugin_stop()
   # Remove old cron job (this is in case a legacy plugin left it)
   rm -f /etc/cron.d/traffic-accounting
 
-  # Remove (background) job
-  job_remove "$JOB_NAME"
-
   # Store current values (NOTE: Ignore return value)
   job_run_once "$JOB_HELPER_SCRIPT"
 

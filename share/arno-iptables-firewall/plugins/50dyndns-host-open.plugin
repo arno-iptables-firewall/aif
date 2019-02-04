@@ -89,9 +89,6 @@ plugin_stop()
   # Remove old cron job (this is in case a legacy plugin left it)
   rm -f /etc/cron.d/traffic-accounting
 
-  # Remove job
-  job_remove "$JOB_NAME"
-
   iptables -D EXT_INPUT_CHAIN -j DYNDNS_CHAIN 2>/dev/null
 
   iptables -F DYNDNS_CHAIN
