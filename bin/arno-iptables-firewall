@@ -5153,10 +5153,6 @@ setup_firewall_rules()
     . $CUSTOM_RULES
   fi
 
-  # Make sure jobs processor is stopped before we start any plugins
-  #################################################################
-  jobs_process_stop >/dev/null
-
   # Start (user) plugins
   ######################
   plugins_start
@@ -5634,12 +5630,6 @@ setup_firewall_rules()
   # Clean-up DNS output rules
   iptables -D OUTPUT_CHAIN 2
   iptables -D OUTPUT_CHAIN 1
-
-  # Start jobs processor
-  ######################
-  if [ -n "$JOBS_FILE" -a -e "$JOBS_FILE" ]; then
-    jobs_process_start
-  fi
 }
 
 
@@ -6075,7 +6065,7 @@ show_help()
 
 main_stop()
 {
-  # Stop jobs processor
+  # Stop jobs processor (if running)
   jobs_process_stop
 
   # Stop all plugins
@@ -6095,6 +6085,9 @@ main_stop()
 
 main_start()
 {
+  # Stop jobs processor (if running)
+  jobs_process_stop
+
   load_modules
   setup_misc
   setup_kernel_settings
@@ -6102,11 +6095,20 @@ main_start()
   setup_default_policies
   setup_hostblock_chain
   setup_firewall_rules
+
+  # Start jobs processor
+  ######################
+  if [ -n "$JOBS_FILE" -a -e "$JOBS_FILE" ]; then
+    jobs_process_start
+  fi
 }
 
 
 main_restart()
 {
+  # Stop jobs processor (if running)
+  jobs_process_stop
+
   plugins_stop restart
   load_modules
 #  setup_misc
@@ -6115,6 +6117,12 @@ main_restart()
   setup_default_policies
   setup_hostblock_chain
   setup_firewall_rules
+
+  # Start jobs processor
+  ######################
+  if [ -n "$JOBS_FILE" -a -e "$JOBS_FILE" ]; then
+    jobs_process_start
+  fi
 }
 
 
