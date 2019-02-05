@@ -5045,6 +5045,11 @@ jobs_process_terminate_check()
 # Start jobs processor
 jobs_process_start()
 {
+  if [ -z "$JOBS_FILE" -o ! -e "$JOBS_FILE" ]; then
+    # No jobs
+    return 0
+  fi
+
   echo "Starting background jobs processor"
 
   # Run script for background process
@@ -6096,11 +6101,8 @@ main_start()
   setup_hostblock_chain
   setup_firewall_rules
 
-  # Start jobs processor
-  ######################
-  if [ -n "$JOBS_FILE" -a -e "$JOBS_FILE" ]; then
-    jobs_process_start
-  fi
+  # Start jobs processor (if required)
+  jobs_process_start
 }
 
 
@@ -6118,11 +6120,8 @@ main_restart()
   setup_hostblock_chain
   setup_firewall_rules
 
-  # Start jobs processor
-  ######################
-  if [ -n "$JOBS_FILE" -a -e "$JOBS_FILE" ]; then
-    jobs_process_start
-  fi
+  # Start jobs processor (if required)
+  jobs_process_start
 }
 
 
