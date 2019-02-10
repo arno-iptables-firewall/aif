@@ -1,5 +1,5 @@
-Version 2.1.0-BETA2-DEVEL (February 1, 2019)
---------------------------------------------
+Version 2.1.0-RC1 (February 10, 2019)
+-------------------------------------
 ! The install and configure scripts didn't work properly on systems without an /etc/init.d directory (eg. Arch Linux)
 ! Error handling in the plugin helpers was broken
 * Workaround non-working + interface wildcard in nftables's iptables binary
