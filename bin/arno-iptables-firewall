@@ -5017,7 +5017,11 @@ jobs_process_terminate_check()
   local wait_count=10
   local cnt=0
 
-  echo "Waiting for background job process \"$JOB_PROCESSOR\" to terminate"
+  if ! pgrep -f "$JOB_PROCESSOR" >/dev/null 2>&1; then
+    return 0 # Nothing to do
+  fi
+
+  echo "Waiting for background job processor \"$JOB_PROCESSOR\" to terminate"
 
   # Check if process is not still running
   while [ $cnt -lt $wait_count ]; do
@@ -5045,16 +5049,13 @@ jobs_process_terminate_check()
 # Start jobs processor
 jobs_process_start()
 {
-  if [ -z "$JOBS_FILE" -o ! -e "$JOBS_FILE" ]; then
-    # No jobs
-    return 0
-  fi
+  if [ -n "$JOBS_FILE" -a -e "$JOBS_FILE" ]; then
+    echo "Starting background jobs processor"
 
-  echo "Starting background jobs processor"
-
-  # Run script for background process
-  if ! "$JOB_PROCESSOR" --background; then
-    return 1
+    # Run script for background process
+    if ! "$JOB_PROCESSOR" --background; then
+      return 1
+    fi
   fi
 
   return 0
@@ -5064,16 +5065,18 @@ jobs_process_start()
 # Stop jobs processor
 jobs_process_stop()
 {
-  echo "Stopping background jobs processor"
+  if [ -n "$JOBS_FILE" -a -e "$JOBS_FILE" ]; then
+    echo "Stopping background jobs processor"
 
-  # Enter critical section (ignore whether we actually can obtain the lock)
-  lock_enter "$JOBS_LOCK_NAME"
+    # Enter critical section (ignore whether we actually can obtain the lock)
+    lock_enter "$JOBS_LOCK_NAME"
 
-  # Remove jobs file (also kills background process (if any))
-  rm -f "$JOBS_FILE"
+    # Remove jobs file (also kills background process (if any))
+    rm -f "$JOBS_FILE"
 
-  # Leave critical section (ignore whether we actually can release the lock)
-  lock_leave "$JOBS_LOCK_NAME"
+    # Leave critical section (ignore whether we actually can release the lock)
+    lock_leave "$JOBS_LOCK_NAME"
+  fi
 
   # Make sure process is properly terminated
   if ! jobs_process_terminate_check; then
