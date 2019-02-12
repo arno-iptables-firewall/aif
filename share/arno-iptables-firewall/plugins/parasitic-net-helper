@@ -5,9 +5,8 @@ PLUGIN_CONF_FILE="parasitic-net.conf"
 # Preinit return value for success
 PLUGIN_RET_VAL=0
 
-
-# Check sanity of eg. environment
-parasitic_net_sanity_check()
+# Check sanity of environment
+parasitic_net_helper_sanity_check()
 {
   # Check whether chain exists
   if ! ip4tables -nL PARASITIC_NET_ACL >/dev/null 2>&1; then
@@ -19,7 +18,7 @@ parasitic_net_sanity_check()
 }
 
 
-parasitic_net_setup_rules()
+parasitic_net_helper_do_work()
 {
   local RETVAL=0
 
@@ -254,17 +253,16 @@ fi
 if [ ! -e "$CONF_FILE" ]; then
   echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
   PLUGIN_RET_VAL=1
-fi
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
 
-# Source the plugin config file
-. "$CONF_FILE"
-
-# Only proceed if environment ok
-if ! parasitic_net_sanity_check; then
-  PLUGIN_RET_VAL=1
-fi
-
-# Create actual rules
-if ! parasitic_net_setup_rules; then
-  PLUGIN_RET_VAL=1
+  # Only proceed if environment ok
+  if ! parasitic_net_helper_sanity_check; then
+    PLUGIN_RET_VAL=1
+  else
+    if ! parasitic_net_helper_do_work; then
+      PLUGIN_RET_VAL=1
+    fi
+  fi
 fi

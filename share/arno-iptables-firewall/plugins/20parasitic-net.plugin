@@ -5,7 +5,7 @@ PLUGIN_NAME="Parasitic (SNAT) Network plugin"
 PLUGIN_VERSION="1.00-BETA3"
 PLUGIN_CONF_FILE="parasitic-net.conf"
 #
-# Last changed          : June 11, 2018
+# Last changed          : February 12, 2019
 # Requirements          : AIF 2.1.0 (or newer)
 # Comments              : This plugin allows "clients" on the same subnet to use this
 #                         device as a gateway upstream. This network of "clients" is
@@ -17,8 +17,9 @@ PLUGIN_CONF_FILE="parasitic-net.conf"
 #                         external IPv4 address of this device. Note that this plugin
 #                         only works for IPv4, NOT IPv6
 #
-# Author                : (C) Copyright 2017-2018 by Arno van Amersfoort & Lonnie Abelbeck
-# Email                 : arnova AT rocky DOT eld DOT leidenuniv DOT nl
+# Author                : (C) Copyright 2017-2019 by Arno van Amersfoort & Lonnie Abelbeck
+# Homepage              : http://rocky.eld.leidenuniv.nl/
+# Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
 #                         at the proper locations!)
 # ------------------------------------------------------------------------------
@@ -42,7 +43,7 @@ JOB_NAME="parasitic_net"
 # (Background) job helper script
 JOB_HELPER_SCRIPT="$PLUGIN_BIN_PATH/parasitic-net-helper"
 
-parasitic_net_setup_rules()
+parasitic_net_init()
 {
   local IFS host if_ip snat_if snat_ip snat_ifs_ips snat_if_subnet
 
@@ -130,28 +131,10 @@ parasitic_net_setup_rules()
 
   # Hook into the POST POSTROUTING NAT chain
   ip4tables -t nat -A POST_NAT_POSTROUTING_CHAIN -j PARASITIC_NET_SNAT
-}
-
-
-parasitic_net_init()
-{
-  local BG_TIME
-
-  if [ -z "$PARASITIC_NET_TIME" ]; then
-    # Default to 60 minutes
-    BG_TIME=60
-  else
-    BG_TIME="$PARASITIC_NET_TIME"
-  fi
 
   # Create background job
-  job_add "$JOB_NAME" $BG_TIME "$JOB_HELPER_SCRIPT"
-
-  # Call the helper script at startup?
-  if [ "$PARASITIC_NET_RUN_AT_START" = "1" ]; then
-    if ! job_run_once "$JOB_HELPER_SCRIPT"; then
-      return 1
-    fi
+  if ! job_add "$JOB_NAME" "${PARASITIC_NET_TIME:-60}" "$JOB_HELPER_SCRIPT"; then
+    return 1
   fi
 
   return 0
@@ -161,11 +144,6 @@ parasitic_net_init()
 # Plugin start function
 plugin_start()
 {
-  # Setup rules
-  if ! parasitic_net_setup_rules; then
-    return 1
-  fi
-
   # Initialize
   if ! parasitic_net_init; then
     return 1
@@ -188,9 +166,6 @@ plugin_restart()
 # Plugin stop function
 plugin_stop()
 {
-  # Remove (background) job
-  job_remove "$JOB_NAME"
-
   ip4tables -t nat -D POST_NAT_POSTROUTING_CHAIN -j PARASITIC_NET_SNAT
 
   ip4tables -t nat -F PARASITIC_NET_SNAT
