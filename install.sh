@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.10"
+MY_VERSION="1.11"
 
 # ------------------------------------------------------------------------------------------
 #                         -= Arno's Iptables Firewall(AIF) =-
@@ -69,7 +69,6 @@ sanity_check()
   check_command_error logger
   check_command_error chmod
   check_command_error chown
-  check_command_error diff
   check_command_error find
   check_command_error cp
   check_command_error rm
@@ -80,8 +79,32 @@ sanity_check()
 }
 
 
+shell_diff()
+{
+  local FILE1_DATA="$(cat "$1")"
+  local FILE2_DATA="$(cat "$2")"
+
+  if [ "$FILE1_DATA" != "$FILE2_DATA" ]; then
+    # If mismatch, check whether it's only the comments that differ
+    FILE1_DATA="$(echo "$FILE1_DATA" |sed 's/#.*//')"
+    FILE2_DATA="$(echo "$FILE2_DATA" |sed 's/#.*//')"
+
+    if [ "$FILE1_DATA" = "$FILE2_DATA" ]; then
+      return 1 # Only comments differ
+    fi
+
+    return 2 # Full mismatch
+  fi
+
+  return 0 # Match
+}
+
+
 copy_ask_if_exist()
 {
+  local diff_retval=-1
+  local retval
+
   if [ -z "$(find "$1" -type f)" ]; then
     echo "ERROR: Missing source file(s) \"$1\""
     exit 2
@@ -92,9 +115,9 @@ copy_ask_if_exist()
     if echo "$2" |grep -q '/$'; then
       fn="$(echo "$source" |sed "s,^$1,,")"
       if [ -z "$fn" ]; then
-        target="$2$(basename "$1")"
+        target="${2}$(basename "$1")"
       else
-        target="$2$fn"
+        target="${2}${fn}"
       fi
       target_dir="$2"
     else
@@ -109,26 +132,34 @@ copy_ask_if_exist()
 
     if [ -f "$source" -a -f "$target" ]; then
       # Ignore files that are the same in the target
-      if ! diff "$source" "$target" >/dev/null; then
-        if ! get_user_yn "File \"$target\" already exists. Overwrite" "n"; then
-          if [ -z "$3" ]; then
-            echo "Skipped..."
-            continue
-          else
-            # Copy as e.g. .dist-file:
-            target="${target}.${3}"
-            rm -f "$target"
-          fi
+      shell_diff "$source" "$target"
+      diff_retval=$? # 0 = full match, 1 = match (excluding comments), 2 = full mismatch (including comments)
+
+      if [ $diff_retval -eq 2 ] && ! get_user_yn "File \"$target\" already exists. Overwrite" "n"; then
+        if [ -z "$3" ]; then
+          echo "Skipped..."
+          continue
+        else
+          # Copy as e.g. .dist-file:
+          target="${target}.${3}"
+          rm -f "$target"
         fi
-#      else
-#        echo "* Target file \"$target\" is already the same as source." # Skipping copy of $source"
-#        #continue
       fi
     fi
 
-    # copy file & create backup of old file if exists
-    if ! cp -bv --preserve=mode,timestamps "$source" "$target"; then
-      echo "ERROR: Copy error of \"$source\" to \"$target\"!" >&2
+    retval=0
+    if [ $diff_retval -eq 2 ]; then
+      # copy file & create backup of old file if exists
+      cp -bv --preserve=mode,timestamps "$source" "$target"
+      retval=$?
+    else
+      # Only comments mismatch, so no point in keeping a backup file
+      cp -v --preserve=mode,timestamps "$source" "$target"
+      retval=$?
+    fi
+
+    if [ $retval -ne 0 ]; then
+      echo "ERROR: Copy of \"$source\" to \"$target\" failed!" >&2
       exit 3
     fi
 
@@ -177,8 +208,9 @@ copy_skip_if_exist()
       fi
     fi
 
+    # NOTE: Always copy, even if contents is the same to make sure permissions are updated 
     if ! cp -v --preserve=mode,timestamps "$source" "$target"; then
-      echo "ERROR: Copy error of \"$source\" to \"$target!\"" >&2
+      echo "ERROR: Copy of \"$source\" to \"$target!\" failed!" >&2
       exit 3
     fi
 
@@ -216,16 +248,9 @@ copy_overwrite()
       continue
     fi
 
-#    if [ -f "$source" -a -f "$target" ]; then
-      # Ignore files that are the same in the target
-#      if diff "$source" "$target" >/dev/null; then
-#        echo "* Target file \"$target\" is already the same as source." # Skipping copy of $source"
-#        continue
-#      fi
-#    fi
-
+    # NOTE: Always copy, even if contents is the same to make sure permissions are updated
     if ! cp -fv --preserve=mode,timestamps "$source" "$target"; then
-      echo "ERROR: Copy error of \"$source\" to \"$target\"!" >&2
+      echo "ERROR: Copy of \"$source\" to \"$target\" failed!" >&2
       exit 3
     fi
 
@@ -357,9 +382,11 @@ else
 fi
 
 mkdir -pv /etc/arno-iptables-firewall || exit 1
+
 copy_overwrite ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf.dist
+copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/ 
+
 copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
-copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
 
 mkdir -pv /etc/arno-iptables-firewall/plugins || exit 1
 copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/ "dist"
