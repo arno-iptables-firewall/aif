@@ -1045,7 +1045,7 @@ parse_rule_warning()
 ipt_if()
 {
   if [ -n "$2" -a "$2" != "+" ]; then
-    echo "$1 $2"
+    echo "$1${IFS:- }$2"
   fi
 }
 
