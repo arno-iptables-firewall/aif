@@ -1,8 +1,3 @@
-Version 2.1.0-RC2-DEVEL (February 12, 2019)
--------------------------------------------
-! ipt_if() expansion didn't work as it should
-* Improve copy/overwrite logic in install.sh
-
 Version 2.1.0-RC1 (February 10, 2019)
 -------------------------------------
 ! The install and configure scripts didn't work properly on systems without an /etc/init.d directory (eg. Arch Linux)
