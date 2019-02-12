@@ -65,7 +65,7 @@ plugin_start()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              ip4tables -t nat -A NAT_PREROUTING_LOCAL $(ipt_if -i "$interface") -s $host -d $destip -p tcp --dport $port -j RETURN
+              ip4tables -t nat -A NAT_PREROUTING_LOCAL $(ipt_if "-i $interface") -s $host -d $destip -p tcp --dport $port -j RETURN
             done
           done
         done
@@ -86,7 +86,7 @@ plugin_start()
         for port in $ports; do
           for destip in $destips; do
             for interface in $interfaces; do
-              ip4tables -t nat -A NAT_PREROUTING_LOCAL $(ipt_if -i "$interface") -s $host -d $destip -p udp --dport $port -j RETURN
+              ip4tables -t nat -A NAT_PREROUTING_LOCAL $(ipt_if "-i $interface") -s $host -d $destip -p udp --dport $port -j RETURN
             done
           done
         done
@@ -107,7 +107,7 @@ plugin_start()
         for proto in $protos; do
           for destip in $destips; do
             for interface in $interfaces; do
-              ip4tables -t nat -A NAT_PREROUTING_LOCAL $(ipt_if -i "$interface") -s $host -d $destip -p $proto -j RETURN
+              ip4tables -t nat -A NAT_PREROUTING_LOCAL $(ipt_if "-i $interface") -s $host -d $destip -p $proto -j RETURN
             done
           done
         done
