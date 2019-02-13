@@ -5042,6 +5042,9 @@ jobs_process_terminate_check()
     return 1
   fi
 
+  # Remove possible leftover jobs file (unlikely)
+  rm -f "$JOBS_FILE"
+
   return 0
 }
 
