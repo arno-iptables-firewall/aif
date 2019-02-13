@@ -1,5 +1,10 @@
-Version 2.1.0-RC2 (February 13, 2019)
+Version 2.1.0-RC3-DEVEL (February 13, 2019)
 -------------------------------------------
+* Default FRAG_DROP to off
+* Tweaks in the job manager process
+
+Version 2.1.0-RC2 (February 13, 2019)
+-------------------------------------
 ! ipt_if() expansion didn't work as it should
 * Improve copy/overwrite logic in install.sh
 * Tweak job manager start/stop logic

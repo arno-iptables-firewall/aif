@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="2.1.0-RC2"
+MY_VERSION="2.1.0-RC3-DEVEL"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -1089,7 +1089,7 @@ setup_valid_chk_chain()
   # Fragmented packets handling
   # NOTE: Fragmentation cannot happen with IPv6 (and probably even not with iptables/IPv4)
   ########################################################################################
-  if [ "$FRAG_DROP" != "0" ]; then
+  if [ "$FRAG_DROP" = "1" ]; then
     echo "Dropping and logging of IPv4 fragmented packets enabled"
     ip4tables -A VALID_CHK -f -m limit --limit 3/m --limit-burst 1 -j LOG --log-prefix "AIF:Fragment packet: "
     ip4tables -A VALID_CHK -f -j DROP
