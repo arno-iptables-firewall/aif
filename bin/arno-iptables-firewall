@@ -5171,7 +5171,7 @@ setup_firewall_rules()
   # Fragmented packets handling
   # NOTE: Fragmentation cannot happen with IPv6 (and probably even not with iptables/IPv4)
   ########################################################################################
-  if [ "$FRAG_DROP" != "0" ]; then
+  if [ "$FRAG_DROP" = "1" ]; then
     ip4tables -A OUTPUT -f \
       -m limit --limit 3/m -j LOG --log-level $LOGLEVEL --log-prefix "AIF:Fragment packet: "
     ip4tables -A OUTPUT -f -j DROP
