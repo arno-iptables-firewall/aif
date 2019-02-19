@@ -10,10 +10,11 @@ PLUGIN_CONF_FILE="adaptive-ban.conf"
 # Comments              : Parse a log file for failed access with offending IP addresses
 #                         Ban the IP address after multiple failed attempts
 #
-# Author                : (C) Copyright 2010-2019 by Lonnie Abelbeck
-# Homepage              : http://www.astlinux.org/
+# Author                : (C) Copyright 2010-2019 by Arno van Amersfoort & Lonnie Abelbeck
+# Credits               : AstLinux Project
+# Homepage              : https://www.astlinux-project.org/
 # Credits               : Fail2ban Project
-# Homepage              : http://www.fail2ban.org/
+# Homepage              : https://www.fail2ban.org/
 # Credits               : Arno van Amersfoort
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
@@ -105,7 +106,7 @@ plugin_stop()
 
   iptables -F ADAPTIVE_BAN_CHAIN
   iptables -X ADAPTIVE_BAN_CHAIN 2>/dev/null
-  
+
   iptables -F ADAPTIVE_BAN_DROP_CHAIN
   iptables -X ADAPTIVE_BAN_DROP_CHAIN 2>/dev/null
 

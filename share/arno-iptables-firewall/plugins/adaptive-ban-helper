@@ -47,10 +47,10 @@ adaptive_ban_helper_do_work()
 filter()
 {
   local file="$1" count="$2" type types PREFIX HOST IFS
- 
+
   shift 2
   types="$@"
-  
+
   # regex to pull out offending IPv4/IPv6 address
   #
   HOST="([0-9a-fA-F:.]{7,})"
@@ -186,12 +186,12 @@ check_for_chain()
 
   ip4tables -n -L "$1" >/dev/null 2>&1
   err=$?
-  
+
   if [ "$IPV6_SUPPORT" = "1" -a $err -eq 0 ]; then
     ip6tables -n -L "$1" >/dev/null 2>&1
     err=$?
   fi
-  
+
   return $err
 }
 
