@@ -1,111 +1,48 @@
-#!/bin/bash
+# The plugin configuration file
+###############################
+PLUGIN_CONF_FILE="adaptive-ban.conf"
 
-LOCKFILE="/var/lock/aif_adaptive_ban.lock"
-
-ARGSFILE="/var/tmp/aif_adaptive_ban.args"
+# Preinit return value for success
+PLUGIN_RET_VAL=0
 
 TEMPFILE="/var/tmp/aif_adaptive_ban.temp"
 
-start_run()
+# Check sanity of environment
+adaptive_ban_helper_sanity_check()
 {
-  local num file time count arg args argstime=0 filetime=0 ARGS IFS
-  
-  ARGS="$@"
-  
-  # Robust 'bash' method of creating/testing for a lockfile
-  if ! ( set -o noclobber; echo "$$" > "$LOCKFILE" ) 2>/dev/null; then
-    echo "$ARGS" > "$ARGSFILE"
-    echo "adaptive-ban-helper: already running, lockfile \"$LOCKFILE\" exists, process id: $(cat "$LOCKFILE")."
-    return 9
+  # Check whether chains exists
+  if ! check_for_chain ADAPTIVE_BAN_CHAIN; then
+    log_msg "ADAPTIVE_BAN_CHAIN does not exist"
+    return 1
   fi
-  
-  trap 'rm -f "$LOCKFILE" "$ARGSFILE" "$TEMPFILE"; exit $?' INT TERM EXIT
-  
-  echo "$ARGS" > "$ARGSFILE"
-  
-  # Delay to allow firewall script to complete
-  idle_wait 45
-  
-  while [ -f "$ARGSFILE" ]; do
-  
-    # Check whether chains exists
-    if ! check_for_chain ADAPTIVE_BAN_CHAIN; then
-      log_msg "ADAPTIVE_BAN_CHAIN does not exist"
-      break
-    fi
-    if ! check_for_chain ADAPTIVE_BAN_DROP_CHAIN; then
-      log_msg "ADAPTIVE_BAN_DROP_CHAIN does not exist"
-      break
-    fi
-    
-    ARGS="$(cat "$ARGSFILE")"
-    
-    file=""
-    args=""
-    num=0
-    unset IFS
-    for arg in $ARGS; do
-      num=$((num+1))
-      case "$num" in
-        1) file="$arg" ;;
-        2) time="$arg" ;;
-        3) count="$arg" ;;
-        *) args="${args}${args:+ }$arg" ;;
-      esac
-    done
-    
-    if [ ! -f "$file" ]; then
-      log_msg "Input log file $file does not exist"
-      break
-    fi
-    
-    if [ "$filetime" != "$(date -r "$file" "+%s")" -o "$argstime" != "$(date -r "$ARGSFILE" "+%s")" ]; then
-      filter "$file" "$count" $args
-      
-      filetime="$(date -r "$file" "+%s")"
-      argstime="$(date -r "$ARGSFILE" "+%s")"
-    fi
-    
-    # Idle - interrupted if ARGSFILE is deleted
-    idle_wait $time
-  done
-  
-  rm -f "$LOCKFILE" "$ARGSFILE" "$TEMPFILE"
-  trap - INT TERM EXIT
-  
+
+  if ! check_for_chain ADAPTIVE_BAN_DROP_CHAIN; then
+    log_msg "ADAPTIVE_BAN_DROP_CHAIN does not exist"
+    return 1
+  fi
+
+  if [ ! -f "$ADAPTIVE_BAN_FILE" ]; then
+    log_msg "Input log file $ADAPTIVE_BAN_FILE does not exist"
+    return 1
+  fi
+
   return 0
 }
 
-stop()
-{
-  rm -f "$ARGSFILE"
 
-  # If the background start_run() is in idle_wait() this ensures a clean stop.
-  sleep 1
-  # If start_run() is not in idle_wait() we deal with that as well.
-  # We could loop while LOCKFILE exists, but doesn't seem necessary.
+adaptive_ban_helper_do_work()
+{
+  local filetime=0
+
+  if [ "$filetime" != "$(date -r "$ADAPTIVE_BAN_FILE" "+%s")" ]; then
+    filter "$ADAPTIVE_BAN_FILE" "$ADAPTIVE_BAN_COUNT" "$ADAPTIVE_BAN_TYPES"
+
+    filetime="$(date -r "$ADAPTIVE_BAN_FILE" "+%s")"
+  fi
+
+  return 0
 }
 
-status()
-{
-  echo "  Banned Hosts:"
-  echo "  =============================="
-  ip4tables -n -L ADAPTIVE_BAN_CHAIN | awk '$1 == "ADAPTIVE_BAN_DROP_CHAIN" { print "  "$4 }'
-  if [ "$IPV6_SUPPORT" = "1" ]; then
-    ip6tables -n -L ADAPTIVE_BAN_CHAIN | awk '$1 == "ADAPTIVE_BAN_DROP_CHAIN" { print "  "$3 }'
-  fi
-  echo "  ------------------------------"
-  echo ""
-  
-  echo "  Whitelisted Hosts:"
-  echo "  =============================="
-  ip4tables -n -L ADAPTIVE_BAN_CHAIN | awk '$1 == "RETURN" { print "  "$4 }'
-  if [ "$IPV6_SUPPORT" = "1" ]; then
-    ip6tables -n -L ADAPTIVE_BAN_CHAIN | awk '$1 == "RETURN" { print "  "$3 }'
-  fi
-  echo "  ------------------------------"
-  echo ""
-}
 
 filter()
 {
@@ -148,6 +85,7 @@ filter()
     rm -f "$TEMPFILE"
   done
 }
+
 
 filter_sshd()
 {
@@ -206,7 +144,7 @@ count_attempts_then_ban()
   # Remove possible IPv4 port numbers, IPv4:PORT -> IPv4
   sed -i -r -e 's/^([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+):[0-9]+$/\1/' "$TEMPFILE"
 
-  IFS=$'\n'
+  IFS=$EOL
   for line in $(sort "$TEMPFILE" | uniq -c); do
     if [ "$(echo "$line" | awk '{ print $1; }')" -ge "$count" ]; then
       host="$(echo "$line" | awk '{ print $2; }')"
@@ -242,16 +180,6 @@ ban_host()
   esac
 }
 
-idle_wait()
-{
-  local time="$1" cnt=0
-
-  while [ -f "$ARGSFILE" -a $cnt -lt $time ]; do
-    cnt=$((cnt+1))
-    sleep 1
-  done
-}
-
 check_for_chain()
 {
   local err
@@ -267,104 +195,37 @@ check_for_chain()
   return $err
 }
 
-ip4tables()
-{
-  local result retval
-
-  result="$($IP4TABLES "$@" 2>&1)"
-  retval=$?
-  
-  if [ $retval -ne 0 ]; then
-    log_msg "$IP4TABLES: ($retval) $result"
-  elif [ -n "$result" ]; then
-    echo "$result"
-  fi
-
-  return $retval
-}
-
-ip6tables()
-{
-  local result retval
-
-  result="$($IP6TABLES "$@" 2>&1)"
-  retval=$?
-  
-  if [ $retval -ne 0 ]; then
-    log_msg "$IP6TABLES: ($retval) $result"
-  elif [ -n "$result" ]; then
-    echo "$result"
-  fi
-
-  return $retval
-}
-
-get_numeric_ip_version()
-{
-  case $1 in
-  0/0)
-    ;;
-  [0-9][0-9.][0-9.][0-9.][0-9.]*.*[0-9])
-    return 4
-    ;;
-  [0-9]*.*/*[0-9]|[0-9]/*[0-9]|[1-9][0-9]/*[0-9]|[12][0-9][0-9]/*[0-9])
-    return 4
-    ;;
-  *:*)
-    return 6
-    ;;
-  esac
-
-  return 0
-}
-
 log_msg()
 {
   logger -t "firewall: adaptive-ban" -p kern.info "$1"
   echo "$1" >&2
 }
 
-# main
+############
+# Mainline #
+############
 
-ACTION="$1"
-
-IP4TABLES="$2"
-if [ -z "$IP4TABLES" -o "$IP4TABLES" = "ip4tables" ]; then
-  ACTION=""
+# Check where to find the config file
+CONF_FILE=""
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
 fi
 
-IP6TABLES="$3"
-if [ -z "$IP6TABLES" -o "$IP6TABLES" = "ip6tables" ]; then
-  ACTION=""
-fi
+# Check if the config file exists
+if [ ! -e "$CONF_FILE" ]; then
+  echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
+  PLUGIN_RET_VAL=1
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
 
-IPV6_SUPPORT="$4"
-
-shift 4
-
-case $ACTION in
-
-start)
-  if [ -z "$1" -o -z "$2" -o -z "$3" -o -z "$4" ]; then
-    echo "Usage: adaptive-ban-helper start ip4tables_path ip6tables_path ipv6_flag logfile time count args..."
-    exit 1
+  # Only proceed if environment ok
+  if ! adaptive_ban_helper_sanity_check; then
+    PLUGIN_RET_VAL=1
+  else
+    # Parse rules
+    if ! adaptive_ban_helper_do_work; then
+      PLUGIN_RET_VAL=1
+    fi
   fi
-  start_run "$@"
-  ;;
-
-stop)
-  stop
-  ;;
-
-status)
-  status
-  ;;
-
-*)
-  echo "Usage: adaptive-ban-helper start|stop|status ip4tables_path ip6tables_path ipv6_flag"
-  echo "                           [ logfile time count args... ]"
-  exit 1
-  ;;
-  
-esac
-
+fi
