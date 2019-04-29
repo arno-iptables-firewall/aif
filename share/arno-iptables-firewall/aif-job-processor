@@ -148,7 +148,7 @@ job_process()
     # Idle wait SLEEP_TIME minutes unless the jobs gets removed
     if idle_wait "$SLEEP_TIME" "$JOBS_FILE"; then
       [ $VERBOSE -eq 1 ] && echo "Jobs file removed, terminating..."
-      break # No jobs file: We're done
+      return 0 # No jobs file: We're done
     fi
   done
 
