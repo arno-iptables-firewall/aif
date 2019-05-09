@@ -383,7 +383,7 @@ fi
 
 # Install rsyslog config file (if rsyslog is available)
 if [ -d "/etc/rsyslog.d" ]; then
-  copy_ask_if_exist ./etc/rsyslog.d/arno-iptables.firewall.conf /etc/rsyslog.d/
+  copy_ask_if_exist ./etc/rsyslog.d/arno-iptables-firewall.conf /etc/rsyslog.d/
 fi
 
 mkdir -pv /etc/arno-iptables-firewall || exit 1
