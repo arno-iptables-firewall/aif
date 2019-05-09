@@ -127,8 +127,8 @@ An explanation of the files in the package:
         also contains examples on how to modify your syslogger to log your
         firewall stuff into a separate file.
 
-------------------------------------------
-| Some IMPORTANT (security) information: |
+-----------------------------------------
+| Some IMPORTANT (security) information|
 ------------------------------------------
 1) If possible try to start the firewall before you enable your (ADSL) internet
    connection. For an ppp-interface that doesn't exist yet
@@ -159,9 +159,16 @@ An explanation of the files in the package:
 3) You can use the $ANYPORT and $ANYHOST macros to specify "ALL ports" or
    "ALL hosts" in the configuration variables/rules.
 
-4) The default separator for configuration-variables/rules is ~. For source
-   target definitions the separator to separate source and target is >. All of
-   this is also explained (with examples) in the configuration file.
+4) The configuration variables use several "special" (seperator) characters:
+   ' ' (space): Used to seperate rules (eg. 'rule1 rule2')
+   ','        : Used for lists of ports, hosts or protocols (eg. '21,22,23')
+   '~'        : Used for host-port seperation (eg. '192.168.1.1~22')
+   '>'        : Used for source-to-target seperation (eg. '192.168.1.1>10.0.0.3')
+   '#'        : Used for external interface(-IP) restrictions (eg. 'eth0>rule')
+                Also see 5)
+
+   You may want to have a look at the configuration file in
+   /etc/arno-iptables-firewall/ for additional information (and examples)
 
 5) For configuration-variables/rules which are related to the external
    (internet) interface one can restrict the interface(s) for which it is
