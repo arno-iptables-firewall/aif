@@ -38,7 +38,7 @@ PLUGIN_CONF_FILE="parasitic-net.conf"
 # ------------------------------------------------------------------------------
 
 # (Background) job name
-JOB_NAME="parasitic_net"
+JOB_NAME="parasitic-net"
 
 # (Background) job helper script
 JOB_HELPER_SCRIPT="$PLUGIN_BIN_PATH/parasitic-net-helper"
