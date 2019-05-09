@@ -128,8 +128,8 @@ An explanation of the files in the package:
         firewall stuff into a separate file.
 
 -----------------------------------------
-| Some IMPORTANT (security) information|
-------------------------------------------
+| Some IMPORTANT (security) information |
+-----------------------------------------
 1) If possible try to start the firewall before you enable your (ADSL) internet
    connection. For an ppp-interface that doesn't exist yet
    you can use the wildcard device called "ppp+" (but you can only use
@@ -367,24 +367,21 @@ Troubleshooting: What if it doesn't work?:
 
 
 Plugin support
-------------------------------------------------------------
+------------------------------------------------------------------------------
 As of version 1.8.7-RC2 my firewall also supports plugins -> little scripts
 that implement specific functionality.
 
 Notes on plugins:
 -----------------
-1) Plugins should be put in /etc/arno-iptables-firewall/plugins/
-2) The priority/loading order of the plugins can be adjusted by the changing
-   the number in front of the plugin-name (50=default). Increasing the number
-   gives lower priority, decreasing the number gives higher priority.
-3) All plugins have an option called "ENABLED" (in their config file) which is
+1) Plugin config files can be found in /etc/arno-iptables-firewall/plugins/
+2) All plugins have an option called "ENABLED" (in their config file) which is
    set to 0 by default, meaning it is disabled. So if you actually want to use
    a plugin, you have to make ENABLED=1
-4) Plugins can have their own additional set of configuration variables, don't
+3) Plugins can have their own additional set of configuration variables, don't
    forget to set/review those too.
 
 Everyone is invited to write their own plugins to implement other things, and
-to submit them.
+to submit to us.
 
 Notes on writing your own plugins
 ---------------------------------
