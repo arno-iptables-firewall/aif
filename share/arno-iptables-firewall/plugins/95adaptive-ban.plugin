@@ -36,7 +36,7 @@ PLUGIN_CONF_FILE="adaptive-ban.conf"
 # ------------------------------------------------------------------------------
 
 # (Background) job name
-JOB_NAME="adaptive_ban"
+JOB_NAME="adaptive-ban"
 
 # (Background) job helper script
 JOB_HELPER_SCRIPT="$PLUGIN_BIN_PATH/adaptive-ban-helper"

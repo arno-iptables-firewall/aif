@@ -1820,6 +1820,22 @@ ip6tables_batch()
 }
 
 
+# Log message function. Message is read from stdin
+# $1 = Optional prefix
+log_msg()
+{
+  local IFS=' '
+  local PREFIX="$1"
+
+  # Get message from stdin
+  IFS=$EOL
+  while read LINE; do
+    # Have sed remove any colouring
+    echo "${PREFIX}${LINE}" |sed 's/\x1B\[[0-9;]\+[A-Za-z]//g' |logger -t firewall -p kern.info
+  done
+}
+
+
 # Display progress bar, 0% to 100% in 2% increments
 progress_bar()
 {

@@ -30,7 +30,7 @@ PLUGIN_CONF_FILE="dyndns-host-open.conf"
 # ------------------------------------------------------------------------------
 
 # (Background) job name
-JOB_NAME="dyndns_host_open"
+JOB_NAME="dyndns-host-open"
 
 # (Background) job helper script
 JOB_HELPER_SCRIPT="$PLUGIN_BIN_PATH/dyndns-host-open-helper"

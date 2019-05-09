@@ -12,17 +12,17 @@ adaptive_ban_helper_sanity_check()
 {
   # Check whether chains exists
   if ! check_for_chain ADAPTIVE_BAN_CHAIN; then
-    log_msg "ADAPTIVE_BAN_CHAIN does not exist"
+    echo "** ERROR: ADAPTIVE_BAN_CHAIN does not exist! **" >&2
     return 1
   fi
 
   if ! check_for_chain ADAPTIVE_BAN_DROP_CHAIN; then
-    log_msg "ADAPTIVE_BAN_DROP_CHAIN does not exist"
+    echo "** ERROR: ADAPTIVE_BAN_DROP_CHAIN does not exist! **" >&2
     return 1
   fi
 
   if [ ! -f "$ADAPTIVE_BAN_FILE" ]; then
-    log_msg "Input log file $ADAPTIVE_BAN_FILE does not exist"
+    echo "** ERROR: Input log file $ADAPTIVE_BAN_FILE does not exist! **" >&2
     return 1
   fi
 
@@ -73,12 +73,12 @@ filter()
          ;;
       pptpd) filter_pptpd "$file" "$PREFIX" "$HOST"
          ;;
-      *) log_msg "Unsupported type \"$type\""
+      *) echo "Unsupported type \"$type\"" >&2
          continue
          ;;
     esac
     if [ $? -ne 0 ]; then
-      log_msg "Filter Error for type \"$type\""
+      echo "Filter error for type \"$type\"" >&2
     else
       count_attempts_then_ban "$count" "$type"
     fi
@@ -163,7 +163,7 @@ ban_host()
     if ! ip4tables -n -L ADAPTIVE_BAN_CHAIN | grep -q " ${host//./\.}[/ ]"; then
       ip4tables -A ADAPTIVE_BAN_CHAIN -s $host -j ADAPTIVE_BAN_DROP_CHAIN
       if [ $? -eq 0 ]; then
-        log_msg "Banned IPv4 Host: $host  Filter Type: $type"
+        echo "Banned IPv4 host: $host  Filter type: $type" >&2
       fi
     fi
     ;;
@@ -172,7 +172,7 @@ ban_host()
       if ! ip6tables -n -L ADAPTIVE_BAN_CHAIN | grep -q " ${host}[/ ]"; then
         ip6tables -A ADAPTIVE_BAN_CHAIN -s $host -j ADAPTIVE_BAN_DROP_CHAIN
         if [ $? -eq 0 ]; then
-          log_msg "Banned IPv6 Host: $host  Filter Type: $type"
+          echo "Banned IPv6 host: $host  Filter type: $type" >&2
         fi
       fi
     fi
@@ -193,12 +193,6 @@ check_for_chain()
   fi
 
   return $err
-}
-
-log_msg()
-{
-  logger -t "firewall: adaptive-ban" -p kern.info "$1"
-  echo "$1" >&2
 }
 
 ############
