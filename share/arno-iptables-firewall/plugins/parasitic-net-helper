@@ -105,12 +105,12 @@ parasitic_net_helper_do_work()
   for rule in $PARASITIC_NET_HOST_DENY_IP; do
     if parse_rule "$rule" PARASITIC_NET_HOST_DENY_IP "hosts-protos"; then
       echo "${INDENT}Denying access to $hosts for IP protocol(s): $protos"
-      RETVAL=1
 
       IFS=' ,'
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping IP deny rule(s) for unresolvable host \"$host\"! **" >&2
+          RETVAL=1
           continue
         fi
 

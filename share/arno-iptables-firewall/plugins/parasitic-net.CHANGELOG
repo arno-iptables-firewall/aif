@@ -1,6 +1,7 @@
 Version 1.00 (May 9, 2019)
 --------------------------
 ! Fixed (dynamic) host multi IP handling
+! Fixed misplaced RETVAL=1 statement
 
 Version 1.00-RC1 (February 12, 2019)
 ------------------------------------
