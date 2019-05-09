@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.11"
+MY_VERSION="1.12"
 
 # ------------------------------------------------------------------------------------------
 #                         -= Arno's Iptables Firewall(AIF) =-
@@ -379,6 +379,11 @@ elif [ -d "/etc/systemd/system" ]; then
  copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /etc/systemd/system/
 else
   echo "NOTE: Could not find any systemd/system directory, skipping systemd configuration" >&2
+fi
+
+# Install rsyslog config file (if rsyslog is available)
+if [ -d "/etc/rsyslog.d" ]; then
+  copy_ask_if_exist ./etc/rsyslog.d/arno-iptables.firewall.conf /etc/rsyslog.d/
 fi
 
 mkdir -pv /etc/arno-iptables-firewall || exit 1

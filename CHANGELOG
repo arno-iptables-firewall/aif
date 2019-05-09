@@ -1,5 +1,6 @@
 Version 2.1.0-RC3-DEVEL (May 9, 2019)
 -------------------------------------
+* Have installer install rsyslog config file, if rsyslog is available
 ! Fixed (dynamic) host multi IP handling in plugins
 * Default FRAG_DROP to off
 * Tweaks in the job manager process
