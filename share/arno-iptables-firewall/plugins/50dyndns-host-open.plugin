@@ -2,10 +2,10 @@
 #         -= Arno's Iptables Firewall(AIF) - DynDNS Host Open plugin =-
 #
 PLUGIN_NAME="DynDNS Host Open plugin"
-PLUGIN_VERSION="1.41"
+PLUGIN_VERSION="1.42"
 PLUGIN_CONF_FILE="dyndns-host-open.conf"
 #
-# Last changed          : January 5, 2019
+# Last changed          : May 9, 2019
 # Requirements          : AIF 2.1.0 (or newer)
 # Comments              : This implements dynamic DNS (DynDNS) support for eg. opening ports
 #

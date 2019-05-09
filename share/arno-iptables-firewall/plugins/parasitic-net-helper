@@ -30,7 +30,7 @@ parasitic_net_helper_do_work()
     if parse_rule "$rule" PARASITIC_NET_HOST_DENY_TCP "hosts-ports"; then
       echo "${INDENT}Denying access to $hosts for TCP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping TCP deny rule(s) for unresolvable host \"$host\"! **" >&2
@@ -38,13 +38,15 @@ parasitic_net_helper_do_work()
           continue
         fi
 
-        for port in $ports; do
-          if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-            ip4tables -A PARASITIC_NET_ACL -d $host_ip -p tcp --dport $port -m limit --limit 1/m -j LOG \
-              --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
-          fi
+        for host_ip2 in $host_ip; do
+          for port in $ports; do
+            if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+              ip4tables -A PARASITIC_NET_ACL -d $host_ip2 -p tcp --dport $port -m limit --limit 1/m -j LOG \
+                --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+            fi
 
-          ip4tables -A PARASITIC_NET_ACL -d $host_ip -p tcp --dport $port -j $PARASITIC_NET_DENY_POLICY
+            ip4tables -A PARASITIC_NET_ACL -d $host_ip2 -p tcp --dport $port -j $PARASITIC_NET_DENY_POLICY
+          done
         done
       done
     fi
@@ -55,7 +57,7 @@ parasitic_net_helper_do_work()
     if parse_rule "$rule" PARASITIC_NET_HOST_DENY_UDP "hosts-ports"; then
       echo "${INDENT}Denying access to $hosts for UDP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping UDP deny rule(s) for unresolvable host \"$host\"! **" >&2
@@ -63,13 +65,15 @@ parasitic_net_helper_do_work()
           continue
         fi
 
-        for port in $ports; do
-          if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-            ip4tables -A PARASITIC_NET_ACL -d $host_ip -p udp --dport $port -m limit --limit 1/m -j LOG \
-              --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
-          fi
+        for host_ip2 in $host_ip; do
+          for port in $ports; do
+            if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+              ip4tables -A PARASITIC_NET_ACL -d $host_ip2 -p udp --dport $port -m limit --limit 1/m -j LOG \
+                --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+            fi
 
-          ip4tables -A PARASITIC_NET_ACL -d $host_ip -p udp --dport $port -j $PARASITIC_NET_DENY_POLICY
+            ip4tables -A PARASITIC_NET_ACL -d $host_ip2 -p udp --dport $port -j $PARASITIC_NET_DENY_POLICY
+          done
         done
       done
     fi
@@ -86,12 +90,14 @@ parasitic_net_helper_do_work()
         continue
       fi
 
-      if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-        ip4tables -A PARASITIC_NET_ACL -d $host_ip -p icmp --icmp-type echo-request -m limit --limit 1/m -j LOG \
-          --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
-      fi
+      for host_ip2 in $host_ip; do
+        if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+          ip4tables -A PARASITIC_NET_ACL -d $host_ip2 -p icmp --icmp-type echo-request -m limit --limit 1/m -j LOG \
+            --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+        fi
 
-      ip4tables -A PARASITIC_NET_ACL -d $host_ip -p icmp --icmp-type echo-request -j $PARASITIC_NET_DENY_POLICY
+        ip4tables -A PARASITIC_NET_ACL -d $host_ip2 -p icmp --icmp-type echo-request -j $PARASITIC_NET_DENY_POLICY
+      done
     done
   done
 
@@ -100,20 +106,23 @@ parasitic_net_helper_do_work()
     if parse_rule "$rule" PARASITIC_NET_HOST_DENY_IP "hosts-protos"; then
       echo "${INDENT}Denying access to $hosts for IP protocol(s): $protos"
       RETVAL=1
-      IFS=','
+
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping IP deny rule(s) for unresolvable host \"$host\"! **" >&2
           continue
         fi
 
-        for proto in $protos; do
-          if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-            ip4tables -A PARASITIC_NET_ACL -d $host_ip -p $proto -m limit --limit 1/m -j LOG \
-              --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
-          fi
+        for host_ip2 in $host_ip; do
+          for proto in $protos; do
+            if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
+              ip4tables -A PARASITIC_NET_ACL -d $host_ip2 -p $proto -m limit --limit 1/m -j LOG \
+                --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
+            fi
 
-          ip4tables -A PARASITIC_NET_ACL -d $host_ip -p $proto -j $PARASITIC_NET_DENY_POLICY
+            ip4tables -A PARASITIC_NET_ACL -d $host_ip2 -p $proto -j $PARASITIC_NET_DENY_POLICY
+          done
         done
       done
     fi
@@ -124,7 +133,7 @@ parasitic_net_helper_do_work()
     if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_TCP "hosts-ports"; then
       echo "${INDENT}Allowing access to $hosts for TCP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping TCP allow rule(s) for unresolvable host \"$host\"! **" >&2
@@ -132,8 +141,10 @@ parasitic_net_helper_do_work()
           continue
         fi
 
-        for port in $ports; do
-          ip4tables -A PARASITIC_NET_ACL -d $host_ip -p tcp --dport $port -j ACCEPT
+        for host_ip2 in $host_ip; do
+          for port in $ports; do
+            ip4tables -A PARASITIC_NET_ACL -d $host_ip2 -p tcp --dport $port -j ACCEPT
+          done
         done
       done
     fi
@@ -144,7 +155,7 @@ parasitic_net_helper_do_work()
     if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_UDP "hosts-ports"; then
       echo "${INDENT}Allowing access to $hosts for UDP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping UDP allow rule(s) for unresolvable host \"$host\"! **" >&2
@@ -152,8 +163,10 @@ parasitic_net_helper_do_work()
           continue
         fi
 
-        for port in $ports; do
-          ip4tables -A PARASITIC_NET_ACL -d $host_ip -p udp --dport $port -j ACCEPT
+        for host_ip2 in $host_ip; do
+          for port in $ports; do
+            ip4tables -A PARASITIC_NET_ACL -d $host_ip2 -p udp --dport $port -j ACCEPT
+          done
         done
       done
     fi
@@ -170,7 +183,9 @@ parasitic_net_helper_do_work()
         continue
       fi
 
-      ip4tables -A PARASITIC_NET_ACL -d $host_ip -p icmp --icmp-type echo-request -j ACCEPT
+      for host_ip2 in $host_ip; do
+        ip4tables -A PARASITIC_NET_ACL -d $host_ip2 -p icmp --icmp-type echo-request -j ACCEPT
+      done
     done
   done
 
@@ -179,7 +194,7 @@ parasitic_net_helper_do_work()
     if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_IP "hosts-protos"; then
       echo "${INDENT}Allowing access to $hosts for IP protocol(s): $protos"
 
-      IFS=','
+      IFS=' ,'
       for host in `ip_range "$hosts"`; do
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
           echo "** WARNING: Skipping IP allow rule(s) for unresolvable host \"$host\"! **" >&2
@@ -187,8 +202,10 @@ parasitic_net_helper_do_work()
           continue
         fi
 
-        for proto in $protos; do
-          ip4tables -A PARASITIC_NET_ACL -d $host_ip -p $proto -j ACCEPT
+        for host_ip2 in $host_ip; do
+          for proto in $protos; do
+            ip4tables -A PARASITIC_NET_ACL -d $host_ip2 -p $proto -j ACCEPT
+          done
         done
       done
     fi

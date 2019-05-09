@@ -1,3 +1,7 @@
+Version 1.42 (May 9, 2019)
+--------------------------
+! Fixed (dynamic) host multi IP handling
+
 Version 1.41 (January 5, 2019)
 ------------------------------
 * Changed to support ipt_if() function (requires AIF 2.1.0+)

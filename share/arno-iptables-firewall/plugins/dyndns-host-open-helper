@@ -44,7 +44,7 @@ dyndns_host_open_helper_do_work()
     if parse_rule "$rule" DYNDNS_HOST_OPEN_TCP "interfaces-destips-hosts-ports"; then
       echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for TCP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for host in $hosts; do
         # get_dynamic_host_cached returns hostname in $host_ip
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
@@ -52,10 +52,13 @@ dyndns_host_open_helper_do_work()
           RETVAL=1
           continue
         fi
+
         for interface in $interfaces; do
-          for destip in $destips; do
-            for port in $ports; do
-              iptables -A DYNDNS_CHAIN $(ipt_if -i "$interface") -s $host_ip -d $destip -p tcp --dport $port -j ACCEPT
+          for host_ip2 in $host_ip; do
+            for destip in $destips; do
+              for port in $ports; do
+                iptables -A DYNDNS_CHAIN $(ipt_if -i "$interface") -s $host_ip2 -d $destip -p tcp --dport $port -j ACCEPT
+              done
             done
           done
         done
@@ -70,7 +73,7 @@ dyndns_host_open_helper_do_work()
     if parse_rule "$rule" DYNDNS_HOST_OPEN_UDP "interfaces-destips-hosts-ports"; then
       echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for UDP port(s): $ports"
 
-      IFS=','
+      IFS=' ,'
       for host in $hosts; do
         # get_dynamic_host_cached returns hostname in $host_ip
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
@@ -78,10 +81,13 @@ dyndns_host_open_helper_do_work()
           RETVAL=1
           continue
         fi
+
         for interface in $interfaces; do
-          for destip in $destips; do
-            for port in $ports; do
-              iptables -A DYNDNS_CHAIN $(ipt_if -i "$interface") -s $host_ip -d $destip -p udp --dport $port -j ACCEPT
+          for host_ip2 in $host_ip; do
+            for destip in $destips; do
+              for port in $ports; do
+                iptables -A DYNDNS_CHAIN $(ipt_if -i "$interface") -s $host_ip2 -d $destip -p udp --dport $port -j ACCEPT
+              done
             done
           done
         done
@@ -96,7 +102,7 @@ dyndns_host_open_helper_do_work()
     if parse_rule "$rule" DYNDNS_HOST_OPEN_IP "interfaces-destips-hosts-protos"; then
       echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for IP protocol(s): $protos"
 
-      IFS=','
+      IFS=' ,'
       for host in $hosts; do
         # get_dynamic_host_cached returns hostname in $host_ip
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
@@ -104,10 +110,13 @@ dyndns_host_open_helper_do_work()
           RETVAL=1
           continue
         fi
+
         for interface in $interfaces; do
-          for destip in $destips; do
-            for proto in $protos; do
-              iptables -A DYNDNS_CHAIN $(ipt_if -i "$interface") -s $host_ip -d $destip -p $proto -j ACCEPT
+          for host_ip2 in $host_ip; do
+            for destip in $destips; do
+              for proto in $protos; do
+                iptables -A DYNDNS_CHAIN $(ipt_if -i "$interface") -s $host_ip2 -d $destip -p $proto -j ACCEPT
+              done
             done
           done
         done
@@ -122,7 +131,7 @@ dyndns_host_open_helper_do_work()
     if parse_rule "$rule" DYNDNS_HOST_OPEN_ICMP "interfaces-destips-hosts"; then
       echo "${INDENT}$(show_if_ip "$interfaces" "$destips")Allowing $hosts for ICMP-requests(ping)"
 
-      IFS=','
+      IFS=' ,'
       for host in $hosts; do
         # get_dynamic_host_cached returns hostname in $host_ip
         if ! get_dynamic_host_cached $host || [ -z "$host_ip" ]; then
@@ -132,8 +141,10 @@ dyndns_host_open_helper_do_work()
         fi
 
         for interface in $interfaces; do
-          for destip in $destips; do
-            iptables -A DYNDNS_CHAIN $(ipt_if -i "$interface") -s $host_ip -d $destip -p icmp --icmp-type echo-request -j ACCEPT
+          for host_ip2 in $host_ip; do
+            for destip in $destips; do
+              iptables -A DYNDNS_CHAIN $(ipt_if -i "$interface") -s $host_ip2 -d $destip -p icmp --icmp-type echo-request -j ACCEPT
+            done
           done
         done
       done

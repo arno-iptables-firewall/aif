@@ -89,46 +89,28 @@ traffic_accounting_helper_do_work()
       continue
     fi
 
-    echo "${INDENT}Monitoring host \"$host\""
+    IFS=' ,'
+    for mon_host_ip in $host_ip; do
+      echo "${INDENT}Monitoring host \"$host\" with IP(s): $mon_host_ip"
 
-    if [ "$VERBOSE" = "1" ]; then
-      printf "old_ip=$old_ip host_ip=$host_ip "
-    fi
+      if [ "$VERBOSE" = "1" ]; then
+        printf "old_ip=$old_ip host_ip=$mon_host_ip "
+      fi
 
-    # Process input chain
-    OLDFOUND=0
-    if [ -n "$old_ip" ]; then
-      get_numeric_ip_version "$host_ip"
-      case $? in
-      4)
-        LCOUNT=0
-        IFS=$EOL
-        for LINE in `ip4tables -xnvL ACCOUNTING_INPUT_CHAIN |sed -e "1,2d"`; do
-          ipt_ip="$(echo "$LINE" |awk '{ print $8 }')"
-
-          LCOUNT=$((LCOUNT + 1))
-          if [ "$ipt_ip" = "$old_ip" ]; then
-            ip4tables -R ACCOUNTING_INPUT_CHAIN $LCOUNT -s $host_ip -j RETURN
-            if [ "$VERBOSE" = "1" ]; then
-              printf "in_action=update "
-            fi
-            OLDFOUND=1
-            ipt_in_value="$(echo "$LINE" |awk '{ print $2 }')"
-
-            break
-          fi
-        done
-        ;;
-      6)
-        if [ "$IPV6_SUPPORT" = "1" ]; then
+      # Process input chain
+      OLDFOUND=0
+      if [ -n "$old_ip" ]; then
+        get_numeric_ip_version "$mon_host_ip"
+        case $? in
+        4)
           LCOUNT=0
           IFS=$EOL
-          for LINE in `ip6tables -xnvL ACCOUNTING_INPUT_CHAIN |sed -e "1,2d"`; do
-            ipt_ip="$(echo "$LINE" |awk '{ print $7 }')"
+          for LINE in `ip4tables -xnvL ACCOUNTING_INPUT_CHAIN |sed -e "1,2d"`; do
+            ipt_ip="$(echo "$LINE" |awk '{ print $8 }')"
 
             LCOUNT=$((LCOUNT + 1))
             if [ "$ipt_ip" = "$old_ip" ]; then
-              ip6tables -R ACCOUNTING_INPUT_CHAIN $LCOUNT -s $host_ip -j RETURN
+              ip4tables -R ACCOUNTING_INPUT_CHAIN $LCOUNT -s $mon_host_ip -j RETURN
               if [ "$VERBOSE" = "1" ]; then
                 printf "in_action=update "
               fi
@@ -138,60 +120,60 @@ traffic_accounting_helper_do_work()
               break
             fi
           done
-        fi
-        ;;
-      esac
-    fi
+          ;;
+        6)
+          if [ "$IPV6_SUPPORT" = "1" ]; then
+            LCOUNT=0
+            IFS=$EOL
+            for LINE in `ip6tables -xnvL ACCOUNTING_INPUT_CHAIN |sed -e "1,2d"`; do
+              ipt_ip="$(echo "$LINE" |awk '{ print $7 }')"
 
-    if [ $OLDFOUND -eq 0 ]; then
-      if [ "$VERBOSE" = "1" ]; then
-        printf "in_action=add "
-      fi
+              LCOUNT=$((LCOUNT + 1))
+              if [ "$ipt_ip" = "$old_ip" ]; then
+                ip6tables -R ACCOUNTING_INPUT_CHAIN $LCOUNT -s $mon_host_ip -j RETURN
+                if [ "$VERBOSE" = "1" ]; then
+                  printf "in_action=update "
+                fi
+                OLDFOUND=1
+                ipt_in_value="$(echo "$LINE" |awk '{ print $2 }')"
 
-      if [ "$host_ip" = "0.0.0.0/0" -o "$host_ip" = "::/0" ]; then
-        iptables -A ACCOUNTING_INPUT_CHAIN -s $host_ip -j RETURN
-      else
-        iptables -I ACCOUNTING_INPUT_CHAIN 1 -s $host_ip -j RETURN
-      fi
-
-      # Preset values to zero as none exist yet
-      ipt_in_value=0
-    fi
-
-    # Process output chain
-    OLDFOUND=0
-    if [ -n "$old_ip" ]; then
-      get_numeric_ip_version "$host_ip"
-      case $? in
-      4)
-        LCOUNT=0
-        IFS=$EOL
-        for LINE in `ip4tables -xnvL ACCOUNTING_OUTPUT_CHAIN |sed -e "1,2d"`; do
-          ipt_ip="$(echo "$LINE" |awk '{ print $9 }')"
-
-          LCOUNT=$((LCOUNT + 1))
-          if [ "$ipt_ip" = "$old_ip" ]; then
-            ip4tables -R ACCOUNTING_OUTPUT_CHAIN $LCOUNT -d $host_ip -j RETURN
-            if [ "$VERBOSE" = "1" ]; then
-              printf "out_action=update "
-            fi
-            OLDFOUND=1
-            ipt_out_value="$(echo "$LINE" |awk '{ print $2 }')"
-
-            break
+                break
+              fi
+            done
           fi
-        done
-        ;;
-      6)
-        if [ "$IPV6_SUPPORT" = "1" ]; then
+          ;;
+        esac
+      fi
+
+      if [ $OLDFOUND -eq 0 ]; then
+        if [ "$VERBOSE" = "1" ]; then
+          printf "in_action=add "
+        fi
+
+        if [ "$mon_host_ip" = "0.0.0.0/0" -o "$mon_host_ip" = "::/0" ]; then
+          iptables -A ACCOUNTING_INPUT_CHAIN -s $mon_host_ip -j RETURN
+        else
+          iptables -I ACCOUNTING_INPUT_CHAIN 1 -s $mon_host_ip -j RETURN
+        fi
+
+        # Preset values to zero as none exist yet
+        ipt_in_value=0
+      fi
+
+      # Process output chain
+      OLDFOUND=0
+      if [ -n "$old_ip" ]; then
+        get_numeric_ip_version "$mon_host_ip"
+        case $? in
+        4)
           LCOUNT=0
           IFS=$EOL
-          for LINE in `ip6tables -xnvL ACCOUNTING_OUTPUT_CHAIN |sed -e "1,2d"`; do
-            ipt_ip="$(echo "$LINE" |awk '{ print $8 }')"
+          for LINE in `ip4tables -xnvL ACCOUNTING_OUTPUT_CHAIN |sed -e "1,2d"`; do
+            ipt_ip="$(echo "$LINE" |awk '{ print $9 }')"
 
             LCOUNT=$((LCOUNT + 1))
             if [ "$ipt_ip" = "$old_ip" ]; then
-              ip6tables -R ACCOUNTING_OUTPUT_CHAIN $LCOUNT -d $host_ip -j RETURN
+              ip4tables -R ACCOUNTING_OUTPUT_CHAIN $LCOUNT -d $mon_host_ip -j RETURN
               if [ "$VERBOSE" = "1" ]; then
                 printf "out_action=update "
               fi
@@ -201,41 +183,62 @@ traffic_accounting_helper_do_work()
               break
             fi
           done
+          ;;
+        6)
+          if [ "$IPV6_SUPPORT" = "1" ]; then
+            LCOUNT=0
+            IFS=$EOL
+            for LINE in `ip6tables -xnvL ACCOUNTING_OUTPUT_CHAIN |sed -e "1,2d"`; do
+              ipt_ip="$(echo "$LINE" |awk '{ print $8 }')"
+
+              LCOUNT=$((LCOUNT + 1))
+              if [ "$ipt_ip" = "$old_ip" ]; then
+                ip6tables -R ACCOUNTING_OUTPUT_CHAIN $LCOUNT -d $mon_host_ip -j RETURN
+                if [ "$VERBOSE" = "1" ]; then
+                  printf "out_action=update "
+                fi
+                OLDFOUND=1
+                ipt_out_value="$(echo "$LINE" |awk '{ print $2 }')"
+
+                break
+              fi
+            done
+          fi
+          ;;
+        esac
+      fi
+
+      if [ $OLDFOUND -eq 0 ]; then
+        if [ "$VERBOSE" = "1" ]; then
+          printf "out_action=add "
         fi
-        ;;
-      esac
-    fi
 
-    if [ $OLDFOUND -eq 0 ]; then
+        if [ "$mon_host_ip" = "0.0.0.0/0" -o "$mon_host_ip" = "::/0" ]; then
+          iptables -A ACCOUNTING_OUTPUT_CHAIN -d $mon_host_ip -j RETURN
+        else
+          iptables -I ACCOUNTING_OUTPUT_CHAIN 1 -d $mon_host_ip -j RETURN
+        fi
+
+        # Preset values to zero as none exist yet
+        ipt_out_value=0
+      fi
+
+      # Calculate new in value
+      new_in_value=$((old_in_value + ipt_in_value))
+
+      # Calculate new out value
+      new_out_value=$((old_out_value + ipt_out_value))
       if [ "$VERBOSE" = "1" ]; then
-        printf "out_action=add "
+        printf "old_in_val=$old_in_value ipt_in_val=$ipt_in_value new_in_val=$new_in_value old_out_val=$old_out_value ipt_out_val=$ipt_out_value new_out_val=$new_out_value"
       fi
 
-      if [ "$host_ip" = "0.0.0.0/0" -o "$host_ip" = "::/0" ]; then
-        iptables -A ACCOUNTING_OUTPUT_CHAIN -d $host_ip -j RETURN
-      else
-        iptables -I ACCOUNTING_OUTPUT_CHAIN 1 -d $host_ip -j RETURN
+      # Create entry in accounting file
+      echo "$host $mon_host_ip $new_in_value $new_out_value" >>/tmp/traffic-accounting.new
+
+      if [ "$VERBOSE" = "1" ]; then
+        printf "\n\n"
       fi
-
-      # Preset values to zero as none exist yet
-      ipt_out_value=0
-    fi
-
-    # Calculate new in value
-    new_in_value=$((old_in_value + ipt_in_value))
-
-    # Calculate new out value
-    new_out_value=$((old_out_value + ipt_out_value))
-    if [ "$VERBOSE" = "1" ]; then
-      printf "old_in_val=$old_in_value ipt_in_val=$ipt_in_value new_in_val=$new_in_value old_out_val=$old_out_value ipt_out_val=$ipt_out_value new_out_val=$new_out_value"
-    fi
-
-    # Create entry in accounting file
-    echo "$host $host_ip $new_in_value $new_out_value" >>/tmp/traffic-accounting.new
-
-    if [ "$VERBOSE" = "1" ]; then
-      printf "\n\n"
-    fi
+    done
   done
 
   # FIXME: Don't use old-file

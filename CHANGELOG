@@ -1,5 +1,6 @@
-Version 2.1.0-RC3-DEVEL (February 13, 2019)
--------------------------------------------
+Version 2.1.0-RC3-DEVEL (May 9, 2019)
+-------------------------------------
+! Fixed (dynamic) host multi IP handling in plugins
 * Default FRAG_DROP to off
 * Tweaks in the job manager process
 

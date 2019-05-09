@@ -1388,7 +1388,7 @@ get_dynamic_host_cached()
 
       # Check cache age
       if [ -n "$cache_time" -a $cache_time -le $cur_time -a $cur_time -le $((cache_time + max_age)) ]; then
-        host_ip="$(echo "$cache_lookup" |cut -d' ' -f2 |tr ',' ' ')"
+        host_ip="$(echo "$cache_lookup" |cut -d' ' -f2)"
         if [ -n "$host_ip" ]; then
           echo "$host_ip (cached)"
 
@@ -1403,7 +1403,7 @@ get_dynamic_host_cached()
   fi
 
   DNS_FAST_FAIL_ONCE="$DNS_FAST_FAIL"
-  host_ip="$(gethostbyname "$host")"
+  host_ip="$(gethostbyname "$host" |tr ' ' ',')"
   gethost_retval=$?
 
   # Update cache time
@@ -1460,7 +1460,7 @@ get_dynamic_host_cached()
     # NOTE Explicitly store empty results as well else we'll keep trying over and over again for each plugin/rule
     store_ip="NO_IP"
   else
-    store_ip="$(echo "$host_ip" |tr ' ' ',')"
+    store_ip="$host_ip"
   fi
 
   if [ -n "$cache_lookup" ]; then
