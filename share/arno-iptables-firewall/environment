@@ -1824,7 +1824,6 @@ ip6tables_batch()
 # $1 = Optional prefix
 log_msg()
 {
-  local IFS=' '
   local PREFIX="$1"
 
   # Get message from stdin
