@@ -362,7 +362,7 @@ gzip -c -v ./share/man/man1/arno-fwfilter.1 >/usr/local/share/man/man8/arno-fwfi
 mkdir -pv /usr/local/share/doc/arno-iptables-firewall || exit 1
 copy_overwrite ./README /usr/local/share/doc/arno-iptables-firewall/
 
-# Install init.d script, but only if init.d folder existss
+# Install init.d script, but only if init.d folder exists
 if [ -d "/etc/init.d" ]; then
   copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
 fi
