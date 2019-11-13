@@ -9,7 +9,7 @@ MY_VERSION="1.04"
 #                           ~ In memory of my dear father ~
 #
 # (C) Copyright 2001-2019 by Arno van Amersfoort
-# Homepage              : http://rocky.eld.leidenuniv.nl/
+# Homepage              : https://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
 #                         at the proper locations!)

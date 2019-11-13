@@ -1,7 +1,7 @@
 [Unit]
 Description=Arno's Iptables Firewall(AIF)
 Documentation=man:arno-iptables-firewall(8)
-Documentation=http://rocky.eld.leidenuniv.nl/
+Documentation=https://rocky.eld.leidenuniv.nl/
 DefaultDependencies=no
 After=local-fs.target network-online.target
 Requires=local-fs.target network-online.target
