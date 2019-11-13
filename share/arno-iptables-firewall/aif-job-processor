@@ -165,8 +165,7 @@ show_help()
   echo "" >&2
   echo "Options:" >&2
   echo "--help|-h                   - Print this help" >&2
-  echo "--background|-b             - Run in background process (daemonised)" >&2
-  echo "--verbose                   - Be verbose with displaying info (only recommended when --background is not used!)" >&2
+  echo "--verbose                   - Be verbose with displaying info (only recommended when not backgrounded!)" >&2
   echo "--sleep=n|-s=n              - Sleep n minutes after each run (default is 1)" >&2
   echo ""
 }
@@ -181,7 +180,6 @@ process_commandline()
     ARGVAL=`echo "$ARG" |cut -d= -f2 -s`
 
     case "$ARGNAME" in
-        --background|-b) BACKGROUND=1;;
              --sleep|-s) SLEEP_TIME="$ARGVAL";;
            --verbose|-v) VERBOSE=1;;
               --help|-h) show_help;
@@ -237,10 +235,5 @@ fi
 
 # Only proceed if environment ok
 if sanity_check; then
-  if [ $BACKGROUND -eq 1 ]; then
-    # Spawn jobs processor
-    job_process &
-  else
-    job_process
-  fi
+  job_process
 fi

@@ -116,6 +116,7 @@ sanity_check()
 
   check_command_warning pgrep
   check_command_warning pkill
+  check_command_warning nohup
   check_command_warning dig nslookup
 
   if [ "$IPV6_SUPPORT" = "1" ]; then
@@ -5010,6 +5011,17 @@ job_run_once()
 }
 
 
+# Check if job process is running
+job_process_is_running()
+{
+  if ! pgrep -f "$JOB_PROCESSOR" >/dev/null 2>&1; then
+    return 1
+  fi
+
+  return 0
+}
+
+
 # Check whether the jobs process is terminated, if not wait 10 seconds for it
 # else (hard) pkill it. This function assumes jobs_process_stop() was previously called
 jobs_process_terminate_check()
@@ -5017,8 +5029,8 @@ jobs_process_terminate_check()
   local wait_count=10
   local cnt=0
 
-  if ! pgrep -f "$JOB_PROCESSOR" >/dev/null 2>&1; then
-    return 0 # Nothing to do
+  if ! job_process_is_running; then
+    return # Nothing to do
   fi
 
   echo "Waiting for background job processor \"$JOB_PROCESSOR\" to terminate"
@@ -5027,8 +5039,8 @@ jobs_process_terminate_check()
   while [ $cnt -lt $wait_count ]; do
     sleep 1
 
-    if ! pgrep -f "$JOB_PROCESSOR" >/dev/null 2>&1; then
-      return 0 # We're done
+    if ! job_process_is_running; then
+      return # We're done
     fi
 
     cnt=$((cnt+1))
@@ -5039,13 +5051,13 @@ jobs_process_terminate_check()
   # Kill background process
   if ! pkill -f "$JOB_PROCESSOR"; then
     echo "** ERROR: Killing jobs processor \"$JOB_PROCESSOR\" failed!" >&2
-    return 1
+    return
   fi
 
   # Remove possible leftover jobs file (unlikely)
   rm -f "$JOBS_FILE"
 
-  return 0
+  return
 }
 
 
@@ -5056,12 +5068,16 @@ jobs_process_start()
     echo "Starting background jobs processor"
 
     # Run script for background process
-    if ! "$JOB_PROCESSOR" --background; then
-      return 1
+    nohup "$JOB_PROCESSOR" &
+
+    # Wait a bit
+    sleep 1
+
+    # Check if job process is running
+    if ! job_process_is_running; then
+      echo "** ERROR: Starting jobs processor \"$JOB_PROCESSOR\" failed!" >&2
     fi
   fi
-
-  return 0
 }
 
 
@@ -5082,11 +5098,7 @@ jobs_process_stop()
   fi
 
   # Make sure process is properly terminated
-  if ! jobs_process_terminate_check; then
-    return 1
-  fi
-
-  return 0
+  jobs_process_terminate_check
 }
 
 

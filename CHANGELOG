@@ -1,5 +1,7 @@
 Version 2.1.0-RC3-DEVEL (November 13, 2019)
 -------------------------------------------
+* Use nohup to start the job manager. Hopefully fixes the issue of it sometimes terminating suddenly
+* Some tweaks/cleanups for the job manager
 ! Potential systemd service file shutdown problem (thanks to Sven Geuer from Debian upstream)
 * Have installer install rsyslog config file, if rsyslog is available
 ! Fixed (dynamic) host multi IP handling in plugins
