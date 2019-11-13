@@ -6,6 +6,7 @@ DefaultDependencies=no
 After=local-fs.target network-online.target
 Requires=local-fs.target network-online.target
 Conflicts=shutdown.target
+Before=shutdown.target
 
 [Service]
 Type=oneshot
