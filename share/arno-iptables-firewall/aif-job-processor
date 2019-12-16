@@ -74,7 +74,7 @@ idle_wait()
 # (Background) job processor
 job_process()
 {
-  local LINE SCRIPT_NAME SCRIPT_SET_TIME SCRIPT_CUR_TIME SCRIPT_PATH READ_JOBS_FILE err_result retval
+  local LINE SCRIPT_NAME SCRIPT_SET_TIME SCRIPT_CUR_TIME SCRIPT_PATH READ_JOBS_FILE result retval
 
   [ $VERBOSE -eq 1 ] && echo "Starting jobs process..."
 
@@ -117,11 +117,8 @@ job_process()
 
           # In case an error occurred, log it
           if [ $retval -ne 0 ]; then
-            echo "$err_result" >&2
-            echo "$err_result" |log_msg "${SCRIPT_NAME}: "
-          elif [ -n "$result" ]; then
-            echo "$err_result"
-            echo "$err_result" |log_msg "${SCRIPT_NAME}: "
+            echo "$result (error=$retval)" >&2
+            echo "$result (error=$retval)" |log_msg "${SCRIPT_NAME}: "
           fi
 
           # Reset counter
