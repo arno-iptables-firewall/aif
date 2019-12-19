@@ -334,7 +334,7 @@ ip4tables()
     case "$result" in
       'WARNING: '*' match is obsolete'*)
         ;;
-      *'iptables-legacy table present'*)
+      *'iptables-legacy tables present'*)
         ;;
       *) echo "${INDENT}$result"
         ;;
@@ -363,7 +363,7 @@ ip6tables()
     case "$result" in
       'WARNING: '*' match is obsolete'*)
         ;;
-      *'iptables-legacy table present'*)
+      *'iptables-legacy tables present'*)
         ;;
       *) echo "${INDENT}$result"
         ;;
