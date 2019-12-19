@@ -5068,7 +5068,7 @@ jobs_process_start()
 
     # Run script for background process
     if check_command start-stop-daemon; then
-      start-stop-daemon -S -b -v -x "$JOB_PROCESSOR"
+      start-stop-daemon -S -b -x "$JOB_PROCESSOR"
     else
       # Fallback:
       "$JOB_PROCESSOR" &
