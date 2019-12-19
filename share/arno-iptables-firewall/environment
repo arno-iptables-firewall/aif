@@ -334,6 +334,8 @@ ip4tables()
     case "$result" in
       'WARNING: '*' match is obsolete'*)
         ;;
+      *'iptables-legacy table present'*)
+        ;;
       *) echo "${INDENT}$result"
         ;;
     esac
@@ -360,6 +362,8 @@ ip6tables()
     # Filter successful, informational results
     case "$result" in
       'WARNING: '*' match is obsolete'*)
+        ;;
+      *'iptables-legacy table present'*)
         ;;
       *) echo "${INDENT}$result"
         ;;
