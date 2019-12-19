@@ -116,7 +116,6 @@ sanity_check()
 
   check_command_warning pgrep
   check_command_warning pkill
-  check_command_warning nohup
   check_command_warning dig nslookup
 
   if [ "$IPV6_SUPPORT" = "1" ]; then
@@ -5068,7 +5067,12 @@ jobs_process_start()
     echo "Starting background jobs processor"
 
     # Run script for background process
-    nohup "$JOB_PROCESSOR" &
+    if check_command start-stop-daemon; then
+      start-stop-daemon -S -b -v -x "$JOB_PROCESSOR"
+    else
+      # Fallback:
+      "$JOB_PROCESSOR" &
+    fi
 
     # Wait a bit
     sleep 1

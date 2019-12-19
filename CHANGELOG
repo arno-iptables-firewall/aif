@@ -1,6 +1,6 @@
-Version 2.1.0-RC3-DEVEL (November 13, 2019)
+Version 2.1.0-RC3-DEVEL (December 19, 2019)
 -------------------------------------------
-* Use nohup to start the job manager. Hopefully fixes the issue of it sometimes terminating suddenly
+* Use start-stop-daemon to start the job manager. Hopefully fixes the issue of it sometimes terminating suddenly
 * Some tweaks/cleanups for the job manager
 ! Potential systemd service file shutdown problem (thanks to Sven Geuer from Debian upstream)
 * Have installer install rsyslog config file, if rsyslog is available
