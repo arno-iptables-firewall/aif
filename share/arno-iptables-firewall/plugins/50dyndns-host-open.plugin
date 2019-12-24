@@ -87,7 +87,7 @@ plugin_restart()
 plugin_stop()
 {
   # Remove old cron job (this is in case a legacy plugin left it)
-  rm -f /etc/cron.d/traffic-accounting
+  rm -f /etc/cron.d/dyndns-host-open
 
   iptables -D EXT_INPUT_CHAIN -j DYNDNS_CHAIN 2>/dev/null
 
