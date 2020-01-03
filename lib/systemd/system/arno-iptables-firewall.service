@@ -16,7 +16,7 @@ ExecReload=/usr/local/sbin/arno-iptables-firewall force-reload
 RemainAfterExit=yes
 ProtectSystem=true
 ProtectHome=true
-PrivateTmp=true
+PrivateTmp=false
 LimitNPROC=1
 DeviceAllow=/dev/null rw
 

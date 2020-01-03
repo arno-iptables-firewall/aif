@@ -1,5 +1,6 @@
-Version 2.1.0-RC3-DEVEL (December 19, 2019)
+Version 2.1.0-RC3-DEVEL (January 3, 2020)
 -------------------------------------------
+! systemd script had private tmp enabled causing problems with the job manager
 * Use start-stop-daemon to start the job manager. Hopefully fixes the issue of it sometimes terminating suddenly
 * Some tweaks/cleanups for the job manager
 ! Potential systemd service file shutdown problem (thanks to Sven Geuer from Debian upstream)
