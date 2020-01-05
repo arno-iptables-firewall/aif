@@ -6,7 +6,7 @@
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2019 by Arno van Amersfoort & Lonnie Abelbeck
+# (C) Copyright 2001-2020 by Arno van Amersfoort & Lonnie Abelbeck
 # Homepage              : http://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -119,6 +119,8 @@ job_process()
           if [ $retval -ne 0 ]; then
             echo "$result (error=$retval)" >&2
             echo "$result (error=$retval)" |log_msg "${SCRIPT_NAME}: "
+          elif [ -n "$result" -a $VERBOSE -eq 1 ]; then
+            echo "$result"
           fi
 
           # Reset counter
