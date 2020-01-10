@@ -336,14 +336,6 @@ if get_user_yn "Do you want to start the firewall at boot" "y"; then
   fi
 fi
 
-if [ -e /etc/init.d/arno-iptables-firewall ]; then
-  if get_user_yn "Do you want the init script to be verbose (print out what it's doing)" "n"; then
-    change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "1"
-  else
-    change_conf_var /etc/init.d/arno-iptables-firewall "VERBOSE" "0"
-  fi
-fi
-
 if diff ./etc/arno-iptables-firewall/firewall.conf "$FIREWALL_CONF" >/dev/null; then
   if get_user_yn "Your firewall.conf is not configured yet.\nDo you want me to help you setup a basic configuration" "y"; then
     setup_conf_file
