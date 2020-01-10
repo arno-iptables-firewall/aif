@@ -250,6 +250,7 @@ else
      if (port==5623) return("pcAnywhere(5623)")
      if (port==5800) return("VNC-data(5800)")
      if (port==5900) return("VNC-HTTP(5900)")
+     if (port==5938) return("Teamviewer(5938)")
      if (port==6346) return("GNUtella(6346)")
      if (port==6670) return("Deep Throat(6670)")
      if (port==6711) return("Sub-7(6711)")
