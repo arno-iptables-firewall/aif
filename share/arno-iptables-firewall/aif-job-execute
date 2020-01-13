@@ -101,21 +101,15 @@ fi
 
 # Check if the environment file exists and if so, load it
 #########################################################
-if [ -n "$ENV_FILE" ]; then
-  . "$ENV_FILE"
-else
-  if [ -f /usr/local/share/arno-iptables-firewall/environment ]; then
-    . /usr/local/share/arno-iptables-firewall/environment
-  else
-    if [ -f /usr/share/arno-iptables-firewall/environment ]; then
-      . /usr/share/arno-iptables-firewall/environment
-    else
-      echo "** ERROR: The environment file (ENV_FILE) has not been specified" >&2
-      echo "**        in the configuration file. Try upgrading your config-file!" >&2
-      exit 2
-    fi
-  fi
+ENV_FILE="${0%/*}/environment"
+
+if [ ! -f "$ENV_FILE" ]; then
+  echo "** ERROR: Unable to locate environment file \"$ENV_FILE\"!" >&2
+  exit 2
 fi
+
+# Source environment file
+. "$ENV_FILE"
 
 # Only proceed if environment ok
 if ! sanity_check; then
