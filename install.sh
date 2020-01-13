@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.12"
+MY_VERSION="1.12a"
 
 # ------------------------------------------------------------------------------------------
 #                         -= Arno's Iptables Firewall(AIF) =-
@@ -8,7 +8,7 @@ MY_VERSION="1.12"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2019 by Arno van Amersfoort
+# (C) Copyright 2001-2020 by Arno van Amersfoort
 # Homepage              : https://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -104,9 +104,11 @@ copy_ask_if_exist()
 {
   local diff_retval=-1
   local retval
+  local default_yn="${3:-'n'}" # Default to n(o)
+  local fallback_ext="$4"
 
   if [ -z "$(find "$1" -type f)" ]; then
-    echo "ERROR: Missing source file(s) \"$1\""
+    echo "ERROR: Missing source file(s) \"$1\"" >&2
     exit 2
   fi
 
@@ -135,13 +137,13 @@ copy_ask_if_exist()
       shell_diff "$source" "$target"
       diff_retval=$? # 0 = full match, 1 = match (excluding comments), 2 = full mismatch (including comments)
 
-      if [ $diff_retval -eq 2 ] && ! get_user_yn "File \"$target\" already exists. Overwrite" "n"; then
-        if [ -z "$3" ]; then
+      if [ $diff_retval -eq 2 ] && ! get_user_yn "File \"$target\" already exists. Overwrite" "$default_yn"; then
+        if [ -z "$fallback_ext" ]; then
           echo "Skipped..."
           continue
         else
           # Copy as e.g. .dist-file:
-          target="${target}.${3}"
+          target="${target}.${fallback_ext}"
           rm -f "$target"
         fi
       fi
@@ -364,7 +366,7 @@ copy_overwrite ./README /usr/local/share/doc/arno-iptables-firewall/
 
 # Install init.d script, but only if init.d folder exists
 if [ -d "/etc/init.d" ]; then
-  copy_ask_if_exist ./etc/init.d/arno-iptables-firewall /etc/init.d/
+  copy_overwrite ./etc/init.d/arno-iptables-firewall /etc/init.d/
 fi
 
 # Make sure only one service file exists in /lib/.. or /usr/lib/ where we prefer /lib/
@@ -376,25 +378,25 @@ if [ -d "/lib/systemd/system" ]; then
 elif [ -d "/usr/lib/systemd/system" ]; then
   copy_overwrite ./lib/systemd/system/arno-iptables-firewall.service /usr/lib/systemd/system/
 elif [ -d "/etc/systemd/system" ]; then
- copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /etc/systemd/system/
+  copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /etc/systemd/system/ "y"
 else
   echo "NOTE: Could not find any systemd/system directory, skipping systemd configuration" >&2
 fi
 
 # Install rsyslog config file (if rsyslog is available)
 if [ -d "/etc/rsyslog.d" ]; then
-  copy_ask_if_exist ./etc/rsyslog.d/arno-iptables-firewall.conf /etc/rsyslog.d/
+  copy_ask_if_exist ./etc/rsyslog.d/arno-iptables-firewall.conf /etc/rsyslog.d/ "y"
 fi
 
 mkdir -pv /etc/arno-iptables-firewall || exit 1
 
 copy_overwrite ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/firewall.conf.dist
-copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/ 
+copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-firewall/
 
 copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
 
 mkdir -pv /etc/arno-iptables-firewall/plugins || exit 1
-copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/ "dist"
+copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/ "y" "dist"
 
 mkdir -pv /etc/arno-iptables-firewall/conf.d || exit 1
 echo "Files with a .conf extension in this directory will be sourced by the environment file" >/etc/arno-iptables-firewall/conf.d/README
