@@ -1,3 +1,7 @@
+Version 1.01 (January 14, 2019)
+-------------------------------
++ Support for specifying source hosts in PARASITIC_NET_HOST_xxxxxxxxxxxxx variables
+
 Version 1.00 (May 9, 2019)
 --------------------------
 ! Fixed (dynamic) host multi IP handling

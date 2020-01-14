@@ -1024,6 +1024,32 @@ parse_rule()
     dhost="$dhost_dport"
     ;;
 
+  shosts:ANYHOST-dhosts)
+    left_rule=$(echo "$rule" |cut -s -d'>' -f1)
+    right_rule=$(echo "$rule" |cut -s -d'>' -f2)
+
+    shosts=$(get_hosts_ih "$left_rule" "$ANYHOST")
+    dhosts=$(get_hosts_hp "$right_rule")
+
+    if [ -z "$dhosts" ]; then
+      parse_rule_warning "$rule"
+      return 1
+    fi
+    ;;
+
+  shosts-dhosts:ANYHOST)
+    left_rule=$(echo "$rule" |cut -s -d'>' -f1)
+    right_rule=$(echo "$rule" |cut -s -d'>' -f2)
+
+    shosts=$(get_hosts_ih "$left_rule")
+    dhosts=$(get_hosts_hp "$right_rule" "$ANYHOST")
+
+    if [ -z "$shosts" ]; then
+      parse_rule_warning "$rule"
+      return 1
+    fi
+    ;;
+
   *)
     echo "** ERROR: Invalid rule parse type! **" >&2
     return 1
