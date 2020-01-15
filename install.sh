@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.12a"
+MY_VERSION="1.13"
 
 # ------------------------------------------------------------------------------------------
 #                         -= Arno's Iptables Firewall(AIF) =-
@@ -306,6 +306,18 @@ check_18_version()
 }
 
 
+check_dist_version()
+{
+  if [ -e /usr/sbin/arno-iptables-firewall ]; then
+    if ! get_user_yn "WARNING: It seems a distribution version is already installed. It's *STRONGLY* recommended to remove it first. Continue anyway" "y"; then
+      return 1
+    fi
+  fi
+
+  return 0
+}
+
+
 # Check plugins for (old) versions with different priority
 check_plugins()
 {
@@ -340,8 +352,14 @@ if ! get_user_yn "Continue install" "n"; then
   exit 1
 fi
 
-# Make sure there still isn't an old version installed
+# Make sure an old version is not still installed
 check_18_version
+
+# Make sure a dist version is not already installed
+if ! check_dist_version; then
+  echo "*Install aborted"
+  exit 1
+fi
 
 copy_overwrite ./bin/arno-iptables-firewall /usr/local/sbin/
 copy_overwrite ./bin/arno-fwfilter /usr/local/bin/

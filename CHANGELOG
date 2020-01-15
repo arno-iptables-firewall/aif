@@ -1,3 +1,7 @@
+Version 2.1.1-DEVEL (January 15, 2020)
+--------------------------------------
+* Detect if dist version is already installed and generate a warning in that case
+
 Version 2.1.0 (January 3, 2020)
 -------------------------------
 ! systemd script had private tmp enabled causing problems with the job manager
