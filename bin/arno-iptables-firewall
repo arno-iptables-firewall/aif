@@ -47,28 +47,20 @@ fi
 
 # Check if the environment file exists and if so, load it
 #########################################################
-if [ -z "$ENV_FILE" ]; then
-  if [ -f /usr/local/share/arno-iptables-firewall/environment ]; then
-    ENV_FILE="/usr/local/share/arno-iptables-firewall/environment"
-  else
-    if [ -f /usr/share/arno-iptables-firewall/environment ]; then
-      ENV_FILE="/usr/share/arno-iptables-firewall/environment"
-    else
-      printf "\033[40m\033[1;31mERROR: The environment file (ENV_FILE) has not been specified\033[0m\n" >&2
-      printf "\033[40m\033[1;31m       in the configuration file. Try upgrading your config-file!\033[0m\n\n" >&2
-      exit 2
-    fi
+
+# Autodetect according to standard paths
+ENV_FILE="/usr/local/share/arno-iptables-firewall/environment" 
+if [ ! -f "$ENV_FILE" ]; then
+  ENV_FILE="/usr/share/arno-iptables-firewall/environment"
+  if [ ! -f "$ENV_FILE" ]; then
+    printf "\033[40m\033[1;31mERROR: Unable to locate environment file in /usr/(local/)/share/arno-iptables-firewall/\033[0m\n" >&2
+    printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n\n" >&2
+    exit 2
   fi
 fi
 
-if [ -e "$ENV_FILE" ]; then
-  . "$ENV_FILE"
-else
-  printf "\033[40m\033[1;31mERROR: Could not read environment file \"$ENV_FILE\"!\033[0m\n" >&2
-  printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n\n" >&2
-  exit 2
-fi
-
+# Source environment file
+. "$ENV_FILE"
 
 sanity_check()
 {
