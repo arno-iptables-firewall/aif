@@ -2102,7 +2102,6 @@ if [ -z "$USR_SHARE_PATH" ]; then
   if [ ! -d "$USR_SHARE_PATH" ]; then
     USR_SHARE_PATH="/usr/share/arno-iptables-firewall"
     if [ ! -d "$USR_SHARE_PATH" ]; then
-      USE_SHARE_PATH=""
       echo "** ERROR: Unable to determine USR_SHARE_PATH!" >&2
     fi
   fi
