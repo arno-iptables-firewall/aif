@@ -2110,7 +2110,7 @@ fi
 # Check plugin bin path and fallback in case it's empty
 #######################################################
 if [ -z "$PLUGIN_BIN_PATH" ]; then
-  PLUGIN_BIN_PATH="${USR_SHARE_PATH/plugins"
+  PLUGIN_BIN_PATH="$USR_SHARE_PATH/plugins"
 fi
 
 # File containing (background) jobs to run
