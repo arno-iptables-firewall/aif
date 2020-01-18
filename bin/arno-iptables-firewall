@@ -258,7 +258,7 @@ config_check()
 
   # Check whether we know the plugin binary path
   ##############################################
-  if [ ! -d "$PLUGIN_BIN_PATH" ]; then
+  if [ -z "$PLUGIN_BIN_PATH" -o ! -d "$PLUGIN_BIN_PATH" ]; then
     printf "\033[40m\033[1;31mERROR: The PLUGIN_BIN_PATH ($PLUGIN_BIN_PATH) does not exist!\033[0m\n" >&2
     printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n\n" >&2
     retval=1
@@ -266,7 +266,7 @@ config_check()
 
   # Check whether we know the plugin config path
   ##############################################
-  if [ ! -d "$PLUGIN_CONF_PATH" ]; then
+  if [ -z "$PLUGIN_CONF_PATH" -o ! -d "$PLUGIN_CONF_PATH" ]; then
     printf "\033[40m\033[1;31mERROR: The PLUGIN_CONF_PATH ($PLUGIN_CONF_PATH) does not exist!\033[0m\n" >&2
     printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n\n" >&2
     retval=1
@@ -4945,7 +4945,7 @@ job_remove()
 {
   local SCRIPT_NAME="$1"
 
-  if [ -f "$JOBS_FILE" ]; then
+  if [ -n "$JOBS_FILE" -a -f "$JOBS_FILE" ]; then
     echo "${INDENT}Removing background job \"$SCRIPT_NAME\""
 
     # Remove job from jobs file
@@ -4963,6 +4963,11 @@ job_remove()
 job_add()
 {
   local SCRIPT_NAME SCRIPT_TIME SCRIPT_PATH
+
+  if [ -z "$JOBS_FILE" ]; then
+    echo "** ERROR: Unable to add job since JOBS_FILE is not defined" >&2
+    return 1
+  fi
 
   SCRIPT_NAME="$1"
   shift
@@ -4991,6 +4996,11 @@ job_run_once()
 {
   local SCRIPT_NAME="$1"
 
+  if [ -z "$JOB_EXECUTER" ]; then
+    echo "** ERROR: Unable to execute job \"$SCRIPT_NAME\" since JOB_EXECUTER is not defined" >&2
+    return 1
+  fi
+
   echo "${INDENT}Foreground running job helper script \"$SCRIPT_NAME\""
 
   # Source script
@@ -5005,6 +5015,10 @@ job_run_once()
 # Check if job process is running
 job_process_is_running()
 {
+  if [ -z "$JOB_PROCESSOR" ]; then
+    return 1
+  fi
+
   if ! pgrep -f "$JOB_PROCESSOR" >/dev/null 2>&1; then
     return 1
   fi
@@ -5056,6 +5070,11 @@ jobs_process_terminate_check()
 jobs_process_start()
 {
   if [ -n "$JOBS_FILE" -a -e "$JOBS_FILE" ]; then
+    if [ -z "$JOB_PROCESSOR" ]; then
+      echo "** ERROR: Unable to start jobs processor since JOB_PROCESSOR is not defined" >&2
+      return
+    fi
+
     echo "Starting background jobs processor"
 
     # Run script for background process
@@ -5080,7 +5099,7 @@ jobs_process_start()
 # Stop jobs processor
 jobs_process_stop()
 {
-  if [ -n "$JOBS_FILE" -a -e "$JOBS_FILE" ]; then
+  if [ -n "$JOBS_LOCK_NAME" -a -n "$JOBS_FILE" -a -e "$JOBS_FILE" ]; then
     echo "Stopping background jobs processor"
 
     # Enter critical section (ignore whether we actually can obtain the lock)
