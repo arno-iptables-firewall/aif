@@ -308,7 +308,7 @@ check_18_version()
 
 check_dist_version()
 {
-  if [ -e /usr/sbin/arno-iptables-firewall ]; then
+  if [ -f /usr/sbin/arno-iptables-firewall ]; then
     if ! get_user_yn "WARNING: It seems a distribution version is already installed. It's *STRONGLY* recommended to remove it first. Continue anyway" "y"; then
       return 1
     fi
@@ -370,7 +370,7 @@ rm -f /usr/local/sbin/arno-fwfilter
 mkdir -pv /usr/local/share/arno-iptables-firewall/plugins || exit 1
 copy_overwrite ./share/arno-iptables-firewall/ /usr/local/share/arno-iptables-firewall/
 
-if [ ! -e /usr/local/sbin/traffic-accounting-show ]; then 
+if [ ! -f /usr/local/sbin/traffic-accounting-show ]; then 
   ln -sv /usr/local/share/arno-iptables-firewall/plugins/traffic-accounting-show /usr/local/sbin/traffic-accounting-show
 fi
 

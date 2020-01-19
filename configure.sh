@@ -49,7 +49,7 @@ sanity_check()
     exit 1
   fi
 
-  if [ ! -e "/etc/arno-iptables-firewall/firewall.conf" ]; then
+  if [ ! -f "/etc/arno-iptables-firewall/firewall.conf" ]; then
     printf "\033[40m\033[1;31mERROR: It looks like arno-iptables-firewall is not installed on this system (yet)! Quitting...\033[0m\n\n" >&2
     exit 1
   fi
@@ -256,7 +256,7 @@ setup_conf_file()
   fi
 
   # Make sure init script is executable and root owned
-  if [ -e /etc/init.d/arno-iptables-firewall ]; then
+  if [ -f /etc/init.d/arno-iptables-firewall ]; then
     chown 0:0 /etc/init.d/arno-iptables-firewall
     chmod 755 /etc/init.d/arno-iptables-firewall
   fi

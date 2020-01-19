@@ -290,7 +290,7 @@ if [ -n "$PLUGIN_CONF_PATH" ]; then
 fi
 
 # Check if the config file exists
-if [ ! -e "$CONF_FILE" ]; then
+if [ ! -f "$CONF_FILE" ]; then
   echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
   PLUGIN_RET_VAL=1
 else

@@ -2001,7 +2001,7 @@ fi
 
 # Check for a local/global config file
 ######################################
-if [ -e "$LOCAL_CONFIG_FILE" ]; then
+if [ -f "$LOCAL_CONFIG_FILE" ]; then
   . "$LOCAL_CONFIG_FILE"
 fi
 

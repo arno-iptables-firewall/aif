@@ -9,17 +9,17 @@ log_rotate()
   # $2 = keep count
   filename="$1"
 
-  if [ -e "$filename.$2" ]; then
+  if [ -f "$filename.$2" ]; then
     rm -f "$filename.$2"
   fi
 
   for x in `seq $(($2 + 1)) -1 1`; do
-    if [ -e "$filename.$x" ]; then
+    if [ -f "$filename.$x" ]; then
       mv "$filename.$x" "$filename.$(($x + 1))"
     fi
   done
 
-  if [ -e "$filename" ]; then 
+  if [ -f "$filename" ]; then
     mv "$filename" "$filename.1"
     
     # Reset counters
