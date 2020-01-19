@@ -90,7 +90,7 @@ process_commandline()
 
 process_commandline "$@"
 
-if [ -z "$CONF_FILE" -o ! -e "$CONF_FILE" ]; then
+if [ ! -f "$CONF_FILE" ]; then
   echo "ERROR: Could not read configuration file ($CONF_FILE)!" >&2
   echo "" >&2
   exit 2

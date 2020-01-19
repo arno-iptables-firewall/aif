@@ -37,7 +37,7 @@ echo "--------------------------------------------------------------------------
 
 # Check if the main config file exists and if so load it
 ########################################################
-if [ -e "$CONFIG_FILE" ]; then
+if [ -f "$CONFIG_FILE" ]; then
   . "$CONFIG_FILE"
 else
   printf "\033[40m\033[1;31mERROR: Could not read configuration file $CONFIG_FILE!\033[0m\n" >&2
@@ -258,7 +258,7 @@ config_check()
 
   # Check whether we know the plugin binary path
   ##############################################
-  if [ -z "$PLUGIN_BIN_PATH" -o ! -d "$PLUGIN_BIN_PATH" ]; then
+  if [ ! -d "$PLUGIN_BIN_PATH" ]; then
     printf "\033[40m\033[1;31mERROR: The PLUGIN_BIN_PATH ($PLUGIN_BIN_PATH) does not exist!\033[0m\n" >&2
     printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n\n" >&2
     retval=1
@@ -266,7 +266,7 @@ config_check()
 
   # Check whether we know the plugin config path
   ##############################################
-  if [ -z "$PLUGIN_CONF_PATH" -o ! -d "$PLUGIN_CONF_PATH" ]; then
+  if [ ! -d "$PLUGIN_CONF_PATH" ]; then
     printf "\033[40m\033[1;31mERROR: The PLUGIN_CONF_PATH ($PLUGIN_CONF_PATH) does not exist!\033[0m\n" >&2
     printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n\n" >&2
     retval=1
@@ -4416,7 +4416,7 @@ if ipset_check; then
     fi
   fi
 
-  if [ -n "$BLOCK_NETSET_DIR" ] && [ -d "$BLOCK_NETSET_DIR" ] && ls "$BLOCK_NETSET_DIR"/*.netset >/dev/null 2>&1; then
+  if [ -d "$BLOCK_NETSET_DIR" ] && ls "$BLOCK_NETSET_DIR"/*.netset >/dev/null 2>&1; then
     setup_ipset_netset "$BLOCK_NETSET_DIR" $hashsize $maxelem
 
     ## Optimization, add ipsets to iptables (above) first, then apply ipset contents (below) which takes time
@@ -4472,7 +4472,7 @@ if ipset_check; then
 
   # Setup the blocked hosts from our file
   if [ -n "$BLOCK_HOSTS_FILE" ]; then
-    if [ -e "$BLOCK_HOSTS_FILE" ]; then
+    if [ -f "$BLOCK_HOSTS_FILE" ]; then
       local cur_cnt=0 total_cnt
       total_cnt=$(( $(cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' -e '/^$/d' |wc -l) ))
 
@@ -4597,7 +4597,7 @@ else
 
   # Setup the blocked hosts from our file
   if [ -n "$BLOCK_HOSTS_FILE" ]; then
-    if [ -e "$BLOCK_HOSTS_FILE" ]; then
+    if [ -f "$BLOCK_HOSTS_FILE" ]; then
       local cur_cnt=0 total_cnt
       total_cnt=$(( $(cat "$BLOCK_HOSTS_FILE" |sed -e 's|[#;].*||' -e 's| *$||' -e '/^$/d' |wc -l) ))
 
@@ -4782,7 +4782,7 @@ plugins_start()
     unset IFS
     for plugin in "$PLUGIN_BIN_PATH"/*.plugin; do
       PLUGIN_CMD=start
-      if [ -e "$PLUGIN_LOAD_FILE_RESTART" ]; then
+      if [ -f "$PLUGIN_LOAD_FILE_RESTART" ]; then
         IFS=$EOL
         for plugin_restart in `cat "$PLUGIN_LOAD_FILE_RESTART"`; do
           if [ "$plugin_restart" = "$plugin" ]; then
@@ -4844,21 +4844,21 @@ plugins_stop()
 
   PLUGIN_ERRORS=0
 
-  if [ -e "$PLUGIN_LOAD_FILE" ]; then
+  if [ -f "$PLUGIN_LOAD_FILE" ]; then
     echo "Stopping (user) plugins..."
 
     IFS=$EOL
     for plugin in `cat "$PLUGIN_LOAD_FILE"`; do
       plugin_name="$(basename "$plugin" |sed 's/^[0-9]*//')"
 
-      if [ -e "$plugin" ]; then
+      if [ -f "$plugin" ]; then
         plugin_file="$plugin"
       else
         # If we can't find it, ignore the priority number in front of the plugin-filename
         plugin_file="$(ls "$PLUGIN_BIN_PATH"/*.plugin |grep "[0-9]*$plugin_name$" |head -n1)"
       fi
 
-      if [ -e "$plugin_file" ]; then
+      if [ -f "$plugin_file" ]; then
         # Only issue the stop command for plugins that support it:
         if grep -q "^plugin_stop\(\)" "$plugin_file"; then
           # Preset ENABLED=0 to make sure the plugin only
@@ -4910,7 +4910,7 @@ plugins_status()
   local match="$1"
 
   # Load/insert user plugins
-  if [ -e "$PLUGIN_LOAD_FILE" ]; then
+  if [ -f "$PLUGIN_LOAD_FILE" ]; then
     printf "\nShowing status of (user) plugins:${match:+ $match}\n"
     echo "---------------------------------"
 
@@ -4945,7 +4945,7 @@ job_remove()
 {
   local SCRIPT_NAME="$1"
 
-  if [ -n "$JOBS_FILE" -a -f "$JOBS_FILE" ]; then
+  if [ -f "$JOBS_FILE" ]; then
     echo "${INDENT}Removing background job \"$SCRIPT_NAME\""
 
     # Remove job from jobs file
@@ -5069,7 +5069,7 @@ jobs_process_terminate_check()
 # Start jobs processor
 jobs_process_start()
 {
-  if [ -n "$JOBS_FILE" -a -e "$JOBS_FILE" ]; then
+  if [ -f "$JOBS_FILE" ]; then
     if [ -z "$JOB_PROCESSOR" ]; then
       echo "** ERROR: Unable to start jobs processor since JOB_PROCESSOR is not defined" >&2
       return
@@ -5099,7 +5099,7 @@ jobs_process_start()
 # Stop jobs processor
 jobs_process_stop()
 {
-  if [ -n "$JOBS_LOCK_NAME" -a -n "$JOBS_FILE" -a -e "$JOBS_FILE" ]; then
+  if [ -f "$JOBS_FILE" ]; then
     echo "Stopping background jobs processor"
 
     # Enter critical section (ignore whether we actually can obtain the lock)
@@ -5186,7 +5186,7 @@ setup_firewall_rules()
 
   # Insert the custom rules
   #########################
-  if [ -e "$CUSTOM_RULES" ]; then
+  if [ -f "$CUSTOM_RULES" ]; then
     echo "Reading custom rules from $CUSTOM_RULES"
     . $CUSTOM_RULES
   fi
@@ -6010,7 +6010,7 @@ show_status()
   fi
 
   # Show IP->hostname mappings from our host-cache
-  if [ -e "$HOST_CACHE_FILE" ]; then
+  if [ -f "$HOST_CACHE_FILE" ]; then
     echo ""
     echo "Showing hostname->IP mapping"
     echo "----------------------------"

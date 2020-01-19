@@ -147,7 +147,7 @@ plugin_sanity_check()
     return 1
   fi
 
-  if [ -z "$JOB_HELPER_SCRIPT" -o ! -e "$JOB_HELPER_SCRIPT" ]; then
+  if [ ! -f "$JOB_HELPER_SCRIPT" ]; then
     printf "\033[40m\033[1;31m${INDENT}ERROR: The job helper script($JOB_HELPER_SCRIPT) can not be found!\033[0m\n" >&2
     return 1
   fi
