@@ -1230,6 +1230,7 @@ get_numeric_ip_version()
 {
   case $1 in
   0/0)
+    return 46 # Could be either IPv4 or IPv6
     ;;
   [0-9][0-9.][0-9.][0-9.][0-9.]*.*[0-9])
     return 4
@@ -1250,7 +1251,7 @@ get_numeric_ip_version()
 is_numeric_ipv4()
 {
   get_numeric_ip_version "$1"
-  if [ $? -eq 4 ]; then
+  if [ $? -eq 4 -o $? -eq 46 ]; then
     return 0
   fi
 
@@ -1262,7 +1263,7 @@ is_numeric_ipv4()
 is_numeric_ipv6()
 {
   get_numeric_ip_version "$1"
-  if [ $? -eq 6 ]; then
+  if [ $? -eq 6 -o $? -eq 46 ]; then
     return 0
   fi
 
