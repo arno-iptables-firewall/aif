@@ -1,5 +1,7 @@
-Version 2.1.1-DEVEL (January 15, 2020)
+Version 2.1.1-DEVEL (January 20, 2020)
 --------------------------------------
+* Refactor lock_enter/lock_enter_single
+! Stale lock file removal didn't work properly
 * Detect if dist version is already installed and generate a warning in that case
 * Get rid of ENV_FILE/PLUGIN_CONF_PATH/PLUGIN_BIN_PATH setting in config file and improve autodetection
 

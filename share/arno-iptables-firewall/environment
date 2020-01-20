@@ -1539,6 +1539,38 @@ lock_ctrl_handler()
 }
 
 
+# Internal lock_enter() function. Only to be used by lock_enter_single() and lock_enter() (below)
+lock_enter_internal()
+{
+  local LOCK_FILE="$1"
+  local PID
+
+  # Check lock PID:
+  # If cat isn't able to read the file, another instance is probably
+  # about to remove the lock -- exit, we're *still* locked
+  # Thanks to Grzegorz Wierzowiecki for pointing out this race condition on
+  # http://wiki.grzegorz.wierzowiecki.pl/code:mutex-in-bash
+  PID="$(cat "$LOCK_FILE" 2>/dev/null)"
+  if [ $? -eq 0 ]; then
+    if ! kill -0 "$PID" 2>/dev/null; then
+      # lock is stale, remove it and restart
+      echo "WARNING: Removing stale lockfile \"$LOCK_FILE\" of nonexistant PID \"$PID\"" >&2
+      rm -f "$LOCK_FILE"
+    fi
+  fi
+
+  # Acquire lock
+  if ( set -o noclobber; echo "$$" > "$LOCK_FILE") 2> /dev/null; then
+    # Setup int handler
+    trap "lock_ctrl_handler $LOCK_FILE" INT TERM EXIT
+
+    return 0 # Lock success
+  fi
+
+  return 1 # Lock failure
+}
+
+
 # Lock enter function to acquire a single lock. Prevents running of multiple instances
 # When an instance is already running, this (new) instance will be aborted
 # $1 = Lock (file) name
@@ -1552,15 +1584,11 @@ lock_enter_single()
     return 1 # Failure
   fi
 
-  if ( set -o noclobber; echo "$$" > "$LOCK_FILE") 2> /dev/null; then
-    # Setup int handler
-    trap "lock_ctrl_handler $LOCK_FILE" INT TERM EXIT
-
+  if lock_enter_internal "$LOCK_FILE"; then
     return 0 # Lock success
   fi
 
-  echo "NOTE: Another instance is already running for lock \"$1\". Held by PID $(cat $LOCK_FILE)" >&2
-
+  echo "NOTE: Another instance is already running for lockfile \"$LOCK_FILE\". Held by PID $(cat $LOCK_FILE)" >&2
   return 1 # Lock failed
 }
 
@@ -1581,36 +1609,17 @@ lock_enter()
   fi
 
   while [ $FAIL_COUNT -lt $MAX_RETRIES ]; do
-    if ( set -o noclobber; echo "$$" > "$LOCK_FILE") 2> /dev/null; then
-      # Setup int handler
-      trap "lock_ctrl_handler $LOCK_FILE" INT TERM EXIT
-
+    if lock_enter_internal "$LOCK_FILE"; then
       return 0 # Lock success
     fi
 
     FAIL_COUNT=$((FAIL_COUNT + 1))
 
-    # lock failed, check if the process is dead
-    local PID="$(cat "${LOCK_FILE}")"
-
-    # if cat isn't able to read the file, another instance is probably
-    # about to remove the lock -- exit, we're *still* locked
-    # Thanks to Grzegorz Wierzowiecki for pointing out this race condition on
-    # http://wiki.grzegorz.wierzowiecki.pl/code:mutex-in-bash
-    if [ $? -eq 0 ]; then
-      if ! kill -0 "$PID" 2>/dev/null; then
-        # lock is stale, remove it and restart
-        echo "WARNING: Removing stale lock of nonexistant PID ${PID}" >&2
-        rm -f "$LOCK_FILE"
-        continue # Immediately retry
-      fi
-    fi
-
     # Sleep between retries
     sleep 1
   done
 
-  echo "ERROR: Failed to acquire lockfile: $LOCK_FILE. Held by PID $(cat $LOCK_FILE)" >&2
+  echo "ERROR: Failed to acquire lockfile \"$LOCK_FILE\". Held by PID $(cat $LOCK_FILE)" >&2
 
   return 1 # Lock failed
 }
@@ -2117,7 +2126,7 @@ fi
 JOBS_FILE="/var/tmp/aif_jobs"
 
 # Lock file for accessing the JOBS_FILE
-JOBS_LOCK_NAME="aif_jobs"
+JOBS_LOCK_NAME="jobs"
 
 # Jobs process (file) name
 JOB_PROCESSOR="$USR_SHARE_PATH/aif-job-processor"
