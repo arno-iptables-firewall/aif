@@ -897,9 +897,9 @@ parse_rule()
     protos="$ports"
     ;;
 
-  shosts:ANYHOST-dhosts-ports:ANYPORT|shosts:ANYHOST-dhosts-protos)
+  shosts:ANYHOST-dhosts-ports:ANYPORT|shosts:ANYHOST-dhosts-ports|shosts:ANYHOST-dhosts-protos)
     left_rule=$(echo "$rule" |cut -s -d'>' -f1)
-    right_rule=$(echo "$rule" |cut -s -d'>' -f2)
+    right_rule=$(echo "$rule" |cut -d'>' -f2)
 
     shosts=$(get_hosts_ih "$left_rule" "$ANYHOST")
     dhosts=$(get_hosts_hp "$right_rule")
@@ -917,7 +917,7 @@ parse_rule()
 
   interfaces-shosts:ANYHOST-dhosts-ports:ANYPORT|interfaces-shosts:ANYHOST-dhosts-protos)
     left_rule=$(echo "$rule" |cut -s -d'>' -f1)
-    right_rule=$(echo "$rule" |cut -s -d'>' -f2)
+    right_rule=$(echo "$rule" |cut -d'>' -f2)
 
     interfaces=$(get_ifs "$left_rule")
     shosts=$(get_hosts_ih "$left_rule" "$ANYHOST")
@@ -1014,7 +1014,7 @@ parse_rule()
       shosts="$ANYHOST"
       ports=$(get_ports_ip "$left_rule")
     fi
-  
+
     dhost_dport="$right_rule"
     if [ -z "$shosts" -o -z "$ports" ]; then
       parse_rule_warning "$rule"
@@ -1026,7 +1026,7 @@ parse_rule()
 
   shosts:ANYHOST-dhosts)
     left_rule=$(echo "$rule" |cut -s -d'>' -f1)
-    right_rule=$(echo "$rule" |cut -s -d'>' -f2)
+    right_rule=$(echo "$rule" |cut -d'>' -f2)
 
     shosts=$(get_hosts_ih "$left_rule" "$ANYHOST")
     dhosts=$(get_hosts_hp "$right_rule")
@@ -1038,7 +1038,7 @@ parse_rule()
     ;;
 
   shosts-dhosts:ANYHOST)
-    left_rule=$(echo "$rule" |cut -s -d'>' -f1)
+    left_rule=$(echo "$rule" |cut -d'>' -f1)
     right_rule=$(echo "$rule" |cut -s -d'>' -f2)
 
     shosts=$(get_hosts_ih "$left_rule")
@@ -1051,7 +1051,7 @@ parse_rule()
     ;;
 
   *)
-    echo "** ERROR: Invalid rule parse type! **" >&2
+    echo "** ERROR: Invalid rule parse type \"$type\"!" >&2
     return 1
     ;;
 
@@ -1067,7 +1067,7 @@ parse_rule_warning()
 
   RULE_WARNING=$((RULE_WARNING + 1))
 
-  echo "** WARNING: In Variable $var, Rule: \"$rule\" is ignored." >&2
+  echo "** WARNING: In variable $var, Rule: \"$rule\" is ignored." >&2
 }
 
 
@@ -1242,7 +1242,7 @@ get_numeric_ip_version()
     ;;
   esac
 
-  return 0
+  return 0 # Unknown, possibly a hostname
 }
 
 
