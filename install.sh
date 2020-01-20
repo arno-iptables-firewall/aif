@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.13"
+MY_VERSION="1.13a"
 
 # ------------------------------------------------------------------------------------------
 #                         -= Arno's Iptables Firewall(AIF) =-
@@ -414,7 +414,7 @@ copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-
 copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
 
 mkdir -pv /etc/arno-iptables-firewall/plugins || exit 1
-copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/ "y" "dist"
+copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/ "n" "dist"
 
 mkdir -pv /etc/arno-iptables-firewall/conf.d || exit 1
 echo "Files with a .conf extension in this directory will be sourced by the environment file" >/etc/arno-iptables-firewall/conf.d/README

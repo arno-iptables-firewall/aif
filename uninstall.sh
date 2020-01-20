@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.0d"
+MY_VERSION="1.0e"
 
 # ------------------------------------------------------------------------------------------
 #                         -= Arno's Iptables Firewall(AIF) =-
@@ -8,7 +8,7 @@ MY_VERSION="1.0d"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2019 by Arno van Amersfoort
+# (C) Copyright 2001-2020 by Arno van Amersfoort
 # Homepage              : https://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -89,7 +89,7 @@ printf "\033[40m\033[1;32mArno's Iptables Firewall(AIF) v$AIF_VERSION\033[0m\n"
 printf "Uninstall Script v$MY_VERSION\n"
 echo "-------------------------------------------------------------------------------"
 
-sanity_check;
+sanity_check
 
 if ! get_user_yn "Continue uninstall" "n"; then
   echo "*Uninstall aborted!"
@@ -98,6 +98,8 @@ fi
 
 rm -fv /usr/local/sbin/arno-iptables-firewall
 rm -fv /usr/local/sbin/arno-fwfilter
+rm -fv /usr/local/sbin/traffic-accounting-show
+
 rm -fv /usr/local/bin/arno-fwfilter
 
 rm -rfv /usr/local/share/arno-iptables-firewall
@@ -107,16 +109,20 @@ rm -fv /usr/local/share/man/man8/arno-fwfilter.1.gz
 
 rm -fv /usr/local/share/doc/arno-iptables-firewall/README
 
-# Check for insserv. Used for dependency based booting
+# Disable systemd
+if check_command systemctl; then
+  systemctl disable arno-iptables-firewall
+fi
+
+# Disable via update-rc.d/chkconfig
 if check_command update-rc.d; then
   update-rc.d -f arno-iptables-firewall remove
 elif check_command chkconfig; then
   chkconfig --del arno-iptables-firewall
 fi
 
-rm -fv /etc/init.d/arno-iptables-firewall
-
 # Remove init.d script
+rm -fv /etc/init.d/arno-iptables-firewall
 rm -fv /etc/rc.d/rc*.d/*arno-iptables-firewall
 rm -fv /etc/rc*.d/*arno-iptables-firewall
 
