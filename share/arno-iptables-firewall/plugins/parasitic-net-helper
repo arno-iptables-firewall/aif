@@ -190,7 +190,7 @@ parasitic_net_helper_do_work()
   unset IFS
 
   for rule in $PARASITIC_NET_HOST_OPEN_ICMP; do
-    if parse_rule "$rule" PARASITIC_NET_HOST_DENY_ICMP "shosts:ANYHOST-dhosts"; then
+    if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_ICMP "shosts:ANYHOST-dhosts"; then
       echo "${INDENT}Allowing access from $shosts to $dhosts for ICMP requests"
 
       IFS=' ,'
@@ -203,7 +203,7 @@ parasitic_net_helper_do_work()
 
         for dhost_ip in $host_ip; do
           for shost_ip in $shosts; do
-            ip4tables -A PARASITIC_NET_ACL -s $shost -d $dhost_ip -p icmp --icmp-type echo-request -j ACCEPT
+            ip4tables -A PARASITIC_NET_ACL -s $shost_ip -d $dhost_ip -p icmp --icmp-type echo-request -j ACCEPT
           done
         done
       done
@@ -212,7 +212,7 @@ parasitic_net_helper_do_work()
 
   unset IFS
   for rule in $PARASITIC_NET_HOST_OPEN_IP; do
-    if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_IP "shosts-dhosts-protos"; then
+    if parse_rule "$rule" PARASITIC_NET_HOST_OPEN_IP "shosts:ANYHOST-dhosts-protos"; then
       echo "${INDENT}Allowing access from $shosts to $dhosts for IP protocol(s): $protos"
 
       IFS=' ,'
