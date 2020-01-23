@@ -238,8 +238,8 @@ parasitic_net_helper_do_work()
   if [ -z "$PARASITIC_NET_HOST_OPEN_TCP" ]; then
     ip4tables -A PARASITIC_NET_ACL -p tcp -j ACCEPT
   else
-    if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-      ip4tables -A PARASITIC_NET_ACL -p tcp -m limit --limit 1/m -j LOG \
+    if [ "$PARASITIC_NET_DENY_LOG" != "0" ]; then
+      ip4tables -A PARASITIC_NET_ACL -p tcp -m limit --limit 12/m -j LOG \
         --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
     fi
 
@@ -249,8 +249,8 @@ parasitic_net_helper_do_work()
   if [ -z "$PARASITIC_NET_HOST_OPEN_UDP" ]; then
     ip4tables -A PARASITIC_NET_ACL -p udp -j ACCEPT
   else
-    if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-      ip4tables -A PARASITIC_NET_ACL -p udp -m limit --limit 1/m -j LOG \
+    if [ "$PARASITIC_NET_DENY_LOG" != "0" ]; then
+      ip4tables -A PARASITIC_NET_ACL -p udp -m limit --limit 12/m -j LOG \
         --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
     fi
 
@@ -260,8 +260,8 @@ parasitic_net_helper_do_work()
   if [ -z "$PARASITIC_NET_HOST_OPEN_ICMP" ]; then
     ip4tables -A PARASITIC_NET_ACL -p icmp --icmp-type echo-request -j ACCEPT
   else
-    if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-      ip4tables -A PARASITIC_NET_ACL -p icmp --icmp-type echo-request -m limit --limit 1/m -j LOG \
+    if [ "$PARASITIC_NET_DENY_LOG" != "0" ]; then
+      ip4tables -A PARASITIC_NET_ACL -p icmp --icmp-type echo-request -m limit --limit 12/m -j LOG \
         --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
     fi
 
@@ -269,8 +269,8 @@ parasitic_net_helper_do_work()
   fi
 
   # Drop the rest ("Other" IP protocols always need to be specified explicitly)
-  if [ "$PARASITIC_NET_DENY_LOG" = "1" ]; then
-    ip4tables -A PARASITIC_NET_ACL -m limit --limit 1/m -j LOG \
+  if [ "$PARASITIC_NET_DENY_LOG" != "0" ]; then
+    ip4tables -A PARASITIC_NET_ACL -m limit --limit 12/m -j LOG \
       --log-level $LOGLEVEL --log-prefix "AIF:Parasitic-net denied: "
   fi
   ip4tables -A PARASITIC_NET_ACL -j $PARASITIC_NET_DENY_POLICY
