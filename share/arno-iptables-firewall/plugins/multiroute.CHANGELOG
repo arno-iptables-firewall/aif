@@ -1,3 +1,7 @@
+Version 1.00 (February 6, 2020)
+-------------------------------
+! Replace ip route "equalize" with "scope global" since equalize is no longer supported (by default) in newer distributions
+
 Version 0.29BETA (February 19, 2008)
 ------------------------------------
 * Minor tweak for PLUGIN_RET_VAL

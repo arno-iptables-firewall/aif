@@ -2,10 +2,10 @@
 #            -= Arno's Iptables Firewall(AIF) - Multirouting plugin =-
 #
 PLUGIN_NAME="Multirouting plugin"
-PLUGIN_VERSION="0.31BETA (EXPERIMENTAL!)"
+PLUGIN_VERSION="1.00"
 PLUGIN_CONF_FILE="multiroute.conf"
 #
-# Last changed          : March 17, 2009
+# Last changed          : February 6, 2020
 # Requirements          : iproute2 (package) + kernel 2.6 with the following options set in:
 #                         Networking, Networking support, TCP/IP networking:
 #                               CONFIG_IP_ADVANCED_ROUTER=y (IP: advanced router)
@@ -19,7 +19,7 @@ PLUGIN_CONF_FILE="multiroute.conf"
 #                         this(yet). To obtain the information needed to configure this plugin
 #                         use the 'ifconfig' and 'route' commands.
 #
-# Author                : (C) Copyright 2005-2009 by Arno van Amersfoort
+# Author                : (C) Copyright 2005-2020 by Arno van Amersfoort
 # Homepage              : https://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -84,7 +84,7 @@ plugin_start()
   echo "${INDENT}Enabling loadbalancing"
   echo "${INDENT} Adding external interface $MULTIROUTE_EXT_IF1, gw=$MULTIROUTE_EXT_ROUTER1, weight=$MULTIROUTE_EXT_WEIGHT1"
   echo "${INDENT} Adding external interface $MULTIROUTE_EXT_IF2, gw=$MULTIROUTE_EXT_ROUTER2, weight=$MULTIROUTE_EXT_WEIGHT2"
-  ip route add default equalize \
+  ip route add default scope global \
     nexthop via $MULTIROUTE_EXT_ROUTER1 dev $MULTIROUTE_EXT_IF1 weight $MULTIROUTE_EXT_WEIGHT1 \
     nexthop via $MULTIROUTE_EXT_ROUTER2 dev $MULTIROUTE_EXT_IF2 weight $MULTIROUTE_EXT_WEIGHT2
 
