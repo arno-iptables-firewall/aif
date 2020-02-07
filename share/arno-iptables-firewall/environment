@@ -1870,7 +1870,7 @@ log_msg()
   IFS=$EOL
   while read LINE; do
     # Have sed remove any colouring
-    echo "${PREFIX}${LINE}" |sed 's/\x1B\[[0-9;]\+[A-Za-z]//g' |logger -t firewall -p kern.info
+    echo "${PREFIX}${LINE}" |sed 's/\x1B\[[0-9;]\+[A-Za-z]//g' |logger -t firewall -p user.info
   done
 }
 
@@ -2003,11 +2003,6 @@ PLUGIN_LOAD_FILE_RESTART="/var/tmp/aif_active_plugins_restart"
 
 # (Dynamic) host cache. Used by compatible plugins
 HOST_CACHE_FILE="/var/tmp/aif_host_cache"
-
-# Check whether we also need to drop messages in a dedicated firewall log file
-if [ -z "$FIREWALL_LOG" ]; then
-  FIREWALL_LOG="/dev/null"
-fi
 
 # Check for a local/global config file
 ######################################
