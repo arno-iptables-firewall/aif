@@ -6021,24 +6021,18 @@ show_status()
 
 show_start()
 {
-  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
-  echo "$DATE ** Starting Arno's Iptables Firewall(AIF) v$MY_VERSION **" >> $FIREWALL_LOG
   echo "** Starting Arno's Iptables Firewall(AIF) v$MY_VERSION **" |log_msg
 }
 
 
 show_restart()
 {
-  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
-  echo "$DATE ** Restarting Arno's Iptables Firewall(AIF) v$MY_VERSION **" >> $FIREWALL_LOG
   echo "** Restarting Arno's Iptables Firewall(AIF) v$MY_VERSION **" |log_msg
 }
 
 
 show_failed()
 {
-  DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
-  echo "$DATE ** ERROR: Firewall failed to start! **" >> $FIREWALL_LOG
   echo "** ERROR: Firewall failed to start! **" |log_msg
 }
 
@@ -6047,7 +6041,6 @@ show_stop()
 {
   DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
   printf "$DATE \033[40m\033[1;32mStopping Arno's Iptables Firewall(AIF) v$MY_VERSION\033[0m\n"
-  echo "$DATE ** Stopping Arno's Iptables Firewall(AIF) v$MY_VERSION **" >> $FIREWALL_LOG
   echo "** Stopping Arno's Iptables Firewall(AIF) v$MY_VERSION **" |log_msg
 }
 
@@ -6068,11 +6061,9 @@ show_applied()
 
   if [ $RULE_WARNING -ne 0 ]; then
     printf "$DATE \033[40m\033[1;31mWARNING: $RULE_WARNING firewall rules failed to apply!\n\033[0m" >&2
-    echo "$DATE ** WARNING: $RULE_WARNING firewall rules failed to apply! **" >> $FIREWALL_LOG
     echo "** WARNING: $RULE_WARNING firewall rules failed to apply! **" |log_msg
   else
     printf "$DATE \033[40m\033[1;32mAll firewall rules applied.\033[0m\n"
-    echo "$DATE ** All firewall rules applied **" >> $FIREWALL_LOG
     echo "** All firewall rules applied **" |log_msg
   fi
 
