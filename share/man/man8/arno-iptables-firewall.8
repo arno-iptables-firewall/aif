@@ -1,62 +1,47 @@
-.TH "ARNO-IPTABLES-FIREWALL" "8" "March 14, 2012" "Michael Hanke" ""
+.TH "ARNO-IPTABLES-FIREWALL" "8" "2020-03-25" "Sven Geuer" "AIF Manual"
 .SH "NAME"
-\fBarno\-iptables\-firewall\fR \- Single\- & multi\-homed firewall script with DSL/ADSL support.
+arno\-iptables\-firewall \- Single\- & multi\-homed firewall script with DSL/ADSL support.
 .SH "SYNOPSIS"
-.B /etc/init.d/arno\-iptables\-firewall 
-[start|stop|status|force\-reload|restart]
+\fBarno\-iptables\-firewall\fR start | restart | force-reload | stop | stop-block | status | status\-plugins | check-conf
 .SH "DESCRIPTION"
-\fBarno\-iptables\-firewall\fP is an iptables configuration script with support for both IPv4 & IPv6.
-While it is extremely easy to use one can nevertheless use it in quite 
-complicated environments.
+\fBarno\-iptables\-firewall\fR is an iptables configuration script with support for both IPv4 & IPv6. In general, it should not be called directly, but rather should be invoked via \fI/etc/init.d/arno\-iptables\-firewall\fR or \fIsystemctl\~COMMAND\~arno\-iptables\-firewall.service\fR, depending on the init system in use. While it is extremely easy to set up a basic firewall one can nevertheless configure it to meet quite complex requirements.
 .P
-All available options are explained in the extensively documented 
-configuration file.
+All available options are explained in the extensively documented configuration file.
 .P
-The external interface of the system needs to be set up properly in the 
-firewalls configuration file (EXT_IF). 
-The default behavior of the firewall is to deny all incoming connections. 
+As a bare minimum the external interface of the system needs to be set up properly in the firewalls configuration (EXT_IF). The default behavior of the firewall is to deny all incoming connections.
 .P
-For additional requirements not covered by the configuration file 
-custom iptables rules can be placed in 
-/etc/arno\-iptables\-firewall/custom\-rules. 
-This file is automatically parsed by the service script. 
+Instead of editing the main configuration file, it is recommended to put configuration snippets into .conf files to be placed in the configuration directory. These are sourced after the main configuration file has been read and can be used to override previous (default) configurations.
 .P
-See the README file (eg. in  
-.I  /usr/(local/)share/doc/arno\-iptables\-firewall)
-for an example how to manage logging of firewall events through 
-.B  syslogd.
+For additional requirements not covered by the configuration file and not coverable by configuration snippets custom iptables rules can be placed in a custom rules file. This file is automatically parsed by the service script. 
 .P
-The \fBarno\-fwfilter\fR script can be used to make the firewall logs more readable for humans (see manpage).
+Logs are written to a dedicated log file if \fBrsyslogd\fR is in use. The \fBarno\-fwfilter\fR script can be used to make the firewall logs more readable for humans (see manpage).
 .P
-Several plugins for the firewall script are available online. Plugins can
-be downloaded from
-.I https://rocky.eld.leidenuniv.nl/ 
-Please see the README file 
-for more information.
+Several plugins implementing advanced features come with the firewall script. Each of them brings its own configuration file to be found in the plugins configuration directory.
 .SH "FILES"
-.nf 
-.ft B
-.ft
-/etc/init.d/arno\-iptables\-firewall              system service script
-/etc/arno\-iptables\-firewall/firewall.conf       firewall configuration
-/etc/arno\-iptables\-firewall/conf.d/             firewall configuration directory
-/etc/arno\-iptables\-firewall/custom\-rules        custom iptables rules
-/etc/arno\-iptables\-firewall/blocked\-hosts       host blacklist
-/etc/arno\-iptables\-firewall/mac\-addresses       mac filter list
-.fi
-.LP 
-Please note, that the last two files do exist in the initial configuration and their use is disabled in 
-.B /etc/arno\-iptables\-firewall/firewall.conf
+.TP
+.I /etc/arno\-iptables\-firewall/firewall.conf
+main configuration file
+.TP
+.I /etc/arno\-iptables\-firewall/conf.d/
+firewall configuration directory
+.TP
+.I /etc/arno\-iptables\-firewall/plugins/
+plugins configuration directory
+.TP
+.I /etc/arno\-iptables\-firewall/custom\-rules
+custom iptables rules file
+.TP
+.I /etc/arno\-iptables\-firewall/blocked\-hosts
+host blacklist. This file does not pre-exist and its use is disabled in the main configuration file by default.
+.TP
+.I /var/log/firewall.log
+log file maintained by rsyslogd
 .SH "SEE ALSO"
 .BR iptables "(8)",
 .BR arno\-fwfilter "(1)",
-.BR syslog.conf "(5)"
-.PP 
-The
+.I /usr/local/share/doc/arno-iptables-firewall/README.gz,
 .I https://rocky.eld.leidenuniv.nl/
-web site.
 .SH "AUTHOR"
-arno\-iptables\-firewall was written by Arno van Amersfoort <arnova@rocky.eld.leidenuniv.nl> and Lonnie Abelbeck <abelbeck@rocky.eld.leidenuniv.nl>.
-.PP 
-This manual page was written by Michael Hanke <michael.hanke@gmail.com>,
-for the Debian project (but may be used by others).
+arno\-iptables\-firewall was written by Arno van Amersfoort <arnova@rocky.eld.leidenuniv.nl> and Lonnie Abelbeck <lonnie@abelbeck.com>.
+.P 
+This manual page was initially written by Michael Hanke <michael.hanke@gmail.com> and has been reworked by Sven Geuer <debmaint@g\-e\-u\-e\-r.de>, for the Debian project (but may be used by others).
