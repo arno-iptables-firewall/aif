@@ -7,10 +7,10 @@
 # --------------------------------------------------------
 # Static firewall log filtering                         : cat /var/log/messages |arno-fwfilter
 # or
-# Static firewall log filtering                         : cat /var/log/firewall |arno-fwfilter
+# Static firewall log filtering                         : cat /var/log/arno-iptables-firewall |arno-fwfilter
 # Realtime firewall logging on TTY10                    : tail --follow /var/log/messages |fwfilter >/dev/tty10 &
 # Example on how to disable kernel debug logging        : cat /var/log/messages |grep -v kernel |arno-fwfilter
-# Email firewall logs to root                           : cat /var/log/firewall |arno-fwfilter --html-output --no-colors |mail -s "Firewall Log" -a "Content-Type: text/html; charset=us-ascii" root
+# Email firewall logs to root                           : cat /var/log/arno-iptables-firewall |arno-fwfilter --html-output --no-colors |mail -s "Firewall Log" -a "Content-Type: text/html; charset=us-ascii" root
 
 # ------------------------------------------------------------------------------------------
 #                     -= Arno's Iptables Firewall(AIF) =-

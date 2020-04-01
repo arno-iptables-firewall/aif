@@ -33,7 +33,7 @@ admin_email="admin@your-domain"
 # But here you need the device that wvdial returns which is generally ppp0
 dialup_if="ppp0"
 # Full path and name of your firewall script I use Arnos iptables firewall
-firewall="/etc/arno-iptables-firewall.conf"
+firewall="/etc/arno-iptables-firewall/firewall.conf"
 # The /etc/init.d/firewall-script that your system uses to restart the firewall
 firestarter="/etc/init.d/arno-iptables-firewall"
 # WARNING if you are not using arnos firewall script you will need to edit the sed commands parameters below
