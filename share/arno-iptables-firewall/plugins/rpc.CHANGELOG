@@ -1,8 +1,13 @@
-Version 0.2BETA (January 16, 2012)
+Version 0.22-BETA (April 13, 2020)
 ----------------------------------
+! Parsing of rpcinfo failed due to missing EOL-space conversion
+
+Version 0.2-BETA (January 16, 2012)
+-----------------------------------
 + Added RPC_NETS variable to restrict access
 * Few tweaks, fixes & cleanups
 
-Version 0.1BETA (January 16, 2012)
-----------------------------------
+Version 0.1-BETA (January 16, 2012)
+-----------------------------------
 - Initial version
+

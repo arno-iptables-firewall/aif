@@ -2,10 +2,10 @@
 #               -= Arno's Iptables Firewall(AIF) - RPC plugin =-
 #
 PLUGIN_NAME="RPCplugin"
-PLUGIN_VERSION="0.21-BETA"
+PLUGIN_VERSION="0.22-BETA"
 PLUGIN_CONF_FILE="rpc.conf"
 #
-# Last changed          : January 17, 2012
+# Last changed          : April 13, 2020
 # Requirements          : kernel 2.6
 # Comments              : This plugin opens RPC ports
 #
@@ -31,16 +31,16 @@ plugin_start()
 {
   # Create new DYNDNS_CHAIN chain:
   iptables -N RPC_CHAIN 2>/dev/null
-  iptables -F RPC_CHAIN 
-  
+  iptables -F RPC_CHAIN
+
   # Insert rule into the main chain:
   iptables -A EXT_INPUT_CHAIN -j RPC_CHAIN
-  
+
   echo "${INDENT}Enabling RPC service(s) $RPC_SERVICES for net(s) $RPC_NETS"
-  
+
   IFS=' ,'
   for service in $RPC_SERVICES; do
-    ports="$(rpcinfo -p |awk "/tcp.*$service/"' { print $4 }' |uniq)"
+    ports="$(rpcinfo -p |awk "/tcp.*$service/"' { print $4 }' |uniq |tr '\n' ' ')"
     echo "${INDENT}Adding TCP ports $ports for RPC service $service"
     for net in $RPC_NETS; do
       for port in $ports; do
@@ -48,7 +48,7 @@ plugin_start()
       done
     done
 
-    ports="$(rpcinfo -p | awk "/udp.*$service/"' {print $4}' |uniq)"
+    ports="$(rpcinfo -p |awk "/udp.*$service/"' { print $4 }' |uniq |tr '\n' ' ')"
     echo "${INDENT}Adding UDP ports $ports for RPC service $service"
     for net in $RPC_NETS; do
       for port in $ports; do
@@ -66,10 +66,10 @@ plugin_restart()
 {
   ## Re-add standard chain rules that are flushed on a restart
   echo "${INDENT}Restarting..."
-  
+
   # Insert rule into the main chain:
   iptables -A EXT_INPUT_CHAIN -j RPC_CHAIN
-  
+
   return 0
 }
 
@@ -80,7 +80,7 @@ plugin_stop()
   iptables -D EXT_INPUT_CHAIN -j RPC_CHAIN 2>/dev/null
 
   iptables -F RPC_CHAIN
-  iptables -X RPC_CHAIN 2>/dev/null 
+  iptables -X RPC_CHAIN 2>/dev/null
 
   return 0
 }
@@ -100,8 +100,8 @@ plugin_sanity_check()
   if [ -z "$RPC_SERVICES" ] || [ -z "$RPC_NETS" ]; then
     printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not properly setup!\033[0m\n" >&2
     return 1
-  fi   
-  
+  fi
+
   return 0
 }
 
