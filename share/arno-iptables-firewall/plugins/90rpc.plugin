@@ -102,6 +102,11 @@ plugin_sanity_check()
     return 1
   fi
 
+  if ! check_command rpcinfo; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: Required binary \"rpcinfo\" is not available!\n\033[0m" >&2
+    return 1
+  fi
+
   return 0
 }
 
