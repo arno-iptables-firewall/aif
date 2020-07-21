@@ -1,5 +1,6 @@
-Version 2.1.1-DEVEL (April 1, 2020)
+Version 2.1.1-DEVEL (July 21, 2020)
 --------------------------------------
++ Logrotate with rsyslogd
 * Cleanup log handling + rename /var/log/firewall.log to /var/log/arno-iptables-firewall
 * Refactor lock_enter/lock_enter_single
 ! Stale lock file removal didn't work properly

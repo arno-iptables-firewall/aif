@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.13a"
+MY_VERSION="1.13b"
 
 # ------------------------------------------------------------------------------------------
 #                         -= Arno's Iptables Firewall(AIF) =-
@@ -404,6 +404,7 @@ fi
 # Install rsyslog config file (if rsyslog is available)
 if [ -d "/etc/rsyslog.d" ]; then
   copy_ask_if_exist ./etc/rsyslog.d/arno-iptables-firewall.conf /etc/rsyslog.d/ "y"
+  copy_ask_if_exist ./etc/logrotate.d/arno-iptables-firewall.rsyslog /etc/logrotate.d/arno-iptables-firewall "y"
 fi
 
 mkdir -pv /etc/arno-iptables-firewall || exit 1
