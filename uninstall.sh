@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.0e"
+MY_VERSION="1.0f"
 
 # ------------------------------------------------------------------------------------------
 #                         -= Arno's Iptables Firewall(AIF) =-
@@ -109,6 +109,8 @@ rm -fv /usr/local/share/man/man8/arno-fwfilter.1.gz
 
 rm -fv /usr/local/share/doc/arno-iptables-firewall/README
 
+rm -fv /etc/logrotate.d/arno-iptables-firewall
+
 # Disable systemd
 if check_command systemctl; then
   systemctl disable arno-iptables-firewall
@@ -142,4 +144,3 @@ echo "** Uninstall done **"
 echo ""
 
 exit 0
-
