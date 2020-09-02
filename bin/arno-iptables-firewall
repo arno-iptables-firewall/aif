@@ -298,7 +298,10 @@ load_modules()
   # write rules matching the state of a connection
   modprobe_multi nf_conntrack ip_conntrack
   if [ "$IPV6_SUPPORT" = "1" ]; then
-    modprobe nf_conntrack_ipv6
+    ## kernel >= 4.19 merged nf_conntrack_ipv{4,6} into nf_conntrack
+    if ! kernel_ver_chk 4 19 0; then
+      modprobe nf_conntrack_ipv6
+    fi
   fi
 
   # Allows tracking for various protocols, placing entries in the conntrack table etc.
@@ -593,10 +596,10 @@ setup_kernel_settings()
     sysctl -w net.ipv4.tcp_rfc1337=0
   fi
 
-  # Set out local port range. Kernel default = "1024 4999"
-  ########################################################
+  # Set our local port range. Kernel default = "32768 60999"
+  ##########################################################
   if [ -z "$LOCAL_PORT_RANGE" ]; then
-    LOCAL_PORT_RANGE="32768 61000"
+    LOCAL_PORT_RANGE="32768 60999"
   fi
   sysctl -w net.ipv4.ip_local_port_range="$LOCAL_PORT_RANGE"
 
