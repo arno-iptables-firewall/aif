@@ -1,5 +1,6 @@
-Version 2.1.1-DEVEL (July 21, 2020)
+Version 2.1.1-DEVEL (September 4, 2020)
 -----------------------------------
+! ip4tables/ip6tables functions were broken for multiline result since 2.1.0
 + Enable logrotate for /var/log/arno-iptables-firewall
 * Cleanup log handling + rename /var/log/firewall.log to /var/log/arno-iptables-firewall
 * Refactor lock_enter/lock_enter_single

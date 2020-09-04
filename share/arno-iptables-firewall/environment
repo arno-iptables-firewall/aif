@@ -331,14 +331,7 @@ ip4tables()
     fi
   elif [ -n "$result" ]; then
     # Filter successful, informational results
-    case "$result" in
-      'WARNING: '*' match is obsolete'*)
-        ;;
-      *'iptables-legacy tables present'*)
-        ;;
-      *) echo "${INDENT}$result"
-        ;;
-    esac
+    echo "$result" |grep -v -e 'WARNING:.*match is obsolete' -e 'iptables-legacy tables present'
   fi
 
   return $retval
@@ -360,14 +353,7 @@ ip6tables()
     fi
   elif [ -n "$result" ]; then
     # Filter successful, informational results
-    case "$result" in
-      'WARNING: '*' match is obsolete'*)
-        ;;
-      *'iptables-legacy tables present'*)
-        ;;
-      *) echo "${INDENT}$result"
-        ;;
-    esac
+    echo "$result" |grep -v -e 'WARNING:.*match is obsolete' -e 'iptables-legacy tables present'
   fi
 
   return $retval
