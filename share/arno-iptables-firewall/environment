@@ -318,20 +318,27 @@ iptables()
 
 ip4tables()
 {
-  local result retval IFS=' '
+  local err_result retval IFS=' '
 
-  result=`$IP4TABLES${IPTABLES_OPTIONS:+ $IPTABLES_OPTIONS} "$@" 2>&1`
+  # Create extra FD
+  exec 3>&1
+
+  err_result=`$IP4TABLES${IPTABLES_OPTIONS:+ $IPTABLES_OPTIONS} "$@" 2>&1 1>&3`
   retval=$?
+
+  # Release extra FD
+  exec 3>&-
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m${IP4TABLES} $*\nERROR ($retval): ${result}\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${IP4TABLES} $*\nERROR ($retval): ${err_result}\n\033[0m" >&2
+
     if note_iptables_error "$@"; then
       RULE_WARNING=$((RULE_WARNING + 1))
     fi
-  elif [ -n "$result" ]; then
-    # Filter successful, informational results
-    echo "$result" |grep -v -e 'WARNING:.*match is obsolete' -e 'iptables-legacy tables present'
+  elif [ -n "$err_result" ]; then
+    # ip4tables returned success, so normal output of stderr but filter some messages
+    echo "$err_result" |grep -v -e 'WARNING:.*match is obsolete' -e 'iptables-legacy tables present' >&2
   fi
 
   return $retval
@@ -340,20 +347,27 @@ ip4tables()
 
 ip6tables()
 {
-  local result retval IFS=' '
+  local err_result retval IFS=' '
 
-  result=`$IP6TABLES${IPTABLES_OPTIONS:+ $IPTABLES_OPTIONS} "$@" 2>&1`
+  # Create extra FD
+  exec 3>&1
+
+  err_result=`$IP6TABLES${IPTABLES_OPTIONS:+ $IPTABLES_OPTIONS} "$@" 2>&1 1>&3`
   retval=$?
+
+  # Release extra FD
+  exec 3>&-
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m${IP6TABLES} $*\nERROR ($retval): ${result}\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${IP6TABLES} $*\nERROR ($retval): ${err_result}\n\033[0m" >&2
+
     if note_iptables_error "$@"; then
       RULE_WARNING=$((RULE_WARNING + 1))
     fi
-  elif [ -n "$result" ]; then
-    # Filter successful, informational results
-    echo "$result" |grep -v -e 'WARNING:.*match is obsolete' -e 'iptables-legacy tables present'
+  elif [ -n "$err_result" ]; then
+    # ip6tables returned success, so normal output of stderr but filter some messages
+    echo "$err_result" |grep -v -e 'WARNING:.*match is obsolete' -e 'iptables-legacy tables present' >&2
   fi
 
   return $retval
@@ -379,17 +393,25 @@ ip4tables_save()
 
 ip4tables_restore()
 {
-  local result retval IFS=' '
+  local err_result retval IFS=' '
 
-  result=`$IP4TABLES_RESTORE "$@" 2>&1`
+  # Create extra FD
+  exec 3>&1
+
+  err_result=`$IP4TABLES_RESTORE "$@" 2>&1 1>&3`
   retval=$?
+
+  # Release extra FD
+  exec 3>&-
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m${IP4TABLES_RESTORE} $*\nERROR ($retval): ${result}\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${IP4TABLES_RESTORE} $*\nERROR ($retval): ${err_result}\n\033[0m" >&2
+
     RULE_WARNING=$((RULE_WARNING + 1))
-  elif [ -n "$result" ]; then
-    echo "${INDENT}$result"
+  elif [ -n "$err_result" ]; then
+    # ip4tables_restore returned success, so normal output of stderr
+    echo "$err_result" >&2
   fi
 
   return $retval
@@ -415,17 +437,25 @@ ip6tables_save()
 
 ip6tables_restore()
 {
-  local result retval IFS=' '
+  local err_result retval IFS=' '
 
-  result=`$IP6TABLES_RESTORE "$@" 2>&1`
+  # Create extra FD
+  exec 3>&1
+
+  err_result=`$IP6TABLES_RESTORE "$@" 2>&1 1>&3`
   retval=$?
+
+  # Release extra FD
+  exec 3>&-
 
   if [ $retval -ne 0 ]; then
     # Show any (error) messages in red
-    printf "\033[40m\033[1;31m${IP6TABLES_RESTORE} $*\nERROR ($retval): ${result}\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${IP6TABLES_RESTORE} $*\nERROR ($retval): ${err_result}\n\033[0m" >&2
+
     RULE_WARNING=$((RULE_WARNING + 1))
-  elif [ -n "$result" ]; then
-    echo "${INDENT}$result"
+  elif [ -n "$err_result" ]; then
+    # ip6tables_restore returned success, so normal output of stderr
+    echo "$err_result" >&2
   fi
 
   return $retval
