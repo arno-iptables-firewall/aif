@@ -1504,6 +1504,7 @@ get_dynamic_host_cached()
 
 
 # Leave lock function to release lock
+# $1 = Lock (file) name
 lock_leave()
 {
   local LOCK_FILE RETVAL=0
@@ -1538,6 +1539,7 @@ lock_ctrl_handler()
 
 
 # Internal lock_enter() function. Only to be used by lock_enter_single() and lock_enter() (below)
+# $1 = Lock (file) name
 lock_enter_internal()
 {
   local LOCK_FILE="$1"
@@ -1623,7 +1625,9 @@ lock_enter()
 }
 
 
-# $1 = Optional wait time in seconds (default = 5 seconds)
+# Function to wait for lock to be released
+# $1 = Lock (file) name
+# $2 = Optional wait time in seconds (default = 5 seconds)
 lock_wait()
 {
   local LOCK_FILE="/var/lock/aif_$1.lock"
@@ -1645,20 +1649,6 @@ lock_wait()
   done
 
   return 1 # Lock wait failed
-}
-
-
-# $1 = Lock (file) name
-lock_remove()
-{
-  local LOCK_FILE="/var/lock/aif_$1.lock"
-
-  if [ -z "$1" ]; then
-    echo "ERROR: Exception due to missing lock argument" >&2
-    return 1 # Failure
-  fi
-
-  rm -f "$LOCK_FILE"
 }
 
 
