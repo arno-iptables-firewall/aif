@@ -49,8 +49,8 @@ traffic_accounting_helper_do_work()
 
   # Process the input chain
   if [ "$VERBOSE" = "1" ]; then
-    echo "Traffic Accounting Hosts:"
-    echo "-------------------------"
+    echo "${INDENT}Traffic Accounting Hosts:"
+    echo "${INDENT}-------------------------"
   fi
 
   # Also include default unicast route addresses, (0.0.0.0/0 and ::/0)
@@ -61,10 +61,6 @@ traffic_accounting_helper_do_work()
 
   IFS=' ,'
   for host in $TRAFFIC_ACCOUNTING_HOSTS $DEFAULT_ADDR; do
-    if [ "$VERBOSE" = "1" ]; then
-      printf "Host=$host "
-    fi
-
     old_entry="$(grep "^$host " /var/log/traffic-accounting.log)"
     old_ip="$(echo "$old_entry" |cut -s -d' ' -f2)"
     old_in_value="$(echo "$old_entry" |cut -s -d' ' -f3)"
@@ -91,10 +87,10 @@ traffic_accounting_helper_do_work()
 
     IFS=' ,'
     for mon_host_ip in $host_ip; do
-      echo "${INDENT}Monitoring host \"$host\" with IP(s): $mon_host_ip"
+      echo "${INDENT}Monitoring host \"$host\" with IP: $mon_host_ip"
 
       if [ "$VERBOSE" = "1" ]; then
-        printf "old_ip=$old_ip host_ip=$mon_host_ip "
+        printf "${INDENT}old_ip=$old_ip host_ip=$mon_host_ip "
       fi
 
       # Process input chain
