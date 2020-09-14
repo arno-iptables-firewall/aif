@@ -2,7 +2,7 @@
 #  -= Arno's Iptables Firewall(AIF) - (HTB/HFSC/CFQ) traffic shaper plugin =-
 #
 PLUGIN_NAME="Traffic Shaper Plugin"
-PLUGIN_VERSION="1.2.2"
+PLUGIN_VERSION="1.2.2a"
 PLUGIN_CONF_FILE="traffic-shaper.conf"
 #
 # Last changed          : July 21, 2015
@@ -430,7 +430,7 @@ plugin_status()
 
   echo ""
   echo "${INDENT}[iptables]"
-  iptables -t mangle -L SHAPER_CHAIN -v -x 2>/dev/null
+  iptables -t mangle -L SHAPER_CHAIN -v -x 2>/dev/null |sed -e "s/^/$INDENT/"
 
   return $retval
 }
