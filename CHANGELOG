@@ -1,7 +1,7 @@
-Version 2.1.1-DEVEL (September 13, 2020)
-----------------------------------------
+Version 2.1.1 (September 16, 2020)
+----------------------------------
 * Improve stdout/stderr handling in ip4tables/ip6tables/ip4tables_restore/ip6tables_restore functions
-! ip4tables/ip6tables functions were broken for multiline result since 2.1.0
+! ip4tables/ip6tables functions were broken for multiline result since 2.1.0 breaking eg. the traffic-accounting-plugin
 + Enable logrotate for /var/log/arno-iptables-firewall
 * Cleanup log handling + rename /var/log/firewall.log to /var/log/arno-iptables-firewall
 * Refactor lock_enter/lock_enter_single
