@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.13c"
+MY_VERSION="1.14"
 
 # ------------------------------------------------------------------------------------------
 #                         -= Arno's Iptables Firewall(AIF) =-
@@ -335,6 +335,89 @@ check_plugins()
 }
 
 
+setup_start_scripts()
+{
+  # Install init.d script, but only if init.d folder exists
+  if [ -d "/etc/init.d" ]; then
+    copy_overwrite ./etc/init.d/arno-iptables-firewall /etc/init.d/
+  fi
+
+  # Make sure only one service file exists in /lib/.. or /usr/lib/ where we prefer /lib/
+  rm -f /usr/lib/systemd/system/arno-iptables-firewall.service
+
+  # Install service file if systemd directory is available, use fallbacks to support different systems
+  if [ -d "/lib/systemd/system" ]; then
+    copy_overwrite ./lib/systemd/system/arno-iptables-firewall.service /lib/systemd/system/
+  elif [ -d "/usr/lib/systemd/system" ]; then
+    copy_overwrite ./lib/systemd/system/arno-iptables-firewall.service /usr/lib/systemd/system/
+  elif [ -d "/etc/systemd/system" ]; then
+    copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /etc/systemd/system/ "y"
+  else
+    echo "NOTE: Could not find any systemd/system directory, skipping systemd configuration" >&2
+  fi
+
+  RC_PATH="/etc"
+  # Check for Redhat/SUSE rc.d
+  if [ -d "/etc/rc.d" ]; then
+    RC_PATH="/etc/rc.d"
+  fi
+
+  # Remove any symlinks in rc*.d out of the way
+  rm -f $RC_PATH/rc0.d/*arno-iptables-firewall
+  rm -f $RC_PATH/rc1.d/*arno-iptables-firewall
+  rm -f $RC_PATH/rc2.d/*arno-iptables-firewall
+  rm -f $RC_PATH/rc3.d/*arno-iptables-firewall
+  rm -f $RC_PATH/rc4.d/*arno-iptables-firewall
+  rm -f $RC_PATH/rc5.d/*arno-iptables-firewall
+  rm -f $RC_PATH/rc6.d/*arno-iptables-firewall
+  rm -f $RC_PATH/rcS.d/*arno-iptables-firewall
+
+  if get_user_yn "Do you want to start the firewall at boot" "y"; then
+    DONE=0
+
+    if check_command systemctl; then
+      if systemctl enable arno-iptables-firewall; then
+        echo "* Successfully enabled service with systemctl"
+        DONE=1
+      fi
+    elif check_command update-rc.d; then
+      # Note: Currently update-rc.d doesn't seem to properly use the init script's LSB header, so specify explicitly
+      if update-rc.d -f arno-iptables-firewall start 11 S . stop 10 0 6 .; then
+        echo "* Successfully enabled service with update-rc.d"
+        DONE=1
+      fi
+    elif check_command chkconfig; then
+      if chkconfig --add arno-iptables-firewall && chkconfig arno-iptables-firewall on; then
+        echo "* Successfully enabled service with chkconfig"
+        DONE=1
+      fi
+    else
+      if [ -d "$RC_PATH/rcS.d" ]; then
+        if ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rcS.d/S11arno-iptables-firewall" &&
+          ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc0.d/K10arno-iptables-firewall" &&
+          ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc6.d/K10arno-iptables-firewall"; then
+          echo "* Successfully enabled service through $RC_PATH/rcS.d/ symlink"
+          DONE=1
+        fi
+      elif [ -d "$RC_PATH/rc2.d" ]; then
+        if ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc2.d/S09arno-iptables-firewall" &&
+          ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc0.d/K91arno-iptables-firewall" &&
+          ln -sv /etc/init.d/arno-iptables-firewall "$RC_PATH/rc6.d/K91arno-iptables-firewall"; then
+          echo "* Successfully enabled service through $RC_PATH/rc2.d/ symlink"
+          DONE=1
+        fi
+      else
+        echo "WARNING: Unable to detect /rc2.d or /rcS.d directories. Skipping runlevel symlinks" >&2
+      fi
+    fi
+
+    if [ $DONE -eq 0 ]; then
+      echo "ERROR: Unable to setup automatic start at boot. Please investigate" >&2
+    fi
+  fi
+}
+
+
 # main line:
 AIF_VERSION="$(grep "MY_VERSION=" ./bin/arno-iptables-firewall |sed -e "s/^MY_VERSION=\"//" -e "s/\"$//")"
 
@@ -382,25 +465,6 @@ gzip -c -v ./share/man/man1/arno-fwfilter.1 >/usr/local/share/man/man8/arno-fwfi
 mkdir -pv /usr/local/share/doc/arno-iptables-firewall || exit 1
 copy_overwrite ./README /usr/local/share/doc/arno-iptables-firewall/
 
-# Install init.d script, but only if init.d folder exists
-if [ -d "/etc/init.d" ]; then
-  copy_overwrite ./etc/init.d/arno-iptables-firewall /etc/init.d/
-fi
-
-# Make sure only one service file exists in /lib/.. or /usr/lib/ where we prefer /lib/
-rm -f /usr/lib/systemd/system/arno-iptables-firewall.service
-
-# Install service file if systemd directory is available, use fallbacks to support different systems
-if [ -d "/lib/systemd/system" ]; then
-  copy_overwrite ./lib/systemd/system/arno-iptables-firewall.service /lib/systemd/system/
-elif [ -d "/usr/lib/systemd/system" ]; then
-  copy_overwrite ./lib/systemd/system/arno-iptables-firewall.service /usr/lib/systemd/system/
-elif [ -d "/etc/systemd/system" ]; then
-  copy_ask_if_exist ./lib/systemd/system/arno-iptables-firewall.service /etc/systemd/system/ "y"
-else
-  echo "NOTE: Could not find any systemd/system directory, skipping systemd configuration" >&2
-fi
-
 # Install rsyslog config file (if rsyslog is available)
 if [ -d "/etc/rsyslog.d" ]; then
   copy_ask_if_exist ./etc/rsyslog.d/arno-iptables-firewall.conf /etc/rsyslog.d/ "y"
@@ -421,7 +485,11 @@ copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firew
 mkdir -pv /etc/arno-iptables-firewall/conf.d || exit 1
 echo "Files with a .conf extension in this directory will be sourced by the environment file" >/etc/arno-iptables-firewall/conf.d/README
 
+# Check old plugins
 check_plugins
+
+
+setup_start_scripts
 
 echo ""
 echo "** Install done **"
