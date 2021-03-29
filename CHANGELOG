@@ -1,6 +1,7 @@
-Version 2.1.1a-DEVEL (October 29, 2020)
----------------------------------------
+Version 2.1.1a-DEVEL (March 29, 2021)
+-------------------------------------
 * Move start script handling from configure script to install script
++ Missing LAN_LAN_OPEN_ICMP setting
 
 Version 2.1.1 (September 16, 2020)
 ----------------------------------

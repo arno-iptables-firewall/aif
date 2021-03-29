@@ -12,7 +12,7 @@ CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2020 by Arno van Amersfoort & Lonnie Abelbeck
+# (C) Copyright 2001-2021 by Arno van Amersfoort & Lonnie Abelbeck
 # Homepage              : https://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -2372,6 +2372,15 @@ setup_lan_lan_forward_chain()
       done
     fi
   done
+
+  # ICMP enable Inter-LAN hosts
+  #############################
+  unset IFS
+  if [ "$LAN_LAN_OPEN_ICMP" = "1" ]; then
+    echo "  Allowing ICMP-requests(ping)"
+    iptables -A LAN_LAN_FORWARD_CHAIN -p icmp --icmp-type echo-request \
+      -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+  fi
 
   return $rtn_val
 }
