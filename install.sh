@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.14"
+MY_VERSION="1.14a"
 
 # ------------------------------------------------------------------------------------------
 #                         -= Arno's Iptables Firewall(AIF) =-
@@ -8,7 +8,7 @@ MY_VERSION="1.14"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2020 by Arno van Amersfoort
+# (C) Copyright 2001-2021 by Arno van Amersfoort
 # Homepage              : https://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -86,10 +86,7 @@ shell_diff()
 
   if [ "$FILE1_DATA" != "$FILE2_DATA" ]; then
     # If mismatch, check whether it's only the comments that differ
-    FILE1_DATA="$(echo "$FILE1_DATA" |sed 's/#.*//')"
-    FILE2_DATA="$(echo "$FILE2_DATA" |sed 's/#.*//')"
-
-    if [ "$FILE1_DATA" = "$FILE2_DATA" ]; then
+    if [ "${FILE1_DATA%\#*}" = "${FILE2_DATA%\#*}" ]; then
       return 1 # Only comments differ
     fi
 
@@ -115,7 +112,7 @@ copy_ask_if_exist()
   unset IFS
   for source in `find "$1" -type f |grep -v -e '/\.svn/' -e '/\.git/'`; do
     if echo "$2" |grep -q '/$'; then
-      fn="$(echo "$source" |sed "s,^$1,,")"
+      fn="${source#$1}"
       if [ -z "$fn" ]; then
         target="${2}$(basename "$1")"
       else
@@ -182,7 +179,7 @@ copy_skip_if_exist()
   unset IFS
   for source in `find "$1" -type f |grep -v -e '/\.svn/' -e '/\.git/'`; do
     if echo "$2" |grep -q '/$'; then
-      fn="$(echo "$source" |sed "s,^$1,,")"
+      fn="${$source#$1}"
       if [ -z "$fn" ]; then
         target="$2$(basename "$1")"
       else
@@ -233,7 +230,7 @@ copy_overwrite()
   unset IFS
   for source in `find "$1" -type f |grep -v -e '/\.svn/' -e '/\.git/'`; do
     if echo "$2" |grep -q '/$'; then
-      fn="$(echo "$source" |sed "s,^$1,,")"
+      fn="${source#$1}"
       if [ -z "$fn" ]; then
         target="$2$(basename "$1")"
       else
@@ -428,7 +425,7 @@ echo "--------------------------------------------------------------------------
 sanity_check
 
 # We want to run in the dir the install script is in
-cd "$(dirname $0)"
+cd "$(dirname $0)" || exit 1
 
 if ! get_user_yn "Continue install" "n"; then
   echo "*Install aborted"
