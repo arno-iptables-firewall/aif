@@ -189,10 +189,12 @@ process_commandline()
                          exit 0
                          ;;
                      -*) echo "ERROR: Bad argument \"$ARG\"" >&2
+                         echo "" >&2
                          show_help
                          exit 1
                          ;;
                       *) echo "ERROR: Bad command syntax with argument \"$ARG\"" >&2
+                         echo "" >&2
                          show_help
                          exit 1
                          ;;

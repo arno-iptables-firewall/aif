@@ -68,12 +68,13 @@ process_commandline()
     ARGVAL="${ARGVAL#=}"
 
     case "$ARGNAME" in
-              --help|-h) show_help;
+              --help|-h) show_help
                          exit 0
                          ;;
             --indent|-i) OPT_INDENT="$ARGVAL"
                          ;;
                      -*) echo "ERROR: Bad argument \"$ARG\"" >&2
+                         echo "" >&2
                          show_help
                          exit 1
                          ;;
