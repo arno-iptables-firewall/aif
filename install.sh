@@ -179,7 +179,7 @@ copy_skip_if_exist()
   unset IFS
   for SOURCE in `find "$1" -type f |grep -v -e '/\.svn/' -e '/\.git/'`; do
     if echo "$2" |grep -q '/$'; then
-      FN="${$SOURCE#$1}"
+      FN="${SOURCE#$1}"
       if [ -z "$FN" ]; then
         TARGET="$2$(basename "$1")"
       else
