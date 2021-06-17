@@ -149,7 +149,7 @@ copy_ask_if_exist()
     RETVAL=0
     if [ $DIFF_RETVAL -eq 2 ]; then
       # copy file & create backup of old file if exists
-      cp -bv --preserve=mode,timestamps "$SOURCE" "$TARGET"
+      cp -v --suffix='.old' --backup=simple --preserve=mode,timestamps "$SOURCE" "$TARGET"
       RETVAL=$?
     else
       # Only comments mismatch, so no point in keeping a backup file
@@ -467,7 +467,7 @@ if [ -d "/etc/rsyslog.d" ]; then
   copy_ask_if_exist ./etc/rsyslog.d/arno-iptables-firewall.conf /etc/rsyslog.d/ "y"
 fi
 
-copy_ask_if_exist ./etc/logrotate.d/arno-iptables-firewall /etc/logrotate.d/ "y"
+copy_overwrite ./etc/logrotate.d/arno-iptables-firewall /etc/logrotate.d/
 
 mkdir -pv /etc/arno-iptables-firewall || exit 1
 
