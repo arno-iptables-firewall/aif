@@ -306,7 +306,7 @@ check_18_version()
 check_dist_version()
 {
   if [ -f /usr/sbin/arno-iptables-firewall ]; then
-    if ! get_user_yn "WARNING: It seems a distribution version is already installed. It's *STRONGLY* recommended to remove it first. Continue anyway" "y"; then
+    if ! get_user_yn "WARNING: It seems a distribution version is already installed. It's *STRONGLY* recommended to remove it first. Continue anyway" "n"; then
       return 1
     fi
   fi
