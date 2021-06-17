@@ -41,7 +41,7 @@ if [ -f "$CONFIG_FILE" ]; then
   . "$CONFIG_FILE"
 else
   printf "\033[40m\033[1;31mERROR: Could not read configuration file $CONFIG_FILE!\033[0m\n" >&2
-  printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n\n" >&2
+  printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n" >&2
   exit 2
 fi
 
@@ -54,7 +54,7 @@ if [ ! -f "$ENV_FILE" ]; then
   ENV_FILE="/usr/share/arno-iptables-firewall/environment"
   if [ ! -f "$ENV_FILE" ]; then
     printf "\033[40m\033[1;31mERROR: Unable to locate environment file in /usr/(local/)/share/arno-iptables-firewall/\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n\n" >&2
+    printf "\033[40m\033[1;31m       Please, check the file's location and (root) rights.\033[0m\n" >&2
     exit 2
   fi
 fi
@@ -81,7 +81,7 @@ sanity_check()
 
   # root check
   if [ "$(id -u)" != "0" ]; then
-    printf "\033[40m\033[1;31mERROR: Root check FAILED (you MUST be root to use this script)! Quitting...\033[0m\n\n" >&2
+    printf "\033[40m\033[1;31mERROR: Root check FAILED (you MUST be root to use this script)! Quitting...\033[0m\n" >&2
     exit 1
   fi
 
@@ -146,7 +146,7 @@ config_check()
   ########################
   if [ -z "$EXT_IF" ]; then
     printf "\033[40m\033[1;31mERROR: The required variable EXT_IF is empty!\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       Please, check the configuration file.\033[0m\n\n" >&2
+    printf "\033[40m\033[1;31m       Please, check the configuration file.\033[0m\n" >&2
     retval=1
   fi
 
@@ -155,7 +155,7 @@ config_check()
   IFS=' ,'
   for interface in $EXT_IF; do
     if ! check_interface $interface; then
-      printf "\033[40m\033[1;31mWARNING: External interface $interface does NOT exist (yet?)\033[0m\n\n" >&2
+      printf "\033[40m\033[1;31mWARNING: External interface $interface does NOT exist (yet?)\033[0m\n" >&2
     fi
   done
 
@@ -164,7 +164,7 @@ config_check()
   IFS=' ,'
   for interface in $INT_IF; do
     if ! check_interface $interface; then
-      printf "\033[40m\033[1;31mWARNING: Internal interface $interface does NOT exist (yet?)\033[0m\n\n" >&2
+      printf "\033[40m\033[1;31mWARNING: Internal interface $interface does NOT exist (yet?)\033[0m\n" >&2
     fi
   done
 
@@ -173,7 +173,7 @@ config_check()
   IFS=' ,'
   for interface in $DMZ_IF; do
     if ! check_interface $interface; then
-      printf "\033[40m\033[1;31mWARNING: DMZ interface $interface does NOT exist (yet?)\033[0m\n\n" >&2
+      printf "\033[40m\033[1;31mWARNING: DMZ interface $interface does NOT exist (yet?)\033[0m\n" >&2
     fi
   done
 
@@ -182,7 +182,7 @@ config_check()
   IFS=' ,'
   for interface in $TRUSTED_IF; do
     if ! check_interface $interface; then
-      printf "\033[40m\033[1;31mWARNING: Trusted interface $interface does NOT exist (yet?)\033[0m\n\n" >&2
+      printf "\033[40m\033[1;31mWARNING: Trusted interface $interface does NOT exist (yet?)\033[0m\n" >&2
     fi
   done
 
@@ -193,7 +193,7 @@ config_check()
     for iif in $INT_IF; do
       if [ "$iif" = "$eif" ]; then
         printf "\033[40m\033[1;31mERROR: One or more interfaces specified in EXT_IF is the same as one in\033[0m\n" >&2
-        printf "\033[40m\033[1;31m       INT_IF! Please, check the configuration file.\033[0m\n\n" >&2
+        printf "\033[40m\033[1;31m       INT_IF! Please, check the configuration file.\033[0m\n" >&2
         retval=1
         break
       fi
@@ -206,7 +206,7 @@ config_check()
   for eif in $EXT_IF; do
     if [ "$eif" = "lo" -o "$eif" = "127.0.0.1" ]; then
       printf "\033[40m\033[1;31mERROR: One or more interfaces specified in EXT_IF has the address or name of the\033[0m\n" >&2
-      printf "\033[40m\033[1;31m       local loopback device! Please, check the configuration file.\033[0m\n\n" >&2
+      printf "\033[40m\033[1;31m       local loopback device! Please, check the configuration file.\033[0m\n" >&2
       retval=1
       break
     fi
@@ -218,7 +218,7 @@ config_check()
   for iif in $INT_IF; do
     if [ "$iif" = "lo" -o "$iif" = "127.0.0.1" ]; then
       printf "\033[40m\033[1;31mERROR: At least one of the interfaces specified in INT_IF has the address or\033[0m\n" >&2
-      printf "\033[40m\033[1;31m       name of the local loopback device! Please, check the configuration file.\033[0m\n\n" >&2
+      printf "\033[40m\033[1;31m       name of the local loopback device! Please, check the configuration file.\033[0m\n" >&2
       retval=1
       break
     fi
@@ -229,13 +229,13 @@ config_check()
   ##########################################################################
   if [ "$EXTERNAL_DHCP_SERVER" = "1" -a -z "$EXTERNAL_NET" ]; then
     printf "\033[40m\033[1;31mERROR: You have enabled external DHCP server support but required variable\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n\n" >&2
+    printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n" >&2
     retval=1
   fi
 
   # We can only perform NAT if NAT_INTERNAL_NET is defined
   if [ "$NAT" = "1" -a -z "$NAT_INTERNAL_NET" ]; then
-    printf "\033[40m\033[1;31mERROR: Unable to enable NAT because there's no (NAT_)INTERNAL_NET specified!\033[0m\n\n" >&2
+    printf "\033[40m\033[1;31mERROR: Unable to enable NAT because there's no (NAT_)INTERNAL_NET specified!\033[0m\n" >&2
     retval=1
   fi
 
@@ -243,7 +243,7 @@ config_check()
   ##########################################################################
   if [ "$NMB_BROADCAST_FIX" = "1" -a -z "$EXTERNAL_NET" ]; then
     printf "\033[40m\033[1;31mERROR: You have enabled the NMB_BROADCAST_FIX but required variable\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n\n" >&2
+    printf "\033[40m\033[1;31m       EXTERNAL_NET has NOT been defined!\033[0m\n" >&2
     retval=1
   fi
 
@@ -252,7 +252,7 @@ config_check()
   if [ -n "$BROADCAST_TCP_NOLOG" -o -n "$BROADCAST_UDP_NOLOG" ]; then
     if [ -z "$EXTERNAL_NET" -a -z "$EXT_NET_BCAST_ADDRESS" ]; then
       printf "\033[40m\033[1;31mWARNING: You are using the BROADCAST_xxx_NOLOG variables but EXTERNAL_NET (or EXT_NET_BCAST_ADDRESS)\033[0m\n" >&2
-      printf "\033[40m\033[1;31m         has NOT been defined!\033[0m\n\n" >&2
+      printf "\033[40m\033[1;31m         has NOT been defined!\033[0m\n" >&2
     fi
   fi
 
@@ -260,7 +260,7 @@ config_check()
   ##############################################
   if [ ! -d "$PLUGIN_BIN_PATH" ]; then
     printf "\033[40m\033[1;31mERROR: The PLUGIN_BIN_PATH ($PLUGIN_BIN_PATH) does not exist!\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n\n" >&2
+    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n" >&2
     retval=1
   fi
 
@@ -268,7 +268,7 @@ config_check()
   ##############################################
   if [ ! -d "$PLUGIN_CONF_PATH" ]; then
     printf "\033[40m\033[1;31mERROR: The PLUGIN_CONF_PATH ($PLUGIN_CONF_PATH) does not exist!\033[0m\n" >&2
-    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n\n" >&2
+    printf "\033[40m\033[1;31m       Please check your installation and/or configuration file.\033[0m\n" >&2
     retval=1
   fi
 
@@ -6101,7 +6101,6 @@ show_help()
   echo "check-conf                  = Check configuration file (only)" >&2
   echo "status [-t {table}] [chain] = View firewall ruleset ([chain] & [-t {table}] are optional)" >&2
   echo "status-plugins [name]       = View plugins status (view only plugin [name] is optional)" >&2
-  echo "" >&2
 }
 
 
@@ -6209,7 +6208,7 @@ case "$1" in
   'status-plugins' )    shift
                         plugins_status $@;;
   'check-conf' )        config_check;;
-  * )                   printf "\033[40m\033[1;31mERROR: Bad or missing parameter(s)\033[0m\n" >&2
+  * )                   printf "\033[40m\033[1;31mERROR: Bad or missing parameter(s)\033[0m\n\n" >&2
                         show_help;;
 esac
 
