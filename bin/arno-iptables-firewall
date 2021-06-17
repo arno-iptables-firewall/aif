@@ -6078,8 +6078,6 @@ show_applied()
     printf "$DATE \033[40m\033[1;32mAll firewall rules applied.\033[0m\n"
     echo "** All firewall rules applied **" |log_msg
   fi
-
-  echo ""
 }
 
 
