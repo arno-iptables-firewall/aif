@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.14a"
+MY_VERSION="1.14b"
 
 # ------------------------------------------------------------------------------------------
 #                         -= Arno's Iptables Firewall(AIF) =-
@@ -99,10 +99,10 @@ shell_diff()
 
 copy_ask_if_exist()
 {
-  local diff_retval=-1
-  local retval
-  local default_yn="${3:-'n'}" # Default to n(o)
-  local fallback_ext="$4"
+  local DIFF_RETVAl=-1
+  local RETVAL
+  local DEFAULT_YN="${3:-'n'}" # Default to n(o)
+  local FALLBACK_EXT="$4"
 
   if [ -z "$(find "$1" -type f)" ]; then
     echo "ERROR: Missing source file(s) \"$1\"" >&2
@@ -110,59 +110,59 @@ copy_ask_if_exist()
   fi
 
   unset IFS
-  for source in `find "$1" -type f |grep -v -e '/\.svn/' -e '/\.git/'`; do
+  for SOURCE in `find "$1" -type f |grep -v -e '/\.svn/' -e '/\.git/'`; do
     if echo "$2" |grep -q '/$'; then
-      fn="${source#$1}"
-      if [ -z "$fn" ]; then
-        target="${2}$(basename "$1")"
+      FN="${SOURCE#$1}"
+      if [ -z "$FN" ]; then
+        TARGET="${2}$(basename "$1")"
       else
-        target="${2}${fn}"
+        TARGET="${2}${FN}"
       fi
-      target_dir="$2"
+      TARGET_DIR="$2"
     else
-      target="$2"
-      target_dir="$(dirname "$2")"
+      TARGET="$2"
+      TARGET_DIR="$(dirname "$2")"
     fi
 
-    if [ ! -d "$target_dir" ]; then
-      printf "\033[40m\033[1;31m* WARNING: Target directory $target_dir does not exist. Skipping copy of $source!\033[0m\n" >&2
+    if [ ! -d "$TARGET_DIR" ]; then
+      printf "\033[40m\033[1;31m* WARNING: Target directory $TARGET_DIR does not exist. Skipping copy of $SOURCE!\033[0m\n" >&2
       continue
     fi
 
-    if [ -f "$source" -a -f "$target" ]; then
+    if [ -f "$SOURCE" -a -f "$TARGET" ]; then
       # Ignore files that are the same in the target
-      shell_diff "$source" "$target"
-      diff_retval=$? # 0 = full match, 1 = match (excluding comments), 2 = full mismatch (including comments)
+      shell_diff "$SOURCE" "$TARGET"
+      DIFF_RETVAL=$? # 0 = full match, 1 = match (excluding comments), 2 = full mismatch (including comments)
 
-      if [ $diff_retval -eq 2 ] && ! get_user_yn "File \"$target\" already exists. Overwrite" "$default_yn"; then
-        if [ -z "$fallback_ext" ]; then
+      if [ $DIFF_RETVAL -eq 2 ] && ! get_user_yn "File \"$TARGET\" already exists. Overwrite" "$DEFAULT_YN"; then
+        if [ -z "$FALLBACK_EXT" ]; then
           echo "Skipped..."
           continue
         else
           # Copy as e.g. .dist-file:
-          target="${target}.${fallback_ext}"
-          rm -f "$target"
+          TARGET="${TARGET}.${FALLBACK_EXT}"
+          rm -f "$TARGET"
         fi
       fi
     fi
 
-    retval=0
-    if [ $diff_retval -eq 2 ]; then
+    RETVAL=0
+    if [ $DIFF_RETVAL -eq 2 ]; then
       # copy file & create backup of old file if exists
-      cp -bv --preserve=mode,timestamps "$source" "$target"
-      retval=$?
+      cp -bv --preserve=mode,timestamps "$SOURCE" "$TARGET"
+      RETVAL=$?
     else
       # Only comments mismatch, so no point in keeping a backup file
-      cp -v --preserve=mode,timestamps "$source" "$target"
-      retval=$?
+      cp -v --preserve=mode,timestamps "$SOURCE" "$TARGET"
+      RETVAL=$?
     fi
 
-    if [ $retval -ne 0 ]; then
-      echo "ERROR: Copy of \"$source\" to \"$target\" failed!" >&2
+    if [ $RETVAL -ne 0 ]; then
+      echo "ERROR: Copy of \"$SOURCE\" to \"$TARGET\" failed!" >&2
       exit 3
     fi
 
-    chown 0:0 "$target"
+    chown 0:0 "$TARGET"
   done
 
   return 0
@@ -177,43 +177,43 @@ copy_skip_if_exist()
   fi
 
   unset IFS
-  for source in `find "$1" -type f |grep -v -e '/\.svn/' -e '/\.git/'`; do
+  for SOURCE in `find "$1" -type f |grep -v -e '/\.svn/' -e '/\.git/'`; do
     if echo "$2" |grep -q '/$'; then
-      fn="${$source#$1}"
-      if [ -z "$fn" ]; then
-        target="$2$(basename "$1")"
+      FN="${$SOURCE#$1}"
+      if [ -z "$FN" ]; then
+        TARGET="$2$(basename "$1")"
       else
-        target="$2$fn"
+        TARGET="$2$FN"
       fi
-      target_dir="$2"
+      TARGET_DIR="$2"
     else
-      target="$2"
-      target_dir="$(dirname "$2")"
+      TARGET="$2"
+      TARGET_DIR="$(dirname "$2")"
     fi
 
-    if [ ! -d "$target_dir" ]; then
-      printf "\033[40m\033[1;31m* WARNING: Target directory $target_dir does not exist. Skipping copy of $source!\033[0m\n" >&2
+    if [ ! -d "$TARGET_DIR" ]; then
+      printf "\033[40m\033[1;31m* WARNING: Target directory $TARGET_DIR does not exist. Skipping copy of $SOURCE!\033[0m\n" >&2
       continue
     fi
 
-    if [ -f "$target" ]; then
+    if [ -f "$TARGET" ]; then
       if [ -z "$3" ]; then
-        echo "* File \"$target\" already exists. Skipping copy of $source"
+        echo "* File \"$TARGET\" already exists. Skipping copy of $SOURCE"
         continue
       else
         # Copy as e.g. .dist-file:
-        target="${target}.${3}"
-        rm -f "$target"
+        TARGET="${TARGET}.${3}"
+        rm -f "$TARGET"
       fi
     fi
 
     # NOTE: Always copy, even if contents is the same to make sure permissions are updated 
-    if ! cp -v --preserve=mode,timestamps "$source" "$target"; then
-      echo "ERROR: Copy of \"$source\" to \"$target!\" failed!" >&2
+    if ! cp -v --preserve=mode,timestamps "$SOURCE" "$TARGET"; then
+      echo "ERROR: Copy of \"$SOURCE\" to \"$TARGET!\" failed!" >&2
       exit 3
     fi
 
-    chown 0:0 "$target"
+    chown 0:0 "$TARGET"
   done
 
   return 0
@@ -228,32 +228,32 @@ copy_overwrite()
   fi
 
   unset IFS
-  for source in `find "$1" -type f |grep -v -e '/\.svn/' -e '/\.git/'`; do
+  for SOURCE in `find "$1" -type f |grep -v -e '/\.svn/' -e '/\.git/'`; do
     if echo "$2" |grep -q '/$'; then
-      fn="${source#$1}"
-      if [ -z "$fn" ]; then
-        target="$2$(basename "$1")"
+      FN="${SOURCE#$1}"
+      if [ -z "$FN" ]; then
+        TARGET="$2$(basename "$1")"
       else
-        target="$2$fn"
+        TARGET="$2$FN"
       fi
-      target_dir="$2"
+      TARGET_DIR="$2"
     else
-      target="$2"
-      target_dir="$(dirname "$2")"
+      TARGET="$2"
+      TARGET_DIR="$(dirname "$2")"
     fi
 
-    if [ ! -d "$target_dir" ]; then
-      printf "\033[40m\033[1;31m* WARNING: Target directory $target_dir does not exist. Skipping copy of $source!\033[0m\n" >&2
+    if [ ! -d "$TARGET_DIR" ]; then
+      printf "\033[40m\033[1;31m* WARNING: Target directory $TARGET_DIR does not exist. Skipping copy of $SOURCE!\033[0m\n" >&2
       continue
     fi
 
     # NOTE: Always copy, even if contents is the same to make sure permissions are updated
-    if ! cp -fv --preserve=mode,timestamps "$source" "$target"; then
-      echo "ERROR: Copy of \"$source\" to \"$target\" failed!" >&2
+    if ! cp -fv --preserve=mode,timestamps "$SOURCE" "$TARGET"; then
+      echo "ERROR: Copy of \"$SOURCE\" to \"$TARGET\" failed!" >&2
       exit 3
     fi
 
-    chown 0:0 "$target"
+    chown 0:0 "$TARGET"
   done
 
   return 0

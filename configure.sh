@@ -8,7 +8,7 @@ MY_VERSION="1.05"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2019 by Arno van Amersfoort
+# (C) Copyright 2001-2021 by Arno van Amersfoort
 # Homepage              : https://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -82,9 +82,9 @@ get_conf_var()
 {
   printf "$1 "
 
-  read answer
+  read ANSWER
 
-  if [ -z "$answer" ]; then
+  if [ -z "$ANSWER" ]; then
     if [ -n "$4" ]; then
 #      echo "$4"
       change_conf_var "$2" "$3" "$4"
@@ -92,7 +92,7 @@ get_conf_var()
 #      echo "(None)"
     fi
   else
-    change_conf_var "$2" "$3" "$answer"
+    change_conf_var "$2" "$3" "$ANSWER"
   fi
 
   return 0
@@ -107,9 +107,9 @@ get_user_yn()
     printf "$1 (y/N)? "
   fi
 
-  read answer_with_case
+  read ANSWER_WITH_CASE
 
-  ANSWER=`echo "$answer_with_case" |tr A-Z a-z`
+  ANSWER=`echo "$ANSWER_WITH_CASE" |tr A-Z a-z`
 
   if [ "$ANSWER" = "y" -o "$ANSWER" = "yes" ]; then
     return 0
