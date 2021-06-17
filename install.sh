@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.14b"
+MY_VERSION="1.14c"
 
 # ------------------------------------------------------------------------------------------
 #                         -= Arno's Iptables Firewall(AIF) =-
@@ -102,7 +102,8 @@ copy_ask_if_exist()
   local DIFF_RETVAl=-1
   local RETVAL
   local DEFAULT_YN="${3:-'n'}" # Default to n(o)
-  local FALLBACK_EXT="$4"
+  local BACKUP_EXT="$4"
+  local FALLBACK_EXT="$5"
 
   if [ -z "$(find "$1" -type f)" ]; then
     echo "ERROR: Missing source file(s) \"$1\"" >&2
@@ -147,9 +148,9 @@ copy_ask_if_exist()
     fi
 
     RETVAL=0
-    if [ $DIFF_RETVAL -eq 2 ]; then
+    if [ $DIFF_RETVAL -eq 2 -a -n "$BACKUP_EXT" ]; then
       # copy file & create backup of old file if exists
-      cp -v --suffix='.old' --backup=simple --preserve=mode,timestamps "$SOURCE" "$TARGET"
+      cp -v --suffix=".${BACKUP_EXT}" --backup=simple --preserve=mode,timestamps "$SOURCE" "$TARGET"
       RETVAL=$?
     else
       # Only comments mismatch, so no point in keeping a backup file
@@ -464,10 +465,10 @@ copy_overwrite ./README /usr/local/share/doc/arno-iptables-firewall/
 
 # Install rsyslog config file (if rsyslog is available)
 if [ -d "/etc/rsyslog.d" ]; then
-  copy_ask_if_exist ./etc/rsyslog.d/arno-iptables-firewall.conf /etc/rsyslog.d/ "y"
+  copy_ask_if_exist ./etc/rsyslog.d/arno-iptables-firewall.conf /etc/rsyslog.d/ "y" "old" "dist"
 fi
 
-copy_overwrite ./etc/logrotate.d/arno-iptables-firewall /etc/logrotate.d/
+copy_ask_if_exist ./etc/logrotate.d/arno-iptables-firewall /etc/logrotate.d/ "y"
 
 mkdir -pv /etc/arno-iptables-firewall || exit 1
 
@@ -477,7 +478,7 @@ copy_ask_if_exist ./etc/arno-iptables-firewall/firewall.conf /etc/arno-iptables-
 copy_skip_if_exist ./etc/arno-iptables-firewall/custom-rules /etc/arno-iptables-firewall/
 
 mkdir -pv /etc/arno-iptables-firewall/plugins || exit 1
-copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/ "n" "dist"
+copy_ask_if_exist ./etc/arno-iptables-firewall/plugins/ /etc/arno-iptables-firewall/plugins/ "n" "old" "dist"
 
 mkdir -pv /etc/arno-iptables-firewall/conf.d || exit 1
 echo "Files with a .conf extension in this directory will be sourced by the environment file" >/etc/arno-iptables-firewall/conf.d/README
