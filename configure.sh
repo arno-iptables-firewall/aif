@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.05"
+MY_VERSION="1.06"
 
 # ------------------------------------------------------------------------------------------
 #                         -= Arno's Iptables Firewall(AIF) =-
@@ -8,7 +8,7 @@ MY_VERSION="1.05"
 #
 #                           ~ In memory of my dear father ~
 #
-# (C) Copyright 2001-2021 by Arno van Amersfoort
+# (C) Copyright 2001-2022 by Arno van Amersfoort
 # Homepage              : https://rocky.eld.leidenuniv.nl/
 # Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -61,7 +61,6 @@ sanity_check()
   check_command_error ln
   check_command_error rm
   check_command_error ip
-  check_command_error ifconfig
   check_command_error cut
   check_command_error diff
   check_command_error sed
@@ -151,26 +150,7 @@ verify_interfaces()
 
 list_interfaces()
 {
-  IFS=$EOL
-  local CUR_IF=""
-  ifconfig -a 2>/dev/null |while read LINE; do
-    if echo "$LINE" |grep -q -e '^[a-z]'; then
-      if ! echo "$LINE" |grep -q -e '^dummy[0-9]' -e '^bond[0-9]' -e '^lo[[:blank:]]'; then
-        CUR_IF="$(echo "$LINE" |awk '{ print $1 }')"
-      else
-        CUR_IF=""
-      fi
-    fi
-
-    if [ -z "$LINE" -a -n "$CUR_IF" ]; then
-      CUR_IF=""
-      echo ""
-    fi
-
-    if [ -n "$CUR_IF" ] && echo "$LINE" |grep -q -E -i -e ' hwaddr ' -e ' ether ' -e '[[:blank:]]inet6? addr'; then
-      echo "$LINE"
-    fi
-  done
+  ip -o -brief addr show
 }
 
 
@@ -182,7 +162,7 @@ setup_conf_file()
   echo ""
   echo "Listing available interfaces:"
   echo "-----------------------------"
-  list_interfaces; 
+  list_interfaces
   echo "-----------------------------"
 
   printf "We will now setup the most basic settings of the firewall\n\n"
