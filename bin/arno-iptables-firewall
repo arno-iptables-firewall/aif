@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="2.1.1a-DEVEL"
+MY_VERSION="2.1.1a"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -442,7 +442,7 @@ setup_kernel_settings()
   #############################################################
   if sysctl_key_match net.netfilter.nf_conntrack_helper; then
     sysctl -w net.netfilter.nf_conntrack_helper=0
-  else
+  elif ! kernel_ver_chk 6 0 0; then
     echo " Conntrack legacy automatic helper assignment is ENABLED"
     # Fallback to an older conntrack match method
     NF_CONNTRACK_STATE="-m state --state"
@@ -800,7 +800,7 @@ init_firewall_chains()
 
   # Apply conntrack helper chain, fallback to RELATED connections
   ###############################################################
-  if [ "$(sysctl_get_value net.netfilter.nf_conntrack_helper)" = "0" ]; then
+  if kernel_ver_chk 6 0 0 || [ "$(sysctl_get_value net.netfilter.nf_conntrack_helper)" = "0" ]; then
     iptables -N CONNTRACK_HELPER
     iptables -A BASE_INPUT_CHAIN -j CONNTRACK_HELPER
     iptables -A BASE_FORWARD_CHAIN -j CONNTRACK_HELPER
