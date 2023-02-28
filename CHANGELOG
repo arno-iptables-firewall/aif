@@ -1,5 +1,6 @@
-Version 2.1.1a-DEVEL (March 29, 2021)
--------------------------------------
+Version 2.1.1a (February 28, 2023)
+----------------------------------
+! Newer kernels no longer provide sysctl net.netfilter.nf_conntrack_helper. Workaround by performing kernel version check
 * Move start script handling from configure script to install script
 + Missing LAN_LAN_OPEN_ICMP setting
 
