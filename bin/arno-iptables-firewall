@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MY_VERSION="2.1.1a"
+MY_VERSION="2.1.1b-DEVEL"
 
 # Location of the main configuration file for the firewall
 ##########################################################
@@ -6209,9 +6209,5 @@ case "$1" in
   * )                   printf "\033[40m\033[1;31mERROR: Bad or missing parameter(s)\033[0m\n\n" >&2
                         show_help;;
 esac
-
-if [ $RULE_WARNING -ne 0 ]; then
-  exit 1
-fi
 
 exit 0

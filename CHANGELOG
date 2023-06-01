@@ -1,3 +1,7 @@
+Version 2.1.1b-DEVEL (June 1, 2023)
+-----------------------------------
+! Prevent systemd from terminating the job manager when some rules fail
+
 Version 2.1.1a (February 28, 2023)
 ----------------------------------
 ! Newer kernels no longer provide sysctl net.netfilter.nf_conntrack_helper. Workaround by performing kernel version check
