@@ -1,6 +1,10 @@
-Version 2.1.1b-DEVEL (June 1, 2023)
+Version 2.1.1b-DEVEL (June 6, 2023)
 -----------------------------------
 ! Prevent systemd from terminating the job manager when some rules fail
+* Renamed xxx_OUTPUT to INET_OUTPUT_xxx for clarity/consistency
++ Additional INET_OUTPUT_xxx settings to have better control
+  of internet access on this machine
+* Reorder some code/settings for clarity/consistency
 
 Version 2.1.1a (February 28, 2023)
 ----------------------------------

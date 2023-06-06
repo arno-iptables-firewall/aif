@@ -1977,14 +1977,6 @@ setup_dmz_inet_forward_chain()
     fi
   done
 
-  # Allow ICMP-requests(ping) for DMZ->INET?
-  ##########################################
-  if [ "$DMZ_INET_OPEN_ICMP" != "0" ]; then
-    echo "  Allowing ICMP-requests(ping)"
-    iptables -A DMZ_INET_FORWARD_CHAIN -p icmp --icmp-type echo-request \
-      -m limit --limit 20/second --limit-burst 100 -j ACCEPT
-  fi
-
   # TCP ports to DENY for DMZ->INET
   #################################
   unset IFS
@@ -2048,14 +2040,22 @@ setup_dmz_inet_forward_chain()
     fi
   done
 
+  # Allow ICMP-requests(ping) for DMZ->INET?
+  ##########################################
+  if [ "$DMZ_INET_OPEN_ICMP" != "0" ]; then
+    echo "  Allowing ICMP-requests(ping)"
+    iptables -A DMZ_INET_FORWARD_CHAIN -p icmp --icmp-type echo-request \
+      -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+  fi
+
   # Log incoming ICMP-request packets?
   ####################################
-  if [ "$ICMP_REQUEST_LOG" != "0" ]; then
+  if [ "$ICMP_REQUEST_LOG" != "0" -a "$DMZ_OUTPUT_DENY_LOG" != "0" ]; then
     iptables -A DMZ_INET_FORWARD_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
   fi
 
-  # Drop ICMP packets
+  # Drop ICMP (remaining) packets
   iptables -A DMZ_INET_FORWARD_CHAIN -p icmp --icmp-type echo-request -j DROP
 
   # Set the default policy (switch to DROP for a protocol when xxx_OPEN_xxx variable is used)
@@ -2226,13 +2226,6 @@ setup_int_input_chain()
     done
   fi
 
-  # Allow world to send ICMP packets?
-  ###################################
-  if [ "$LAN_OPEN_ICMP" != "0" ]; then
-    echo " Allowing ICMP-requests(ping)"
-    iptables -A INT_INPUT_CHAIN -p icmp --icmp-type echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
-  fi
-
   # TCP ports to DENY for LAN hosts
   #################################
   if [ -n "$LAN_DENY_TCP" ]; then
@@ -2275,14 +2268,21 @@ setup_int_input_chain()
     done
   fi
 
+  # Allow world to send ICMP packets?
+  ###################################
+  if [ "$LAN_OPEN_ICMP" != "0" ]; then
+    echo " Allowing ICMP-requests(ping)"
+    iptables -A INT_INPUT_CHAIN -p icmp --icmp-type echo-request -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+  fi
+
   # Log incoming ICMP-request packets?
   ####################################
-  if [ "$ICMP_REQUEST_LOG" != "0" ]; then
+  if [ "$ICMP_REQUEST_LOG" != "0" -a "$LAN_INPUT_DENY_LOG" != "0" ]; then
     iptables -A INT_INPUT_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
   fi
 
-  # Drop ICMP packets
+  # Drop (remaining) ICMP packets
   iptables -A INT_INPUT_CHAIN -p icmp --icmp-type echo-request -j DROP
 
   # Set the default policy
@@ -2582,14 +2582,6 @@ setup_lan_inet_forward_chain()
     fi
   done
 
-  # Allow ICMP-requests(ping) for LAN->INET?
-  ##########################################
-  if [ "$LAN_INET_OPEN_ICMP" != "0" ]; then
-    echo "  Allowing ICMP-requests(ping)"
-    iptables -A LAN_INET_FORWARD_CHAIN -p icmp --icmp-type echo-request \
-      -m limit --limit 20/second --limit-burst 100 -j ACCEPT
-  fi
-
   # TCP ports to DENY for LAN->INET
   #################################
   unset IFS
@@ -2653,14 +2645,22 @@ setup_lan_inet_forward_chain()
     fi
   done
 
+  # Allow ICMP-requests(ping) for LAN->INET?
+  ##########################################
+  if [ "$LAN_INET_OPEN_ICMP" != "0" ]; then
+    echo "  Allowing ICMP-requests(ping)"
+    iptables -A LAN_INET_FORWARD_CHAIN -p icmp --icmp-type echo-request \
+      -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+  fi
+
   # Log incoming ICMP-request packets?
   ####################################
-  if [ "$ICMP_REQUEST_LOG" != "0" ]; then
+  if [ "$ICMP_REQUEST_LOG" != "0" -a "$LAN_OUTPUT_DENY_LOG" != "0" ]; then
     iptables -A LAN_INET_FORWARD_CHAIN -p icmp --icmp-type echo-request \
       -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
   fi
 
-  # Drop ICMP packets
+  # Drop (remaining) ICMP packets
   iptables -A LAN_INET_FORWARD_CHAIN -p icmp --icmp-type echo-request -j DROP
 
   # Set the default policy (switch to DROP for a protocol when xxx_OPEN_xxx variable is used)
@@ -3669,11 +3669,93 @@ setup_ext_icmp_flood_chain()
 ######################################################################################################################
 setup_ext_output_chain()
 {
+  # Adding the "full access hosts"
+  ################################
+  unset IFS
+  for rule in $FULL_ACCESS_HOSTS; do
+    if parse_rule "$rule" FULL_ACCESS_HOSTS "interfaces-srcips-hosts"; then
+
+      echo " $(show_if_ip "$interfaces")Allowing $hosts full (outbound) access"
+
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for srcip in $srcips; do
+          for interface in $interfaces; do
+            iptables -A EXT_OUTPUT_CHAIN $(ipt_if -o "$interface") -s $srcip -d $host -j ACCEPT
+          done
+        done
+      done
+    fi
+  done
+
+  # This rule is for hostwise OUTPUT TCP open
+  ###########################################
+  unset IFS
+  for rule in $INET_OUTPUT_HOST_OPEN_TCP; do
+    if parse_rule "$rule" INET_OUTPUT_HOST_OPEN_TCP "interfaces-srcips-hosts-ports"; then
+
+      echo " $(show_if_ip "$interfaces" "$srcips")Allowing $hosts for TCP port(s): $ports"
+
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for srcip in $srcips; do
+            for interface in $interfaces; do
+              iptables -A EXT_OUTPUT_CHAIN $(ipt_if -o "$interface") -s $srcip -d $host -p tcp --dport $port -j ACCEPT
+            done
+          done
+        done
+      done
+    fi
+  done
+
+  # This rule is for hostwise OUTPUT UDP open
+  ###########################################
+  unset IFS
+  for rule in $INET_OUTPUT_HOST_OPEN_UDP; do
+    if parse_rule "$rule" INET_OUTPUT_HOST_OPEN_UDP "interfaces-srcips-hosts-ports"; then
+
+      echo " $(show_if_ip "$interfaces" "$srcips")Allowing $hosts for UDP port(s): $ports"
+
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for port in $ports; do
+          for srcip in $srcips; do
+            for interface in $interfaces; do
+              iptables -A EXT_OUTPUT_CHAIN $(ipt_if -o "$interface") -s $srcip -d $host -p udp --dport $port -j ACCEPT
+            done
+          done
+        done
+      done
+    fi
+  done
+
+  # This rule is for hostwise OUTPUT IP open
+  ##########################################
+  unset IFS
+  for rule in $INET_OUTPUT_HOST_OPEN_IP; do
+    if parse_rule "$rule" INET_OUTPUT_HOST_OPEN_IP "interfaces-srcips-hosts-protos"; then
+
+      echo " $(show_if_ip "$interfaces" "$srcips")Allowing $hosts for IP protocol(s): $protos"
+
+      IFS=','
+      for host in `ip_range "$hosts"`; do
+        for proto in $protos; do
+          for srcip in $srcips; do
+            for interface in $interfaces; do
+              iptables -A EXT_OUTPUT_CHAIN $(ipt_if -o "$interface") -s $srcip -d $host -p $proto -j ACCEPT
+            done
+          done
+        done
+      done
+    fi
+  done
+
   # This rule is for hostwise OUTPUT TCP blocking
   ###############################################
   unset IFS
-  for rule in $HOST_DENY_TCP_OUTPUT; do
-    if parse_rule "$rule" HOST_DENY_TCP_OUTPUT "interfaces-srcips-hosts-ports"; then
+  for rule in $INET_OUTPUT_HOST_DENY_TCP; do
+    if parse_rule "$rule" INET_OUTPUT_HOST_DENY_TCP "interfaces-srcips-hosts-ports"; then
 
       echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for TCP port(s): $ports"
 
@@ -3697,8 +3779,8 @@ setup_ext_output_chain()
   # This rule is for hostwise OUTPUT UDP blocking
   ###############################################
   unset IFS
-  for rule in $HOST_DENY_UDP_OUTPUT; do
-    if parse_rule "$rule" HOST_DENY_UDP_OUTPUT "interfaces-srcips-hosts-ports"; then
+  for rule in $INET_OUTPUT_HOST_DENY_UDP; do
+    if parse_rule "$rule" INET_OUTPUT_HOST_DENY_UDP "interfaces-srcips-hosts-ports"; then
 
       echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for UDP port(s): $ports"
 
@@ -3722,8 +3804,8 @@ setup_ext_output_chain()
   # This rule is for hostwise OUTPUT IP blocking
   ##############################################
   unset IFS
-  for rule in $HOST_DENY_IP_OUTPUT; do
-    if parse_rule "$rule" HOST_DENY_IP_OUTPUT "interfaces-srcips-hosts-protos"; then
+  for rule in $INET_OUTPUT_HOST_DENY_IP; do
+    if parse_rule "$rule" INET_OUTPUT_HOST_DENY_IP "interfaces-srcips-hosts-protos"; then
 
       echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for IP protocol(s): $protos"
 
@@ -3744,19 +3826,57 @@ setup_ext_output_chain()
     fi
   done
 
-  # Adding the "full access hosts"
-  ################################
+  # This rule is for local OUTPUT TCP open
+  ########################################
   unset IFS
-  for rule in $FULL_ACCESS_HOSTS; do
-    if parse_rule "$rule" FULL_ACCESS_HOSTS "interfaces-srcips-hosts"; then
+  for rule in $INET_OUTPUT_OPEN_TCP; do
+    if parse_rule "$rule" INET_OUTPUT_OPEN_TCP "interfaces-srcips-ports"; then
 
-      echo " $(show_if_ip "$interfaces")Allowing $hosts full (outbound) access"
+      echo " $(show_if_ip "$interfaces" "$srcips")Allowing TCP port(s): $ports"
 
       IFS=','
-      for host in `ip_range "$hosts"`; do
+      for port in $ports; do
         for srcip in $srcips; do
           for interface in $interfaces; do
-            iptables -A EXT_OUTPUT_CHAIN $(ipt_if -o "$interface") -s $srcip -d $host -j ACCEPT
+            iptables -A EXT_OUTPUT_CHAIN $(ipt_if -o "$interface") -s $srcip -p tcp --dport $port -j ACCEPT
+          done
+        done
+      done
+    fi
+  done
+
+  # This rule is for local OUTPUT UDP open
+  ########################################
+  unset IFS
+  for rule in $INET_OUTPUT_OPEN_UDP; do
+    if parse_rule "$rule" INET_OUTPUT_OPEN_UDP "interfaces-srcips-ports"; then
+
+      echo " $(show_if_ip "$interfaces" "$srcips")Allowing UDP port(s): $ports"
+
+      IFS=','
+      for port in $ports; do
+        for srcip in $srcips; do
+          for interface in $interfaces; do
+            iptables -A EXT_OUTPUT_CHAIN $(ipt_if -o "$interface") -s $srcip -p udp --dport $port -j ACCEPT
+          done
+        done
+      done
+    fi
+  done
+
+  # This rule is for local OUTPUT IP open
+  #######################################
+  unset IFS
+  for rule in $INET_OUTPUT_OPEN_IP; do
+    if parse_rule "$rule" INET_OUTPUT_OPEN_IP "interfaces-srcips-protos"; then
+
+      echo " $(show_if_ip "$interfaces" "$srcips")Allowing IP protocol(s): $protos"
+
+      IFS=','
+      for proto in $protos; do
+        for srcip in $srcips; do
+          for interface in $interfaces; do
+            iptables -A EXT_OUTPUT_CHAIN $(ipt_if -o "$interface") -s $srcip -p $proto -j ACCEPT
           done
         done
       done
@@ -3766,8 +3886,8 @@ setup_ext_output_chain()
   # This rule is for local OUTPUT TCP blocking
   ############################################
   unset IFS
-  for rule in $DENY_TCP_OUTPUT; do
-    if parse_rule "$rule" DENY_TCP_OUTPUT "interfaces-srcips-ports"; then
+  for rule in $INET_OUTPUT_DENY_TCP; do
+    if parse_rule "$rule" INET_OUTPUT_DENY_TCP "interfaces-srcips-ports"; then
 
       echo " $(show_if_ip "$interfaces" "$srcips")Denying TCP port(s): $ports"
 
@@ -3789,8 +3909,8 @@ setup_ext_output_chain()
   # This rule is for local OUTPUT UDP blocking
   ############################################
   unset IFS
-  for rule in $DENY_UDP_OUTPUT; do
-    if parse_rule "$rule" DENY_UDP_OUTPUT "interfaces-srcips-ports"; then
+  for rule in $INET_OUTPUT_DENY_UDP; do
+    if parse_rule "$rule" INET_OUTPUT_DENY_UDP "interfaces-srcips-ports"; then
 
       echo " $(show_if_ip "$interfaces" "$srcips")Denying UDP port(s): $ports"
 
@@ -3812,8 +3932,8 @@ setup_ext_output_chain()
   # This rule is for local OUTPUT IP blocking
   ############################################
   unset IFS
-  for rule in $DENY_IP_OUTPUT; do
-    if parse_rule "$rule" DENY_IP_OUTPUT "interfaces-srcips-protos"; then
+  for rule in $INET_OUTPUT_DENY_IP; do
+    if parse_rule "$rule" INET_OUTPUT_DENY_IP "interfaces-srcips-protos"; then
 
       echo " $(show_if_ip "$interfaces" "$srcips")Denying IP protocol(s): $protos"
 
@@ -3831,6 +3951,41 @@ setup_ext_output_chain()
       done
     fi
   done
+
+  # Allow ICMP-requests(ping) for LAN->INET?
+  ##########################################
+  if [ "$INET_OUTPUT_OPEN_ICMP" != "0" ]; then
+    echo " Allowing ICMP-requests(ping)"
+    iptables -A EXT_OUTPUT_CHAIN -p icmp --icmp-type echo-request \
+      -m limit --limit 20/second --limit-burst 100 -j ACCEPT
+  fi
+
+  # Log incoming ICMP-request packets?
+  ####################################
+  if [ "$ICMP_REQUEST_LOG" != "0" -a "$INET_OUTPUT_DENY_LOG" != "0" ]; then
+    iptables -A EXT_OUTPUT_CHAIN -p icmp --icmp-type echo-request \
+      -m limit --limit 3/m --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:ICMP-request: "
+  fi
+
+  # Drop (remaining) ICMP packets
+  iptables -A EXT_OUTPUT_CHAIN -p icmp --icmp-type echo-request -j DROP
+
+  # Set the default policy (switch to DROP for a protocol when xxx_OPEN_xxx variable is used)
+  ###########################################################################################
+  if [ -z "$INET_OUTPUT_OPEN_TCP" -a -z "$INET_OUTPUT_HOST_OPEN_TCP" -a \
+       -z "$INET_OUTPUT_OPEN_UDP" -a -z "$INET_OUTPUT_HOST_OPEN_UDP" -a \
+       -z "$INET_OUTPUT_OPEN_IP"  -a -z "$INET_OUTPUT_HOST_OPEN_IP"  -a -z "$INET_OUTPUT_DEFAULT_POLICY_DROP" ] \
+     || [ "$INET_OUTPUT_DEFAULT_POLICY_DROP" = "0" ]; then
+    echo " Allowing all (other) ports/protocols"
+    iptables -A EXT_OUTPUT_CHAIN -j ACCEPT
+  else
+    if [ "$INET_OUTPUT_DENY_LOG" != "0" ]; then
+      iptables -A EXT_OUTPUT_CHAIN -m limit \
+        --limit 1/s --limit-burst 1 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:INET-OUTPUT denied: "
+    fi
+    echo " Denying all (other) ports/protocols"
+    iptables -A EXT_OUTPUT_CHAIN -j DROP
+  fi
 }
 
 
