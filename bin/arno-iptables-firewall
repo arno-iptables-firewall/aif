@@ -10,11 +10,11 @@ CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
 #                         -= Arno's Iptables Firewall(AIF) =-
 #               Single- & multi-homed firewall script with DSL/ADSL support
 #
-#                           ~ In memory of my dear father ~
+#                           ~ In memory of my dear parents ~
 #
 # (C) Copyright 2001-2023 by Arno van Amersfoort & Lonnie Abelbeck
-# Homepage              : https://rocky.eld.leidenuniv.nl/
-# Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
+# Web                   : https://github.com/arno-iptables-firewall/aif
+# Email                 : a r n o DOT v a n DOT a m e r s f o o r t AT g m a i l DOT c o m
 #                         (note: you must remove all spaces and substitute the @ and the .
 #                         at the proper locations!)
 # ------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ CONFIG_FILE=/etc/arno-iptables-firewall/firewall.conf
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 # ------------------------------------------------------------------------------
 
-printf "\033[40m\033[1;32mArno's Iptables Firewall(AIF) v$MY_VERSION\033[0m\n"
+echo "Arno's Iptables Firewall(AIF) v$MY_VERSION"
 echo "-------------------------------------------------------------------------------"
 
 # Check if the main config file exists and if so load it
@@ -4696,7 +4696,7 @@ if ipset_check; then
         rm -f "$IP6TABLES_BATCH_FILE"
       fi
     else
-      printf "\033[40m\033[1;31mNOTE: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
+      printf "\033[40m\033[1;31mWARNING: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
     fi
   fi
 
@@ -4716,7 +4716,7 @@ if ipset_check; then
   fi
 else
   if [ -n "$BLOCK_NETSET_DIR" ]; then
-    printf "\033[40m\033[1;31mNOTE: Blocking using .netset files in BLOCK_NETSET_DIR requires IPTABLES_IPSET to be enabled.\033[0m\n"
+    printf "\033[40m\033[1;31mWARNING: Blocking using .netset files in BLOCK_NETSET_DIR requires IPTABLES_IPSET to be enabled.\033[0m\n"
   fi
 
   if [ -z "$BLOCK_HOSTS" -a -z "$BLOCK_HOSTS_FILE" ]; then
@@ -4807,7 +4807,7 @@ else
 
       echo "$total_cnt host line(s) read"
     else
-      printf "\033[40m\033[1;31mNOTE: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
+      printf "\033[40m\033[1;31mWARNING: Cannot read the blocked hosts file \"$BLOCK_HOSTS_FILE\".\033[0m\n"
     fi
   fi
 
@@ -4846,7 +4846,7 @@ setup_mangle_tables()
         ip4tables -t mangle -A OUTPUT -o $interface -j TTL --ttl-set $PACKET_TTL
       done
     else
-      printf "\033[40m\033[1;31m WARNING: Ingoring invalid value for PACKET_TTL ($PACKET_TTL), it should be between 10 and 255!\033[0m\n" >&2
+      printf "\033[40m\033[1;31m WARNING: Ignoring invalid value for PACKET_TTL ($PACKET_TTL), it should be between 10 and 255!\033[0m\n" >&2
     fi
   fi
 
@@ -6207,7 +6207,7 @@ show_failed()
 show_stop()
 {
   DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
-  printf "$DATE \033[40m\033[1;32mStopping Arno's Iptables Firewall(AIF) v$MY_VERSION\033[0m\n"
+  echo "$DATE Stopping Arno's Iptables Firewall(AIF) v$MY_VERSION"
   echo "** Stopping Arno's Iptables Firewall(AIF) v$MY_VERSION **" |log_msg
 }
 
@@ -6215,7 +6215,7 @@ show_stop()
 show_stop_blocked()
 {
   DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
-  printf "$DATE \033[40m\033[1;31mFIREWALL DISABLED & BLOCKING ALL INTERNET TRAFFIC!\033[0m\n"
+  echo "$DATE FIREWALL DISABLED & BLOCKING ALL INTERNET TRAFFIC!"
   echo "** FIREWALL DISABLED & BLOCKING ALL INTERNET TRAFFIC! **" |log_msg
 }
 
@@ -6230,7 +6230,7 @@ show_applied()
     printf "$DATE \033[40m\033[1;31mWARNING: $RULE_WARNING firewall rules failed to apply!\n\033[0m" >&2
     echo "** WARNING: $RULE_WARNING firewall rules failed to apply! **" |log_msg
   else
-    printf "$DATE \033[40m\033[1;32mAll firewall rules applied.\033[0m\n"
+    echo "$DATE All firewall rules applied"
     echo "** All firewall rules applied **" |log_msg
   fi
 }
@@ -6239,7 +6239,7 @@ show_applied()
 show_disabled()
 {
   DATE=`LC_ALL=C date +'%b %d %H:%M:%S'`
-  printf "$DATE \033[40m\033[1;31mFIREWALL DISABLED!\033[0m\n"
+  echo "$DATE FIREWALL DISABLED!"
 }
 
 

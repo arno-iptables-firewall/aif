@@ -10,7 +10,7 @@ PLUGIN_CONF_FILE="ipsec-vpn.conf"
 # Comments              : This plugin adds all required rules for using Racoon IPSEC.
 #
 # Author                : (C) Copyright 2006-2016 by Philip Prindeville & Arno van Amersfoort
-# Homepage              : https://rocky.eld.leidenuniv.nl/
+# Web                   : https://github.com/arno-iptables-firewall/aif
 # Email                 : philipp AT redfish-solutions DOT com
 #                         (note: you must remove all spaces and substitute the @ and the .
 #                         at the proper locations!)

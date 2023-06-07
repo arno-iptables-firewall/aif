@@ -4,11 +4,11 @@
 #                         -= Arno's Iptables Firewall(AIF) =-
 #              Single- & multi-homed firewall script with DSL/ADSL support
 #
-#                           ~ In memory of my dear father ~
+#                           ~ In memory of my dear parents ~
 #
 # (C) Copyright 2001-2021 by Arno van Amersfoort & Lonnie Abelbeck
-# Homepage              : https://rocky.eld.leidenuniv.nl/
-# Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
+# Web                   : https://github.com/arno-iptables-firewall/aif
+# Email                 : a r n o DOT v a n DOT a m e r s f o o r t AT g m a i l DOT c o m
 #                         (note: you must remove all spaces and substitute the @ and the .
 #                         at the proper locations!)
 # ------------------------------------------------------------------------------

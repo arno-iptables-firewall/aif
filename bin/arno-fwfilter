@@ -17,8 +17,8 @@
 #                  Firewall-log filter script (arno-fwfilter)
 #
 # (C) Copyright 2001-2015 by Arno van Amersfoort
-# Homepage              : https://rocky.eld.leidenuniv.nl/
-# Email                 : a r n o v a AT r o c k y DOT e l d DOT l e i d e n u n i v DOT n l
+# Web                   : https://github.com/arno-iptables-firewall/aif
+# Email                 : a r n o DOT v a n DOT a m e r s f o o r t AT g m a i l DOT c o m
 #                         (note: you must remove all spaces and substitute the @ and the .
 #                          at the proper locations!)
 # ------------------------------------------------------------------------------------------
@@ -436,7 +436,7 @@ else
               if (RESOLVE_NAMES==1 || SHOW_LOCATION==1)
                 if (USE_1ROW==0)
                 {
-                  if (USE_HTML==1) printf("<br>\n                         "); else printf("\n               ")
+                  if (USE_HTML==1) printf("<br>\n                         "); else printf("\n               ")
                 }
 
               if (USE_ANSI_COLORS==1) printf("\033[0m\033[1;36m")
@@ -461,7 +461,7 @@ else
               if (RESOLVE_NAMES==1 || SHOW_LOCATION==1)
                 if (USE_1ROW==0)
                 {
-                  if (USE_HTML==1) printf("<br>\n                         "); else printf("\n               ")
+                  if (USE_HTML==1) printf("<br>\n                         "); else printf("\n               ")
                 }
 
               if (USE_ANSI_COLORS==1) printf("\033[0m\033[1;35m")
@@ -498,7 +498,7 @@ else
           offset=i+1
           if (USE_1ROW==0)
           {
-            if (USE_HTML==1) printf("<br>\n                         "); else printf("\n               ")
+            if (USE_HTML==1) printf("<br>\n                         "); else printf("\n               ")
           }
           else printf(" ")
         }
