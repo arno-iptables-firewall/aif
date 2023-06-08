@@ -18,7 +18,7 @@ webfilter_helper_sanity_check()
 }
 
 
-webfilter_net_helper_do_work()
+webfilter_helper_do_work()
 {
   local RETVAL=0
 
@@ -27,7 +27,7 @@ webfilter_net_helper_do_work()
 
   unset IFS
   for rule in $WEBFILTER_HOST_DENY_TCP; do
-    if parse_rule "$rule" WEBFILTER_HOST_DENY_TCP "shosts:ANYHOST-dhosts-ports:ANYPORT"; then
+    if parse_rule "$rule" WEBFILTER_HOST_DENY_TCP "interfaces-shosts-dhosts-ports:ANYPORT"; then
       echo "${INDENT}Denying access from $shosts to $dhosts for TCP port(s): $ports"
 
       IFS=' ,'
@@ -56,7 +56,7 @@ webfilter_net_helper_do_work()
 
   unset IFS
   for rule in $WEBFILTER_HOST_DENY_UDP; do
-    if parse_rule "$rule" WEBFILTER_HOST_DENY_UDP "shosts:ANYHOST-dhosts-ports:ANYPORT"; then
+    if parse_rule "$rule" WEBFILTER_HOST_DENY_UDP "interfaces-shosts-dhosts-ports:ANYPORT"; then
       echo "${INDENT}Denying access from $shosts to $dhosts for UDP port(s): $ports"
 
       IFS=' ,'

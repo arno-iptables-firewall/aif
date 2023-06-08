@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-#     -= Arno's Iptables Firewall(AIF) - Webfilter plugin =-
+#             -= Arno's Iptables Firewall(AIF) - Webfilter plugin =-
 #
 PLUGIN_NAME="Webfilter plugin"
 PLUGIN_VERSION="1.0-BETA1"
@@ -7,15 +7,8 @@ PLUGIN_CONF_FILE="webfilter.conf"
 #
 # Last changed          : June 8, 2023
 # Requirements          : AIF 2.1.1 (or newer)
-# Comments              : This plugin allows "clients" on the same subnet to use this
-#                         device as a gateway upstream. This network of "clients" is
-#                         SNAT'ed to this device's external interface(s).
-#                         This parasitic network is useful for situations when the
-#                         upstream firewall is not under your control and you desire
-#                         added security for specific devices in your subnet.
-#                         Set the gateway address of parasitic network clients to an
-#                         external IPv4 address of this device. Note that this plugin
-#                         only works for IPv4, NOT IPv6
+# Comments              : This plugin allows filtering of outgoing traffic (by hostname)
+#                         on the host this firewall is running on
 #
 # Author                : (C) Copyright 2023 by Arno van Amersfoort
 # Web                   : https://github.com/arno-iptables-firewall/aif
@@ -43,97 +36,13 @@ JOB_NAME="webfilter"
 # (Background) job helper script
 JOB_HELPER_SCRIPT="$PLUGIN_BIN_PATH/webfilter-helper"
 
-webfilter_net_init()
+webfilter_init()
 {
-  local IFS host if_ip snat_if snat_ip snat_ifs_ips snat_if_subnet
-
-  ip4tables -t nat -N WEBFILTER 2>/dev/null
-  ip4tables -t nat -F WEBFILTER
-
-  ip4tables -N PARASITIC_NET_ACL 2>/dev/null
-  ip4tables -F PARASITIC_NET_ACL
-
-  ip4tables -N PARASITIC_NET_FORWARD 2>/dev/null
-  ip4tables -F PARASITIC_NET_FORWARD
-
-  if [ -z "$PARASITIC_NET_IF" ]; then
-    PARASITIC_NET_IF="$EXT_IF"
-  fi
-
-  if [ -z "$PARASITIC_NET_DENY_POLICY" ]; then
-    PARASITIC_NET_DENY_POLICY="DROP"
-  fi
-
-  snat_ifs_ips=""
-  IFS=' ,'
-  for if_ip in $(wildcard_ifs $PARASITIC_NET_IF); do
-    snat_if="$(echo "$if_ip" |cut -d'~' -f1)"
-    snat_ip="$(echo "$if_ip" |cut -s -d'~' -f2)"
-
-    if [ -z "$snat_ip" ]; then
-      # Add all interface IPs to list
-      for if_ip in $(get_network_ipv4_address_all $snat_if); do
-        snat_ifs_ips="$snat_ifs_ips${snat_ifs_ips:+ }$snat_if~$if_ip"
-      done
-    else
-      snat_ifs_ips="$snat_ifs_ips${snat_ifs_ips:+ }$snat_if~$snat_ip"
-    fi
-  done
-
-  if [ -z "$snat_ifs_ips" ]; then
-    printf "\033[40m\033[1;31m${INDENT}ERROR: Unable to determine SNAT interface(s)/address(es)!\033[0m\n" >&2
-    return 1
-  fi
-
-  echo "${INDENT}Parasitic network SNAT interface(s)/address(es): $snat_ifs_ips"
-
-  if [ -z "$PARASITIC_NET_CLIENT_HOSTS" ]; then
-    IFS=' ,'
-    for if_ip in $(wildcard_ifs $PARASITIC_NET_IF); do
-      snat_if="$(echo "$if_ip" |cut -d'~' -f1)"
-      snat_if_subnet="$(get_network_ipv4_address_mask_all $snat_if)"
-      PARASITIC_NET_CLIENT_HOSTS="$PARASITIC_NET_CLIENT_HOSTS${PARASITIC_NET_CLIENT_HOSTS:+ }$snat_if_subnet"
-    done
-  fi
-
-  # Filter traffic related to the Parasitic Network
-  echo "${INDENT}Allowing parasitic network access for client host(s): $PARASITIC_NET_CLIENT_HOSTS"
-  IFS=' ,'
-  for host in $(ip_range $PARASITIC_NET_CLIENT_HOSTS); do
-    ip4tables -A PARASITIC_NET_FORWARD -s $host -j PARASITIC_NET_ACL
-  done
-
-  # Enable forwarding on the SNAT interfaces.
-  # Note: can't check IF IP here, therefore only match interface(s)
-  IFS=' ,'
-  for if_ip in $(wildcard_ifs $PARASITIC_NET_IF); do
-    snat_if="$(echo "$if_ip" |cut -d'~' -f1)"
-    ip4tables -A POST_FORWARD_CHAIN -i $snat_if -o $snat_if -j PARASITIC_NET_FORWARD
-  done
-
-  # We do not want traffic generated on this machine to be NAT-ed, so skip all SNAT interface IPv4's
-  IFS=' '
-  for if_ip in $snat_ifs_ips; do
-    snat_ip="$(echo "$if_ip" |cut -d'~' -f2)"
-    ip4tables -t nat -A WEBFILTER -s $snat_ip -j RETURN
-  done
-
-  IFS=' '
-  for if_ip in $snat_ifs_ips; do
-    snat_if="$(echo "$if_ip" |cut -d'~' -f1)"
-    snat_ip="$(echo "$if_ip" |cut -d'~' -f2)"
-
-    IFS=' ,'
-    for host in $(ip_range $PARASITIC_NET_CLIENT_HOSTS); do
-      ip4tables -t nat -A WEBFILTER -o $snat_if -s $host -j SNAT --to-source $snat_ip
-    done
-  done
-
-  # Hook into the POST POSTROUTING NAT chain
-  ip4tables -t nat -A POST_NAT_POSTROUTING_CHAIN -j WEBFILTER
+  # Insert rule into the main chain:
+  iptables -A EXT_OUTPUT_CHAIN -j WEBFILTER_CHAIN
 
   # Create background job
-  if ! job_add "$JOB_NAME" "${PARASITIC_NET_TIME:-60}" "$JOB_HELPER_SCRIPT"; then
+  if ! job_add "$JOB_NAME" "${WEBFILTER_TIME:-60}" "$JOB_HELPER_SCRIPT"; then
     return 1
   fi
 
@@ -144,8 +53,12 @@ webfilter_net_init()
 # Plugin start function
 plugin_start()
 {
+  # Create new WEBFILTER_CHAIN chain:
+  iptables -N WEBFILTER_CHAIN 2>/dev/null
+  iptables -F WEBFILTER_CHAIN
+
   # Initialize
-  if ! parasitic_net_init; then
+  if ! webfilter_init; then
     return 1
   fi
 
@@ -166,16 +79,10 @@ plugin_restart()
 # Plugin stop function
 plugin_stop()
 {
-  iptables -D EXT_OUTPUT_CHAIN -j WEBFILTER
+  iptables -D EXT_OUTPUT_CHAIN -j WEBFILTER 2>/dev/null
 
   iptables -F WEBFILTER
   iptables -X WEBFILTER 2>/dev/null
-
-  ip4tables -F PARASITIC_NET_ACL
-  ip4tables -X PARASITIC_NET_ACL 2>/dev/null
-
-  ip4tables -F PARASITIC_NET_FORWARD
-  ip4tables -X PARASITIC_NET_FORWARD 2>/dev/null
 
   return 0
 }
@@ -184,23 +91,7 @@ plugin_stop()
 # Plugin status function
 plugin_status()
 {
-  echo "  Interface forward policy:"
-  echo "  =============================="
-  ip4tables -nv -L POST_FORWARD_CHAIN | awk '$3 == "PARASITIC_NET_FORWARD" { print "  "$3" "$6" "$7" "$8" "$9 }'
-  echo "  ------------------------------"
-  echo ""
-
-  echo "  Allowed client host(s):"
-  echo "  =============================="
-  ip4tables -n -L PARASITIC_NET_FORWARD | awk '$1 == "PARASITIC_NET_ACL" { print "  "$4 }'
-  echo "  ------------------------------"
-  echo ""
-
-  echo "  Access Control List(ACL):"
-  echo "  =============================="
-  ip4tables -n -L PARASITIC_NET_ACL | sed -n -e 's/^ACCEPT.*$/  &/p' -e 's/^DROP.*$/  &/p'
-  echo "  ------------------------------"
-  echo ""
+  iptables -L WEBFILTER_CHAIN |sed -e "s/^/$INDENT/"
 
   return 0
 }
@@ -209,8 +100,6 @@ plugin_status()
 # Check sanity of eg. environment
 plugin_sanity_check()
 {
-  local IFS if1 if2
-
   if [ -n "$WEBFILTER_DENY_POLICY" -a "$WEBFILTER_DENY_POLICY" != "DROP" -a "$WEBFILTER_DENY_POLICY" != "REJECT" ]; then
     printf "\033[40m\033[1;31m${INDENT}ERROR: WEBFILTER_DENY_POLICY must be either \"DROP\" (or left empty) or \"REJECT\"!\033[0m\n" >&2
     return 1
