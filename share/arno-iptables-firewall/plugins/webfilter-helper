@@ -122,6 +122,7 @@ webfilter_helper_do_work()
               fi
 
               iptables -A WEBFILTER_ACL $(ipt_if -o "$interface") -s $srcip -d $dhost_ip -p icmp --icmp-type echo-request -j $WEBFILTER_DENY_POLICY
+            done
           done
         done
       done
