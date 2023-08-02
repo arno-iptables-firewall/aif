@@ -410,8 +410,8 @@ ip4tables_restore()
 
     RULE_WARNING=$((RULE_WARNING + 1))
   elif [ -n "$err_result" ]; then
-    # ip4tables_restore returned success, so normal output of stderr
-    echo "$err_result" >&2
+    # ip4tables_restore returned success, so normal output of stderr but filter some messages
+    echo "$err_result" |grep -v -e 'WARNING:.*match is obsolete' -e 'iptables-legacy tables present' >&2
   fi
 
   return $retval
@@ -454,8 +454,8 @@ ip6tables_restore()
 
     RULE_WARNING=$((RULE_WARNING + 1))
   elif [ -n "$err_result" ]; then
-    # ip6tables_restore returned success, so normal output of stderr
-    echo "$err_result" >&2
+    # ip6tables_restore returned success, so normal output of stderr but filter some messages
+    echo "$err_result" |grep -v -e 'WARNING:.*match is obsolete' -e 'iptables-legacy tables present' >&2
   fi
 
   return $retval
