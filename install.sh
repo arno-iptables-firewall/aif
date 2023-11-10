@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.14c"
+MY_VERSION="1.14d"
 
 # ------------------------------------------------------------------------------------------
 #                         -= Arno's Iptables Firewall(AIF) =-
@@ -8,7 +8,7 @@ MY_VERSION="1.14c"
 #
 #                           ~ In memory of my dear parents ~
 #
-# (C) Copyright 2001-2021 by Arno van Amersfoort
+# (C) Copyright 2001-2023 by Arno van Amersfoort
 # Web                   : https://github.com/arno-iptables-firewall/aif
 # Email                 : a r n o DOT v a n DOT a m e r s f o o r t AT g m a i l DOT c o m
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -99,7 +99,7 @@ shell_diff()
 
 copy_ask_if_exist()
 {
-  local DIFF_RETVAl=-1
+  local DIFF_RETVAL=-1
   local RETVAL
   local DEFAULT_YN="${3:-'n'}" # Default to n(o)
   local BACKUP_EXT="$4"
