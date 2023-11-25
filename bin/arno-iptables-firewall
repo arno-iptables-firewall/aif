@@ -3692,7 +3692,7 @@ setup_ext_output_chain()
   ###########################################
   unset IFS
   for rule in $INET_OUTPUT_HOST_OPEN_TCP; do
-    if parse_rule "$rule" INET_OUTPUT_HOST_OPEN_TCP "interfaces-srcips-hosts-ports"; then
+    if parse_rule "$rule" INET_OUTPUT_HOST_OPEN_TCP "interfaces-srcips-hosts-ports:ANYPORT"; then
 
       echo " $(show_if_ip "$interfaces" "$srcips")Allowing $hosts for TCP port(s): $ports"
 
@@ -3713,7 +3713,7 @@ setup_ext_output_chain()
   ###########################################
   unset IFS
   for rule in $INET_OUTPUT_HOST_OPEN_UDP; do
-    if parse_rule "$rule" INET_OUTPUT_HOST_OPEN_UDP "interfaces-srcips-hosts-ports"; then
+    if parse_rule "$rule" INET_OUTPUT_HOST_OPEN_UDP "interfaces-srcips-hosts-ports:ANYPORT"; then
 
       echo " $(show_if_ip "$interfaces" "$srcips")Allowing $hosts for UDP port(s): $ports"
 
@@ -3755,7 +3755,7 @@ setup_ext_output_chain()
   ###############################################
   unset IFS
   for rule in $INET_OUTPUT_HOST_DENY_TCP; do
-    if parse_rule "$rule" INET_OUTPUT_HOST_DENY_TCP "interfaces-srcips-hosts-ports"; then
+    if parse_rule "$rule" INET_OUTPUT_HOST_DENY_TCP "interfaces-srcips-hosts-ports:ANYPORT"; then
 
       echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for TCP port(s): $ports"
 
@@ -3780,7 +3780,7 @@ setup_ext_output_chain()
   ###############################################
   unset IFS
   for rule in $INET_OUTPUT_HOST_DENY_UDP; do
-    if parse_rule "$rule" INET_OUTPUT_HOST_DENY_UDP "interfaces-srcips-hosts-ports"; then
+    if parse_rule "$rule" INET_OUTPUT_HOST_DENY_UDP "interfaces-srcips-hosts-ports:ANYPORT"; then
 
       echo " $(show_if_ip "$interfaces" "$srcips")Denying $hosts for UDP port(s): $ports"
 
@@ -3830,7 +3830,7 @@ setup_ext_output_chain()
   ########################################
   unset IFS
   for rule in $INET_OUTPUT_OPEN_TCP; do
-    if parse_rule "$rule" INET_OUTPUT_OPEN_TCP "interfaces-srcips-ports"; then
+    if parse_rule "$rule" INET_OUTPUT_OPEN_TCP "interfaces-srcips-ports:ANYPORT"; then
 
       echo " $(show_if_ip "$interfaces" "$srcips")Allowing TCP port(s): $ports"
 
@@ -3849,7 +3849,7 @@ setup_ext_output_chain()
   ########################################
   unset IFS
   for rule in $INET_OUTPUT_OPEN_UDP; do
-    if parse_rule "$rule" INET_OUTPUT_OPEN_UDP "interfaces-srcips-ports"; then
+    if parse_rule "$rule" INET_OUTPUT_OPEN_UDP "interfaces-srcips-ports:ANYPORT"; then
 
       echo " $(show_if_ip "$interfaces" "$srcips")Allowing UDP port(s): $ports"
 
@@ -3887,7 +3887,7 @@ setup_ext_output_chain()
   ############################################
   unset IFS
   for rule in $INET_OUTPUT_DENY_TCP; do
-    if parse_rule "$rule" INET_OUTPUT_DENY_TCP "interfaces-srcips-ports"; then
+    if parse_rule "$rule" INET_OUTPUT_DENY_TCP "interfaces-srcips-ports:ANYPORT"; then
 
       echo " $(show_if_ip "$interfaces" "$srcips")Denying TCP port(s): $ports"
 
@@ -3910,7 +3910,7 @@ setup_ext_output_chain()
   ############################################
   unset IFS
   for rule in $INET_OUTPUT_DENY_UDP; do
-    if parse_rule "$rule" INET_OUTPUT_DENY_UDP "interfaces-srcips-ports"; then
+    if parse_rule "$rule" INET_OUTPUT_DENY_UDP "interfaces-srcips-ports:ANYPORT"; then
 
       echo " $(show_if_ip "$interfaces" "$srcips")Denying UDP port(s): $ports"
 
