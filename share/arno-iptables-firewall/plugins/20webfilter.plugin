@@ -46,6 +46,14 @@ webfilter_init()
     return 1
   fi
 
+  # Set default inet-output policy of the main script to drop when appropriate
+  if [ -n "$WEBFILTER_HOST_OPEN_TCP" || \
+       -n "$WEBFILTER_HOST_OPEN_UDP" || \
+       -n "$WEBFILTER_HOST_OPEN_ICMP" || \
+       -n "$WEBFILTER_HOST_OPEN_IP" ]; then
+    INET_OUTPUT_DEFAULT_POLICY_DROP="1"
+  fi
+
   return 0
 }
 
