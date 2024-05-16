@@ -710,22 +710,26 @@ ip()
 ####################
 dig()
 {
-  local x=0 addr name lines item retval first IFS
+  local x=0 addr name lines item retval first dig_args IFS
 
   if [ -n "$DIG" ]; then
+    dig_args="+noauthority +noadditional"
+
     if [ "$DNS_FAST_FAIL" = "1" -o "$DNS_FAST_FAIL_ONCE" = "1" ]; then
-      lines="$($DIG +noauthority +noadditional +tries=1 +time=1 "$@" 2>/dev/null)"
-      retval=$?
+      dig_args="$dig_args +tries=1 +time=1"
       DNS_FAST_FAIL_ONCE=0
-    else
-      lines="$($DIG +noauthority +noadditional "$@" 2>/dev/null)"
-      retval=$?
     fi
+
+    if [ "$IPV6_SUPPORT" = "1" ]; then
+      dig_args="$dig_args any"  # To obtain AAAA-record as well
+    fi
+
+    lines="$($DIG $dig_args "$@" 2>/dev/null)"
     retval=$?
 
     first=1
     IFS=$EOL
-    for item in `echo "$lines" |awk '{ if (substr($0,0,1) != ";" && ($4 == "A" || $4 == "PTR")) print $NF }'`; do
+    for item in $(echo "$lines" |awk '{ if (substr($0,0,1) != ";" && ($4 == "A" || $4 == "AAAA" || $4 == "PTR")) print $NF }'); do
       if [ $first -eq 1 ]; then
         first=0
       else
