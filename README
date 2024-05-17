@@ -38,12 +38,11 @@ Note that *ALL* donations I receive go to one of the above foundations.
 
 IMPORTANT NOTE:
 ---------------
-I don't provide enduser support on my email address. Any problems & questions
-directly related to the use/implementation of my firewall should go to the
-mailinglist, for which you can sign up on my website. Also consult the FAQs
-before reporting a problem/question. Please use this way as I'm simply too busy
-to help everybody out with every (trivial) issue. Furthermore read the
-information in the troubleshooting section below!
+I don't provide enduser support by email, I'm simply too busy to help everybody
+out with every (trivial) issue. Bugs may be reported on Github. Please ask any
+other questions on Stackexchange/Stackoverflow/Reddit/etc. Also consult the FAQs
+before reporting a problem/question. Furthermore read the information in the
+troubleshooting section below!
 
 An explanation of the files in the package:
 -------------------------------------------
