@@ -1,5 +1,5 @@
-Version 2.1.1b-DEVEL (May 16, 2024)
------------------------------------
+Version 2.1.2 (May 16, 2024)
+----------------------------
 * Enable IPv6 name record lookups for dig-wrapper. This indirectly enables IPv6/AAAA-record support for dyndns-host-open (& traffic-accounting) plugin
 ! Prevent systemd from terminating the job manager when some rules fail
 * Renamed xxx_OUTPUT to INET_OUTPUT_xxx for clarity/consistency
