@@ -1,3 +1,8 @@
+Version 2.1.2a (July 12, 2024)
+----------------------------
+! dig wrapper function was broken since 2.1.2
+* No longer send nslookup/dig stderr to /dev/null
+
 Version 2.1.2 (May 16, 2024)
 ----------------------------
 * Enable IPv6 name record lookups for dig-wrapper. This indirectly enables IPv6/AAAA-record support for dyndns-host-open (& traffic-accounting) plugin

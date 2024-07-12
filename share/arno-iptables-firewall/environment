@@ -724,7 +724,8 @@ dig()
       dig_args="$dig_args any"  # To obtain AAAA-record as well
     fi
 
-    lines="$($DIG $dig_args "$@" 2>/dev/null)"
+    IFS=' '
+    lines="$($DIG $dig_args $@)"
     retval=$?
 
     first=1
@@ -749,10 +750,10 @@ dig()
     done
     if [ -n "$1" ]; then
       if [ "$DNS_FAST_FAIL" = "1" -o "$DNS_FAST_FAIL_ONCE" = "1" ]; then
-        lines="$($NSLOOKUP -retry=1 -timeout=1 "$1" 2>/dev/null |sed -e "1,2d")"
+        lines="$($NSLOOKUP -retry=1 -timeout=1 "$1" |sed -e "1,2d")"
         DNS_FAST_FAIL_ONCE=0
       else
-        lines="$($NSLOOKUP "$1" 2>/dev/null |sed -e "1,2d")"
+        lines="$($NSLOOKUP "$1" |sed -e "1,2d")"
       fi
 
       addr=""
