@@ -103,10 +103,10 @@ job_process()
           [ $VERBOSE -eq 1 ] && echo " Countdown reached, running job \"$SCRIPT_NAME\"..."
 
           # Create extra FD
-          exec 3>&1
-
           if [ $VERBOSE -ne 1 ]; then
             exec 3>/dev/null
+          else
+            exec 3>&1
           fi
 
           result="$("$JOB_EXECUTER" "$SCRIPT_PATH" 2>&1 1>&3)"
@@ -185,7 +185,7 @@ process_commandline()
     case "$ARGNAME" in
              --sleep|-s) SLEEP_TIME="$ARGVAL";;
            --verbose|-v) VERBOSE=1;;
-              --help|-h) show_help;
+              --help|-h) show_help
                          exit 0
                          ;;
                      -*) echo "ERROR: Bad argument \"$ARG\"" >&2
