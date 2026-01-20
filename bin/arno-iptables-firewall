@@ -6252,7 +6252,7 @@ show_help()
   echo "restart                     = Restart firewall" >&2
   echo "force-reload                = Reload blocked hosts (blackhole) file" >&2
   echo "check-conf                  = Check configuration file (only)" >&2
-  echo "status [-t {table}] [chain] = View firewall ruleset ([chain] & [-t {table}] are optional)" >&2
+  echo "status [chain] [-t {table}] = View firewall ruleset ([chain] & [-t {table}] are optional)" >&2
   echo "status-plugins [name]       = View plugins status (view only plugin [name] is optional)" >&2
 }
 
