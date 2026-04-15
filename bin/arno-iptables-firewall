@@ -121,16 +121,28 @@ sanity_check()
 ipset_check()
 {
   if [ "$IPTABLES_IPSET" != "1" ]; then
+    if [ -n "$BLOCK_NETSET_DIR" ]; then
+      printf "\033[40m\033[1;31mWARNING: Blocking using .netset files in BLOCK_NETSET_DIR requires IPTABLES_IPSET to be enabled.\033[0m\n"
+    fi
+
     return 1
   fi
 
   ## Check if userspace 'ipset' command is installed
   if ! check_command ipset; then
+    if [ -n "$BLOCK_NETSET_DIR" ]; then
+      printf "\033[40m\033[1;31mWARNING: Blocking using .netset files in BLOCK_NETSET_DIR requires ipset-binary to be installed.\033[0m\n"
+    fi
+
     return 1
   fi
 
   ## Issue a simple command that will fail without kernel support
   if ! ipset list -n >/dev/null 2>&1; then
+    if [ -n "$BLOCK_NETSET_DIR" ]; then
+      printf "\033[40m\033[1;31mWARNING: Blocking using .netset files in BLOCK_NETSET_DIR requires ipset kernel-support to be enabled.\033[0m\n"
+    fi
+
     return 1
   fi
 
@@ -4715,10 +4727,6 @@ if ipset_check; then
     ipset destroy aif_blocklistv6_tmp
   fi
 else
-  if [ -n "$BLOCK_NETSET_DIR" ]; then
-    printf "\033[40m\033[1;31mWARNING: Blocking using .netset files in BLOCK_NETSET_DIR requires IPTABLES_IPSET to be enabled.\033[0m\n"
-  fi
-
   if [ -z "$BLOCK_HOSTS" -a -z "$BLOCK_HOSTS_FILE" ]; then
     return
   fi
