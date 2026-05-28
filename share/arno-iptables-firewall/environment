@@ -1568,7 +1568,7 @@ lock_ctrl_handler()
 {
   lock_leave "$1"
 
-  stty intr ^C # Back to normal
+  stty intr ^C 2>/dev/null # Back to normal
   exit         # Yep, I meant to do that... Kill/hang the shell.
 }
 
