@@ -1,6 +1,6 @@
 Version 2.1.2b-DEVEL (May 28, 2026)
 -----------------------------------
-! Bug in traffic-accounting-helper causing failure
+! Failure for multi-ip hosts in traffic-accounting-helper
 
 Version 2.1.2a (July 12, 2024)
 ------------------------------
