@@ -1,5 +1,9 @@
+Version 2.1.2b-DEVEL (May 28, 2026)
+-----------------------------------
+! Bug in traffic-accounting-helper causing failure
+
 Version 2.1.2a (July 12, 2024)
-----------------------------
+------------------------------
 ! dig wrapper function was broken since 2.1.2
 * No longer send nslookup/dig stderr to /dev/null
 
