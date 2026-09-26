@@ -3554,9 +3554,9 @@ setup_ext_input_chain()
     echo " Logging of (other) packets to UNPRIVILEGED UDP ports enabled"
     iptables -A EXT_INPUT_CHAIN -p udp --dport 1024: \
       -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV UDP packet: "
-    iptables -A EXT_MULTICAST_CHAIN -p udp --dport 1024 \
+    iptables -A EXT_MULTICAST_CHAIN -p udp --dport 1024: \
       -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV UDP multicast: "
-    iptables -A EXT_BROADCAST_CHAIN -p udp --dport 1024 \
+    iptables -A EXT_BROADCAST_CHAIN -p udp --dport 1024: \
       -m limit --limit 6/m --limit-burst 2 -j LOG --log-level $LOGLEVEL --log-prefix "AIF:UNPRIV UDP broadcast: "
   else
     echo "Logging of (other) packets to UNPRIVILEGED UDP ports disabled"
