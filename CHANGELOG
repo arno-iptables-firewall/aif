@@ -1,5 +1,5 @@
-Version 2.1.2b-DEVEL (September 28, 2026)
------------------------------------------
+Version 2.1.3 (September 28, 2026)
+----------------------------------
 ! Failure for multi-ip hosts in traffic-accounting-helper
 ! Missing colon causing unpriv udp multicast/broadcast logging to be broken
 * Make switching between ANF & AIF work properly without reboots/user intervention
