@@ -1,0 +1,5 @@
+Version 1.00 (October 1, 2026)
+------------------------------
++ Initial version: keeps Docker's rules across restarts of the firewall (they are saved before and
+  restored after the restart flushes the built-in chains), warns after a full start while Docker
+  runs, DOCKER_HOST_OPEN_TCP/UDP and DOCKER_HOST_OPEN_ALL for services on this host
