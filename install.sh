@@ -81,19 +81,17 @@ sanity_check()
 
 shell_diff()
 {
-  local FILE1_DATA="$(cat "$1")"
-  local FILE2_DATA="$(cat "$2")"
-
-  if [ "$FILE1_DATA" != "$FILE2_DATA" ]; then
-    # If mismatch, check whether it's only the comments that differ
-    if [ "${FILE1_DATA%\#*}" = "${FILE2_DATA%\#*}" ]; then
-      return 1 # Only comments differ
-    fi
-
-    return 2 # Full mismatch
+  if [ "$(cat "$1")" = "$(cat "$2")" ]; then
+    return 0 # Match
   fi
 
-  return 0 # Match
+  # Check whether only comments differ. Only full comment lines count as comments,
+  # as a '#' within a line can also be part of a value (eg. "eth0#0/0>1.2.3.4~22")
+  if [ "$(sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d' "$1")" = "$(sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d' "$2")" ]; then
+    return 1 # Only comments differ
+  fi
+
+  return 2 # Full mismatch
 }
 
 
