@@ -1,0 +1,470 @@
+# Arno's Iptables Firewall (AIF)
+
+**Single- & multi-homed firewall script**
+
+*~ In memory of my dear parents ~*
+
+> [!IMPORTANT]
+> **AIF is in maintenance-only mode.**
+> This project only receives critical bug and security fixes. In principle no new features will be added.
+>
+> An **iptables → nftables ported version** is available as **Arno's (NFT) Firewall (ANF)**: <https://github.com/arno-firewall/anf>.
+> ANF is where all further development takes place. If you are starting a new installation, or your system has moved to nftables, please use ANF instead.
+
+(C) Copyright 2001-2026 by Arno van Amersfoort & Lonnie Abelbeck
+
+- **Web:** <https://github.com/arno-iptables-firewall/aif>
+- **Email:** `a r n o DOT v a n DOT a m e r s f o o r t AT g m a i l DOT c o m`
+  (note: you must remove all spaces and substitute the @ and the . at the proper locations!)
+
+## Project status
+
+| Project | Backend | Status |
+| ------- | ------- | ------ |
+| **AIF** (this repository) | iptables | Maintenance only |
+| [**ANF**](https://github.com/arno-firewall/anf) | nftables | Actively developed |
+
+## License
+
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License version 2 as published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+
+## A message from the author
+
+Almost *all* my work is distributed under the terms of the GNU GPL License, which means it's free (open-source) software. If you like my work or you want me to implement a certain feature, you are encouraged to donate money. You can (preferably) donate directly to me through my bank account (mail me for my IBAN number (International Bank Account Number). My favourite charity organisations are:
+
+- foundations for cancer research (in The Netherlands: "KWF Kanker Bestrijding");
+- foundations for brain desease research (in The Netherlands: "De Hersenstichting");
+- foundations for the welfare of animals ("IFAW" or in the Netherlands: "De Dierenbescherming")
+
+Note that *ALL* donations I receive go to one of the above foundations.
+
+## Important note
+
+I don't provide enduser support by email, I'm simply too busy to help everybody out with every (trivial) issue. Bugs may be reported on Github. Please ask any other questions on Stackexchange/Stackoverflow/Reddit/etc. Also consult the FAQs before reporting a problem/question. Furthermore read the information in the troubleshooting section below!
+
+## Files in the package
+
+### `/bin/arno-iptables-firewall`
+
+The actual firewall script, core of Arno's Iptables Firewall (AIF). You should put this file in e.g. `/usr/local/sbin/`. You should make sure it's executable (use `chmod 700` or `chmod +x`).
+
+### `/bin/arno-fwfilter`
+
+A pipe filter script to make the firewall-log better readable. It can be used for example in conjunction with a `tail` to log your firewall to local tty10 (-12). It can be used for both `/var/log/messages` and `/var/log/firewall` (or whatever name you configured syslogd), depending on the log-level specified in the configuration file. An example on how to use it can be found in the beginning of the fwfilter script. Any options for fwfilter can be configured within the script itself. You should put this file in e.g. `/usr/local/bin/`.
+
+### `/etc/arno-iptables-firewall/firewall.conf`
+
+The configuration file used for Arno's Iptables Firewall (AIF). Normally you should put it in `/etc/arno-iptables-firewall/`. Make sure root is owner/group (with `chown 0:0`).
+
+### `/etc/arno-iptables-firewall/plugins/`
+
+Any plugin config files (`.conf` files) are stored here.
+
+### `/etc/arno-iptables-firewall/conf.d/`
+
+Put any (override) configuration files in this directory. Any files here with a `.conf` extension(!) will be sourced AFTER the main `firewall.conf` file has been read.
+
+### `/etc/arno-iptables-firewall/custom-rules`
+
+Put any (iptables) custom rules in this file. This file should be put in `/etc/arno-iptables-firewall/`. Make sure root is owner/group (with `chown 0:0`).
+
+### `/lib/systemd/system/arno-iptables-firewall.service`
+
+The systemd service file. Depending on your system it should be put in either `/usr/lib/systemd/system`, `/lib/systemd/system` or `/etc/systemd/system`.
+
+### `/etc/init.d/arno-iptables-firewall`
+
+The init.d script (for older systems still using init.d). On some (older) distributions you may need to put it in `/etc/rc.d/` (instead of `/etc/init.d`). You should make sure it's executable (use `chmod 700` or `chmod +x`). Inside this script you can also enable `VERBOSE(=1)` logging for e.g. debugging purposes.
+
+### `/share/arno-iptables-firewall/environment`
+
+This is the environment-file required by the firewall and plugins. It contains several global functions. It should normally be put in `/usr/local/share/`.
+
+### `/share/arno-iptables-firewall/plugins/`
+
+Put any plugin binaries (`.plugin` files) for my firewall in this directory. It should normally be put in `/usr/local/share/`.
+
+### `/share/man/man8/arno-iptables-firewall.8`
+
+A man page for the arno-iptables-firewall script.
+
+### `/share/man/man1/arno-fwfilter.1`
+
+A man page for the arno-fwfilter script.
+
+### `/CHANGELOG`
+
+The version changelog of my firewall.
+
+### `/README`
+
+The original plain-text version of this file.
+
+### `/configure.sh`
+
+Script to setup a basic configuration.
+
+### `/install.sh`
+
+Install script to deploy my firewall on your system.
+
+### `/uninstall.sh`
+
+Uninstall script to remove my firewall from your system.
+
+### `/contrib/`
+
+Directory contains any misc. (user contributed) files (scripts etc.). It also contains examples on how to modify your syslogger to log your firewall stuff into a separate file.
+
+## Some IMPORTANT (security) information
+
+1. If possible try to start the firewall before you enable your (ADSL) internet connection. For a ppp-interface that doesn't exist yet you can use the wildcard device called `ppp+` (but you can only use `ppp+` if there aren't any other ppp interfaces!).
+
+2. Don't change any (security) settings ('EXPERT SETTINGS') if you don't really understand what they mean. Changing them anyway could have a big impact on the security of your machine.
+
+3. I get a lot of emails from people complaining that their webserver etc. stopped working after installing my firewall. This is the CORRECT behaviour for a firewall: BLOCKING ALL incoming traffic by default! Configure your e.g. `OPEN_TCP` accordingly!
+
+## General hints
+
+1. For IPv4 addresses you can use IP ranges in all variables by specifying it as e.g. `192.168.1.10-50` (which would make the range start with 192.168.1.10 and end at 192.168.1.50). Note that this only works for Class-C (/24) ranges, so specifying e.g. `192.168.1.1-192.168.2.1` does NOT work!
+
+2. My firewall has mixed IPv4/IPv6 support. You can switch from IPv4-only to IPv4/IPv6 support by simply setting `IPV6_SUPPORT=1` in the config file.
+
+3. You can use the `$ANYPORT` and `$ANYHOST` macros to specify "ALL ports" or "ALL hosts" in the configuration variables/rules.
+
+4. The configuration variables use several "special" (separator) characters:
+
+   | Character | Purpose | Example |
+   | --------- | ------- | ------- |
+   | ` ` (space) | Separate rules | `rule1 rule2` |
+   | `,` | Lists of ports, hosts or protocols | `21,22,23` |
+   | `~` | Host-port separation | `192.168.1.1~22` |
+   | `>` | Source-to-target separation | `192.168.1.1>10.0.0.3` |
+   | `#` | External interface(-IP) restrictions (also see 5) | `eth0>rule` |
+
+   You may want to have a look at the configuration file in `/etc/arno-iptables-firewall/` for additional information (and examples).
+
+5. For configuration-variables/rules which are related to the external (internet) interface one can restrict the interface(s) for which it is applied to by adding either `{interface1,interface2,...}#` or `{interface_ip1,interface_ip2}#` at the beginning of the rule. The latter is especially handy for aliased interfaces.
+
+   - Example 1: `OPEN_TCP="eth0#22"` would only open TCP port 22 (SSH) for interface eth0.
+   - Example 2: `OPEN_TCP="1.2.3.4#22"` would only open TCP port 22 (SSH) for the interface which has the IP 1.2.3.4.
+
+   This feature can also be used to enable NAT port forwarding for certain (external) interfaces. Examples:
+
+   - Example 1: `NAT_FORWARD_TCP="eth0#0/0~22>{internal_host}"` means:
+     - Forwards TCP port 22;
+     - Forward is available for the whole world (0/0);
+     - Forward is applied to eth0 only;
+     - `{internal_host}` is the host the port should be forwarded to.
+   - Example 2: `NAT_FORWARD_TCP="1.2.3.4#0/0~80>{internal_host}"` means:
+     - Forwards TCP port 80;
+     - Forward is available for the whole world (0/0);
+     - Forward is applied to the (external) (aliased) interface with IP 1.2.3.4;
+     - `{internal_host}` is the host the port should be forwarded to.
+
+6. Port ranges should be written as `port_start:port_end`, e.g. `137:139` would select ports 137, 138 and 139.
+
+## Quick setup
+
+If you want to have it running ASAP or are a novice user, then this is the part that's important. Remember that my firewall has a lot of other useful features which will NOT be used in this way. On the other hand, various security features are enabled by default to protect you from hostile attacks.
+
+1. First we have to check whether your Linux setup is OK in order to make the script work correctly:
+
+   - It needs `iptables` and iproute(2) to be installed (probably come as packages with your distro).
+   - It requires a POSIX compliant `/bin/sh` (should live on any UNIX system by default).
+   - My scripts need the following binaries (in your path): `iptables` (obviously), `ip` (from the iproute package), `sysctl`, `modprobe`, `logger`, `uname`, `date`, `awk`, `tr`, `grep`, `sed`, `cut`, `head`, `tail`, `wc`, `which`, & `cat`.
+   - If you plan to use DNS resolving (e.g. for certain plugins) then the binary `dig` (from the dnsutils package) or as a fall-back `nslookup` should also be available.
+
+2. Now we need to determine whether you have a single- or dual-homed machine. Single means you ONLY have one network-interface, which is the one connected to the outside "evil" world (internet). Dual-homed also have a local subnet connected to an additional network interface.
+
+3. Run the install script and follow the instructions: `./install.sh`
+
+   a. Configure your external network interfaces, `EXT_IF`. In case of a dual (multi)-homed machine it's the interface which is connected to the internet, in case of a LAN it's the one connected to your network. When you have a (dynamically) IP assigned to you (by your ISP) via DHCP, you should set `EXT_IF_DHCP_IP=1`, else leave it off (0, default). If you have multiple (non-aliased) external interfaces, you should specify ALL of them here (space separated). Note that for aliased interfaces you should only specify the "parent"-interface in `EXT_IF`. So if you have eth0, eth0:1 and eth0:2, you should make `EXT_IF="eth0"` (only).
+
+   b. When your public IP is assigned to you by your ISP (through DHCP) then you should enable support for a DHCP externally assigned IP.
+
+   c. Now we configure what ports should be open for the outside world. If you e.g. are running an HTTP-server (port 80), an SSH-server (port 22), and/or an FTP-server (port 21) which should be accessible from the internet you should configure the `OPEN_TCP` / `OPEN_UDP` variables like this:
+
+      ```sh
+      OPEN_TCP="21 22 80"
+      OPEN_UDP=""
+      ```
+
+   d. For dual-homed machines you should also configure `INT_IF`, the interface used for the local network, and you should set your local subnet range in `INTERNAL_NET=`. If you want your internal network to be able to access the internet (aka internet-sharing), you should also enable NAT (masquerading) by setting `NAT=1`. For single-homed machines (part of a LAN), you shouldn't touch `INT_IF` (leave it disabled) and just stick to using `EXT_IF`.
+
+4. Now your firewall is ready but I'd suggest to review this additional info:
+
+   a. In case you use an (A)DSL modem (which works with a PPtP connection to your machine) you should enable the dsl-ppp-modem plugin (you can verify this with `ifconfig`; if a ppp device with your public IP exists you need this).
+
+      We must enable/configure the dsl-ppp-modem plugin via `/etc/arno-iptables-firewall/dsl-ppp-modem.conf` by setting `ENABLED=1`. Now we must configure the network interface (ethX) to which your modem is physically connected (`MODEM_IF`, which is commented (#) out by default), and this is NOT ppp+, ppp0 etc.! Here are some examples on how to do it for some providers (it's assumed that the modem is connected to eth0):
+
+      **PPPoE connection with a static public IP** (e.g. MxStream in the Netherlands) (setup with the ADSL4Linux package from <http://www.adsl4linux.nl>):
+
+      ```sh
+      MODEM_IF="eth0"
+      MODEM_IF_IP="10.0.0.150"
+      MODEM_IP="10.0.0.138"  # Make sure this IP corresponds to the one used by your modem!
+      ```
+
+      **T-DSL (Germany) with a dynamic public IP:**
+
+      ```sh
+      MODEM_IF="eth0"
+      MODEM_IF_IP="192.168.99.1"
+      MODEM_IP=""
+      ```
+
+      **PPPoA connection with a dynamic public IP:**
+
+      ```sh
+      MODEM_IF="eth0"
+      MODEM_IF_IP=""  # This MUST be unset ("") (default)
+      MODEM_IP="10.0.0.138"  # Make sure this IP corresponds to the one used by your modem!
+      ```
+
+      > **NOTE 1:** For extra security you *can* set the IP of your modem (`MODEM_IP`), but it's not necessary (anymore). If you don't know its IP or believe it doesn't have an IP, you can leave `MODEM_IP=""`. The same applies for the IP of the modem network interface (`MODEM_IF_IP`).
+      >
+      > **NOTE 2:** If both your modem AND your network interface don't have an IP you probably don't have to configure your modem settings (at all).
+      >
+      > **NOTE 3:** In case of a PPPoA (PPP-over-ATM) you MUST leave `MODEM_IF_IP` empty (`""`)!
+      >
+      > **NOTE 4:** Don't forget to set `EXT_IF_DHCP_IP=1` in `firewall.conf` too, in case your ISP uses DHCP.
+
+   b. In case you're on a corporate network which uses public IPs I'd suggest to add your local subnet (range) to `FULL_ACCESS_HOSTS`.
+
+   c. Some people mentioned that protocols like IRC or some (older) FTP/POP3/SMTP servers don't work (properly) if port 113 (Identd) is filtered (firewalled). I really hate the fact that these types of protocols still depend on the "not-so-secure" IDENT-protocol. But if you really need it, you can do 2 things to make them work properly:
+
+      1. If you don't want to run an IDENT-daemon, simply add port 113 to the `REJECT_TCP` variable (**recommended**).
+      2. Or if you really want to run an IDENT-daemon, you should add port 113 to the `OPEN_TCP` variable (*not recommended*).
+
+5. You're now ready to start the firewall by issuing:
+
+   ```sh
+   /etc/init.d/arno-iptables-firewall start
+   ```
+
+   Everything should be working OK now. If it doesn't, carefully review all steps and your configuration. For troubleshooting you can first consult the FAQs on my webpage.
+
+   > **NOTE 1:** Make sure that when you use NAT, you properly configure the client's "default gateway" and the (public) DNS server(s) it should use! Note that you don't have to setup any proxy settings in e.g. your client's browser.
+   >
+   > **NOTE 2:** Additional (more advanced) options are (also) explained in the configuration-file comments and in the QA's on my webpage (e.g. IPSec VPN support).
+
+## Troubleshooting: what if it doesn't work?
+
+1. Check your settings (`.conf`) at least 10 times. It's quite common for a human being to make mistakes.
+
+   **Tips / common errors:**
+
+   - Make sure that `EXT_IF`, `MODEM_IF` and/or `INT_IF` are not the same. If they are, YOU made a mistake, as they can never EVER be the same!
+   - Another error I once saw was someone that used something like `127.0.0.0/24` for his local subnet. `127.0.0.0` is the address of the local loopback and therefore should never ever appear in the configuration file!
+
+2. Obtain the latest version of your (distribution) kernel & iptables.
+3. Make sure your (self-built) kernel supports all required options.
+4. Carefully inspect the output generated when issuing `arno-iptables-firewall start`.
+5. Read the README file at least 3 times.
+6. Download the latest (beta) version of my script and check whether this fixes your problem.
+7. Read the README file one more time and review your `.conf` file also one more time, just in case ;-)
+8. Do NOT send enduser requests to my personal email address, instead post your question/problem on the firewall mailing list. Provide us with:
+
+   - your (firewall) `*.conf` files
+   - the screen output of `/usr/local/sbin/arno-iptables-firewall start` (or wherever it is located)
+   - the output of `ifconfig`
+   - (firewall) logs
+   - the version of my script you're using (or date if you use the development script)
+   - detailed explanation of your setup
+   - and anything else that might help
+
+   Remember that people that don't obey these rules get a low, very low priority, or won't get any reaction at all!
+
+## Plugin support
+
+As of version 1.8.7-RC2 my firewall also supports plugins: little scripts that implement specific functionality.
+
+### Notes on plugins
+
+1. Plugin config files can be found in `/etc/arno-iptables-firewall/plugins/`.
+2. All plugins have an option called `ENABLED` (in their config file) which is set to 0 by default, meaning it is disabled. So if you actually want to use a plugin, you have to make `ENABLED=1`.
+3. Plugins can have their own additional set of configuration variables, don't forget to set/review those too.
+
+Everyone is invited to write their own plugins to implement other things, and to submit them to us.
+
+### Notes on writing your own plugins
+
+1. When you write your own plugins, make sure you know what you're doing. You can severely compromise security or break things with buggy plugins.
+2. Submit plugins to me if you think they can be of use to others, but note that I always reserve the right to decline the plugin (because it was e.g. poorly written). Submitted plugins must be (at least) compatible with the GPLv2 license.
+3. The plugin should have/use these variables:
+
+   - `PLUGIN_NAME` (plugin name/description)
+   - `PLUGIN_VERSION` (plugin version)
+   - `PLUGIN_CONF_FILE` (location of the plugin config file)
+
+   Furthermore it should honour the `ENABLED` variable from the config-file to enable/disable the plugin.
+
+   Use one of my plugins as a template (skeleton) for writing your own plugins (I recommend to have a look at the "SSH Brute-Force protection" plugin), in this way it's easier to understand it for me and for others.
+
+4. Plugins should have a separate config file (`.conf`) with all user variables (settings). It should at least contain the `ENABLED=` variable to enable/disable the plugin.
+5. Plugins should also have a separate file with their CHANGELOG (`.changelog`).
+6. Plugins should preferably be POSIX shell compatible (e.g. work with "Dash").
+7. Plugins can use all variables/functions/chains from the main script and main configuration file. Plugin-specific configuration variables should be put inside the plugin's configuration file (`.conf`).
+8. Make sure that when you create new iptables-chains, they don't conflict with the main script or other plugins. The same goes for the iptables MARK-module: make sure that you use a unique MARK-number that doesn't conflict with other plugins.
+9. Plugins should in principle always clean up their own chains (and possibly other stuff) they created at start when stopping.
+10. A list of available chains created by AIF's main script can be found below. Note that I strongly recommend NOT to directly use any builtin iptables chains like INPUT/OUTPUT/FORWARD/PREROUTING/POSTROUTING. Only do this when it's absolutely necessary!
+
+## Available iptables chains created by Arno's Iptables Firewall
+
+| Chain | Description |
+| ----- | ----------- |
+| `BASE_INPUT_CHAIN` | Base input chain. For internal use by AIF only! |
+| `BASE_OUTPUT_CHAIN` | Base output chain. For internal use by AIF only! |
+| `BASE_FORWARD_CHAIN` | Base forward chain. For internal use by AIF only! |
+| `INPUT_CHAIN` | AIF's main INPUT chain. Use this if you want to insert rules in the INPUT chain |
+| `OUTPUT_CHAIN` | AIF's main OUTPUT chain. Use this if you want to insert rules in the OUTPUT chain |
+| `FORWARD_CHAIN` | AIF's main FORWARD chain. Use this if you want to insert rules in the FORWARD chain |
+| `EXT_INPUT_CHAIN` | External-net INPUT chain |
+| `EXT_OUTPUT_CHAIN` | External-net OUTPUT chain |
+| `EXT_BROADCAST_CHAIN` | External-net chain for broadcast traffic |
+| `EXT_MULTICAST_CHAIN` | External-net chain for multicast traffic |
+| `EXT_FORWARD_IN_CHAIN` | External-net FORWARD chain for INcoming traffic |
+| `EXT_FORWARD_OUT_CHAIN` | External-net FORWARD chain for OUTgoing traffic |
+| `EXT_ICMP_FLOOD_CHAIN` | External-net chain where ICMP packets go which are considered a "flood" |
+| `DMZ_FORWARD_IN_CHAIN` | DMZ FORWARD chain for INcoming traffic |
+| `DMZ_FORWARD_OUT_CHAIN` | DMZ FORWARD chain for OUTgoing traffic |
+| `DMZ_INET_FORWARD_CHAIN` | DMZ to internet/external-net forward chain |
+| `DMZ_INPUT_CHAIN` | DMZ INPUT chain |
+| `DMZ_LAN_FORWARD_CHAIN` | DMZ to LAN/internal-net forward chain |
+| `DMZ_OUTPUT_CHAIN` | DMZ output chain |
+| `INET_DMZ_FORWARD_CHAIN` | External-net (internet) to DMZ forward chain |
+| `HOST_BLOCK_SRC` | Chain containing the list of inbound blocked hosts |
+| `HOST_BLOCK_DST` | Chain containing the list of outbound blocked hosts |
+| `HOST_BLOCK_SRC_DROP` | Chain where packets from dropped inbound blocked hosts go |
+| `HOST_BLOCK_DST_DROP` | Chain where packets from dropped outbound blocked hosts go |
+| `INT_INPUT_CHAIN` | Internal-net INPUT chain |
+| `INT_OUTPUT_CHAIN` | Internal-net OUTPUT chain |
+| `LAN_LAN_FORWARD_CHAIN` | LAN to LAN (Inter-LAN) forward chain (AIF private use only) |
+| `LAN_INET_FORWARD_CHAIN` | LAN to internet (external net) forward chain |
+| `POST_INPUT_CHAIN` | This chain is always processed last (post) in the INPUT chain |
+| `POST_OUTPUT_CHAIN` | This chain is always processed last (post) in the OUTPUT chain |
+| `POST_FORWARD_CHAIN` | This chain is always processed last (post) in the FORWARD chain |
+| `POST_INPUT_DROP_CHAIN` | Packets dropped at the end of the INPUT chain end up in this chain (used for e.g. IDS) |
+| `RESERVED_NET_CHK` | This chain holds the list of reserved nets to check against |
+| `SPOOF_CHK` | This chain contains rules for spoof checking |
+| `VALID_CHK` | This chain contains rules for checking whether a packet is valid |
+| `NAT_POSTROUTING_CHAIN` | NAT (`-t nat`) POSTROUTING chain |
+| `NAT_PREROUTING_CHAIN` | NAT (`-t nat`) PREROUTING chain |
+| `POST_NAT_POSTROUTING_CHAIN` | This chain is always processed last (post) in the NAT (`-t nat`) POSTROUTING chain |
+| `POST_NAT_PREROUTING_CHAIN` | This chain is always processed last (post) in the NAT (`-t nat`) PREROUTING chain |
+
+## Loadbalancing/multirouting (with multiroute masquerade/SNAT)
+
+My firewall also supports multirouting (loadbalancing), optionally in conjunction with NAT. Although this works with both conventional masquerading and SNAT, it's strongly recommended to use SNAT. This is because the latter is known to have a much lower chance of causing problems. Also note that I haven't found a way (yet) to make this work with dynamic external (internet) IPs, meaning you need static IPs from your ISP.
+
+First of all, if you want to use multirouting, make sure that your (vanilla) kernel has the following network features enabled (e.g. when building from source):
+
+```
+CONFIG_IP_ADVANCED_ROUTER=y
+CONFIG_IP_MULTIPLE_TABLES=y
+CONFIG_IP_ROUTE_MULTIPATH=y
+```
+
+Second, you should configure/enable the multiroute plugin. And last but not least, you should setup the firewall: adding (all) the used external interfaces to `EXT_IF`. And when SNAT is used, add the corresponding external IPs to `NAT_STATIC_IP`. That's it!
+
+> **NOTE:** Redundant connections are (currently) not supported! This is a limitation of the (current) Linux kernel (not of my firewall).
+
+## Building your own kernel (2.4 & 2.6)
+
+Info when building your own kernel through `make menuconfig`. For the firewall to work properly you need the following options enabled (as modules or compiled in your kernel):
+
+```
+- "Loadable module support"
+  - "Enable loadable module support" (If you want to build iptables as modules)
+  - "Automatic kernel module loading" (Strongly recommended if you build iptables as
+    modules) (Only available in newer 2.6 kernels)
+- "Networking", "Networking Support", "Networking Options":
+  - "Packet socket" (If you want to use dhcp client and/or server)
+  - "TCP/IP networking"
+    - "IP: Multicasting"
+    - "IP: advanced router"
+      - "IP: policy routing" (If you want to use load balancing, e.g. multiroute
+        masquerading)
+      - "IP: equal cost multipath" (If you want to use load balancing, e.g. multiroute
+        masquerading)
+    - "IP: TCP syncookie support"
+  - ("Network packet filtering")
+    - "Core Netfilter Configuration" (For kernel >=2.6.16)
+      - "Netfilter Xtables support (Required for ip_tables)"
+        - "MARK" target support (Only required for special purposes like e.g. traffic
+          shaping & kernel 2.6 VPN support)
+        - "conntrack" connection tracking match support
+        - "limit" match support
+        - "mac" address match support (If you want to use MAC filtering)
+        - "state" match support
+        - "tcpmss" match support (If you want to use tcpmss clamping)
+    - "IP: Netfilter Configuration":
+      - "Connection tracking"
+        - "Connection tracking flow accounting" (If you want to do accounting on your
+          network traffic. (kernel 2.6 only)
+        - "FTP protocol support"
+      - "IP tables support" (NOTE: The order of sub-options can differ between kernel
+        versions):
+        - "Multiple port match support"
+        - "TOS match support" (If you want to use TOS mangling)
+        - "recent match support" (required for IDS & SSH brute-force protection)
+        - "TTL match support" (If you want to use TTL manipulation)
+        - "limit match support" (kernel <2.6.16)
+        - "MAC address match support" (If you want to use MAC filtering) (kernel <2.6.16)
+        - "Multiple port match support" (kernel <2.6.16)
+        - "tcpmss match support" (If you use tcpmss clamping) (kernel <2.6.16)
+        - "Connection state match support" (Kernel <2.6.16)
+        - "Packet filtering" (kernel <2.6.16)
+          - "REJECT target support"
+        - "LOG target support"
+        - "TCPMSS target support (If you want to use tcpmss-clamping)
+        - "Full NAT" (If you use NAT/masquerading aka internet-sharing or transparent
+          proxies)
+          - "MASQUERADE target" (If you want to use masquerading)
+          - "REDIRECT target support" (If you want to use port-forwarding, -redirection
+            or transparent proxies)
+        - "Packet mangling"
+          - "TOS target support" (If you want to use TOS mangling)
+          - "MARK target support" (Only required for special purposes like e.g. traffic
+            shaping & kernel 2.6 VPN support) (kernel <2.6.16)
+          - "TTL target support" (if you want to use TTL manipulation
+```
+
+### Kernel configuration: special issues
+
+Some kernel versions, or series of versions, may have unique issues. Below are topics related to the scope of this firewall script.
+
+1. Starting with kernel version 2.6.27, `CONFIG_NF_CT_ACCT` is deprecated. The result when the `nf_conntrack` module is loaded and the kernel has `CONFIG_NF_CT_ACCT=y` set, is that the following message is displayed:
+
+   > CONFIG_NF_CT_ACCT is deprecated and will be removed soon. Please use nf_conntrack.acct=1 kernel paramater, acct=1 nf_conntrack module option or sysctl net.netfilter.nf_conntrack_acct=1 to enable it.
+
+   The message is harmless, and can be safely ignored. The main script also sets `net.netfilter.nf_conntrack_acct=1` in the case `CONFIG_NF_CT_ACCT` is not set.
+
+   Though, if you find this message annoying, it can be silenced via `make menuconfig`:
+
+   ```
+   -- Core Netfilter Configuration --
+   <M> Netfilter connection tracking support
+   [ ]   Connection tracking flow accounting
+   ```
+
+   If "Connection tracking flow accounting" can't be disabled, then disabling
+
+   ```
+   < >   "connbytes" per-connection counter match support
+   ```
+
+   may be required because of dependencies. The resulting configuration settings are:
+
+   ```
+   CONFIG_NF_CONNTRACK=m
+   # CONFIG_NF_CT_ACCT is not set
+   # CONFIG_NETFILTER_XT_MATCH_CONNBYTES is not set
+   ```
+
+   `CONFIG_NF_CT_ACCT` was scheduled to be removed in 2.6.29, but has not yet been removed, as of writing.
