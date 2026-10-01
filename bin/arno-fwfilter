@@ -299,7 +299,7 @@ else
      if (port==31335) return("Trin 00(31335)")
      if (port==31337) return("Back Orifice(31337)")
      if (port==31338) return("Back Orifice(31338)")
-     if (port==31789) return("Hack'a'Tack(31789)")
+     if (port==31789) return("Hack\047a\047Tack(31789)")
      if (port==31337) return("Back Orifice(31337)")
      if (port>=32770 && port<=32900) return(sprintf("SUN-RPC Portmapper(%i)",port))
      if (port==33270) return("Trinity v3(33270)")
