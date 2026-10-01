@@ -1,0 +1,267 @@
+# ------------------------------------------------------------------------------
+#                -= Arno's iptables firewall - Docker plugin =-
+#
+PLUGIN_NAME="Docker plugin"
+PLUGIN_VERSION="1.00"
+PLUGIN_CONF_FILE="docker.conf"
+#
+# Last changed          : October 1, 2026
+# Requirements          : AIF 2.1.0 (or newer) + Docker
+# Comments              : Docker adds its rules to the same iptables tables as
+#                         this firewall. On a restart this firewall flushes the
+#                         built-in chains, which removes Docker's hooks (its
+#                         jumps and NAT rules). This plugin saves them before
+#                         and restores them after a restart. It also allows the
+#                         containers to use (selected) services on this host.
+#
+# Author                : (C) Copyright 2026 by Arno van Amersfoort
+# Web                   : https://github.com/arno-iptables-firewall/aif
+# Email                 : a r n o DOT v a n DOT a m e r s f o o r t AT g m a i l DOT c o m
+#                         (note: you must remove all spaces and substitute the @ and the .
+#                         at the proper locations!)
+# ------------------------------------------------------------------------------
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+# ------------------------------------------------------------------------------
+
+# Docker's hooks are saved here during a restart
+DOCKER_HOOKS_FILE="/var/tmp/aif_docker_hooks"
+
+
+# Is the Docker daemon running?
+docker_running()
+{
+  pidof dockerd >/dev/null 2>&1 || pgrep -x dockerd >/dev/null 2>&1
+}
+
+
+# Save Docker's rules in the built-in chains (those jumping to a DOCKER* chain or
+# matching a Docker interface), as the restart flushes the built-in chains
+docker_save_hooks()
+{
+  local family cmd ifs_regex
+
+  # Docker interfaces as regex, eg. "docker0 br-+" -> "docker0|br-[^ ]*"
+  ifs_regex="$(echo "$DOCKER_IF" |tr ',' ' ' |sed -e 's/+/[^ ]*/g' -e 's/  */|/g' -e 's/^|//' -e 's/|$//')"
+
+  : >"$DOCKER_HOOKS_FILE"
+  for family in 4 6; do
+    if [ "$family" = "4" ]; then
+      cmd="$IP4TABLES_SAVE"
+    else
+      if [ "$IPV6_DETECTED" != "1" ]; then
+        continue
+      fi
+      cmd="$IP6TABLES_SAVE"
+    fi
+    if [ -z "$cmd" ]; then
+      continue
+    fi
+
+    $cmd 2>/dev/null |awk -v family=$family -v ifs="^($ifs_regex)$" '
+      /^\*/ { table = substr($0, 2) }
+      /^-A (FORWARD|PREROUTING|OUTPUT|POSTROUTING) / {
+        hook = 0
+        for (i = 3; i <= NF; i++) {
+          if ($i == "-j" && $(i+1) ~ /^DOCKER/) hook = 1
+          if (($i == "-i" || $i == "-o") && $(i+1) ~ ifs) hook = 1
+        }
+        if (hook && (table == "nat" || $2 == "FORWARD")) print family, table, $0
+      }' >>"$DOCKER_HOOKS_FILE"
+  done
+}
+
+
+# Restore the saved hooks: FORWARD rules at the top (as Docker has them), NAT rules appended
+docker_restore_hooks()
+{
+  local family table rest count=0
+
+  if [ ! -s "$DOCKER_HOOKS_FILE" ]; then
+    rm -f "$DOCKER_HOOKS_FILE"
+    return 1
+  fi
+
+  # FORWARD rules are inserted in reverse order, so they end up in the original order
+  awk '{ line[NR] = $0 } END { for (i = NR; i > 0; i--) print line[i] }' "$DOCKER_HOOKS_FILE" |while read family table rest; do
+    if [ "$table" = "filter" ]; then
+      eval "ip${family}tables -t filter $(echo "$rest" |sed 's/^-A FORWARD /-I FORWARD 1 /')"
+    fi
+  done
+  while read family table rest; do
+    if [ "$table" = "nat" ]; then
+      eval "ip${family}tables -t nat $rest"
+    fi
+    count=$((count + 1))
+  done <"$DOCKER_HOOKS_FILE"
+
+  echo "${INDENT}Restored $count Docker rule(s) in the built-in chains"
+  rm -f "$DOCKER_HOOKS_FILE"
+  return 0
+}
+
+
+# Ports (services) on this host the containers may use
+docker_input_rules()
+{
+  local interface port IFS
+
+  iptables -N AIF_DOCKER_INPUT 2>/dev/null
+  iptables -F AIF_DOCKER_INPUT
+
+  IFS=' ,'
+  for interface in $DOCKER_IF; do
+    if [ "$DOCKER_HOST_OPEN_ALL" = "1" ]; then
+      printf "\033[40m\033[1;31m${INDENT}WARNING: Allowing ALL traffic from Docker interface $interface to this host!\033[0m\n" >&2
+      iptables -A AIF_DOCKER_INPUT -i $interface -j ACCEPT
+      continue
+    fi
+
+    if [ -n "$DOCKER_HOST_OPEN_TCP" ]; then
+      echo "${INDENT}Allowing Docker interface $interface to this host for TCP port(s): $DOCKER_HOST_OPEN_TCP"
+      for port in $(echo "$DOCKER_HOST_OPEN_TCP" |tr '-' ':'); do
+        iptables -A AIF_DOCKER_INPUT -i $interface -p tcp --dport $port -j ACCEPT
+      done
+    fi
+
+    if [ -n "$DOCKER_HOST_OPEN_UDP" ]; then
+      echo "${INDENT}Allowing Docker interface $interface to this host for UDP port(s): $DOCKER_HOST_OPEN_UDP"
+      for port in $(echo "$DOCKER_HOST_OPEN_UDP" |tr '-' ':'); do
+        iptables -A AIF_DOCKER_INPUT -i $interface -p udp --dport $port -j ACCEPT
+      done
+    fi
+  done
+}
+
+
+# Plugin start function
+plugin_start()
+{
+  docker_input_rules
+  iptables -A INPUT -j AIF_DOCKER_INPUT
+
+  # A (full) start removes all chains, also Docker's, so they can't be restored
+  rm -f "$DOCKER_HOOKS_FILE"
+  if docker_running; then
+    printf "\033[40m\033[1;31m${INDENT}WARNING: Docker is running, but its rules were removed by this (full) start.\033[0m\n" >&2
+    printf "\033[40m\033[1;31m${INDENT}         Restart Docker (eg. \"systemctl restart docker\") to recreate them.\033[0m\n" >&2
+  fi
+
+  return 0
+}
+
+
+# Plugin restart function
+plugin_restart()
+{
+  echo "${INDENT}Restarting..."
+
+  # Re-add the rules that are flushed on a restart
+  docker_input_rules
+  iptables -A INPUT -j AIF_DOCKER_INPUT
+
+  if ! docker_restore_hooks && docker_running; then
+    printf "\033[40m\033[1;31m${INDENT}WARNING: No Docker rules to restore, restart Docker (eg. \"systemctl restart docker\").\033[0m\n" >&2
+  fi
+
+  return 0
+}
+
+
+# Plugin stop function
+plugin_stop()
+{
+  iptables -D INPUT -j AIF_DOCKER_INPUT 2>/dev/null
+  iptables -F AIF_DOCKER_INPUT 2>/dev/null
+  iptables -X AIF_DOCKER_INPUT 2>/dev/null
+  rm -f "$DOCKER_HOOKS_FILE"
+
+  return 0
+}
+
+
+# Plugin status function
+plugin_status()
+{
+  echo "${INDENT}Docker interfaces: $DOCKER_IF"
+  iptables -n -v -L AIF_DOCKER_INPUT 2>/dev/null |sed -e "s/^/$INDENT/"
+
+  if ip4tables -S FORWARD 2>/dev/null |grep -q -- '-j DOCKER'; then
+    echo "${INDENT}Docker's rules: present"
+  else
+    echo "${INDENT}Docker's rules: missing (restart Docker if it's running)"
+  fi
+
+  return 0
+}
+
+
+# Check sanity of eg. environment
+plugin_sanity_check()
+{
+  if [ -z "$DOCKER_IF" ]; then
+    printf "\033[40m\033[1;31m${INDENT}ERROR: The plugin config file is not properly setup!\033[0m\n" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+
+############
+# Mainline #
+############
+
+# Check where to find the config file
+CONF_FILE=""
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Preinit to success:
+PLUGIN_RET_VAL=0
+
+# Check if the config file exists
+if [ ! -f "$CONF_FILE" ]; then
+  printf "NOTE: Config file \"$CONF_FILE\" not found!\n        Plugin \"$PLUGIN_NAME v$PLUGIN_VERSION\" ignored!\n" >&2
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  # Unlike other plugins, also called on stop-restart when enabled: Docker's
+  # hooks have to be saved before the restart flushes them
+  if [ "$ENABLED" = "1" ] ||
+     [ "$ENABLED" = "0" -a "$PLUGIN_CMD" = "stop-restart" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "stop" ] ||
+     [ -n "$PLUGIN_LOAD_FILE" -a "$PLUGIN_CMD" = "status" ]; then
+    # Show who we are:
+    echo "${INDENT}$PLUGIN_NAME v$PLUGIN_VERSION"
+
+    # Increment indention
+    INDENT="$INDENT "
+
+    # Only proceed if environment ok
+    if ! plugin_sanity_check; then
+      PLUGIN_RET_VAL=1
+    else
+      case $PLUGIN_CMD in
+        start|'') plugin_start; PLUGIN_RET_VAL=$? ;;
+        restart ) plugin_restart; PLUGIN_RET_VAL=$? ;;
+        stop-restart) if [ "$ENABLED" = "1" ]; then docker_save_hooks; else plugin_stop; fi; PLUGIN_RET_VAL=$? ;;
+        stop    ) plugin_stop; PLUGIN_RET_VAL=$? ;;
+        status  ) plugin_status; PLUGIN_RET_VAL=$? ;;
+        *       ) PLUGIN_RET_VAL=1; printf "\033[40m\033[1;31m${INDENT}ERROR: Invalid plugin option \"$PLUGIN_CMD\"!\033[0m\n" >&2 ;;
+      esac
+    fi
+  fi
+fi
