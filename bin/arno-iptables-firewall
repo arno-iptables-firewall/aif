@@ -750,9 +750,11 @@ init_firewall_chains()
 
   # Remove the ruleset of Arno's (NFT) Firewall, if present. Even when stopped it
   # keeps a FORWARD chain with a DROP policy, which would block forwarding here
-  if check_command nft && nft delete table inet aif 2>/dev/null; then
-    echo "Removed the ruleset of Arno's (NFT) Firewall (nftables table inet aif)"
-  fi
+  for table in anf aif; do
+    if check_command nft && nft delete table inet $table 2>/dev/null; then
+      echo "Removed the ruleset of Arno's (NFT) Firewall (nftables table inet $table)"
+    fi
+  done
 
   # Set INDENT for functions
   INDENT='  '
@@ -6019,9 +6021,11 @@ reinit_firewall_chains()
 
   # Remove the ruleset of Arno's (NFT) Firewall, if present. Even when stopped it
   # keeps a FORWARD chain with a DROP policy, which would block forwarding here
-  if check_command nft && nft delete table inet aif 2>/dev/null; then
-    echo "Removed the ruleset of Arno's (NFT) Firewall (nftables table inet aif)"
-  fi
+  for table in anf aif; do
+    if check_command nft && nft delete table inet $table 2>/dev/null; then
+      echo "Removed the ruleset of Arno's (NFT) Firewall (nftables table inet $table)"
+    fi
+  done
 
   # Set INDENT for functions
   INDENT='  '
