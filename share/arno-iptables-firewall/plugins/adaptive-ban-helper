@@ -160,7 +160,7 @@ ban_host()
   get_numeric_ip_version "$host"
   case $? in
   4)
-    if ! ip4tables -n -L ADAPTIVE_BAN_CHAIN | grep -q " ${host//./\.}[/ ]"; then
+    if ! ip4tables -n -L ADAPTIVE_BAN_CHAIN | grep -q " $(echo "$host" |sed 's/\./\\./g')[/ ]"; then
       ip4tables -A ADAPTIVE_BAN_CHAIN -s $host -j ADAPTIVE_BAN_DROP_CHAIN
       if [ $? -eq 0 ]; then
         echo "Banned IPv4 host: $host  Filter type: $type" >&2
