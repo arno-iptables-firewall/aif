@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MY_VERSION="1.14d"
+MY_VERSION="1.14e"
 
 # ------------------------------------------------------------------------------------------
 #                         -= Arno's Iptables Firewall(AIF) =-
@@ -8,7 +8,7 @@ MY_VERSION="1.14d"
 #
 #                           ~ In memory of my dear parents ~
 #
-# (C) Copyright 2001-2023 by Arno van Amersfoort
+# (C) Copyright 2001-2026 by Arno van Amersfoort
 # Web                   : https://github.com/arno-iptables-firewall/aif
 # Email                 : a r n o DOT v a n DOT a m e r s f o o r t AT g m a i l DOT c o m
 #                         (note: you must remove all spaces and substitute the @ and the .
@@ -543,7 +543,10 @@ gzip -c -v ./share/man/man8/arno-iptables-firewall.8 >/usr/local/share/man/man8/
 gzip -c -v ./share/man/man1/arno-fwfilter.1 >/usr/local/share/man/man8/arno-fwfilter.1.gz
 
 mkdir -pv /usr/local/share/doc/arno-iptables-firewall || exit 1
-copy_overwrite ./README /usr/local/share/doc/arno-iptables-firewall/
+
+# Remove old version:
+rm -fv /usr/local/share/doc/arno-iptables-firewall/README
+copy_overwrite ./README.md /usr/local/share/doc/arno-iptables-firewall/
 
 # Install rsyslog config file (if rsyslog is available)
 if [ -d "/etc/rsyslog.d" ]; then
