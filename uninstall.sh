@@ -97,15 +97,26 @@ if ! get_user_yn "Continue uninstall" "n"; then
 fi
 
 rm -fv /usr/local/sbin/arno-iptables-firewall
-rm -fv /usr/local/sbin/arno-fwfilter
-rm -fv /usr/local/sbin/traffic-accounting-show
 
-rm -fv /usr/local/bin/arno-fwfilter
+# Shared with Arno's (NFT) Firewall: point it to that one when it's still installed
+if readlink /usr/local/sbin/traffic-accounting-show |grep -q '/arno-iptables-firewall/'; then
+  if [ -f /usr/local/share/arno-firewall/plugins/traffic-accounting-show ]; then
+    ln -sfnv /usr/local/share/arno-firewall/plugins/traffic-accounting-show /usr/local/sbin/traffic-accounting-show
+  else
+    rm -fv /usr/local/sbin/traffic-accounting-show
+  fi
+fi
+
+# arno-fwfilter is shared with Arno's (NFT) Firewall, keep it while that one is installed
+if [ ! -f /usr/local/sbin/arno-firewall ]; then
+  rm -fv /usr/local/sbin/arno-fwfilter
+  rm -fv /usr/local/bin/arno-fwfilter
+  rm -fv /usr/local/share/man/man8/arno-fwfilter.1.gz
+fi
 
 rm -rfv /usr/local/share/arno-iptables-firewall
 
 rm -fv /usr/local/share/man/man8/arno-iptables-firewall.8.gz
-rm -fv /usr/local/share/man/man8/arno-fwfilter.1.gz
 
 rm -fv /usr/local/share/doc/arno-iptables-firewall/README
 

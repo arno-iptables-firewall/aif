@@ -449,8 +449,9 @@ rm -f /usr/local/sbin/arno-fwfilter
 mkdir -pv /usr/local/share/arno-iptables-firewall/plugins || exit 1
 copy_overwrite ./share/arno-iptables-firewall/ /usr/local/share/arno-iptables-firewall/
 
-if [ ! -f /usr/local/sbin/traffic-accounting-show ]; then 
-  ln -sv /usr/local/share/arno-iptables-firewall/plugins/traffic-accounting-show /usr/local/sbin/traffic-accounting-show
+# Shared with Arno's (NFT) Firewall, it always points to the version installed last
+if [ "$(readlink /usr/local/sbin/traffic-accounting-show)" != "/usr/local/share/arno-iptables-firewall/plugins/traffic-accounting-show" ]; then
+  ln -sfnv /usr/local/share/arno-iptables-firewall/plugins/traffic-accounting-show /usr/local/sbin/traffic-accounting-show
 fi
 
 mkdir -pv /usr/local/share/man/man1 || exit 1
