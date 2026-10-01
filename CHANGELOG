@@ -1,3 +1,14 @@
+Version 2.1.4-DEVEL (October 1, 2026)
+-------------------------------------
+! arno-fwfilter showed port 31789 as "HackaTack" instead of Hack'a'Tack
+! adaptive-ban added a duplicate ban rule on every run with dash as /bin/sh
+! traffic-accounting-helper duplicated entries of multi-IP hosts and ignored new hosts
+* Have install.sh merge settings from existing *.conf files when conf-files are updated
+! NAT_FORWARD_* also accepted direct connections to the forwarded host
+! First time installs showed a (harmless) error about missing USR_SHARE_PATH
+! install.sh asked to overwrite config files that only differ in comments
+! arno-fwfilter printed an empty line when a host couldn't be resolved
+
 Version 2.1.3 (September 28, 2026)
 ----------------------------------
 ! Failure for multi-ip hosts in traffic-accounting-helper
