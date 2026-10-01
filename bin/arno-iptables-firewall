@@ -5739,7 +5739,7 @@ setup_firewall_rules()
               ip4tables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p tcp --dport $port -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
               dhost=`get_hosts_hp "$dhost_dport"`
               if [ -n "$dhost" ]; then
-                ip4tables -A EXT_FORWARD_IN_CHAIN -i $eif ! -o $eif -s $shost -d $dhost -p tcp --dport $dport -j ACCEPT
+                ip4tables -A EXT_FORWARD_IN_CHAIN -m conntrack --ctstate DNAT -i $eif ! -o $eif -s $shost -d $dhost -p tcp --dport $dport -j ACCEPT
               fi
             done
           done
@@ -5769,7 +5769,7 @@ setup_firewall_rules()
               ip4tables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p udp --dport $port -j DNAT --to-destination `echo "$dhost_dport" |tr "$SEP-" '::'`
               dhost=`get_hosts_hp "$dhost_dport"`
               if [ -n "$dhost" ]; then
-                ip4tables -A EXT_FORWARD_IN_CHAIN -i $eif ! -o $eif -s $shost -d $dhost -p udp --dport $dport -j ACCEPT
+                ip4tables -A EXT_FORWARD_IN_CHAIN -m conntrack --ctstate DNAT -i $eif ! -o $eif -s $shost -d $dhost -p udp --dport $dport -j ACCEPT
               fi
             done
           done
@@ -5794,7 +5794,7 @@ setup_firewall_rules()
             for eif in $interfaces; do
               ip4tables -t nat -A PREROUTING -i $eif -s $shost -d $destip -p $proto -j DNAT --to-destination $dhost
               if [ -n "$dhost" ]; then
-                ip4tables -A EXT_FORWARD_IN_CHAIN -i $eif ! -o $eif -s $shost -d $dhost -p $proto -j ACCEPT
+                ip4tables -A EXT_FORWARD_IN_CHAIN -m conntrack --ctstate DNAT -i $eif ! -o $eif -s $shost -d $dhost -p $proto -j ACCEPT
               fi
             done
           done
