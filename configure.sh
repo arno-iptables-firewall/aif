@@ -30,6 +30,10 @@ MY_VERSION="1.06"
 
 # Check if the environment file exists and if so, load it
 #########################################################
+# The environment file looks for the installed files, which don't exist (yet) on a
+# first install, so tell it where they go
+USR_SHARE_PATH="/usr/local/share/arno-iptables-firewall"
+
 if [ -f ./share/arno-iptables-firewall/environment ]; then
   . ./share/arno-iptables-firewall/environment
 else
