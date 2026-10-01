@@ -444,8 +444,9 @@ else
 
               if (RESOLVE_NAMES==1)
               {
-                # If multiple names exist for one IP then only use the first (head -n1)
-                syscall=sprintf("printf \" $(dig +short +time=1 +tries=1 -x %s 2>/dev/null |head -n1 |grep -v \";;.*\" |sed s,.$,\"  \",)\" 2>/dev/null", SRC_HOST)
+                # If multiple names exist for one IP then only use the first (head -n1),
+                # without a name (or dig) show the IP instead
+                syscall=sprintf("name=\"$(dig +short +time=1 +tries=1 -x %s 2>/dev/null |head -n1 |grep -v \";;.*\" |sed s,.$,,)\"; printf \" %%s  \" \"${name:-%s}\" 2>/dev/null", SRC_HOST, SRC_HOST)
                 system(syscall)
               }
 
@@ -469,8 +470,9 @@ else
              
               if (RESOLVE_NAMES==1)
               {
-                # If multiple names exist for one IP then only use the first (head -n1)
-                syscall=sprintf("printf \" $(dig +short +time=1 +tries=1 -x %s 2>/dev/null |head -n1 |grep -v \";;.*\" |sed s,.$,\"  \",)\" 2>/dev/null", DST_HOST)
+                # If multiple names exist for one IP then only use the first (head -n1),
+                # without a name (or dig) show the IP instead
+                syscall=sprintf("name=\"$(dig +short +time=1 +tries=1 -x %s 2>/dev/null |head -n1 |grep -v \";;.*\" |sed s,.$,,)\"; printf \" %%s  \" \"${name:-%s}\" 2>/dev/null", DST_HOST, DST_HOST)
                 system(syscall)
               }
 
