@@ -99,6 +99,61 @@ shell_diff()
 }
 
 
+# Does the file only contain comments, empty lines and VAR=value lines?
+is_var_config()
+{
+  ! grep -q -v -E -e '^[[:space:]]*(#|$)' -e '^[A-Za-z_][A-Za-z0-9_]*=' "$1"
+}
+
+
+# Usage: merge_config NEW_FILE OLD_FILE
+# Prints NEW_FILE with the settings (VAR=value lines) of OLD_FILE: an active
+# VAR=, or else a commented out #VAR= in NEW_FILE, gets the line of OLD_FILE.
+# Settings NEW_FILE doesn't have (anymore) are added at the end
+merge_config()
+{
+  awk '
+    FNR == 1 { pass++ }
+    pass == 1 {
+      if (match($0, /^[A-Za-z_][A-Za-z0-9_]*=/)) {
+        var = substr($0, 1, RLENGTH - 1)
+        if (!(var in old)) order[++n] = var
+        old[var] = $0
+      }
+      next
+    }
+    pass == 2 {
+      if (match($0, /^[A-Za-z_][A-Za-z0-9_]*=/)) active[substr($0, 1, RLENGTH - 1)] = 1
+      next
+    }
+    {
+      if (match($0, /^[A-Za-z_][A-Za-z0-9_]*=/)) {
+        var = substr($0, 1, RLENGTH - 1)
+        if (var in old) { print old[var]; used[var] = 1; next }
+      } else if (match($0, /^#[A-Za-z_][A-Za-z0-9_]*=/)) {
+        var = substr($0, 2, RLENGTH - 2)
+        if ((var in old) && !(var in active) && !(var in used)) { print old[var]; used[var] = 1; next }
+      }
+      print
+    }
+    END {
+      for (i = 1; i <= n; i++) {
+        if (!(order[i] in used)) {
+          if (!header) {
+            print ""
+            print "# ------------------------------------------------------------------------------"
+            print "# Settings of the previous version of this file that are not in this version"
+            print "# (eg. obsolete or renamed), kept by install.sh. Please review them!"
+            print "# ------------------------------------------------------------------------------"
+            header = 1
+          }
+          print old[order[i]]
+        }
+      }
+    }' "$2" "$1" "$1"
+}
+
+
 copy_ask_if_exist()
 {
   local DIFF_RETVAL=-1
@@ -136,6 +191,30 @@ copy_ask_if_exist()
       # Ignore files that are the same in the target
       shell_diff "$SOURCE" "$TARGET"
       DIFF_RETVAL=$? # 0 = full match, 1 = match (excluding comments), 2 = full mismatch (including comments)
+
+      # Config files: offer to take over the current settings into the new version,
+      # unless that changes nothing (it only differs in the settings themselves)
+      if [ $DIFF_RETVAL -eq 2 ] && is_var_config "$SOURCE" && is_var_config "$TARGET"; then
+        MERGED="$(merge_config "$SOURCE" "$TARGET")"
+
+        if [ "$MERGED" = "$(cat "$TARGET")" ]; then
+          continue
+        fi
+
+        if get_user_yn "File \"$TARGET\" differs from the new version. Merge your settings into the new version" "y"; then
+          if ! cp -v --preserve=mode,timestamps "$TARGET" "$TARGET.${BACKUP_EXT:-old}" ||
+             ! printf '%s\n' "$MERGED" >"$TARGET"; then
+            echo "ERROR: Merge into \"$TARGET\" failed!" >&2
+            exit 3
+          fi
+
+          echo "* Merged your settings into the new \"$TARGET\" (previous version: \"$TARGET.${BACKUP_EXT:-old}\")"
+          if grep -q '^# Settings of the previous version of this file that are not in this version' "$TARGET"; then
+            echo "  NOTE: Some settings no longer exist in the new version, they're kept at the end of the file"
+          fi
+          continue
+        fi
+      fi
 
       if [ $DIFF_RETVAL -eq 2 ] && ! get_user_yn "File \"$TARGET\" already exists. Overwrite" "$DEFAULT_YN"; then
         if [ -z "$FALLBACK_EXT" ]; then
