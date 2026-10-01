@@ -99,56 +99,115 @@ shell_diff()
 }
 
 
-# Does the file only contain comments, empty lines and VAR=value lines?
+# awk function used by is_var_config and merge_config: does a setting continue on
+# the next line (still inside quotes, or ending with a backslash)? The quote state
+# is kept in q, which must be reset (q = 0) at the start of each setting
+VAR_CONFIG_AWK='
+function cont(line,   i, c, n, esc) {
+  n = length(line); esc = 0
+  for (i = 1; i <= n; i++) {
+    c = substr(line, i, 1)
+    if (q == 2) { if (c == "\047") q = 0; continue }
+    if (esc) { esc = 0; continue }
+    if (c == "\\") { esc = 1; continue }
+    if (q == 1) { if (c == "\"") q = 0; continue }
+    if (c == "\"") q = 1
+    else if (c == "\047") q = 2
+    else if (c == "#" && (i == 1 || substr(line, i - 1, 1) ~ /[ \t]/)) break
+  }
+  return (q != 0 || esc)
+}
+'
+
+
+# Does the file only contain comments, empty lines and VAR=value settings (which
+# may continue on multiple lines)?
 is_var_config()
 {
-  ! grep -q -v -E -e '^[[:space:]]*(#|$)' -e '^[A-Za-z_][A-Za-z0-9_]*=' "$1"
+  awk "$VAR_CONFIG_AWK"'
+    incont { incont = cont($0); next }
+    /^[ \t]*(#|$)/ { next }
+    /^[A-Za-z_][A-Za-z0-9_]*=/ { q = 0; incont = cont($0); next }
+    { bad = 1; exit }
+    END { exit (bad || incont) }' "$1"
 }
 
 
 # Usage: merge_config NEW_FILE OLD_FILE
-# Prints NEW_FILE with the settings (VAR=value lines) of OLD_FILE: an active
-# VAR=, or else a commented out #VAR= in NEW_FILE, gets the line of OLD_FILE.
-# Settings NEW_FILE doesn't have (anymore) are added at the end
+# Prints NEW_FILE with the settings (VAR=value, also multi-line) of OLD_FILE: an
+# active VAR=, or else a commented out #VAR= in NEW_FILE, gets the setting of
+# OLD_FILE. Settings NEW_FILE doesn't have (obsolete ones, or your own variables
+# used by other settings) are kept right after the setting they followed in
+# OLD_FILE, so they're still defined before they're used
 merge_config()
 {
-  awk '
-    FNR == 1 { pass++ }
+  awk "$VAR_CONFIG_AWK"'
+    function keep(var) {
+      print "# (Not in the new version of this file, kept from your previous configuration)"
+      print old[var]
+      kept++
+    }
+    function keep_after(anchor,   i) {
+      for (i = 1; i <= n; i++) {
+        if ((order[i] in after) && after[order[i]] == anchor && !(order[i] in printed)) { printed[order[i]] = 1; keep(order[i]) }
+      }
+    }
+    FNR == 1 { pass++; incont = skip = 0 }
     pass == 1 {
+      if (incont) { old[var] = old[var] "\n" $0; incont = cont($0); next }
       if (match($0, /^[A-Za-z_][A-Za-z0-9_]*=/)) {
         var = substr($0, 1, RLENGTH - 1)
         if (!(var in old)) order[++n] = var
         old[var] = $0
+        q = 0; incont = cont($0)
       }
       next
     }
     pass == 2 {
-      if (match($0, /^[A-Za-z_][A-Za-z0-9_]*=/)) active[substr($0, 1, RLENGTH - 1)] = 1
-      next
-    }
-    {
+      if (incont) { incont = cont($0); next }
       if (match($0, /^[A-Za-z_][A-Za-z0-9_]*=/)) {
         var = substr($0, 1, RLENGTH - 1)
-        if (var in old) { print old[var]; used[var] = 1; next }
+        active[var] = innew[var] = 1
+        q = 0; incont = cont($0)
       } else if (match($0, /^#[A-Za-z_][A-Za-z0-9_]*=/)) {
+        innew[substr($0, 2, RLENGTH - 2)] = 1
+      }
+      next
+    }
+    pass == 3 && FNR == 1 {
+      # Settings not in NEW_FILE follow the setting before them in OLD_FILE ("" = at the top)
+      last = ""
+      for (i = 1; i <= n; i++) {
+        if (order[i] in innew) last = order[i]
+        else after[order[i]] = last
+      }
+    }
+    {
+      if (skip) { skip = cont($0); next }
+      if (incont) { print; incont = cont($0); next }
+      if (match($0, /^[A-Za-z_][A-Za-z0-9_]*=/) || match($0, /^#[A-Za-z_][A-Za-z0-9_]*=/)) {
+        if (!top) { top = 1; keep_after("") }
+      }
+      if (match($0, /^[A-Za-z_][A-Za-z0-9_]*=/)) {
+        var = substr($0, 1, RLENGTH - 1)
+        q = 0; c = cont($0)
+        if (var in old) {
+          print old[var]; used[var] = 1; skip = c
+          keep_after(var)
+          next
+        }
+        print; incont = c; next
+      }
+      if (match($0, /^#[A-Za-z_][A-Za-z0-9_]*=/)) {
         var = substr($0, 2, RLENGTH - 2)
-        if ((var in old) && !(var in active) && !(var in used)) { print old[var]; used[var] = 1; next }
+        if ((var in old) && !(var in active) && !(var in used)) { print old[var]; used[var] = 1; keep_after(var); next }
       }
       print
     }
     END {
+      # Anything not placed yet (eg. after a setting that is only commented out in NEW_FILE)
       for (i = 1; i <= n; i++) {
-        if (!(order[i] in used)) {
-          if (!header) {
-            print ""
-            print "# ------------------------------------------------------------------------------"
-            print "# Settings of the previous version of this file that are not in this version"
-            print "# (eg. obsolete or renamed), kept by install.sh. Please review them!"
-            print "# ------------------------------------------------------------------------------"
-            header = 1
-          }
-          print old[order[i]]
-        }
+        if (!(order[i] in innew) && !(order[i] in printed)) { printed[order[i]] = 1; keep(order[i]) }
       }
     }' "$2" "$1" "$1"
 }
@@ -209,8 +268,9 @@ copy_ask_if_exist()
           fi
 
           echo "* Merged your settings into the new \"$TARGET\" (previous version: \"$TARGET.${BACKUP_EXT:-old}\")"
-          if grep -q '^# Settings of the previous version of this file that are not in this version' "$TARGET"; then
-            echo "  NOTE: Some settings no longer exist in the new version, they're kept at the end of the file"
+          if grep -q '^# (Not in the new version of this file, kept from your previous configuration)' "$TARGET"; then
+            echo "  NOTE: Some settings aren't in the new version (obsolete ones, or your own), they're kept and"
+            echo "        marked with \"(Not in the new version of this file...)\", please review them"
           fi
           continue
         fi
