@@ -1,3 +1,9 @@
+Version 1.32 (October 1, 2026)
+------------------------------
+! The entries (and totals) of hosts with multiple IPs doubled on every run
+! New hosts (or an empty log) were never counted
+! When resolving a host failed, its entries were dropped
+
 Version 1.31 (May 9, 2018)
 --------------------------
 ! Fixed (dynamic) host multi IP handling

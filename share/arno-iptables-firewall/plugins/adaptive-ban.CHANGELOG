@@ -1,0 +1,3 @@
+Version 1.04a BETA (October 1, 2026)
+------------------------------------
+! A duplicate ban rule was added on every run with dash as /bin/sh (bash-only ${host//./\.})
