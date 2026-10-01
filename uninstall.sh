@@ -119,6 +119,7 @@ rm -rfv /usr/local/share/arno-iptables-firewall
 rm -fv /usr/local/share/man/man8/arno-iptables-firewall.8.gz
 
 rm -fv /usr/local/share/doc/arno-iptables-firewall/README
+rm -fv /usr/local/share/doc/arno-iptables-firewall/README.md
 
 rm -fv /etc/logrotate.d/arno-iptables-firewall
 
