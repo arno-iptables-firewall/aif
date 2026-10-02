@@ -873,11 +873,15 @@ parse_rule()
     fi
     ;;
 
-  interfaces-srcips-hosts-ports|interfaces-srcips-hosts-protos)
+  interfaces-srcips-hosts-ports|interfaces-srcips-hosts-ports:ANYPORT|interfaces-srcips-hosts-protos)
     interfaces=$(get_ifs "$rule")
     srcips=$(get_ips "$rule")
     hosts=$(get_hosts_ihp "$rule")
-    ports=$(get_ports_ihp "$rule")
+    if [ "$type" = "interfaces-srcips-hosts-ports:ANYPORT" ]; then
+      ports=$(get_ports_ihp "$rule" "$ANYPORT")
+    else
+      ports=$(get_ports_ihp "$rule")
+    fi
     if [ -z "$hosts" -o -z "$ports" ]; then
       parse_rule_warning "$rule"
       return 1

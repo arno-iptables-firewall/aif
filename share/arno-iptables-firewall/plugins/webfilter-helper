@@ -1,0 +1,337 @@
+# The plugin configuration file
+###############################
+PLUGIN_CONF_FILE="webfilter.conf"
+
+# Preinit return value for success
+PLUGIN_RET_VAL=0
+
+# Check sanity of environment
+webfilter_helper_sanity_check()
+{
+  if [ -z "$WEBFILTER_HOST_OPEN_TCP" -a -z "$WEBFILTER_HOST_OPEN_UDP" -a \
+       -z "$WEBFILTER_HOST_OPEN_IP"  -a -z "$WEBFILTER_HOST_OPEN_ICMP" -a \
+       -z "$WEBFILTER_HOST_DENY_TCP" -a -z "$WEBFILTER_HOST_DENY_UDP" -a \
+       -z "$WEBFILTER_HOST_DENY_IP"  -a -z "$WEBFILTER_HOST_DENY_ICMP" ]; then
+    echo "** ERROR: The plugin config file is not (properly) setup!" >&2
+    return 1
+  fi
+
+  # Check whether chain exists
+  if ! ip4tables -nL WEBFILTER_ACL >/dev/null 2>&1; then
+    echo "** ERROR: WEBFILTER_ACL does not exist! **" >&2
+    return 1
+  fi
+
+  return 0
+}
+
+
+webfilter_helper_do_work()
+{
+  local RETVAL=0
+
+  # Flush the WEBFILTER_ACL
+  iptables -F WEBFILTER_ACL
+
+  # Fallback to DROP-policy in case it's not (properly) specified
+  if [ "$WEBFILTER_DENY_POLICY" != "REJECT" ]; then
+    WEBFILTER_DENY_POLICY="DROP"
+  fi
+
+  unset IFS
+  for rule in $WEBFILTER_HOST_DENY_TCP; do
+    if parse_rule "$rule" WEBFILTER_HOST_DENY_TCP "interfaces-srcips-hosts-ports:ANYPORT"; then
+      echo "${INDENT}$(show_if_ip "$interfaces" "$srcips")Denying $hosts for TCP port(s): $ports"
+
+      IFS=' ,'
+      for dhost in `ip_range "$hosts"`; do
+        if ! get_dynamic_host_cached $dhost || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping TCP deny rule(s) for unresolvable host \"$dhost\"! **" >&2
+          RETVAL=1
+          continue
+        fi
+
+        for dhost_ip in $host_ip; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              for srcip in $srcips; do
+                if [ "$WEBFILTER_DENY_LOG" = "1" ]; then
+                  iptables -A WEBFILTER_ACL $(ipt_if -o "$interface") -s $srcip -d $dhost_ip -p tcp --dport $port -m limit --limit 1/m -j LOG \
+                    --log-level $LOGLEVEL --log-prefix "AIF:Webfilter denied: "
+                fi
+
+                iptables -A WEBFILTER_ACL $(ipt_if -o "$interface") -s $srcip -d $dhost_ip -p tcp --dport $port -j $WEBFILTER_DENY_POLICY
+              done
+            done
+          done
+        done
+      done
+    fi
+  done
+
+  unset IFS
+  for rule in $WEBFILTER_HOST_DENY_UDP; do
+    if parse_rule "$rule" WEBFILTER_HOST_DENY_UDP "interfaces-srcips-hosts-ports:ANYPORT"; then
+      echo "${INDENT}$(show_if_ip "$interfaces" "$srcips")Denying $hosts for UDP port(s): $ports"
+
+      IFS=' ,'
+      for dhost in `ip_range "$hosts"`; do
+        if ! get_dynamic_host_cached $dhost || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping UDP deny rule(s) for unresolvable host \"$dhost\"! **" >&2
+          RETVAL=1
+          continue
+        fi
+
+        for dhost_ip in $host_ip; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              for srcip in $srcips; do
+                if [ "$WEBFILTER_DENY_LOG" = "1" ]; then
+                  iptables -A WEBFILTER_ACL $(ipt_if -o "$interface") -s $srcip -d $dhost_ip -p udp --dport $port -m limit --limit 1/m -j LOG \
+                    --log-level $LOGLEVEL --log-prefix "AIF:Webfilter denied: "
+                fi
+
+                iptables -A WEBFILTER_ACL $(ipt_if -o "$interface") -s $srcip -d $dhost_ip -p udp --dport $port -j $WEBFILTER_DENY_POLICY
+              done
+            done
+          done
+        done
+      done
+    fi
+  done
+
+  unset IFS
+  for rule in $WEBFILTER_HOST_DENY_ICMP; do
+    if parse_rule "$rule" WEBFILTER_HOST_DENY_ICMP "interfaces-srcips-hosts"; then
+      echo "${INDENT}$(show_if_ip "$interfaces" "$srcips")Denying $hosts for ICMP requests"
+
+      IFS=' ,'
+      for dhost in `ip_range "$hosts"`; do
+        if ! get_dynamic_host_cached $dhost || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping ICMP deny rule(s) for unresolvable host \"$dhost\"! **" >&2
+          RETVAL=1
+          continue
+        fi
+
+        for dhost_ip in $host_ip; do
+          for interface in $interfaces; do
+            for srcip in $srcips; do
+              if [ "$WEBFILTER_DENY_LOG" = "1" ]; then
+                iptables -A WEBFILTER_ACL $(ipt_if -o "$interface") -s $srcip -d $dhost_ip -p icmp --icmp-type echo-request -m limit --limit 1/m -j LOG \
+                  --log-level $LOGLEVEL --log-prefix "AIF:Webfilter denied: "
+              fi
+
+              iptables -A WEBFILTER_ACL $(ipt_if -o "$interface") -s $srcip -d $dhost_ip -p icmp --icmp-type echo-request -j $WEBFILTER_DENY_POLICY
+            done
+          done
+        done
+      done
+    fi
+  done
+
+  unset IFS
+  for rule in $WEBFILTER_HOST_DENY_IP; do
+    if parse_rule "$rule" WEBFILTER_HOST_DENY_IP "interfaces-srcips-hosts-protos"; then
+      echo "${INDENT}$(show_if_ip "$interfaces" "$srcips")Denying $hosts for IP protocol(s): $protos"
+
+      IFS=' ,'
+      for dhost in `ip_range "$hosts"`; do
+        if ! get_dynamic_host_cached $dhost || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping IP deny rule(s) for unresolvable host \"$dhost\"! **" >&2
+          RETVAL=1
+          continue
+        fi
+
+        for dhost_ip in $host_ip; do
+          for proto in $protos; do
+            for interface in $interfaces; do
+              for srcip in $srcips; do
+                if [ "$WEBFILTER_DENY_LOG" = "1" ]; then
+                  iptables -A WEBFILTER_ACL $(ipt_if -o "$interface") -s $srcip -d $dhost_ip -p $proto -m limit --limit 1/m -j LOG \
+                    --log-level $LOGLEVEL --log-prefix "AIF:Webfilter denied: "
+                fi
+
+                iptables -A WEBFILTER_ACL $(ipt_if -o "$interface") -s $srcip -d $dhost_ip -p $proto -j $WEBFILTER_DENY_POLICY
+              done
+            done
+          done
+        done
+      done
+    fi
+  done
+
+  unset IFS
+  for rule in $WEBFILTER_HOST_OPEN_TCP; do
+    if parse_rule "$rule" WEBFILTER_HOST_OPEN_TCP "interfaces-srcips-hosts-ports:ANYPORT"; then
+      echo "${INDENT}$(show_if_ip "$interfaces" "$srcips")Allowing $hosts for TCP port(s): $ports"
+
+      IFS=' ,'
+      for dhost in `ip_range "$hosts"`; do
+        if ! get_dynamic_host_cached $dhost || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping TCP allow rule(s) for unresolvable host \"$dhost\"! **" >&2
+          RETVAL=1
+          continue
+        fi
+
+        for dhost_ip in $host_ip; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              for srcip in $srcips; do
+                iptables -A WEBFILTER_ACL $(ipt_if -o "$interface") -s $srcip -d $dhost_ip -p tcp --dport $port -j ACCEPT
+              done
+            done
+          done
+        done
+      done
+    fi
+  done
+
+  unset IFS
+  for rule in $WEBFILTER_HOST_OPEN_UDP; do
+    if parse_rule "$rule" WEBFILTER_HOST_OPEN_UDP "interfaces-srcips-hosts-ports:ANYPORT"; then
+      echo "${INDENT}$(show_if_ip "$interfaces" "$srcips")Allowing $hosts for UDP port(s): $ports"
+
+      IFS=' ,'
+      for dhost in `ip_range "$hosts"`; do
+        if ! get_dynamic_host_cached $dhost || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping UDP allow rule(s) for unresolvable host \"$dhost\"! **" >&2
+          RETVAL=1
+          continue
+        fi
+
+        for dhost_ip in $host_ip; do
+          for port in $ports; do
+            for interface in $interfaces; do
+              for srcip in $srcips; do
+                iptables -A WEBFILTER_ACL $(ipt_if -o "$interface") -s $srcip -d $dhost_ip -p udp --dport $port -j ACCEPT
+              done
+            done
+          done
+        done
+      done
+    fi
+  done
+
+  unset IFS
+
+  for rule in $WEBFILTER_HOST_OPEN_ICMP; do
+    if parse_rule "$rule" WEBFILTER_HOST_OPEN_ICMP "interfaces-srcips-hosts"; then
+      echo "${INDENT}$(show_if_ip "$interfaces" "$srcips")Allowing $hosts for ICMP requests"
+
+      IFS=' ,'
+      for dhost in `ip_range "$hosts"`; do
+        if ! get_dynamic_host_cached $dhost || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping ICMP allow rule(s) for unresolvable host \"$dhost\"! **" >&2
+          RETVAL=1
+          continue
+        fi
+
+        for dhost_ip in $host_ip; do
+          for interface in $interfaces; do
+            for srcip in $srcips; do
+              iptables -A WEBFILTER_ACL $(ipt_if -o "$interface") -s $srcip -d $dhost_ip -p icmp --icmp-type echo-request -j ACCEPT
+            done
+          done
+        done
+      done
+    fi
+  done
+
+  unset IFS
+  for rule in $WEBFILTER_HOST_OPEN_IP; do
+    if parse_rule "$rule" WEBFILTER_HOST_OPEN_IP "interfaces-srcips-hosts-protos"; then
+      echo "${INDENT}$(show_if_ip "$interfaces" "$srcips")Allowing $hosts for IP protocol(s): $protos"
+
+      IFS=' ,'
+      for dhost in `ip_range "$hosts"`; do
+        if ! get_dynamic_host_cached $dhost || [ -z "$host_ip" ]; then
+          echo "** WARNING: Skipping IP allow rule(s) for unresolvable host \"$dhost\"! **" >&2
+          RETVAL=1
+          continue
+        fi
+
+        for dhost_ip in $host_ip; do
+          for proto in $protos; do
+            for interface in $interfaces; do
+              for srcip in $srcips; do
+                iptables -A WEBFILTER_ACL $(ipt_if -o "$interface") -s $srcip -d $dhost_ip -p $proto -j ACCEPT
+              done
+            done
+          done
+        done
+      done
+    fi
+  done
+
+  # Set default policy
+  if [ -z "$WEBFILTER_HOST_OPEN_TCP" ]; then
+    iptables -A WEBFILTER_ACL -p tcp -j ACCEPT
+  else
+    if [ "$WEBFILTER_DENY_LOG" != "0" ]; then
+      iptables -A WEBFILTER_ACL -p tcp -m limit --limit 12/m -j LOG \
+        --log-level $LOGLEVEL --log-prefix "AIF:Webfilter denied: "
+    fi
+
+    iptables -A WEBFILTER_ACL -p tcp -j $WEBFILTER_DENY_POLICY
+  fi
+
+  if [ -z "$WEBFILTER_HOST_OPEN_UDP" ]; then
+    iptables -A WEBFILTER_ACL -p udp -j ACCEPT
+  else
+    if [ "$WEBFILTER_DENY_LOG" != "0" ]; then
+      iptables -A WEBFILTER_ACL -p udp -m limit --limit 12/m -j LOG \
+        --log-level $LOGLEVEL --log-prefix "AIF:Webfilter denied: "
+    fi
+
+    iptables -A WEBFILTER_ACL -p udp -j $WEBFILTER_DENY_POLICY
+  fi
+
+  if [ -z "$WEBFILTER_HOST_OPEN_ICMP" ]; then
+    iptables -A WEBFILTER_ACL -p icmp --icmp-type echo-request -j ACCEPT
+  else
+    if [ "$WEBFILTER_DENY_LOG" != "0" ]; then
+      iptables -A WEBFILTER_ACL -p icmp --icmp-type echo-request -m limit --limit 12/m -j LOG \
+        --log-level $LOGLEVEL --log-prefix "AIF:Webfilter denied: "
+    fi
+
+    iptables -A WEBFILTER_ACL -p icmp --icmp-type echo-request -j $WEBFILTER_DENY_POLICY
+  fi
+
+  # Drop the rest ("Other" IP protocols always need to be specified explicitly)
+  if [ "$WEBFILTER_DENY_LOG" != "0" ]; then
+    iptables -A WEBFILTER_ACL -m limit --limit 12/m -j LOG \
+      --log-level $LOGLEVEL --log-prefix "AIF:Webfilter denied: "
+  fi
+  iptables -A WEBFILTER_ACL -j $WEBFILTER_DENY_POLICY
+
+  return $RETVAL
+}
+
+
+############
+# Mainline #
+############
+
+# Check where to find the config file
+CONF_FILE=""
+if [ -n "$PLUGIN_CONF_PATH" ]; then
+  CONF_FILE="$PLUGIN_CONF_PATH/$PLUGIN_CONF_FILE"
+fi
+
+# Check if the config file exists
+if [ ! -f "$CONF_FILE" ]; then
+  echo "** ERROR: Config file \"$CONF_FILE\" not found! **" >&2
+  PLUGIN_RET_VAL=1
+else
+  # Source the plugin config file
+  . "$CONF_FILE"
+
+  # Only proceed if environment ok
+  if ! webfilter_helper_sanity_check; then
+    PLUGIN_RET_VAL=1
+  else
+    if ! webfilter_helper_do_work; then
+      PLUGIN_RET_VAL=1
+    fi
+  fi
+fi
